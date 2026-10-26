@@ -14,7 +14,7 @@
 - Done: criterios cumplidos y entregable comprobado; cerrar Issue sólo entonces.
 - Cada Issue requiere responsable, milestone, prioridad, resultado verificable y referencias a evidencias.
 - Las fechas en descripciones son fechas objetivo del equipo; los hitos mantienen la fecha de milestone.
-- Los cambios de alcance se registran en PM-001 y requieren validación apropiada.
+- Los cambios de alcance se registran en PM-001 y los coordina Leonel con el equipo. La evaluación docente ocurre sobre los entregables, no se necesita aprobación previa para empezar.
 
 ## Git y colaboración
 - Rama `main` para entregables integrados.

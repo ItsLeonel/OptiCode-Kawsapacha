@@ -1,6 +1,6 @@
 # Kawsapacha — Propuesta de alcance V1
 
-> **Estado:** PROPUESTA, pendiente de revisión del equipo y validación del docente/cliente. No equivale a aprobación ni al cumplimiento de PM-001.
+> **Estado:** Alcance de trabajo definido por el Project Manager para comenzar V1 el 26/10/2026. La evaluación de esta V1 corresponde a los entregables. El equipo debe conocer esta delimitación y estimarla; no se espera una aprobación previa del profesor.
 
 ## Visión general
 Kawsapacha es una aplicación web educativa y gamificada de huertos medicinales comunitarios en Ecuador. El producto completo incluye comunidades, huertos, catálogo, bodega, actividades y saberes tradicionales, calendario lunar, huerto virtual, recompensas/ranking y foro.
@@ -14,7 +14,7 @@ Kawsapacha es una aplicación web educativa y gamificada de huertos medicinales 
 6. Producto operativo.
 7. README, repositorio e informe final `Proyecto-Version1-OptiCode.pdf` según plantilla Word oficial.
 
-## Cinco módulos funcionales propuestos para V1
+## Cinco módulos funcionales seleccionados para V1
 - **Usuarios:** registro, login, logout y roles básicos.
 - **Comunidades:** crear y editar, responsable y participantes.
 - **Huertos reales:** creación y edición, ubicación y características; selección provincial con **mapa interactivo de Ecuador** y alternativa accesible.
@@ -24,14 +24,16 @@ Kawsapacha es una aplicación web educativa y gamificada de huertos medicinales 
 ## Demostración propuesta
 Crear cuenta → iniciar sesión → crear comunidad → registrar huerto con provincia en mapa → explorar catálogo → registrar planta con foto → verla en parcela del huerto 2D → consultar ficha → cerrar/iniciar sesión y verificar persistencia.
 
-## Funcionalidades del producto general sujetas a planificación y aprobación
-Bitácora agrícola ampliada, bodega, calendario agrícola/lunar, foro y moderación, misiones, insignias, niveles, ranking, video e historia visual extendida. **Estos requisitos no se eliminan ni se declaran opcionales para el proyecto completo.** Debe confirmarse con el docente si requieren funcionalidad mínima en V1.
+## Requisitos del producto completo planificados para incrementos posteriores
+Bitácora agrícola ampliada, bodega, calendario agrícola/lunar, foro y moderación, misiones, insignias, niveles, ranking, video e historia visual extendida. **Estos requisitos no se eliminan ni se declaran opcionales para el producto completo.** El objetivo de la primera entrega es el incremento inicial de cinco módulos; si la rúbrica de evaluación especifica una cobertura distinta, se documentará como cambio de alcance.
 
-## Decisiones que deben cerrarse en PM-001
-- [ ] Aprobación del equipo de la lista de cinco módulos.
-- [ ] Confirmación docente/cliente de módulos obligatorios para V1, particularmente bodega, calendario, foro, gamificación/ranking y video.
-- [ ] Acordar esfuerzo, responsables y prioridades verificables.
-- [ ] Convertir la propuesta en alcance aprobado y actualizar las HU.
+## Ejecución sin bloqueos de aprobación
+- [x] Leonel y la planificación de OptiCode definieron cinco módulos como primera entrega funcional.
+- [ ] Comunicar la delimitación y estimaciones a los demás integrantes.
+- [ ] Leonardo transcribe la delimitación en historias de usuario y documenta los compromisos concretos.
+- [ ] Verificar los entregables contra la consigna y cualquier rúbrica facilitada por el docente.
+
+**No existe un requisito conocido de aprobación previa del profesor para comenzar la V1.**
 
 ## Responsables
 - Leonel Morales — PM, frontend, revisión y entrega oficial.
@@ -46,4 +48,4 @@ Bitácora agrícola ampliada, bodega, calendario agrícola/lunar, foro y moderac
 - M3 (08/11/2026): pruebas, documentación y entrega.
 - 10/11/2026: demostración.
 
-**Referencia de decisión:** Issue #1 (PM-001). Leonardo actualizará este documento tras la validación formal.
+**Referencia de decisión:** Issue #1 (PM-001). Leonardo mantiene y actualiza este documento durante la ejecución.

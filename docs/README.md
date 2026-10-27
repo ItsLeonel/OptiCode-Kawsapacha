@@ -3,7 +3,7 @@
 **Responsable de consolidación y mantenimiento:** Leonardo Lugmaña.
 
 ## Organización propuesta
-- `analisis/`: alcance V1 y decisiones del proyecto; el documento actual es una propuesta pendiente de aprobación.
+- `analisis/`: alcance V1 y decisiones del proyecto; el alcance operativo de cinco módulos se definió para comenzar a desarrollar; Leonardo mantendrá el documento actualizado.
 - `historias-usuario/`: historias según plantilla docente.
 - `arquitectura/`: arquitectura, DER, contratos API y tecnologías entregados por Ronny.
 - `diseno/`: prototipos, capturas y guía UI/UX de Dylan.

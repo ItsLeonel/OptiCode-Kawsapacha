@@ -1,16 +1,16 @@
 # Asignación de responsabilidades — Kawsapacha V1
 
-**Fecha de revisión:** 01/11/2026
+**Fecha de revisión y verificación de asignaciones:** 01/11/2026
 
 ## Roles y Issues
 
 | Integrante | Rol | Issues | Asignación en GitHub |
 |---|---|---|---|
 | Leonel Morales | Project Manager y frontend | #1 PM-001, #6 DEV-001, #8 V1-01, #9 V1-02, #10 V1-03, #11 V1-04, #12 V1-05, #13 INT-001, #16 PM-002 | `ItsLeonel` — asignado |
-| Leonardo Lugmaña | Analista y responsable **de toda la documentación**, incluido informe final y README consolidado | #2 ANA-001, #15 DOC-002 | **Pendiente de asociar a su cuenta GitHub** |
+| Leonardo Lugmaña | Analista y responsable **de toda la documentación**, incluido informe final y README consolidado | #2 ANA-001, #15 DOC-002 | \`kened-leonardo\` — asignado |
 | Dylan Maldonado | UI/UX en Figma, mapa y jardín virtual | #3 UI-001 | `DylanIMM` — asignado |
-| Ronny Veloz | Backend, base de datos, arquitectura y servicios de todos los módulos V1 | #4 ARQ-001, #7 DEV-002, **corresponsable** de #8 V1-01, #9 V1-02, #10 V1-03, #11 V1-04, #12 V1-05, #13 INT-001 | **Pendiente de asociar a su cuenta GitHub** |
-| Santiago Guamán | QA, casos, ejecución de pruebas y resultados con capturas | #5 QA-001, #14 QA-002 | **Pendiente de asociar a su cuenta GitHub** |
+| Ronny Veloz | Backend, base de datos, arquitectura y servicios de todos los módulos V1 | #4 ARQ-001, #7 DEV-002, **corresponsable** de #8 V1-01, #9 V1-02, #10 V1-03, #11 V1-04, #12 V1-05, #13 INT-001 | \`Rodni15\` — asignado |
+| Santiago Guamán | QA, casos, ejecución de pruebas y resultados con capturas | #5 QA-001, #14 QA-002 | \`TonyTiago\` — asignado |
 
 ## Responsabilidad compartida de implementación
 
@@ -29,11 +29,11 @@
 
 ## Comprobaciones pendientes
 
-- [ ] Identificar exactamente los nombres de usuario GitHub de Leonardo, Ronny y Santiago.
-- [ ] Asignar Leonardo a #2 y #15.
-- [ ] Asignar Ronny a #4 y #7, y añadirlo como corresponsable a #8–#13 sin quitar a Leonel.
-- [ ] Asignar Santiago a #5 y #14.
+- [x] Identificar exactamente las cuentas: Leonardo `kened-leonardo`, Ronny `Rodni15` y Santiago `TonyTiago`.
+- [x] Asignar Leonardo a #2 y #15.
+- [x] Asignar Ronny a #4 y #7, y añadirlo como corresponsable a #8–#13 sin quitar a Leonel.
+- [x] Asignar Santiago a #5 y #14.
 - [ ] Revisar el estado del tablero Projects; no asumir que los Issues se movieron automáticamente.
 - [ ] Revisar que documentación, diseño, código y pruebas se integren antes de marcar un Issue Done.
 
-**Nota:** La aceptación de una invitación al repositorio no asigna automáticamente los Issues. No inventar nombres de usuario ni marcar la asignación como completa antes de confirmarla.
+**Verificación:** los 16 Issues tienen asignación válida en GitHub. Las funciones compartidas de implementación #8–#13 están asignadas a Leonel y Ronny. El estado del tablero Projects y la finalización de los entregables se verifican por separado.

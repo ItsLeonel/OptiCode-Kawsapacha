@@ -73,7 +73,7 @@ Más detalles en [frontend/README.md](frontend/README.md).
 
 | Fecha objetivo | Resultado |
 |---|---|
-| **2 nov.** | Diseño prioritario, primeras historias, arquitectura acordada y proyectos frontend/backend funcionando localmente. |
+| **4 nov.** | Diseño prioritario, primeras historias, arquitectura acordada y proyectos frontend/backend funcionando localmente. |
 | **6 nov.** | Flujo principal de los cinco módulos desarrollado e integrado. |
 | **8 nov.** | Pruebas ejecutadas, correcciones y documentación final consolidada. |
 | **10 nov.** | Demostración y entrega de V1. |

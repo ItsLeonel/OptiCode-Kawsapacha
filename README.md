@@ -32,10 +32,12 @@ Los módulos de implementación [#8–#13](https://github.com/ItsLeonel/OptiCode
 
 ### Documentación y desarrollo
 
-- [Alcance de V1](docs/analisis/alcance-v1.md)
-- [Reglas de trabajo](docs/organizacion/REGLAS-DE-TRABAJO.md)
-- [Reparto y responsables](docs/organizacion/REPARTO-DE-TAREAS-V1.md)
-- [Organización documental](docs/README.md)
+> Los documentos siguientes están en el [PR #17](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/17), pendiente de revisión e integración a `main`.
+
+- [Alcance de V1](https://github.com/ItsLeonel/OptiCode-Kawsapacha/blob/docs/organizacion-v1/docs/analisis/alcance-v1.md)
+- [Reglas de trabajo](https://github.com/ItsLeonel/OptiCode-Kawsapacha/blob/docs/organizacion-v1/docs/organizacion/REGLAS-DE-TRABAJO.md)
+- [Reparto y responsables](https://github.com/ItsLeonel/OptiCode-Kawsapacha/blob/docs/organizacion-v1/docs/organizacion/REPARTO-DE-TAREAS-V1.md)
+- [Organización documental](https://github.com/ItsLeonel/OptiCode-Kawsapacha/blob/docs/organizacion-v1/docs/README.md)
 - [Primer frontend (PR #18)](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/18): React + TypeScript + Vite; **prototipo**, sin backend real todavía.
 
 **Importante:** no es necesario esperar a que diseño, historias o backend estén completos para empezar. Leonardo y Dylan trabajan en paralelo, mientras Ronny y Leonel acuerdan cuanto antes las API. La arquitectura final del backend se confirma en #4.

@@ -7,10 +7,10 @@
 | Integrante | Rol | Issues | Asignación en GitHub |
 |---|---|---|---|
 | Leonel Morales | Project Manager y frontend | #1 PM-001, #6 DEV-001, #8 V1-01, #9 V1-02, #10 V1-03, #11 V1-04, #12 V1-05, #13 INT-001, #16 PM-002 | `ItsLeonel` — asignado |
-| Leonardo Lugmaña | Analista y responsable **de toda la documentación**, incluido informe final y README consolidado | #2 ANA-001, #15 DOC-002 | \`kened-leonardo\` — asignado |
+| Leonardo Lugmaña | Analista y responsable **de toda la documentación**, incluido informe final y README consolidado | #2 ANA-001, #15 DOC-002 | `kened-leonardo` — asignado |
 | Dylan Maldonado | UI/UX en Figma, mapa y jardín virtual | #3 UI-001 | `DylanIMM` — asignado |
-| Ronny Veloz | Backend, base de datos, arquitectura y servicios de todos los módulos V1 | #4 ARQ-001, #7 DEV-002, **corresponsable** de #8 V1-01, #9 V1-02, #10 V1-03, #11 V1-04, #12 V1-05, #13 INT-001 | \`Rodni15\` — asignado |
-| Santiago Guamán | QA, casos, ejecución de pruebas y resultados con capturas | #5 QA-001, #14 QA-002 | \`TonyTiago\` — asignado |
+| Ronny Veloz | Backend, base de datos, arquitectura y servicios de todos los módulos V1 | #4 ARQ-001, #7 DEV-002, **corresponsable** de #8 V1-01, #9 V1-02, #10 V1-03, #11 V1-04, #12 V1-05, #13 INT-001 | `Rodni15` — asignado |
+| Santiago Guamán | QA, casos, ejecución de pruebas y resultados con capturas | #5 QA-001, #14 QA-002 | `TonyTiago` — asignado |
 
 ## Responsabilidad compartida de implementación
 

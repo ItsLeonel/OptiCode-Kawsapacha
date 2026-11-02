@@ -1,7 +1,8 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import EcuadorMap from './EcuadorMap'
+import AuthPage from './features/auth/AuthPage'
 
-type Screen = 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual'
+type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual'
 type Plant = { id: string; name: string; latin: string; photo: string; date: string }
 const SPECIES = [
   {name:'Romero', latin:'Salvia rosmarinus', icon:'🌿'},
@@ -23,7 +24,7 @@ const SCREENS: {name:Screen; icon:string; subtitle:string}[] = [
 ]
 
 export default function App() {
-  const [screen,setScreen] = useState<Screen>('Inicio')
+  const [screen,setScreen] = useState<Screen>('Bienvenida')
   const [community,setCommunity] = useState('')
   const [contact,setContact] = useState('')
   const [draftCommunity,setDraftCommunity] = useState('Comunidad Jardín Andino')
@@ -79,15 +80,20 @@ export default function App() {
   const ready=Boolean(community && garden)
   const title=screen==='Inicio'?'Tu espacio para cultivar':screen
 
+  if (screen === 'Bienvenida' || screen === 'Usuarios') {
+    return <AuthPage onExploreDemo={(destination = 'Inicio') => goto(destination)}/>
+  }
+
   return <div className="shell">
     <aside className="sidebar">
-      <button className="identity" onClick={()=>goto('Inicio')} aria-label="Ir al inicio">
+      <button className="identity" onClick={()=>goto('Bienvenida')} aria-label="Volver a la bienvenida de Kawsapacha">
         <span className="brand-mark">✺</span><span><strong>Kawsapacha</strong><small>MI HUERTO VIVO</small></span>
       </button>
       <div className="nav-caption">TU ESPACIO</div>
       <nav aria-label="Navegación principal">
         {SCREENS.map(item=><button key={item.name} type="button"
           className={`nav-item ${screen===item.name?'active':''}`}
+          aria-label={item.name}
           aria-current={screen===item.name?'page':undefined}
           onClick={()=>goto(item.name)}>
           <span className="nav-icon">{item.icon}</span><span>{item.name}</span>
@@ -105,10 +111,10 @@ export default function App() {
     <main className="main">
       <header className="topbar">
         <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>
-        <span className="user-pill"><span className="user-dot">O</span> OptiCode · Demo</span>
+        <span className="user-pill"><span className="user-dot" aria-hidden="true">V</span> Modo visitante · Sin sesión</span>
       </header>
       <div className="page">
-        <div className="prototype-alert"><strong>Prototipo frontend inicial:</strong> los registros y las imágenes solo viven en esta sesión. Aún no hay autenticación real, API ni base de datos conectadas.</div>
+        <div className="prototype-alert"><strong>Modo visitante, sin sesión iniciada:</strong> los registros y las imágenes solo viven en esta visita. Aún no hay autenticación real, API ni base de datos conectadas.</div>
         <div className="heading"><div><span className="eyebrow">Kawsapacha · Versión 1</span><h1>{title}</h1><p>{SCREENS.find(s=>s.name===screen)?.subtitle}</p></div>
           {screen!=='Huerto virtual'?<button className="cta small" onClick={()=>goto('Huerto virtual')}>Explorar mi huerto <span aria-hidden>↗</span></button>:null}
         </div>
@@ -134,14 +140,6 @@ export default function App() {
             </div>
           </section>
         </>}
-
-        {screen==='Usuarios'&&<section className="card narrow">
-          <div className="card-icon">♙</div><h2>Usuarios y acceso</h2>
-          <p>Este módulo utilizará autenticación real y autorización desde el backend. El prototipo no simula credenciales ni almacena contraseñas.</p>
-          <div className="info-row"><span>Responsables</span><strong>Leonel · Ronny</strong></div>
-          <div className="info-row"><span>Estado</span><strong>Interfaz pendiente de integración</strong></div>
-          <p className="muted">Se implementarán registro, inicio/cierre de sesión y roles definidos en las historias de usuario.</p>
-        </section>}
 
         {screen==='Comunidades'&&<div className="two-col">
           <section className="card"><span className="eyebrow">01 · PERSONAS</span><h2>Crear una comunidad</h2><p>Una familia, un grupo de vecinos o un colectivo puede formar una comunidad de siembra.</p>

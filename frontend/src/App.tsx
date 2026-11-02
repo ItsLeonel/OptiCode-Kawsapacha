@@ -1,9 +1,14 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import EcuadorMap from './EcuadorMap'
 import AuthPage from './features/auth/AuthPage'
+import MyGardenPage from './features/my-garden/MyGardenPage'
+import GardenNavigation from './features/my-garden/GardenNavigation'
+import GardenHistory from './features/my-garden/GardenHistory'
+import PlantPassport from './features/my-garden/PlantPassport'
+import { PLOT_COUNT, type GardenAction, type GardenDestination, type GardenPlant } from './features/my-garden/garden'
 
-type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual'
-type Plant = { id: string; name: string; latin: string; photo: string; date: string }
+type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual' | 'Mi historia'
+type Plant = GardenPlant
 const SPECIES = [
   {name:'Romero', latin:'Salvia rosmarinus', icon:'🌿'},
   {name:'Manzanilla', latin:'Matricaria chamomilla', icon:'🌼'},
@@ -15,12 +20,13 @@ const SPECIES = [
   {name:'Llantén', latin:'Plantago major', icon:'🌾'}
 ]
 const SCREENS: {name:Screen; icon:string; subtitle:string}[] = [
-  {name:'Inicio',icon:'⌂',subtitle:'Resumen general'},
+  {name:'Inicio',icon:'⌂',subtitle:'Tu huerto real y tu huerto digital'},
   {name:'Usuarios',icon:'♙',subtitle:'Acceso y perfiles'},
   {name:'Comunidades',icon:'♧',subtitle:'Personas que cultivan'},
   {name:'Huertos reales',icon:'⌖',subtitle:'Ubicación y terreno'},
   {name:'Plantas medicinales',icon:'❃',subtitle:'Explora el catálogo'},
-  {name:'Huerto virtual',icon:'✿',subtitle:'Tu jardín interactivo'}
+  {name:'Huerto virtual',icon:'✿',subtitle:'Una fotografía real para tu parcela digital'},
+  {name:'Mi historia',icon:'▤',subtitle:'Bitácora de cultivo y Mi camino verde'}
 ]
 
 export default function App() {
@@ -42,6 +48,13 @@ export default function App() {
   const [detail,setDetail] = useState<Plant|null>(null)
   const [query,setQuery] = useState('')
   const [feedback,setFeedback] = useState('')
+  const [selectedPlot,setSelectedPlot] = useState<number|null>(null)
+
+  useEffect(() => {
+    if (screen === 'Bienvenida' || screen === 'Usuarios') return
+    document.querySelector<HTMLElement>('[data-screen-heading]')?.focus({ preventScroll: true })
+    window.scrollTo(0, 0)
+  }, [screen])
 
   function goto(next: Screen) {setScreen(next);setFeedback('')}
   function saveCommunity(e:FormEvent) {
@@ -68,78 +81,56 @@ export default function App() {
     e.preventDefault()
     if (!community || !garden) {setFeedback('Primero crea una comunidad y su huerto.');return}
     if (!picture || !preview) {setFeedback('Selecciona una fotografía válida para registrar la planta.');return}
+    const nextPlot = selectedPlot !== null && !plants.some(plant => plant.plot === selectedPlot)
+      ? selectedPlot
+      : Array.from({ length: PLOT_COUNT }, (_, plotIndex) => plotIndex).find(plotIndex => !plants.some(plant => plant.plot === plotIndex))
+    if (nextPlot === undefined) {setFeedback('Las seis parcelas están ocupadas. Puedes consultar sus Pasaportes Vivos.');return}
     const s=SPECIES.find(x=>x.name===species)!
-    const record:Plant={id:`${Date.now()}-${Math.random()}`,name:s.name,latin:s.latin,photo:preview,date:new Date().toLocaleDateString('es-EC')}
+    const record:Plant={id:`${Date.now()}-${Math.random()}`,name:s.name,latin:s.latin,photo:preview,date:new Date().toLocaleDateString('es-EC'),plot:nextPlot}
     setPlants(existing=>[...existing,record]);setDetail(record);setPicture(null);setPreview('')
+    setSelectedPlot(null)
     setFeedback('¡Tu planta aparece en el huerto! Registro temporal; falta conectarlo al backend.')
     const input=document.getElementById('plant-photo') as HTMLInputElement|null
     if(input) input.value=''
   }
   function beginCultivation(name:string) {setSpecies(name);setDetail(null);goto('Huerto virtual')}
+  function navigateGarden(destination: GardenDestination) {
+    const destinations = { garden: 'Inicio', community: 'Comunidades', plants: 'Plantas medicinales', history: 'Mi historia' } as const
+    goto(destinations[destination])
+  }
+  function registerInPlot(plot?: number) {setSelectedPlot(plot ?? null);setDetail(null);goto('Huerto virtual')}
+  function gardenAction(action: GardenAction) {
+    if (action === 'register') registerInPlot()
+    else if (action === 'real-garden') goto('Huertos reales')
+    else if (action === 'logbook') goto('Mi historia')
+    else if (plants.length) setDetail(plants[plants.length - 1])
+    else {registerInPlot();setFeedback('Tu Pasaporte Vivo comienza con una fotografía. Registra tu primera planta para consultarlo.')}
+  }
   const visible=SPECIES.filter(s=>`${s.name} ${s.latin}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   const ready=Boolean(community && garden)
-  const title=screen==='Inicio'?'Tu espacio para cultivar':screen
+  const title=screen==='Comunidades'?'Comunidad':screen==='Plantas medicinales'?'Descubrir plantas':screen==='Huerto virtual'?'Registrar planta':screen
+  const activeNavigation: GardenDestination = screen === 'Comunidades' ? 'community' : screen === 'Plantas medicinales' ? 'plants' : screen === 'Mi historia' ? 'history' : 'garden'
 
   if (screen === 'Bienvenida' || screen === 'Usuarios') {
     return <AuthPage onExploreDemo={(destination = 'Inicio') => goto(destination)}/>
   }
 
-  return <div className="shell">
-    <aside className="sidebar">
-      <button className="identity" onClick={()=>goto('Bienvenida')} aria-label="Volver a la bienvenida de Kawsapacha">
-        <span className="brand-mark">✺</span><span><strong>Kawsapacha</strong><small>MI HUERTO VIVO</small></span>
-      </button>
-      <div className="nav-caption">TU ESPACIO</div>
-      <nav aria-label="Navegación principal">
-        {SCREENS.map(item=><button key={item.name} type="button"
-          className={`nav-item ${screen===item.name?'active':''}`}
-          aria-label={item.name}
-          aria-current={screen===item.name?'page':undefined}
-          onClick={()=>goto(item.name)}>
-          <span className="nav-icon">{item.icon}</span><span>{item.name}</span>
-          {item.name==='Huerto virtual'&&plants.length>0?<span className="nav-count">{plants.length}</span>:null}
-        </button>)}
-      </nav>
-      <div className="sidebar-bottom">
-        <div className="leaf-illustration">🌱</div>
-        <strong>La vida florece en comunidad</strong>
-        <p>La historia de cada planta comienza con una acción real.</p>
-      </div>
-      <p className="sidebar-footer">OptiCode · EPN 2026B</p>
-    </aside>
-
-    <main className="main">
+  return <div className="garden-shell">
+    <GardenNavigation active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
+    {screen === 'Inicio' ? <MyGardenPage plants={plants} community={community} garden={garden} province={savedProvince} selectedPlot={selectedPlot} onSelect={setDetail} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden}/>
+      : <main className="main garden-module">
       <header className="topbar">
         <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>
         <span className="user-pill"><span className="user-dot" aria-hidden="true">V</span> Modo visitante · Sin sesión</span>
       </header>
       <div className="page">
         <div className="prototype-alert"><strong>Modo visitante, sin sesión iniciada:</strong> los registros y las imágenes solo viven en esta visita. Aún no hay autenticación real, API ni base de datos conectadas.</div>
-        <div className="heading"><div><span className="eyebrow">Kawsapacha · Versión 1</span><h1>{title}</h1><p>{SCREENS.find(s=>s.name===screen)?.subtitle}</p></div>
-          {screen!=='Huerto virtual'?<button className="cta small" onClick={()=>goto('Huerto virtual')}>Explorar mi huerto <span aria-hidden>↗</span></button>:null}
+        <div className="heading"><div><span className="eyebrow">Kawsapacha · Versión 1</span><h1 tabIndex={-1} data-screen-heading>{title}</h1><p>{SCREENS.find(s=>s.name===screen)?.subtitle}</p></div>
+          <button className="cta small" onClick={()=>goto('Inicio')}>Volver a Mi jardín <span aria-hidden>↗</span></button>
         </div>
         {feedback?<div className="feedback" role="status">{feedback}</div>:null}
 
-        {screen==='Inicio'&& <>
-          <section className="hero">
-            <div><span className="hero-tag">🌱 Cultiva · Aprende · Comparte</span><h2>La naturaleza tiene<br/>una historia que contar.</h2><p>Construye un huerto medicinal, documenta tus plantas con fotografías reales y descubre cómo florece tu jardín digital.</p>
-              <button className="cta light" onClick={()=>goto(community?'Huertos reales':'Comunidades')}>{community?'Continuar mi huerto':'Crear mi comunidad'} <span aria-hidden>↗</span></button>
-            </div><div className="hero-art" aria-hidden="true"><span>🌿</span><span>🌼</span><span>🪴</span></div>
-          </section>
-          <section className="stats">
-            <div className="stat"><span>Comunidades</span><strong>{community?1:0}</strong><small>Tu participación</small></div>
-            <div className="stat"><span>Huertos</span><strong>{garden?1:0}</strong><small>Espacios registrados</small></div>
-            <div className="stat"><span>Plantas</span><strong>{plants.length}</strong><small>Registradas con foto</small></div>
-          </section>
-          <section className="section"><div className="section-heading"><div><span className="eyebrow">TU CAMINO VERDE</span><h2>Comienza en tres pasos</h2></div></div>
-            <div className="three-steps">
-              {([{label:'01',icon:'♧',title:'Forma tu comunidad',text:'Registra a las personas que cultivarán contigo.',action:'Comunidades'},
-                  {label:'02',icon:'⌖',title:'Ubica tu huerto',text:'Selecciona tu provincia en el mapa del Ecuador.',action:'Huertos reales'},
-                  {label:'03',icon:'✿',title:'Hazlo florecer',text:'Fotografía tu planta y colócala en una parcela.',action:'Huerto virtual'}] as const)
-                .map(card=><button className="step-card" key={card.label} onClick={()=>goto(card.action)}><span className="step-top"><span>{card.label}</span><span>{card.icon}</span></span><strong>{card.title}</strong><p>{card.text}</p><span className="step-arrow">Explorar ↗</span></button>)}
-            </div>
-          </section>
-        </>}
+        {screen === 'Mi historia' && <GardenHistory plants={plants} onRegister={() => registerInPlot()} onSelect={setDetail} onRealGarden={() => goto('Huertos reales')}/>}
 
         {screen==='Comunidades'&&<div className="two-col">
           <section className="card"><span className="eyebrow">01 · PERSONAS</span><h2>Crear una comunidad</h2><p>Una familia, un grupo de vecinos o un colectivo puede formar una comunidad de siembra.</p>
@@ -190,7 +181,7 @@ export default function App() {
             <section className="card garden-card">
               <div className="garden-sky"><span>☀</span><span>Un lugar para crecer</span></div>
               <div className="plot-grid">
-                {Array.from({length:6},(_,i)=>{const plant=plants[i];return <button key={i} className={`plot ${plant?'occupied':''}`} onClick={()=>plant?setDetail(plant):setDetail(null)}
+                {Array.from({length:PLOT_COUNT},(_,i)=>{const plant=plants.find(record=>record.plot===i);return <button key={i} className={`plot ${plant?'occupied':''}`} onClick={()=>plant?setDetail(plant):setSelectedPlot(i)}
                   aria-label={plant?`Abrir ficha de ${plant.name}`:`Parcela vacía ${i+1}`}>
                   {plant?<><img src={plant.photo} alt={plant.name}/><span className="plot-title">{plant.name}</span></>:<><span className="plot-empty">＋</span><small>Parcela {i+1}</small></>}
                 </button>})}
@@ -199,22 +190,23 @@ export default function App() {
             </section>
             <div className="garden-side">
               <section className="card"><span className="eyebrow">REGISTRA UNA PLANTA</span><h2>Haz florecer tu jardín</h2>
+                <p>{selectedPlot === null ? 'Se utilizará la primera parcela disponible.' : `Destino: parcela ${selectedPlot + 1}.`}</p>
                 <form onSubmit={addPlant}>
                   <label className="field">Especie medicinal<select value={species} onChange={e=>setSpecies(e.target.value)}>{SPECIES.map(s=><option key={s.name} value={s.name}>{s.name}</option>)}</select></label>
                   <label className="field">Fotografía de tu planta <span className="muted">(JPG, PNG, WebP · máx. 3 MB)</span>
                     <input id="plant-photo" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={choosePicture}/>
                   </label>
                   {preview?<img className="preview-image" src={preview} alt="Vista previa de planta seleccionada"/>:null}
-                  <button type="submit" className="cta" disabled={!ready||plants.length>=6}>Añadir a mi huerto ↗</button>
-                  {!ready&&<p className="tiny">Primero crea comunidad y huerto. Después podrás añadir plantas.</p>}
-                  {plants.length>=6&&<p className="tiny">Las seis parcelas iniciales están ocupadas.</p>}
+                  <button type="submit" className="cta" disabled={!ready||plants.length>=PLOT_COUNT}>Añadir a mi huerto ↗</button>
+                  {!ready&&<div className="garden-registration-steps"><span>Primero vincula tu comunidad y un huerto real para registrar la planta.</span><button type="button" className="outline" onClick={() => goto(community ? 'Huertos reales' : 'Comunidades')}>{community ? 'Registrar mi huerto real' : 'Crear mi comunidad'} →</button></div>}
+                  {plants.length>=PLOT_COUNT&&<p className="tiny">Las seis parcelas iniciales están ocupadas.</p>}
                 </form>
               </section>
-              {detail&&<section className="card passport"><span className="eyebrow">PASAPORTE VIVO · PRELIMINAR</span><h2>{detail.name}</h2><img src={detail.photo} alt={`Fotografía registrada de ${detail.name}`}/><p><em>{detail.latin}</em></p><p>Registrada: {detail.date}</p><p className="tiny">El historial de crecimiento y su persistencia se integrarán en los siguientes desarrollos.</p></section>}
             </div>
           </div>
         </>}
       </div>
-    </main>
+    </main>}
+    <PlantPassport plant={detail} onClose={() => setDetail(null)} onHistory={() => {setDetail(null);goto('Mi historia')}}/>
   </div>
 }

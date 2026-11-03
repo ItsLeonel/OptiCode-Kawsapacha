@@ -46,7 +46,7 @@
 .garden-welcome h1 .garden-icon { width: 35px; height: 35px; color: #b8eb43; }
 .garden-welcome h1:focus { outline: none; }
 .garden-welcome p { font-size: 17px; line-height: 1.5; margin: 0; max-width: 570px; text-shadow: 0 1px 9px #082416; }
-.garden-territory { display: grid; grid-template-columns: 24px auto; gap: 3px 8px; align-items: center; flex-shrink: 0; padding: 12px 15px; border: 1px solid #dbedaf66; border-radius: 18px; background: #0b3325c4; font-size: 12px; backdrop-filter: blur(8px); }
+.garden-territory { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 3px 8px; align-items: center; flex-shrink: 0; max-width: 350px; padding: 12px 15px; border: 1px solid #dbedaf66; border-radius: 18px; background: #0b3325c4; font-size: 12px; backdrop-filter: blur(8px); overflow-wrap: anywhere; }
 .garden-territory .garden-icon { color: #b9df64; }
 .garden-territory small { grid-column: 2; font-size: 10px; color: #d6e4bb; }
 .garden-world-content { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 285px; gap: 24px; align-items: center; }
@@ -166,7 +166,7 @@
   .garden-sidebar { position: relative; height: auto; padding: 15px 20px 10px; gap: 14px; }
   .garden-sidebar::after, .garden-nav::after { display: none; }
   .garden-brand { justify-content: center; }
-  .garden-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .garden-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
   .garden-nav button { flex-direction: column; justify-content: center; text-align: center; gap: 5px; padding: 9px 5px; font-size: 12px; }
   .garden-sidebar-territory, .garden-path-preview, .garden-sidebar-footer > span { display: none; }
   .garden-sidebar-footer { position: absolute; right: 14px; top: 13px; }
@@ -240,4 +240,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .garden-shell *, .garden-shell *::before, .garden-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (max-width: 400px) {
+  .garden-nav button { font-size: 10px; padding-inline: 2px; }
 }

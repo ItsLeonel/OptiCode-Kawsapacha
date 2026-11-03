@@ -4,6 +4,7 @@ import type { GardenDestination } from './garden'
 const ITEMS = [
   { destination: 'garden', label: 'Mi jardín', icon: 'garden' },
   { destination: 'community', label: 'Comunidad', icon: 'community' },
+  { destination: 'real-garden', label: 'Mi Huerto', icon: 'seed' },
   { destination: 'plants', label: 'Descubrir plantas', icon: 'leaf' },
   { destination: 'history', label: 'Mi historia', icon: 'history' },
 ] as const

@@ -1,5 +1,4 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import EcuadorMap from './EcuadorMap'
 import AuthPage from './features/auth/AuthPage'
 import MyGardenPage from './features/my-garden/MyGardenPage'
 import GardenNavigation from './features/my-garden/GardenNavigation'
@@ -7,6 +6,8 @@ import GardenHistory from './features/my-garden/GardenHistory'
 import PlantPassport from './features/my-garden/PlantPassport'
 import CommunitiesPage from './features/communities/CommunitiesPage'
 import type { Community } from './features/communities/communities'
+import RealGardenPage from './features/real-gardens/RealGardenPage'
+import type { RealGarden } from './features/real-gardens/real-garden'
 import { PLOT_COUNT, type GardenAction, type GardenDestination, type GardenPlant } from './features/my-garden/garden'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual' | 'Mi historia'
@@ -35,12 +36,9 @@ export default function App() {
   const [screen,setScreen] = useState<Screen>('Bienvenida')
   const [communityRecord,setCommunityRecord] = useState<Community | null>(null)
   const community = communityRecord?.name ?? ''
-  const [garden,setGarden] = useState('')
-  const [gardenDraft,setGardenDraft] = useState('Mi Huerto Medicinal')
-  const [province,setProvince] = useState('')
-  const [area,setArea] = useState('24')
-  const [type,setType] = useState('En piso / macetas')
-  const [savedProvince,setSavedProvince] = useState('')
+  const [realGarden,setRealGarden] = useState<RealGarden | null>(null)
+  const garden = realGarden?.name ?? ''
+  const savedProvince = realGarden?.location.province ?? ''
   const [plants,setPlants] = useState<Plant[]>([])
   const [species,setSpecies] = useState(SPECIES[0].name)
   const [picture,setPicture] = useState<File|null>(null)
@@ -57,11 +55,9 @@ export default function App() {
   }, [screen])
 
   function goto(next: Screen) {setScreen(next);setFeedback('')}
-  function saveGarden(e:FormEvent) {
-    e.preventDefault()
-    if (!province || !gardenDraft.trim()) {setFeedback('Selecciona una provincia y escribe un nombre de huerto.');return}
-    setGarden(gardenDraft.trim());setSavedProvince(province)
-    setFeedback('Huerto registrado temporalmente en el prototipo frontend.')
+  function saveCommunity(next: Community) {
+    setCommunityRecord(next)
+    setRealGarden(current => current ? { ...current, communityName: next.name } : current)
   }
   function choosePicture(e:ChangeEvent<HTMLInputElement>) {
     const file=e.target.files?.[0] ?? null
@@ -89,7 +85,7 @@ export default function App() {
   }
   function beginCultivation(name:string) {setSpecies(name);setDetail(null);goto('Huerto virtual')}
   function navigateGarden(destination: GardenDestination) {
-    const destinations = { garden: 'Inicio', community: 'Comunidades', plants: 'Plantas medicinales', history: 'Mi historia' } as const
+    const destinations = { garden: 'Inicio', community: 'Comunidades', 'real-garden': 'Huertos reales', plants: 'Plantas medicinales', history: 'Mi historia' } as const
     goto(destinations[destination])
   }
   function registerInPlot(plot?: number) {setSelectedPlot(plot ?? null);setDetail(null);goto('Huerto virtual')}
@@ -103,7 +99,7 @@ export default function App() {
   const visible=SPECIES.filter(s=>`${s.name} ${s.latin}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   const ready=Boolean(community && garden)
   const title=screen==='Comunidades'?'Comunidad':screen==='Plantas medicinales'?'Descubrir plantas':screen==='Huerto virtual'?'Registrar planta':screen
-  const activeNavigation: GardenDestination = screen === 'Comunidades' ? 'community' : screen === 'Plantas medicinales' ? 'plants' : screen === 'Mi historia' ? 'history' : 'garden'
+  const activeNavigation: GardenDestination = screen === 'Comunidades' ? 'community' : screen === 'Huertos reales' ? 'real-garden' : screen === 'Plantas medicinales' ? 'plants' : screen === 'Mi historia' ? 'history' : 'garden'
 
   if (screen === 'Bienvenida' || screen === 'Usuarios') {
     return <AuthPage onExploreDemo={(destination = 'Inicio') => goto(destination)}/>
@@ -111,8 +107,9 @@ export default function App() {
 
   return <div className="garden-shell">
     <GardenNavigation active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
-    {screen === 'Inicio' ? <MyGardenPage plants={plants} community={community} garden={garden} province={savedProvince} selectedPlot={selectedPlot} onSelect={setDetail} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden}/>
-      : screen === 'Comunidades' ? <CommunitiesPage community={communityRecord} garden={garden} onSave={setCommunityRecord} onGarden={() => goto(garden ? 'Inicio' : 'Huertos reales')} onHome={() => goto('Inicio')}/>
+    {screen === 'Inicio' ? <MyGardenPage plants={plants} community={community} garden={garden} province={savedProvince} realGarden={realGarden} selectedPlot={selectedPlot} onSelect={setDetail} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden}/>
+      : screen === 'Comunidades' ? <CommunitiesPage community={communityRecord} garden={garden} onSave={saveCommunity} onGarden={() => goto('Huertos reales')} onHome={() => goto('Inicio')}/>
+      : screen === 'Huertos reales' ? <RealGardenPage garden={realGarden} communityName={communityRecord?.name ?? null} onSave={setRealGarden} onConnect={() => goto('Inicio')} onHome={() => goto('Inicio')} onCommunity={() => goto('Comunidades')}/>
       : <main className="main garden-module">
       <header className="topbar">
         <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>
@@ -126,24 +123,6 @@ export default function App() {
         {feedback?<div className="feedback" role="status">{feedback}</div>:null}
 
         {screen === 'Mi historia' && <GardenHistory plants={plants} onRegister={() => registerInPlot()} onSelect={setDetail} onRealGarden={() => goto('Huertos reales')}/>}
-
-        {screen==='Huertos reales'&&<div className="two-col map-layout">
-          <section className="card"><span className="eyebrow">02 · TERRITORIO</span><h2>Ubica tu huerto en Ecuador</h2><p>Selecciona una provincia directamente en el mapa, o utiliza la lista accesible.</p>
-            <EcuadorMap value={province} onChange={setProvince}/>
-          </section>
-          <section className="card"><span className="eyebrow">CONFIGURACIÓN</span><h2>Características del huerto</h2>
-            <form onSubmit={saveGarden}>
-              <label className="field">Nombre del huerto<input required value={gardenDraft} onChange={e=>setGardenDraft(e.target.value)}/></label>
-              <div className="input-row">
-                <label className="field">Área aproximada (m²)<input type="number" min="1" value={area} onChange={e=>setArea(e.target.value)}/></label>
-                <label className="field">Tipo de huerto<select value={type} onChange={e=>setType(e.target.value)}><option>En piso / macetas</option><option>En tierra</option><option>Vertical</option><option>Colgante</option></select></label>
-              </div>
-              <label className="field">Provincia seleccionada<input readOnly value={province} placeholder="Elige en el mapa"/></label>
-              <button className="cta" type="submit">Registrar huerto ↗</button>
-            </form>
-            {garden&&<div className="saved-summary"><strong>✓ {garden}</strong><p>{savedProvince} · {type} · {area||'?'} m²</p><button className="text-action" onClick={()=>goto('Plantas medicinales')}>Continuar al catálogo →</button></div>}
-          </section>
-        </div>}
 
         {screen==='Plantas medicinales'&&<section className="section">
           <div className="catalog-header"><div><span className="eyebrow">03 · BOTÁNICA</span><h2>Explora las especies</h2><p>Selección inicial para definir la experiencia visual. Leonardo incorporará las fichas botánicas verificadas.</p></div>

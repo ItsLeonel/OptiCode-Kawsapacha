@@ -43,15 +43,26 @@ La actualización visual sigue `docs/diseno/referencia-comunidad-v2.png`: cuatro
 - Publicar experiencias y conversar abren estados pendientes distintos: aún no existen carga de fotografías, publicaciones, temas ni respuestas. Aprendizaje y eventos muestran sus estados vacíos, sin contenido ni fechas inventadas.
 - Los diálogos admiten teclado, Escape, gestión nativa del foco y validación del nombre. La distribución se adapta a escritorio, tableta y móvil.
 
+## Mi Huerto V1
+
+El módulo `src/features/real-gardens/` sigue `docs/diseno/referencia-mi-huerto-v1.png`. Se abre desde «Mi Huerto», la acción «Mi huerto real» de Mi Jardín o el acceso al huerto de Comunidad.
+
+- Nombre (3–100 caracteres), provincia, tipo, superficie mínima de 0,01 m² y disponibilidad de riego son obligatorios. El suelo se solicita para «En tierra»; en los demás tipos se guarda como `null`. Riego y suelo permiten indicar «Por determinar».
+- Cantón, parroquia y dirección son campos opcionales de texto libre. No hay catálogos oficiales ni verificación territorial simulada.
+- Después de guardar, se consulta una ficha con los datos introducidos. «Editar información» habilita el formulario; «Cancelar edición» restaura el registro anterior. «Conectar con Mi Jardín» navega al módulo existente.
+- `RealGarden` contiene `location`, `kind`, `areaM2`, `irrigationAvailability`, `soilType` y `communityName`. App mantiene el registro durante la visita y actualiza el vínculo cuando se crea o renombra la comunidad. Mi Jardín recibe este objeto sin cambios en sus seis parcelas, fotografías ni Pasaporte Vivo.
+- No hay API, almacenamiento persistente, subida de datos ni conexión remota simulada. Al recargar se pierden los registros temporales.
+- Fondo y ficha reutilizan `jardin-andino-v2.png`. Las cuatro ilustraciones independientes y sus prompts están en [`src/features/real-gardens/assets/README.md`](src/features/real-gardens/assets/README.md).
+
 ## Mapa interactivo
 
-`src/EcuadorMap.tsx` consume datos GeoJSON provinciales desde:
+`src/EcuadorMap.tsx` reutiliza una copia local de los datos GeoJSON provinciales de:
 https://github.com/pabl-o-ce/Ecuador-geoJSON
 
 **Autor:** Pablo Carrera Estrada · **Licencia:** MIT.
 Su licencia original: https://github.com/pabl-o-ce/Ecuador-geoJSON/blob/master/LICENSE
 
-En esta primera iteración se cargan en tiempo de ejecución. Para entrega V1 se recomienda incorporar un archivo GeoJSON local optimizado, conservar la atribución correspondiente y comprobar su exactitud. Se incluye selector alternativo de provincias si falla la red.
+Los archivos `src/assets/ecuador-provincias.geojson` y `src/assets/ecuador-provincias.LICENSE.txt` se incluyen en el build. Así el mapa no depende de GitHub en tiempo de ejecución. Se conserva la atribución y un selector alternativo por si falla la carga del recurso. Este conjunto de terceros no se presenta como un catálogo oficial actualizado de cantones o parroquias.
 
 ## Siguientes tareas
 

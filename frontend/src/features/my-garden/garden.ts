@@ -9,5 +9,5 @@ export type GardenPlant = {
   plot: number
 }
 
-export type GardenDestination = 'garden' | 'community' | 'plants' | 'history'
+export type GardenDestination = 'garden' | 'community' | 'real-garden' | 'plants' | 'history'
 export type GardenAction = 'register' | 'logbook' | 'real-garden' | 'passport'

@@ -1,0 +1,263 @@
+body:has(.real-garden-page) { min-width: 0; }
+.real-garden-page { --rg-lime: #d6f467; --rg-border: #c9e778a6; position: relative; isolation: isolate; min-width: 0; min-height: 100dvh; color: #f5f8e8; background: #123927; }
+.rg-world-background { position: absolute; inset: 0; z-index: -2; background: url('../../assets/jardin-andino-v2.png') center top / cover no-repeat; }
+.rg-world-background::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #071f146b, #102b1214 65%), linear-gradient(180deg, #09251c29, #0a2c1b14 35%, #09291ecc); }
+.rg-content { display: flex; flex-direction: column; gap: 18px; min-height: 100dvh; max-width: 1700px; margin: auto; padding: 20px 32px 14px; }
+.rg-topbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.rg-breadcrumbs { display: flex; align-items: center; gap: 9px; font-size: 12px; }
+.rg-breadcrumbs button, .rg-breadcrumbs > span:last-child { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 8px 13px; border: 1px solid #c5df7466; border-radius: 20px; color: #f1f5db; background: #092a1dde; backdrop-filter: blur(8px); }
+.rg-breadcrumbs button:hover { background: #254e26; }
+.rg-breadcrumbs .garden-icon { width: 17px; height: 17px; color: var(--rg-lime); }
+.rg-visitor { display: inline-flex; align-items: center; gap: 8px; padding: 10px 13px; border: 1px solid #c3dc6a8c; border-radius: 25px; background: #092c20e8; color: #f4f8df; font-size: 10px; line-height: 1.5; }
+.rg-visitor > span { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: #c6f33e; box-shadow: 0 0 8px #c6f33e70; }
+.rg-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 0 4px; }
+.rg-hero > div:first-child { min-width: 0; text-shadow: 0 2px 10px #051d16b3; }
+.rg-hero h1 { display: flex; align-items: center; gap: 12px; font-size: clamp(38px, 3.4vw, 55px); line-height: 1.05; font-weight: 700; }
+.rg-hero h1:focus { outline: none; }
+.rg-hero h1 .garden-icon { width: .75em; height: .75em; color: #b9ec3f; }
+.rg-subtitle { margin: 0 0 10px 3px; color: #d7f367; font: italic 600 clamp(26px, 2.1vw, 35px)/1.25 'Trebuchet MS', 'Segoe UI', sans-serif; letter-spacing: -.035em; }
+.rg-intro { margin: 0; color: #fff; font-size: clamp(13px, 1.1vw, 17px); line-height: 1.5; }
+.rg-connection-preview { display: flex; align-items: center; gap: 12px; width: 42%; max-width: 550px; flex-shrink: 0; }
+.rg-connection-preview > div { display: flex; flex: 1; align-items: center; min-width: 0; gap: 12px; min-height: 88px; padding: 14px 16px; border: 1px solid #d7e991bd; border-radius: 27px; background: linear-gradient(135deg, #2f5428e8, #06291feb); box-shadow: inset 0 1px 0 #f2ffc747, 0 7px 18px #06261c4d; backdrop-filter: blur(8px); }
+.rg-connection-preview > div > .garden-icon { width: 40px; height: 40px; color: #daf17b; }
+.rg-connection-preview > .garden-icon { width: 25px; height: 25px; color: #c9f357; }
+.rg-connection-preview strong { display: block; font: 600 19px/1.1 'Outfit', system-ui, sans-serif; color: #f1f5ce; }
+.rg-connection-preview strong small { display: block; margin-top: 3px; color: #d9f177; font-size: 14px; }
+.rg-connection-preview span > span { display: block; margin-top: 7px; color: #ebf2d8; font-size: 9px; line-height: 1.4; }
+.rg-panel { position: relative; min-width: 0; padding: 20px; border: 1px solid var(--rg-border); border-radius: 27px; color: #f3f7e4; background: linear-gradient(130deg, #224c28e8, #052b20eb); backdrop-filter: blur(12px); box-shadow: inset 0 1px 0 #eefab83d, 0 9px 25px #06261b40, 0 0 14px #c2e55224; }
+.rg-panel-heading { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 16px; }
+.rg-panel-heading > .garden-icon { width: 34px; height: 34px; color: var(--rg-lime); }
+.rg-panel-heading h2 { font-size: clamp(22px, 1.8vw, 28px); line-height: 1.1; font-weight: 600; }
+.rg-panel-heading p { margin: 6px 0 0; color: #e4edcf; font-size: 11px; line-height: 1.5; }
+.rg-form { display: block; margin: auto 0 0; }
+.rg-form-panels { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr); gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.rg-field { display: grid; gap: 6px; min-width: 0; }
+.rg-field > label, .rg-location .field { color: #eff4db; font-size: 11px; font-weight: 600; }
+.rg-field label small { font-size: 9px; font-weight: 400; color: #cfdfb5; }
+.rg-field label > span { color: #e3f787; }
+.real-garden-page input:not([type=radio]), .real-garden-page textarea, .real-garden-page select, .real-garden-page .map-shell select { width: 100%; min-width: 0; min-height: 40px; padding: 9px 11px; border: 1px solid #bdd08ea6; border-radius: 10px; color: #f6f9e9; background: #0a3022c7; font: 400 12px/1.5 'DM Sans', system-ui, sans-serif; color-scheme: dark; }
+.real-garden-page textarea { resize: vertical; min-height: 72px; }
+.real-garden-page input::placeholder, .real-garden-page textarea::placeholder { color: #c0d0b0; opacity: 1; }
+.real-garden-page input:focus-visible, .real-garden-page textarea:focus-visible, .real-garden-page select:focus-visible { outline: 3px solid #d7ef8c; outline-offset: 3px; }
+.real-garden-page [aria-invalid=true]:not(fieldset) { border-color: #ffcda7; }
+.real-garden-page :disabled { opacity: 1; -webkit-text-fill-color: currentColor; }
+.rg-error { margin: 0; color: #ffd3b4; font-size: 11px; line-height: 1.5; }
+.rg-hint { display: block; color: #ccdcb7; font-size: 9px; line-height: 1.5; }
+.rg-location-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(150px, .85fr); gap: 10px 14px; align-items: start; }
+.rg-location .map-shell { display: contents; }
+.rg-location .map-visual { grid-column: 1; grid-row: 1 / span 2; min-height: 270px; align-self: stretch; background: radial-gradient(ellipse, #bdd56512, transparent 70%); overflow: visible; }
+.rg-location .map-visual svg { width: 100%; height: auto; min-height: 260px; }
+.rg-location .map-visual svg > rect, .rg-location .map-visual svg > path:not([role=button]) { fill: transparent; }
+.rg-location .map-visual path[role=button] { fill: #245a39; stroke: #d0e99b; stroke-width: 1.8; }
+.rg-location .map-visual path[aria-pressed=true] { fill: #bce43e; stroke: #e1f7a1; }
+.rg-location .map-visual path[role=button]:not([aria-disabled=true]):is(:hover, :focus-visible) { fill: #82ae3b; outline: 2px solid #f2ffd3; outline-offset: 3px; }
+.rg-location .map-visual path[aria-disabled=true] { cursor: default; }
+.rg-location .map-label { fill: #d1e5a7; font-size: 12px; letter-spacing: 1px; }
+.rg-location .map-note { padding: 28px 12px; color: #d8e5bc; font-size: 12px; }
+.rg-location .map-shell > .field { grid-column: 2; grid-row: 1; margin: 0; gap: 6px; }
+.rg-locality-fields { grid-column: 2; grid-row: 2; display: grid; gap: 10px; min-width: 0; }
+.rg-location .map-shell > .tiny { grid-column: 1 / -1; grid-row: 3; margin: 0 !important; color: #bcccaa !important; font-size: 8px !important; line-height: 1.5; }
+.rg-location .tiny a { color: #e2edb4; }
+.rg-locality-hint { grid-column: 1 / -1; grid-row: 4; margin-top: -3px; }
+.rg-characteristics > .rg-field { grid-template-columns: 140px minmax(0, 1fr); align-items: center; gap: 6px 14px; }
+.rg-characteristics > .rg-field .rg-error { grid-column: 2; }
+.rg-type-picker { min-width: 0; margin: 12px 0; padding: 0; border: 0; }
+.rg-type-picker legend { display: flex; align-items: center; gap: 7px; padding: 0; margin-bottom: 7px; font-size: 11px; font-weight: 600; }
+.rg-type-picker legend > .garden-icon { width: 20px; height: 20px; color: #d9ef70; }
+.rg-type-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rg-type-option { position: relative; min-width: 0; cursor: pointer; }
+.rg-type-option > input { position: absolute; top: 10px; left: 10px; width: 18px; height: 18px; margin: 0; opacity: 0; }
+.rg-type-card { position: relative; display: block; height: 100%; overflow: hidden; border: 1px solid #accb82a3; border-radius: 18px; background: #103e27c9; transition: border-color .2s, box-shadow .2s; }
+.rg-type-card > img { display: block; width: 100%; height: 95px; object-fit: cover; }
+.rg-type-copy { display: grid; grid-template-columns: 21px minmax(0, 1fr); gap: 5px; align-items: start; min-height: 65px; padding: 9px 8px; }
+.rg-type-copy > .garden-icon { width: 21px; height: 21px; grid-row: span 2; color: #cfea67; }
+.rg-type-copy strong { font-size: 11px; line-height: 1.3; }
+.rg-type-copy small { font-size: 8px; line-height: 1.4; color: #e0e9cb; }
+.rg-type-checked { position: absolute; top: 9px; right: 9px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #1c3c0d; background: #d2f557; box-shadow: 0 2px 7px #08211680; opacity: 0; }
+.rg-type-checked .garden-icon { width: 18px; height: 18px; }
+.rg-type-option > input:checked + .rg-type-card { border-color: #e0fb73; box-shadow: 0 0 0 1px #e0fb73, 0 0 16px #d6f65b70, inset 0 -2px 12px #a6dd1c2e; }
+.rg-type-option > input:checked + .rg-type-card .rg-type-checked { opacity: 1; }
+.rg-type-option > input:focus-visible + .rg-type-card { outline: 3px solid #e5ff9a; outline-offset: 4px; }
+.rg-type-option:has(input:disabled) { cursor: default; }
+.rg-type-option:hover:not(:has(input:disabled)) .rg-type-card { border-color: #edffa7; box-shadow: 0 0 14px #d2eb504d; }
+.rg-type-picker > .rg-hint, .rg-type-picker > .rg-error { margin-top: 7px; }
+.rg-characteristic-fields { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 12px; }
+.rg-characteristic-fields > div { position: relative; min-width: 0; }
+.rg-field-icon { position: absolute; left: 0; top: -3px; color: #d4ed6b; }
+.rg-field-icon .garden-icon { width: 19px; height: 19px; }
+.rg-characteristic-fields label, .rg-soil-note strong { padding-left: 24px; }
+.rg-soil-note { display: grid; gap: 9px; color: #d1e1bb; font-size: 10px; line-height: 1.5; }
+.rg-soil-note strong { color: #edf4d9; font-size: 11px; }
+.rg-soil-note span { padding: 7px 10px; border: 1px dashed #adc27d73; border-radius: 10px; }
+.rg-primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 11px 18px; border: 1px solid #e7ffa0; border-radius: 25px; background: linear-gradient(120deg, #e5ff81, #bdea22 70%, #a5db10); color: #173208; font-size: 12px; font-weight: 700; line-height: 1.3; box-shadow: inset 0 1px 0 #f9ffca99, 0 4px 16px #06241b4d; transition: box-shadow .2s, filter .2s; }
+.rg-primary-button:not(:disabled):hover { filter: brightness(1.07); box-shadow: 0 0 18px #dbf7635c, 0 4px 16px #06241b4d; }
+.rg-primary-button:disabled { opacity: .65; cursor: not-allowed; }
+.rg-primary-button .garden-icon { width: 20px; height: 20px; }
+.rg-outline-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 9px 13px; border: 1px solid #c3d788a6; border-radius: 20px; color: #ecf3cf; background: #062b20c7; font-size: 11px; font-weight: 600; }
+.rg-outline-button:hover { background: #2b5027; }
+.rg-outline-button .garden-icon { width: 17px; height: 17px; }
+.rg-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 4px 0; }
+.rg-form-footer > p { margin: 0; padding: 5px 8px; border-radius: 8px; background: #0b2c20b8; color: #edf4da; font-size: 10px; line-height: 1.5; }
+.rg-form-footer > div { display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
+.rg-summary-focus { min-width: 0; border-radius: 27px; }
+.rg-summary-focus:focus { outline: 2px solid #dcf992; outline-offset: 4px; }
+.rg-summary { display: grid; grid-template-columns: minmax(140px, .65fr) minmax(0, 1.5fr) minmax(250px, .9fr); gap: 20px; padding: 0 18px 0 0; overflow: hidden; }
+.rg-summary-illustration { position: relative; min-height: 165px; align-self: stretch; border-right: 1px solid #d5ec7ca6; border-radius: 26px 40px 40px 26px; background: url('../../assets/jardin-andino-v2.png') 12% center / auto 100% no-repeat; }
+.rg-summary-illustration > span { position: absolute; bottom: 9px; left: 10px; max-width: calc(100% - 20px); padding: 3px 6px; border-radius: 6px; color: #e6edcf; background: #07271bd9; font-size: 8px; }
+.rg-summary-data { min-width: 0; padding: 14px 0; }
+.rg-summary-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rg-kicker { display: block; margin-bottom: 5px; color: #d0e898; font-size: 8px; font-weight: 700; letter-spacing: .08em; }
+.rg-summary-heading h2 { display: flex; align-items: center; gap: 8px; font-size: clamp(21px, 1.5vw, 26px); line-height: 1.15; font-weight: 600; }
+.rg-summary-heading h2 .garden-icon { color: #caef67; width: 27px; height: 27px; }
+.rg-summary-heading .rg-edit { flex-shrink: 0; min-height: 36px; padding: 7px 10px; font-size: 9px; }
+.rg-registered-name { margin: 9px 0 7px; font-size: 18px; font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; }
+.rg-summary-facts { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 11px; margin: 9px 0; }
+.rg-summary-facts > div { min-width: 0; }
+.rg-summary-facts > div + div { border-left: 1px solid #bed7745c; padding-left: 11px; }
+.rg-summary-facts dt { display: flex; align-items: center; gap: 4px; color: #d0e5a4; font-size: 9px; line-height: 1.3; }
+.rg-summary-facts dt .garden-icon { width: 16px; height: 16px; }
+.rg-summary-facts dd { margin: 5px 0 0; color: #f0f4df; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.rg-summary-reference, .rg-summary-community { margin: 6px 0 0; color: #dce8c7; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+.rg-summary-community { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.rg-summary-community > .garden-icon { width: 16px; height: 16px; color: #cde992; }
+.rg-text-button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 0; border: 0; border-radius: 5px; color: #e0f49e; background: none; font-size: 10px; text-align: left; }
+.rg-text-button:hover { text-decoration: underline; }
+.rg-text-button .garden-icon { width: 14px; height: 14px; }
+.rg-summary-empty p { margin: 12px 0 5px; color: #e7efcf; font-size: 13px; }
+.rg-summary-empty small { color: #cfdfb5; font-size: 11px; line-height: 1.6; }
+.rg-connect { display: grid; grid-template-columns: 33px minmax(0, 1fr); gap: 8px 12px; align-content: center; align-items: start; min-width: 0; margin: 16px 0; padding-left: 20px; border-left: 1px solid #bfd97780; }
+.rg-connect > .garden-icon { width: 33px; height: 33px; color: #d8ef71; }
+.rg-connect h3 { font-size: 18px; font-weight: 500; line-height: 1.15; color: #edf5bd; }
+.rg-connect p { margin: 6px 0 5px; color: #e8efcf; font-size: 10px; line-height: 1.5; }
+.rg-connect > button, .rg-connect > small { grid-column: 1 / -1; }
+.rg-connect > button { margin-top: 4px; font-size: 12px; padding-inline: 12px; }
+.rg-connect > small { color: #d3e2bc; font-size: 9px; line-height: 1.5; }
+.rg-visit-note { display: flex; align-items: flex-start; justify-content: center; gap: 8px; margin-top: auto; color: #eff5d8; font-size: 11px; line-height: 1.5; text-align: center; text-shadow: 0 1px 5px #06271b; }
+.rg-visit-note > .garden-icon { width: 18px; height: 18px; color: #d9f07b; }
+.rg-visit-note small { display: block; margin-top: 3px; color: #d7e4bb; font-size: 9px; }
+.rg-sr-only, .rg-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (min-width: 1600px) {
+  .rg-content { gap: 14px; padding: 14px 38px 12px; }
+  .rg-hero h1 { font-size: 50px; }
+  .rg-subtitle { font-size: 30px; }
+  .rg-intro { font-size: 16px; }
+  .rg-panel { padding: 20px; }
+  .rg-summary { padding: 0 22px 0 0; }
+  .rg-type-card > img { height: 98px; }
+  .rg-type-copy strong { font-size: 13px; }
+  .rg-type-copy small { font-size: 9px; }
+}
+@media (min-width: 1251px) {
+  .rg-form-panels > .rg-panel { padding: 18px; }
+  .rg-panel-heading { margin-bottom: 12px; }
+  .rg-location-layout { gap: 8px 14px; }
+  .rg-locality-fields { gap: 8px; }
+  .rg-location .map-visual { min-height: 250px; }
+  .rg-location .map-visual svg { height: 280px; min-height: 250px; }
+  .rg-location textarea { min-height: 56px; }
+}
+@media (max-width: 1250px) {
+  .rg-content { padding-inline: 22px; }
+  .rg-form-panels { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+  .rg-location-layout { grid-template-columns: minmax(0, 1fr); }
+  .rg-location .map-visual { grid-column: 1; grid-row: 1; min-height: 200px; }
+  .rg-location .map-visual svg { max-height: 220px; min-height: 180px; }
+  .rg-location .map-shell > .field { grid-column: 1; grid-row: 2; }
+  .rg-locality-fields { grid-column: 1; grid-row: 3; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rg-locality-fields > div:last-child { grid-column: 1 / -1; }
+  .rg-location .map-shell > .tiny { grid-row: 4; }
+  .rg-locality-hint { grid-row: 5; }
+  .rg-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rg-type-card > img { height: 80px; }
+  .rg-type-copy { min-height: 54px; }
+  .rg-characteristic-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rg-characteristic-fields > div:last-child { grid-column: 1 / -1; }
+  .rg-connection-preview { width: 44%; gap: 8px; }
+  .rg-connection-preview > div { padding: 12px; gap: 8px; }
+  .rg-connection-preview > div > .garden-icon { width: 28px; height: 28px; }
+  .rg-connection-preview strong { font-size: 16px; }
+  .rg-connection-preview strong small { font-size: 12px; }
+  .rg-summary { grid-template-columns: 160px minmax(0, 1fr); padding-right: 18px; gap: 16px; }
+  .rg-summary-illustration { grid-row: span 2; }
+  .rg-connect { grid-column: 2; margin: 0 0 16px; padding: 12px 0 0; border-left: 0; border-top: 1px solid #bfd97780; grid-template-columns: 28px minmax(0, 1fr); }
+  .rg-connect > button { justify-self: start; }
+}
+@media (max-width: 900px) {
+  .rg-content, .real-garden-page { min-height: calc(100dvh - 160px); }
+  .rg-hero { align-items: flex-start; }
+  .rg-connection-preview { width: 40%; }
+  .rg-connection-preview > .garden-icon { width: 18px; }
+  .rg-connection-preview > div { flex-direction: column; align-items: flex-start; min-height: 120px; border-radius: 20px; }
+  .rg-desktop-break { display: none; }
+  .rg-summary-heading { align-items: flex-start; flex-wrap: wrap; }
+}
+@media (max-width: 700px) {
+  .rg-content { gap: 20px; padding: 16px; }
+  .rg-topbar { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .rg-visitor { font-size: 9px; padding: 7px 10px; }
+  .rg-hero { flex-direction: column; gap: 18px; padding: 0; }
+  .rg-hero h1 { font-size: 44px; }
+  .rg-subtitle { font-size: clamp(25px, 6.5vw, 32px); }
+  .rg-intro { font-size: 14px; }
+  .rg-connection-preview { width: 100%; max-width: 460px; }
+  .rg-connection-preview > div { flex-direction: row; align-items: center; min-height: 100px; }
+  .rg-form-panels { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .rg-panel { padding: 20px; }
+  .rg-panel-heading h2 { font-size: 25px; }
+  .rg-panel-heading p { font-size: 12px; }
+  .rg-location .map-visual { min-height: 240px; }
+  .rg-location .map-visual svg { max-height: 280px; min-height: 240px; }
+  .rg-field > label, .rg-location .map-shell > .field { font-size: 12px; }
+  .rg-field label small { font-size: 10px; }
+  .real-garden-page input:not([type=radio]), .real-garden-page textarea, .real-garden-page select, .real-garden-page .map-shell select { font-size: 14px; min-height: 44px; }
+  .rg-hint { font-size: 10px; }
+  .rg-location .map-shell > .tiny { font-size: 9px !important; }
+  .rg-characteristics > .rg-field { grid-template-columns: minmax(0, 1fr); }
+  .rg-characteristics > .rg-field .rg-error { grid-column: auto; }
+  .rg-type-picker { margin: 18px 0; }
+  .rg-type-picker legend { font-size: 12px; }
+  .rg-type-card > img { height: 98px; }
+  .rg-type-copy { min-height: 77px; padding: 11px 9px; }
+  .rg-type-copy strong { font-size: 13px; }
+  .rg-type-copy small { font-size: 10px; }
+  .rg-type-option > input { width: 24px; height: 24px; }
+  .rg-characteristic-fields { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .rg-characteristic-fields > div:last-child { grid-column: auto; }
+  .rg-form-footer { align-items: stretch; flex-direction: column; gap: 12px; padding-top: 14px; }
+  .rg-form-footer > div { flex-wrap: wrap; }
+  .rg-form-footer button { flex: 1; }
+  .rg-summary { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; }
+  .rg-summary-illustration { grid-row: auto; min-height: 170px; border-right: 0; border-bottom: 1px solid #d5ec7ca6; border-radius: 26px 26px 40px 0; background-size: cover; background-position: left 38%; }
+  .rg-summary-data { padding: 20px; }
+  .rg-summary-heading h2 { font-size: 25px; }
+  .rg-summary-heading .rg-edit { min-height: 42px; padding: 9px 12px; font-size: 12px; }
+  .rg-registered-name { font-size: 23px; }
+  .rg-summary-facts { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-block: 16px; }
+  .rg-summary-facts > div + div { border-left: 0; border-top: 1px solid #bfd9774d; padding: 12px 0 0; }
+  .rg-summary-facts dt, .rg-summary-reference, .rg-summary-community { font-size: 12px; }
+  .rg-summary-facts dd { font-size: 13px; }
+  .rg-connect { grid-column: auto; margin: 0 20px 20px; padding-top: 18px; }
+  .rg-connect h3 { font-size: 22px; }
+  .rg-connect p { font-size: 12px; }
+  .rg-connect > button { justify-self: stretch; min-height: 48px; font-size: 14px; }
+  .rg-world-background { background-size: auto 1050px; background-position: 55% top; }
+  .rg-world-background::after { background: linear-gradient(180deg, #09251c35, #0c30211f 350px, #123927 1030px); }
+  .rg-visit-note { font-size: 10px; }
+}
+@media (max-width: 380px) {
+  .rg-panel { padding: 16px; }
+  .rg-summary { padding: 0; }
+  .rg-summary-data { padding: 16px; }
+  .rg-connection-preview > div { padding: 10px; gap: 7px; }
+  .rg-connection-preview > div > .garden-icon { width: 23px; height: 23px; }
+  .rg-connection-preview strong { font-size: 14px; }
+  .rg-connection-preview span > span { font-size: 8px; }
+  .rg-type-grid { gap: 10px; }
+  .rg-type-copy { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .rg-type-copy > .garden-icon { display: none; }
+  .rg-type-card > img { height: 88px; }
+  .rg-locality-fields { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rg-primary-button, .rg-type-card { transition: none; }
+}

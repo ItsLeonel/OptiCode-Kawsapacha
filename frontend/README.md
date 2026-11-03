@@ -43,16 +43,20 @@ La actualización visual sigue `docs/diseno/referencia-comunidad-v2.png`: cuatro
 - Publicar experiencias y conversar abren estados pendientes distintos: aún no existen carga de fotografías, publicaciones, temas ni respuestas. Aprendizaje y eventos muestran sus estados vacíos, sin contenido ni fechas inventadas.
 - Los diálogos admiten teclado, Escape, gestión nativa del foco y validación del nombre. La distribución se adapta a escritorio, tableta y móvil.
 
-## Mi Huerto V1
+## Mi Huerto V3
 
-El módulo `src/features/real-gardens/` sigue `docs/diseno/referencia-mi-huerto-v1.png`. Se abre desde «Mi Huerto», la acción «Mi huerto real» de Mi Jardín o el acceso al huerto de Comunidad.
+El módulo `src/features/real-gardens/` sigue `docs/diseno/referencia-mi-huerto-v3.png` y `docs/diseno/referencia-huerto-registrado-v1.png`, con paneles crema translúcidos, acentos terracota y verde natural. Conserva la barra lateral. Las 24 provincias determinan automáticamente uno de los cuatro fondos originales de `src/assets/regiones/` (Sierra, Costa, Amazonía y Galápagos), con transición suave y alternativa sin movimiento. No hay selector de región. Se abre desde «Mi Huerto», la acción «Mi huerto real» de Mi Jardín o el acceso al huerto de Comunidad.
 
 - Nombre (3–100 caracteres), provincia, tipo, superficie mínima de 0,01 m² y disponibilidad de riego son obligatorios. El suelo se solicita para «En tierra»; en los demás tipos se guarda como `null`. Riego y suelo permiten indicar «Por determinar».
-- Cantón, parroquia y dirección son campos opcionales de texto libre. No hay catálogos oficiales ni verificación territorial simulada.
-- Después de guardar, se consulta una ficha con los datos introducidos. «Editar información» habilita el formulario; «Cancelar edición» restaura el registro anterior. «Conectar con Mi Jardín» navega al módulo existente.
+- Cantón y parroquia son selectores opcionales con búsqueda y filtrado jerárquico. Usan el catálogo oficial INEC DPA 2026 empaquetado localmente, con códigos oficiales y sin APIs inventadas. La dirección sigue siendo texto opcional. [Fuente e importación reproducible](src/features/real-gardens/data/README.md).
+- «Marcar mi huerto en el mapa» abre React Leaflet con OpenStreetMap y atribución visible. El punto se coloca con clic/toque, se corrige arrastrando o se elige con teclado desde el centro del mapa. Se guarda opcionalmente en `RealGarden.location.coordinates`, con latitud y longitud. No se solicita ubicación del dispositivo ni se presenta como verificada. Cancelar conserva el punto previo; cambiar la localidad limpia el marcador.
+- «Más características» agrupa riego y suelo y se abre al detectar errores. El botón del marcador usa verde lima y foco visible. Se retiran instrucciones redundantes del formulario.
+- Después de guardar, el formulario y los mapas se ocultan por completo y aparece una ficha amplia con ilustración identificada, nombre, ubicación y tarjetas de características. Solo se muestran los datos opcionales registrados. «Editar mi huerto» vuelve al formulario con los datos guardados; guardar o cancelar regresa a la ficha. «Conectar con Mi Jardín» navega al módulo existente.
 - `RealGarden` contiene `location`, `kind`, `areaM2`, `irrigationAvailability`, `soilType` y `communityName`. App mantiene el registro durante la visita y actualiza el vínculo cuando se crea o renombra la comunidad. Mi Jardín recibe este objeto sin cambios en sus seis parcelas, fotografías ni Pasaporte Vivo.
-- No hay API, almacenamiento persistente, subida de datos ni conexión remota simulada. Al recargar se pierden los registros temporales.
-- Fondo y ficha reutilizan `jardin-andino-v2.png`. Las cuatro ilustraciones independientes y sus prompts están en [`src/features/real-gardens/assets/README.md`](src/features/real-gardens/assets/README.md).
+- App conserva en memoria tanto el borrador como el huerto guardado al navegar. No hay API, almacenamiento persistente, subida de datos ni conexión remota simulada. Al recargar se pierden los registros temporales. El mapa detallado sí usa teselas externas y necesita conexión.
+- Los fondos regionales se conservan con sus nombres originales. La ficha reutiliza una de las cuatro ilustraciones de tipos, sin presentarla como fotografía real ni añadir galerías o datos no registrados. Las ilustraciones y sus prompts están en [`src/features/real-gardens/assets/README.md`](src/features/real-gardens/assets/README.md).
+
+Ver decisiones, clasificación de regiones y comprobaciones en [Mi Huerto V3](../docs/diseno/mi-huerto-v3.md) y la procedencia territorial y cartográfica en [Mi Huerto V2](../docs/diseno/mi-huerto-v2.md). `npm run test:e2e` ejecuta Playwright con Chrome instalado; las teselas se interceptan en las pruebas para evitar peticiones automatizadas al proveedor comunitario. `KAWSAPACHA_E2E_PORT` permite cambiar el puerto de pruebas si 5174 está ocupado.
 
 ## Mapa interactivo
 

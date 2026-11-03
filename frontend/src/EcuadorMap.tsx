@@ -47,12 +47,13 @@ function projectPath(f: Feature, galapagos: boolean, compact: boolean) {
 }
 export const provinces = PROVINCIAS
 
-export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'Provincia seleccionada', disabled = false, required = false, invalid = false, describedBy, compact = false }: {
-  value: string; onChange: (value: string) => void; selectId?: string; selectLabel?: string; disabled?: boolean; required?: boolean; invalid?: boolean; describedBy?: string; compact?: boolean
+export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'Provincia seleccionada', disabled = false, required = false, invalid = false, describedBy, compact = false, showAttribution = true }: {
+  value: string; onChange: (value: string) => void; selectId?: string; selectLabel?: string; disabled?: boolean; required?: boolean; invalid?: boolean; describedBy?: string; compact?: boolean; showAttribution?: boolean
 }) {
   const [features,setFeatures] = useState<Feature[]>([])
   const [error,setError] = useState('')
   const [loading,setLoading] = useState(true)
+  const [highlighted, setHighlighted] = useState('')
   useEffect(() => {
     const controller = new AbortController()
     fetch(SOURCE, {signal:controller.signal})
@@ -70,7 +71,7 @@ export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'P
   return <div className="map-shell">
     <div className="map-visual">
       {loading ? <p className="map-note">Cargando límites provinciales…</p> :
-      mapped.length ? <svg viewBox={compact ? '0 0 440 500' : '0 0 740 500'} role="img" aria-label="Mapa de provincias de Ecuador seleccionables">
+      mapped.length ? <svg viewBox={compact ? '0 0 440 500' : '0 0 740 500'} role="group" aria-label="Mapa de provincias de Ecuador seleccionables">
         <rect width={compact ? 440 : 740} height="500" fill="#e8efe5" rx="20"/>
         {!compact && <path d="M30 300H175V470H30Z" fill="#d5e5d5" rx="14" />}
         <text x={compact ? 10 : 38} y={compact ? 325 : 304} className="map-label">GALÁPAGOS</text>
@@ -78,12 +79,15 @@ export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'P
           fill={value===item.name ? '#ce9757' : '#74a17a'}
           stroke="#f4f5e7" strokeWidth="1.8" strokeLinejoin="round"
           tabIndex={disabled ? -1 : 0} role="button" aria-label={`Seleccionar ${item.name}`} aria-pressed={value === item.name} aria-disabled={disabled || undefined}
+          onMouseEnter={() => setHighlighted(item.name)} onMouseLeave={() => setHighlighted('')}
+          onFocus={() => setHighlighted(item.name)} onBlur={() => setHighlighted('')}
           onClick={()=>{ if (!disabled) onChange(item.name) }}
           onKeyDown={e=>{if(!disabled && (e.key==='Enter'||e.key===' ')){e.preventDefault();onChange(item.name)}}}>
           <title>{item.name}</title>
         </path>)}
         <text x={compact ? 300 : 545} y="486" className="map-label">ECUADOR</text>
       </svg> : <p className="map-note">{error || 'No se pudo interpretar el mapa. Usa el selector.'}</p>}
+      {(highlighted || value) && <span className="map-province-tooltip" aria-live="polite">{highlighted || value}{!highlighted && value ? ' ✓' : ''}</span>}
     </div>
     <label className="field"><span>{selectLabel}{required && <span aria-hidden="true"> *</span>}</span>
       <select id={selectId} value={value} onChange={e=>onChange(e.target.value)} disabled={disabled} required={required} aria-invalid={invalid || undefined} aria-describedby={describedBy}>
@@ -91,6 +95,6 @@ export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'P
         {PROVINCIAS.map(name=><option key={name} value={name}>{name}</option>)}
       </select>
     </label>
-    <p className="tiny">Datos geográficos: <a href="https://github.com/pabl-o-ce/Ecuador-geoJSON" target="_blank" rel="noreferrer">Ecuador-geoJSON</a> (Pablo Carrera Estrada, <a href={LICENSE} target="_blank" rel="noreferrer">licencia MIT</a>). Recurso local; selector alternativo disponible.</p>
+    {showAttribution && <p className="tiny">Datos geográficos: <a href="https://github.com/pabl-o-ce/Ecuador-geoJSON" target="_blank" rel="noreferrer">Ecuador-geoJSON</a> (Pablo Carrera Estrada, <a href={LICENSE} target="_blank" rel="noreferrer">licencia MIT</a>). Recurso local; selector alternativo disponible.</p>}
   </div>
 }

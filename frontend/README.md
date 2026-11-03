@@ -30,6 +30,19 @@ npm run build
 - No afirmar que el prototipo cumple las historias de usuario hasta conectarlo al backend y ejecutar pruebas.
 - La elección del stack frontend (React, TypeScript y Vite) se debe ratificar con Ronny en ARQ-001 antes de integrar backend.
 
+## Comunidad V1
+
+El módulo vive en `src/features/communities/` y se abre desde la navegación Comunidad, tanto en bienvenida como en Mi Jardín. Usa `src/assets/fondo-comunidad-v1.png` y sigue la composición de la referencia «Comunidad — Historias de la Tierra».
+
+La actualización visual sigue `docs/diseno/referencia-comunidad-v2.png`: cuatro tarjetas para publicar experiencias, conversar en el foro, aprender y consultar eventos, junto a «Lo más reciente». La comunidad creada conserva sus datos y acciones en una franja con portada decorativa. La barra inferior mantiene sus medallones SVG. Las cinco ilustraciones independientes, su procedencia y los prompts están en [`src/features/communities/assets/README.md`](src/features/communities/assets/README.md).
+
+- El botón «Crear mi comunidad» abre un diálogo accesible para crear y editar nombre, responsable, localidad y descripción. El nombre es obligatorio; los demás datos son opcionales.
+- Los datos permanecen en memoria al navegar y se pierden al recargar. La comunidad se comparte con los flujos existentes de huerto y registro de plantas.
+- Tras crearla, se muestran sus datos, el estado vacío de integrantes y el acceso al registro del huerto compartido o al jardín si ya existe.
+- Saberes, experiencias, prácticas, conversaciones, novedades y actividades muestran estados de demostración. No incluyen publicaciones, videos, integrantes ni actividades ficticias. Publicar, unirse y sincronizar datos requieren una futura conexión con el backend.
+- Publicar experiencias y conversar abren estados pendientes distintos: aún no existen carga de fotografías, publicaciones, temas ni respuestas. Aprendizaje y eventos muestran sus estados vacíos, sin contenido ni fechas inventadas.
+- Los diálogos admiten teclado, Escape, gestión nativa del foco y validación del nombre. La distribución se adapta a escritorio, tableta y móvil.
+
 ## Mapa interactivo
 
 `src/EcuadorMap.tsx` consume datos GeoJSON provinciales desde:

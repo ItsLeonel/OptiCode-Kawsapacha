@@ -1,25 +1,42 @@
 import GardenIcon from '../my-garden/GardenIcon'
 import RealGardenIcon from './RealGardenIcon'
+import { formatCoordinates } from './ExactLocationPicker'
+import { GARDEN_TYPE_IMAGES } from './garden-type-assets'
 import { GARDEN_KINDS, IRRIGATION_OPTIONS, SOIL_OPTIONS, formatGardenArea, type RealGarden } from './real-garden'
 
 export default function RealGardenSummary({ garden, onEdit, onConnect, onCommunity }: {
-  garden: RealGarden | null; onEdit: () => void; onConnect: () => void; onCommunity: () => void
+  garden: RealGarden; onEdit: () => void; onConnect: () => void; onCommunity: () => void
 }) {
+  const { location } = garden
+  const hasDetails = Boolean(location.reference || location.coordinates || garden.communityName)
+
   return <section className="rg-panel rg-summary" aria-labelledby="rg-summary-title">
-    <div className="rg-summary-illustration" aria-hidden="true"><span>Ilustración del territorio</span></div>
-    <div className="rg-summary-data">
-      <div className="rg-summary-heading"><div><span className="rg-kicker">{garden ? 'REGISTRO TEMPORAL · ESTA VISITA' : 'TU HUERTO REAL'}</span><h2 id="rg-summary-title"><GardenIcon name="leaf"/>Mi huerto registrado</h2></div>{garden && <button className="rg-outline-button rg-edit" type="button" onClick={onEdit}><RealGardenIcon name="edit"/>Editar información</button>}</div>
-      {garden ? <>
-        <h3 className="rg-registered-name">{garden.name}</h3>
+    <header className="rg-summary-heading"><GardenIcon name="seed"/><h2 id="rg-summary-title">Mi huerto registrado</h2></header>
+    <div className="rg-summary-layout">
+      <figure className="rg-summary-illustration">
+        <img src={GARDEN_TYPE_IMAGES[garden.kind]} alt={`Ilustración de un huerto: ${GARDEN_KINDS[garden.kind].label.toLocaleLowerCase('es-EC')}`} width="1536" height="1024"/>
+        <figcaption>Ilustración de referencia</figcaption>
+      </figure>
+      <div className="rg-summary-data">
+        <div className="rg-registered-identity"><h3 className="rg-registered-name">{garden.name}</h3>
+          <p className="rg-registered-location"><GardenIcon name="map"/>{[location.province, location.canton, location.parish].filter(Boolean).join(' · ')}</p>
+        </div>
         <dl className="rg-summary-facts">
-          <div><dt><GardenIcon name="map"/> Ubicación</dt><dd>{[garden.location.province, garden.location.canton, garden.location.parish].filter(Boolean).join(' · ')}</dd></div>
-          <div><dt><GardenIcon name="seed"/> Tipo y superficie</dt><dd>{GARDEN_KINDS[garden.kind].label} · {formatGardenArea(garden.areaM2)}</dd></div>
-          <div><dt><RealGardenIcon name="water"/> Riego{garden.soilType ? ' y suelo' : ''}</dt><dd>{IRRIGATION_OPTIONS[garden.irrigationAvailability]}{garden.soilType && ` · ${SOIL_OPTIONS[garden.soilType]}`}</dd></div>
+          <div className="rg-fact-kind"><dt><GardenIcon name="seed"/>Tipo de huerto</dt><dd>{GARDEN_KINDS[garden.kind].label}</dd></div>
+          <div className="rg-fact-area"><dt><RealGardenIcon name="area"/>Superficie</dt><dd>{formatGardenArea(garden.areaM2)}</dd></div>
+          <div className="rg-fact-water"><dt><RealGardenIcon name="water"/>Riego</dt><dd>{IRRIGATION_OPTIONS[garden.irrigationAvailability]}</dd></div>
+          {garden.soilType && <div className="rg-fact-soil"><dt><RealGardenIcon name="soil"/>Tipo de suelo</dt><dd>{SOIL_OPTIONS[garden.soilType]}</dd></div>}
         </dl>
-        <p className="rg-summary-reference"><strong>Dirección o referencia:</strong> {garden.location.reference || 'Sin especificar'}</p>
-        <p className="rg-summary-community"><GardenIcon name="community"/>{garden.communityName || 'Aún sin comunidad vinculada.'}{!garden.communityName && <button type="button" className="rg-text-button" onClick={onCommunity}>Crear mi comunidad <GardenIcon name="arrow"/></button>}</p>
-      </> : <div className="rg-summary-empty"><p>Tu huerto todavía no está registrado.</p><small>Completa su ubicación y sus características. Aquí aparecerán únicamente los datos que guardes durante esta visita.</small></div>}
+        {hasDetails && <dl className="rg-summary-extra">
+          {location.reference && <div><dt>Dirección o referencia</dt><dd>{location.reference}</dd></div>}
+          {location.coordinates && <div><dt>Ubicación marcada</dt><dd>{formatCoordinates(location.coordinates)}<small>Elegida por ti, sin verificar.</small></dd></div>}
+          {garden.communityName && <div className="rg-summary-community"><dt>Comunidad</dt><dd><button type="button" className="rg-text-button" onClick={onCommunity}>{garden.communityName}<GardenIcon name="arrow"/></button></dd></div>}
+        </dl>}
+        <div className="rg-summary-actions">
+          <button className="rg-outline-button rg-edit" type="button" onClick={onEdit}><RealGardenIcon name="edit"/>Editar mi huerto</button>
+          <button className="rg-primary-button" type="button" onClick={onConnect}><RealGardenIcon name="link"/>Conectar con Mi Jardín<GardenIcon name="arrow"/></button>
+        </div>
+      </div>
     </div>
-    <div className="rg-connect"><RealGardenIcon name="digital"/><div><h3>¡Ahora, dale vida en Mi Jardín!</h3><p>Tu huerto real y su representación digital, en un mismo camino.</p></div><button className="rg-primary-button" type="button" onClick={onConnect} disabled={!garden}><RealGardenIcon name="link"/>Conectar con Mi Jardín<GardenIcon name="arrow"/></button>{!garden && <small>Primero guarda la información de tu huerto.</small>}</div>
   </section>
 }

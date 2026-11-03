@@ -7,7 +7,7 @@ import PlantPassport from './features/my-garden/PlantPassport'
 import CommunitiesPage from './features/communities/CommunitiesPage'
 import type { Community } from './features/communities/communities'
 import RealGardenPage from './features/real-gardens/RealGardenPage'
-import type { RealGarden } from './features/real-gardens/real-garden'
+import { toGardenDraft, type RealGarden, type RealGardenDraft } from './features/real-gardens/real-garden'
 import { PLOT_COUNT, type GardenAction, type GardenDestination, type GardenPlant } from './features/my-garden/garden'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual' | 'Mi historia'
@@ -37,6 +37,7 @@ export default function App() {
   const [communityRecord,setCommunityRecord] = useState<Community | null>(null)
   const community = communityRecord?.name ?? ''
   const [realGarden,setRealGarden] = useState<RealGarden | null>(null)
+  const [realGardenDraft, setRealGardenDraft] = useState<RealGardenDraft>(() => toGardenDraft(null))
   const garden = realGarden?.name ?? ''
   const savedProvince = realGarden?.location.province ?? ''
   const [plants,setPlants] = useState<Plant[]>([])
@@ -109,7 +110,7 @@ export default function App() {
     <GardenNavigation active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
     {screen === 'Inicio' ? <MyGardenPage plants={plants} community={community} garden={garden} province={savedProvince} realGarden={realGarden} selectedPlot={selectedPlot} onSelect={setDetail} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden}/>
       : screen === 'Comunidades' ? <CommunitiesPage community={communityRecord} garden={garden} onSave={saveCommunity} onGarden={() => goto('Huertos reales')} onHome={() => goto('Inicio')}/>
-      : screen === 'Huertos reales' ? <RealGardenPage garden={realGarden} communityName={communityRecord?.name ?? null} onSave={setRealGarden} onConnect={() => goto('Inicio')} onHome={() => goto('Inicio')} onCommunity={() => goto('Comunidades')}/>
+      : screen === 'Huertos reales' ? <RealGardenPage garden={realGarden} draft={realGardenDraft} onDraftChange={setRealGardenDraft} communityName={communityRecord?.name ?? null} onSave={setRealGarden} onConnect={() => goto('Inicio')} onHome={() => goto('Inicio')} onCommunity={() => goto('Comunidades')}/>
       : <main className="main garden-module">
       <header className="topbar">
         <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>

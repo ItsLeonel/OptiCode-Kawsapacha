@@ -5,6 +5,8 @@ import MyGardenPage from './features/my-garden/MyGardenPage'
 import GardenNavigation from './features/my-garden/GardenNavigation'
 import GardenHistory from './features/my-garden/GardenHistory'
 import PlantPassport from './features/my-garden/PlantPassport'
+import CommunitiesPage from './features/communities/CommunitiesPage'
+import type { Community } from './features/communities/communities'
 import { PLOT_COUNT, type GardenAction, type GardenDestination, type GardenPlant } from './features/my-garden/garden'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual' | 'Mi historia'
@@ -31,10 +33,8 @@ const SCREENS: {name:Screen; icon:string; subtitle:string}[] = [
 
 export default function App() {
   const [screen,setScreen] = useState<Screen>('Bienvenida')
-  const [community,setCommunity] = useState('')
-  const [contact,setContact] = useState('')
-  const [draftCommunity,setDraftCommunity] = useState('Comunidad Jardín Andino')
-  const [draftContact,setDraftContact] = useState('')
+  const [communityRecord,setCommunityRecord] = useState<Community | null>(null)
+  const community = communityRecord?.name ?? ''
   const [garden,setGarden] = useState('')
   const [gardenDraft,setGardenDraft] = useState('Mi Huerto Medicinal')
   const [province,setProvince] = useState('')
@@ -57,12 +57,6 @@ export default function App() {
   }, [screen])
 
   function goto(next: Screen) {setScreen(next);setFeedback('')}
-  function saveCommunity(e:FormEvent) {
-    e.preventDefault()
-    if (!draftCommunity.trim()) return
-    setCommunity(draftCommunity.trim());setContact(draftContact.trim())
-    setFeedback('Comunidad registrada en esta sesión de demostración.')
-  }
   function saveGarden(e:FormEvent) {
     e.preventDefault()
     if (!province || !gardenDraft.trim()) {setFeedback('Selecciona una provincia y escribe un nombre de huerto.');return}
@@ -118,6 +112,7 @@ export default function App() {
   return <div className="garden-shell">
     <GardenNavigation active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
     {screen === 'Inicio' ? <MyGardenPage plants={plants} community={community} garden={garden} province={savedProvince} selectedPlot={selectedPlot} onSelect={setDetail} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden}/>
+      : screen === 'Comunidades' ? <CommunitiesPage community={communityRecord} garden={garden} onSave={setCommunityRecord} onGarden={() => goto(garden ? 'Inicio' : 'Huertos reales')} onHome={() => goto('Inicio')}/>
       : <main className="main garden-module">
       <header className="topbar">
         <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>
@@ -131,20 +126,6 @@ export default function App() {
         {feedback?<div className="feedback" role="status">{feedback}</div>:null}
 
         {screen === 'Mi historia' && <GardenHistory plants={plants} onRegister={() => registerInPlot()} onSelect={setDetail} onRealGarden={() => goto('Huertos reales')}/>}
-
-        {screen==='Comunidades'&&<div className="two-col">
-          <section className="card"><span className="eyebrow">01 · PERSONAS</span><h2>Crear una comunidad</h2><p>Una familia, un grupo de vecinos o un colectivo puede formar una comunidad de siembra.</p>
-            <form onSubmit={saveCommunity}>
-              <label className="field">Nombre de la comunidad<input value={draftCommunity} onChange={e=>setDraftCommunity(e.target.value)} required placeholder="Ej.: Jardín Andino"/></label>
-              <label className="field">Nombre del responsable<input value={draftContact} onChange={e=>setDraftContact(e.target.value)} placeholder="Responsable del huerto"/></label>
-              <button className="cta" type="submit">Guardar comunidad ↗</button>
-            </form>
-          </section>
-          <section className="card surface"><span className="eyebrow">TU COMUNIDAD</span><div className="community-art">♧</div>
-            <h2>{community||'Aún no tienes una comunidad'}</h2><p>{community?(contact?`Responsable: ${contact}`:'Comunidad creada en el prototipo'):'Crea tu primera comunidad para comenzar a cultivar.'}</p>
-            {community&&<button className="outline" onClick={()=>goto('Huertos reales')}>Siguiente: registrar huerto →</button>}
-          </section>
-        </div>}
 
         {screen==='Huertos reales'&&<div className="two-col map-layout">
           <section className="card"><span className="eyebrow">02 · TERRITORIO</span><h2>Ubica tu huerto en Ecuador</h2><p>Selecciona una provincia directamente en el mapa, o utiliza la lista accesible.</p>

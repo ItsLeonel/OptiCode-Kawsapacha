@@ -12,6 +12,11 @@ const CATALOG = [
     preparation: 'Infusión: 1 cucharadita de hojas secas en agua caliente por 10 minutos. No hervir. 1 a 2 tazas diarias.',
     contraindications: 'Evitar en dosis altas durante el embarazo. No usar en niños menores de 6 años sin supervisión médica.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 4,
+    fertilizerFrequencyDays: 30,
+    growthCycleDays: 60,
+    bestPlantingSeason: 'Todo el año (preferible época seca)',
+    lunarPhaseTip: 'Sembrar en cuarto creciente para mayor desarrollo de hojas aromáticas',
   },
   {
     name: 'Manzanilla',
@@ -22,6 +27,11 @@ const CATALOG = [
     preparation: 'Infusión: 2 cucharadas de flores en agua caliente por 5 minutos. 2 a 3 tazas diarias después de las comidas.',
     contraindications: 'Puede causar reacciones alérgicas en personas sensibles a las Asteráceas. Consultar ante alergias conocidas.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 3,
+    fertilizerFrequencyDays: 21,
+    growthCycleDays: 45,
+    bestPlantingSeason: 'Agosto a diciembre',
+    lunarPhaseTip: 'Sembrar en luna nueva para favorecer el desarrollo de flores',
   },
   {
     name: 'Menta',
@@ -32,6 +42,11 @@ const CATALOG = [
     preparation: 'Infusión: hojas frescas o secas en agua caliente por 5 a 7 minutos. Se puede combinar con manzanilla.',
     contraindications: 'El aceite esencial no debe aplicarse directamente en niños pequeños. Moderar el consumo en personas con reflujo.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 2,
+    fertilizerFrequencyDays: 21,
+    growthCycleDays: 30,
+    bestPlantingSeason: 'Todo el año',
+    lunarPhaseTip: 'Trasplantar en cuarto menguante para fortalecer raíces',
   },
   {
     name: 'Toronjil',
@@ -42,6 +57,11 @@ const CATALOG = [
     preparation: 'Infusión: 1 a 2 cucharadas de hojas frescas o secas en agua caliente por 10 minutos. 2 tazas diarias.',
     contraindications: 'Puede interactuar con sedantes. Consultar con un profesional de salud si se toman medicamentos.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 3,
+    fertilizerFrequencyDays: 25,
+    growthCycleDays: 50,
+    bestPlantingSeason: 'Octubre a febrero',
+    lunarPhaseTip: 'Sembrar en cuarto creciente para maximizar aceites esenciales',
   },
   {
     name: 'Hierbabuena',
@@ -52,6 +72,11 @@ const CATALOG = [
     preparation: 'Infusión: hojas frescas en agua caliente por 5 minutos. También puede añadirse a ensaladas y aguas aromáticas.',
     contraindications: 'Generalmente segura en cantidades alimentarias. Evitar el aceite esencial concentrado en niños.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 2,
+    fertilizerFrequencyDays: 21,
+    growthCycleDays: 35,
+    bestPlantingSeason: 'Todo el año',
+    lunarPhaseTip: 'Podar en luna menguante para renovar vigorosamente el follaje',
   },
   {
     name: 'Lavanda',
@@ -62,6 +87,11 @@ const CATALOG = [
     preparation: 'Infusión suave de flores secas. También se utiliza en aromaterapia y como repelente natural de insectos.',
     contraindications: 'El aceite esencial puede causar irritación cutánea en personas sensibles. No ingerir aceite esencial puro.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 7,
+    fertilizerFrequencyDays: 45,
+    growthCycleDays: 90,
+    bestPlantingSeason: 'Marzo a junio (zona alta)',
+    lunarPhaseTip: 'Sembrar en luna llena para potenciar fragancia floral',
   },
   {
     name: 'Orégano',
@@ -72,6 +102,11 @@ const CATALOG = [
     preparation: 'Infusión para afecciones respiratorias: 1 cucharadita de hojas en agua caliente. También en cocina como condimento.',
     contraindications: 'Evitar dosis medicinales altas durante el embarazo. Las cantidades culinarias son generalmente seguras.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 5,
+    fertilizerFrequencyDays: 30,
+    growthCycleDays: 55,
+    bestPlantingSeason: 'Septiembre a enero',
+    lunarPhaseTip: 'Cosechar hojas en luna menguante para mayor concentración de aceites',
   },
   {
     name: 'Llantén',
@@ -82,6 +117,11 @@ const CATALOG = [
     preparation: 'Infusión de hojas para afecciones respiratorias. Cataplasma de hojas frescas para heridas e irritaciones cutáneas.',
     contraindications: 'Generalmente bien tolerado. Consultar ante alergias a Plantago. No reemplaza tratamiento médico en infecciones.',
     defaultPhotoUrl: '',
+    wateringFrequencyDays: 3,
+    fertilizerFrequencyDays: 20,
+    growthCycleDays: 40,
+    bestPlantingSeason: 'Todo el año',
+    lunarPhaseTip: 'Recolectar hojas en luna llena para mayor potencia medicinal',
   },
 ]
 
@@ -90,7 +130,7 @@ async function main() {
 
   for (const plant of CATALOG) {
     await prisma.medicinalCatalog.upsert({
-      where: { id: plant.name }, // Usamos name como id temporal para el seed
+      where: { id: plant.name },
       update: plant,
       create: { id: plant.name, ...plant },
     })
@@ -103,4 +143,3 @@ async function main() {
 main()
   .catch(e => { console.error('Error en seed:', e); process.exit(1) })
   .finally(() => prisma.$disconnect())
-

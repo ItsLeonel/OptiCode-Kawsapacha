@@ -140,8 +140,8 @@ export const communityApi = {
     return data.communities
   },
 
-  async create(community: Community): Promise<Community> {
-    const data = await request<{ community: Community }>('/api/communities', {
+  async create(community: Community): Promise<Community & { id: string }> {
+    const data = await request<{ community: Community & { id: string } }>('/api/communities', {
       method: 'POST',
       body: JSON.stringify(community),
     })
@@ -154,6 +154,52 @@ export const communityApi = {
   },
 }
 
+// ─── Módulo de Miembros de Comunidad ─────────────────────────────────────────
+
+export interface CommunityMember {
+  id: string
+  communityId: string
+  userId: string
+  roleInCommunity: string
+  status: string
+  joinedAt: string
+  user: {
+    id: string
+    name: string
+    email: string
+    role: string
+  }
+}
+
+export const memberApi = {
+  async list(communityId: string): Promise<CommunityMember[]> {
+    const data = await request<{ members: CommunityMember[] }>(`/api/communities/${communityId}/members`)
+    return data.members
+  },
+
+  async invite(communityId: string, email: string, role: string): Promise<unknown> {
+    const data = await request<{ invitation: unknown }>(`/api/communities/${communityId}/members/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    })
+    return data.invitation
+  },
+
+  async updateRole(communityId: string, userId: string, role: string): Promise<CommunityMember> {
+    const data = await request<{ member: CommunityMember }>(`/api/communities/${communityId}/members/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    })
+    return data.member
+  },
+
+  async remove(communityId: string, userId: string): Promise<void> {
+    await request<unknown>(`/api/communities/${communityId}/members/${userId}`, {
+      method: 'DELETE',
+    })
+  },
+}
+
 // ─── Módulo de Huertos Reales ────────────────────────────────────────────────
 
 export const gardenApi = {
@@ -163,7 +209,7 @@ export const gardenApi = {
     return data.gardens
   },
 
-  async create(garden: RealGarden, communityId?: string | null): Promise<RealGarden> {
+  async create(garden: RealGarden, communityId?: string | null): Promise<RealGarden & { id: string }> {
     const payload = {
       name: garden.name,
       kind: garden.kind,
@@ -181,7 +227,7 @@ export const gardenApi = {
       communityId: communityId ?? null,
     }
 
-    const data = await request<{ garden: RealGarden }>('/api/gardens', {
+    const data = await request<{ garden: RealGarden & { id: string } }>('/api/gardens', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
@@ -208,6 +254,14 @@ export interface CatalogSpecies {
   defaultPhotoUrl: string
 }
 
+export interface CalendarTips {
+  wateringFrequencyDays: number
+  fertilizerFrequencyDays: number
+  growthCycleDays: number
+  bestPlantingSeason: string
+  lunarPhaseTip: string
+}
+
 export const catalogApi = {
   async list(query?: string): Promise<CatalogSpecies[]> {
     const q = query ? `?q=${encodeURIComponent(query)}` : ''
@@ -218,6 +272,11 @@ export const catalogApi = {
   async getById(id: string): Promise<CatalogSpecies> {
     const data = await request<{ species: CatalogSpecies }>(`/api/catalog/${id}`)
     return data.species
+  },
+
+  async getCalendarTips(speciesId: string): Promise<CalendarTips> {
+    const data = await request<{ calendar: CalendarTips }>(`/api/catalog/${speciesId}/calendar`)
+    return data.calendar
   },
 }
 
@@ -231,6 +290,7 @@ export interface ApiPlant {
   photoUrl: string
   plantingDate: string
   notes?: string
+  lifecycleStatus?: string
   species: {
     name: string
     latinName: string
@@ -271,5 +331,134 @@ export const plantApi = {
   async passport(plantId: string): Promise<unknown> {
     const data = await request<{ passport: unknown }>(`/api/plants/${plantId}/passport`)
     return data.passport
+  },
+}
+
+// ─── Módulo de Bitácora de Cuidados ──────────────────────────────────────────
+
+export interface CareLog {
+  id: string
+  plantId: string
+  actionType: string
+  notes: string
+  performedAt: string
+  userId: string
+  user?: { id: string; name: string }
+}
+
+export interface GrowthData {
+  percentage: number
+  stage: string
+  daysUntilHarvest: number
+  needsWatering: boolean
+  needsFertilizer: boolean
+  lifecycleStatus: string
+  plantingDate: string
+}
+
+export const careApi = {
+  async add(plantId: string, actionType: string, notes?: string): Promise<CareLog> {
+    const data = await request<{ log: CareLog }>(`/api/plants/${plantId}/care`, {
+      method: 'POST',
+      body: JSON.stringify({ actionType, notes: notes ?? '' }),
+    })
+    return data.log
+  },
+
+  async list(plantId: string): Promise<CareLog[]> {
+    const data = await request<{ logs: CareLog[] }>(`/api/plants/${plantId}/care`)
+    return data.logs
+  },
+
+  async getGrowth(plantId: string): Promise<GrowthData> {
+    const data = await request<{ growth: GrowthData }>(`/api/plants/${plantId}/care/growth`)
+    return data.growth
+  },
+}
+
+// ─── Módulo de Cosechas ───────────────────────────────────────────────────────
+
+export interface HarvestRecord {
+  id: string
+  speciesName: string
+  speciesLatinName: string
+  quantity: string
+  harvestDate: string
+  notes: string
+  harvestedById: string
+  harvestedBy?: { id: string; name: string }
+  realGarden?: { id: string; name: string }
+}
+
+export const harvestApi = {
+  async harvest(plantId: string, quantity: string, notes?: string): Promise<HarvestRecord> {
+    const data = await request<{ harvest: HarvestRecord }>(`/api/plants/${plantId}/harvest`, {
+      method: 'POST',
+      body: JSON.stringify({ quantity, notes: notes ?? '' }),
+    })
+    return data.harvest
+  },
+
+  async listByGarden(gardenId: string): Promise<HarvestRecord[]> {
+    const data = await request<{ harvests: HarvestRecord[] }>(`/api/gardens/${gardenId}/harvests`)
+    return data.harvests
+  },
+
+  async listByCommunity(communityId: string): Promise<HarvestRecord[]> {
+    const data = await request<{ harvests: HarvestRecord[] }>(`/api/communities/${communityId}/harvests`)
+    return data.harvests
+  },
+}
+
+// ─── Módulo de Bodega y Recursos Comunitarios ─────────────────────────────────
+
+export interface CommunityResource {
+  id: string
+  communityId: string
+  name: string
+  category: string
+  quantity: number
+  unit: string
+  status: string
+  description: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateResourceData {
+  name: string
+  category: string
+  quantity?: number
+  unit?: string
+  status?: string
+  description?: string
+}
+
+export const resourceApi = {
+  async list(communityId: string): Promise<CommunityResource[]> {
+    const data = await request<{ resources: CommunityResource[] }>(`/api/communities/${communityId}/resources`)
+    return data.resources
+  },
+
+  async create(communityId: string, resourceData: CreateResourceData): Promise<CommunityResource> {
+    const data = await request<{ resource: CommunityResource }>(`/api/communities/${communityId}/resources`, {
+      method: 'POST',
+      body: JSON.stringify(resourceData),
+    })
+    return data.resource
+  },
+
+  async update(communityId: string, resourceId: string, resourceData: Partial<CreateResourceData>): Promise<CommunityResource> {
+    const data = await request<{ resource: CommunityResource }>(`/api/communities/${communityId}/resources/${resourceId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(resourceData),
+    })
+    return data.resource
+  },
+
+  async remove(communityId: string, resourceId: string): Promise<void> {
+    await request<unknown>(`/api/communities/${communityId}/resources/${resourceId}`, {
+      method: 'DELETE',
+    })
   },
 }

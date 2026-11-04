@@ -49,6 +49,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('Bienvenida')
   const [speciesCatalog, setSpeciesCatalog] = useState(STATIC_SPECIES)
   const [activeGardenId, setActiveGardenId] = useState<string | null>(null)
+  const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null)
 
   const [communityRecord, setCommunityRecord] = useState<Community | null>(null)
   const community = communityRecord?.name ?? ''
@@ -88,7 +89,9 @@ export default function App() {
     // Cargar comunidades del usuario
     communityApi.list().then(list => {
       if (list && list.length > 0) {
-        setCommunityRecord(list[0])
+        const c = list[0] as unknown as (Community & { id: string })
+        setCommunityRecord(c)
+        if (c.id) setActiveCommunityId(c.id)
       }
     }).catch(() => {})
 
@@ -142,6 +145,7 @@ export default function App() {
     authApi.logout()
     setUser(null)
     setCommunityRecord(null)
+    setActiveCommunityId(null)
     setRealGarden(null)
     setActiveGardenId(null)
     setPlants([])
@@ -153,7 +157,8 @@ export default function App() {
     setRealGarden(current => current ? { ...current, communityName: next.name } : current)
     if (user) {
       try {
-        await communityApi.create(next)
+        const created = await communityApi.create(next)
+        if (created?.id) setActiveCommunityId(created.id)
         setFeedback('¡Comunidad guardada con éxito en la base de datos!')
       } catch (err: unknown) {
         setFeedback(err instanceof Error ? err.message : 'Error al guardar la comunidad')
@@ -257,46 +262,65 @@ export default function App() {
     setPicture(null)
     setPreview('')
     setSelectedPlot(null)
-    setFeedback('¡Tu planta aparece en el huerto! (Modo visitante; inicia sesión para persistirla).')
+    setFeedback('Fotografía añadida a la parcela digital.')
     const input = document.getElementById('plant-photo') as HTMLInputElement | null
     if (input) input.value = ''
   }
 
-  function beginCultivation(name: string) {
-    setSpecies(name)
+  function handlePlantHarvested(plantId: string) {
+    setPlants(prev => prev.filter(p => p.id !== plantId))
     setDetail(null)
+    setFeedback('🌾 ¡Planta cosechada con éxito! La parcela quedó libre y el producto se registró en el almacén de la comunidad.')
+  }
+
+  function registerInPlot(plotIndex?: number) {
+    if (plotIndex !== undefined) {
+      setSelectedPlot(plotIndex)
+    }
     goto('Huerto virtual')
   }
 
-  function navigateGarden(destination: GardenDestination) {
-    const destinations = {
-      garden: 'Inicio',
-      community: 'Comunidades',
-      'real-garden': 'Huertos reales',
-      plants: 'Plantas medicinales',
-      history: 'Mi historia',
-    } as const
-    goto(destinations[destination])
-  }
-
-  function registerInPlot(plot?: number) {
-    setSelectedPlot(plot ?? null)
-    setDetail(null)
+  function beginCultivation(speciesName: string) {
+    setSpecies(speciesName)
     goto('Huerto virtual')
   }
 
   function gardenAction(action: GardenAction) {
-    if (action === 'register') registerInPlot()
-    else if (action === 'real-garden') goto('Huertos reales')
-    else if (action === 'logbook') goto('Mi historia')
-    else if (plants.length) setDetail(plants[plants.length - 1])
-    else {
-      registerInPlot()
-      setFeedback('Tu Pasaporte Vivo comienza con una fotografía. Registra tu primera planta para consultarlo.')
+    if (action === 'register') {
+      goto('Huerto virtual')
+      return
+    }
+    if (action === 'logbook') {
+      goto('Mi historia')
+      return
+    }
+    if (action === 'real-garden') {
+      goto('Huertos reales')
+      return
+    }
+    if (action === 'passport') {
+      if (plants.length > 0) {
+        setDetail(plants[0])
+      } else {
+        setFeedback('Aún no tienes plantas registradas para ver un Pasaporte Vivo.')
+        goto('Huerto virtual')
+      }
     }
   }
 
-  const visible = speciesCatalog.filter(s => `${s.name} ${s.latin}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+  function navigateGarden(destination: GardenDestination) {
+    if (destination === 'garden') goto('Inicio')
+    if (destination === 'community') goto('Comunidades')
+    if (destination === 'real-garden') goto('Huertos reales')
+    if (destination === 'plants') goto('Plantas medicinales')
+    if (destination === 'history') goto('Mi historia')
+  }
+
+  const visible = speciesCatalog.filter(s =>
+    s.name.toLowerCase().includes(query.toLowerCase()) ||
+    s.latin.toLowerCase().includes(query.toLowerCase())
+  )
+
   const ready = Boolean(community && garden)
   const title = screen === 'Comunidades' ? 'Comunidad' : screen === 'Plantas medicinales' ? 'Descubrir plantas' : screen === 'Huerto virtual' ? 'Registrar planta' : screen
   const activeNavigation: GardenDestination = screen === 'Comunidades' ? 'community' : screen === 'Huertos reales' ? 'real-garden' : screen === 'Plantas medicinales' ? 'plants' : screen === 'Mi historia' ? 'history' : 'garden'
@@ -320,11 +344,14 @@ export default function App() {
           onRegister={registerInPlot}
           onAction={gardenAction}
           onNavigate={navigateGarden}
+          user={user}
         />
       ) : screen === 'Comunidades' ? (
         <CommunitiesPage
           community={communityRecord}
+          communityId={activeCommunityId}
           garden={garden}
+          user={user}
           onSave={saveCommunity}
           onGarden={() => goto('Huertos reales')}
           onHome={() => goto('Inicio')}
@@ -339,6 +366,7 @@ export default function App() {
           onConnect={() => goto('Inicio')}
           onHome={() => goto('Inicio')}
           onCommunity={() => goto('Comunidades')}
+          user={user}
         />
       ) : (
         <main className="main garden-module">
@@ -478,7 +506,13 @@ export default function App() {
           </div>
         </main>
       )}
-      <PlantPassport plant={detail} onClose={() => setDetail(null)} onHistory={() => { setDetail(null); goto('Mi historia') }} />
+      <PlantPassport
+        plant={detail}
+        user={user}
+        onClose={() => setDetail(null)}
+        onHistory={() => { setDetail(null); goto('Mi historia') }}
+        onPlantHarvested={handlePlantHarvested}
+      />
     </div>
   )
 }

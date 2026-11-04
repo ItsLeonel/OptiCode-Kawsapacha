@@ -1,0 +1,170 @@
+// Kawsapacha V1 — Esquema Prisma con SQLite
+// Responsable: Ronny Veloz (Rodni15) — Issue #4 ARQ-001 / #7 DEV-002
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USUARIOS Y AUTENTICACIÓN ────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("PARTICIPANTE") // RESPONSABLE | PARTICIPANTE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  communitiesCreated Community[]       @relation("CommunityCreator")
+  communityMemberships CommunityMember[]
+  gardensCreated     RealGarden[]      @relation("GardenCreator")
+  plantsRegistered   CultivatedPlant[] @relation("PlantRegistrar")
+
+  @@map("users")
+}
+
+// ─── COMUNIDADES ─────────────────────────────────────────────────────────────
+
+model Community {
+  id          String  @id @default(cuid())
+  name        String
+  responsible String
+  location    String
+  description String
+
+  creatorId String
+  creator   User   @relation("CommunityCreator", fields: [creatorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  members CommunityMember[]
+  gardens RealGarden[]
+
+  @@map("communities")
+}
+
+model CommunityMember {
+  id              String @id @default(cuid())
+  communityId     String
+  userId          String
+  roleInCommunity String @default("PARTICIPANTE") // RESPONSABLE | PARTICIPANTE
+
+  joinedAt DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([communityId, userId])
+  @@map("community_members")
+}
+
+// ─── HUERTOS REALES ──────────────────────────────────────────────────────────
+
+model RealGarden {
+  id          String @id @default(cuid())
+  name        String
+  kind        String // ground | pots | vertical | hanging
+  areaM2      Float
+
+  // Ubicación territorial DPA Ecuador
+  province     String
+  provinceCode String
+  canton       String  @default("")
+  cantonCode   String? // nullable si no se seleccionó
+  parish       String  @default("")
+  parishCode   String? // nullable si no se seleccionó
+  reference    String  @default("") // dirección/referencia hasta 300 chars
+
+  // Georreferenciación
+  latitude  Float? // nullable si no se marcó en el mapa
+  longitude Float?
+
+  // Características
+  irrigationAvailability String  @default("unknown") // available | seasonal | unavailable | unknown
+  soilType               String? // loam | clay | sand | silt | other | unknown | null (si no es 'ground')
+
+  // Relaciones opcionales
+  communityId String?
+  community   Community? @relation(fields: [communityId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("GardenCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  plants CultivatedPlant[]
+
+  @@map("real_gardens")
+}
+
+// ─── CATÁLOGO DE PLANTAS MEDICINALES ─────────────────────────────────────────
+
+model MedicinalCatalog {
+  id                 String @id @default(cuid())
+  name               String // Nombre común (Romero, Manzanilla, etc.)
+  latinName          String // Nombre científico
+  icon               String // Emoji o clave de icono
+  description        String @default("") // Descripción botánica educativa
+  medicinalProperties String @default("") // Propiedades tradicionales verificadas
+  preparation        String @default("") // Modo de uso o infusión tradicional
+  contraindications  String @default("") // Advertencias y precauciones
+  defaultPhotoUrl    String @default("") // URL de imagen de referencia
+
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  cultivatedPlants CultivatedPlant[]
+
+  @@map("medicinal_catalog")
+}
+
+// ─── HUERTO VIRTUAL 2D — PLANTAS CULTIVADAS ──────────────────────────────────
+
+model CultivatedPlant {
+  id String @id @default(cuid())
+
+  // Parcela del huerto (0 a 5, única por huerto)
+  plotIndex Int
+
+  // Especie del catálogo
+  speciesId String
+  species   MedicinalCatalog @relation(fields: [speciesId], references: [id])
+
+  // Huerto al que pertenece
+  realGardenId String
+  realGarden   RealGarden @relation(fields: [realGardenId], references: [id])
+
+  // Fotografía real del usuario
+  photoUrl  String  @default("") // URL pública /uploads/plants/...
+  photoPath String  @default("") // Ruta interna en disco
+  photoMime String  @default("") // image/jpeg | image/png | image/webp
+  photoSize Int     @default(0)  // Tamaño en bytes (<= 3MB)
+
+  // Datos del registro
+  customName   String  @default("") // Nombre/apodo dado por el usuario
+  plantingDate DateTime @default(now())
+  notes        String  @default("") // Notas o bitácora inicial
+
+  registeredById String
+  registeredBy   User   @relation("PlantRegistrar", fields: [registeredById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // La tupla (huerto, parcela) debe ser única
+  @@unique([realGardenId, plotIndex])
+  @@map("cultivated_plants")
+}
+

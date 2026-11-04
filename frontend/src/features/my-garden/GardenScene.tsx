@@ -1,8 +1,25 @@
-import { useRef, type KeyboardEvent } from 'react'
+import { useRef, type CSSProperties, type KeyboardEvent } from 'react'
 import GardenIcon from './GardenIcon'
+import GardenContainer from './GardenContainer'
+import GardenRegionalScenery from './GardenRegionalScenery'
+import GardenGroundSurface from './GardenGroundSurface'
+import GardenPergola from './GardenPergola'
+import GardenVerticalStructure from './GardenVerticalStructure'
+import { HANGING_POINTS, potArtwork, REGIONAL_SURFACES, VERTICAL_POINTS } from './scene-art'
 import { PLOT_COUNT, type GardenPlant } from './garden'
+import type { GardenKind } from '../real-gardens/real-garden'
+import type { GardenRegion } from '../real-gardens/garden-region'
 
-export default function GardenScene({ plants, selectedPlot, onRegister, onSelect }: {
+const SCENES = {
+  ground: { title: 'Tu huerto en tierra', unit: 'Punto de siembra', empty: 'Punto de siembra vacío', icon: 'seed' },
+  pots: { title: 'Tu espacio en macetas', unit: 'Maceta', empty: 'Maceta vacía', icon: 'pot' },
+  vertical: { title: 'Tu jardín vertical', unit: 'Espacio', empty: 'Espacio vertical vacío', icon: 'vertical' },
+  hanging: { title: 'Tu jardín colgante', unit: 'Macetero', empty: 'Macetero colgante vacío', icon: 'hanging' },
+} as const
+
+export default function GardenScene({ kind, region, plants, selectedPlot, onRegister, onSelect }: {
+  kind: GardenKind
+  region: GardenRegion
   plants: GardenPlant[]
   selectedPlot: number | null
   onRegister: (plot: number) => void
@@ -10,6 +27,7 @@ export default function GardenScene({ plants, selectedPlot, onRegister, onSelect
 }) {
   const plotRefs = useRef<(HTMLButtonElement | null)[]>([])
   const gridRef = useRef<HTMLOListElement>(null)
+  const scene = SCENES[kind]
 
   function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const columns = gridRef.current ? getComputedStyle(gridRef.current).gridTemplateColumns.split(' ').length : 3
@@ -23,22 +41,33 @@ export default function GardenScene({ plants, selectedPlot, onRegister, onSelect
     plotRefs.current[next]?.focus()
   }
 
-  return <section className="garden-scene" aria-label="Parcelas de tu jardín digital">
-    <div className="garden-scene-caption"><GardenIcon name="leaf"/><span>Tu espacio para sembrar<small>Elige una parcela · Tab, flechas y Enter</small></span></div>
-    <ol className="garden-parcels" ref={gridRef} aria-label="Seis parcelas de cultivo">
-      {Array.from({ length: PLOT_COUNT }, (_, index) => {
-        const plant = plants.find(record => record.plot === index)
-        return <li key={index}><button type="button" data-plot-index={index} ref={element => { plotRefs.current[index] = element }}
-          className={`garden-parcel ${plant ? 'is-occupied' : 'is-empty'} ${selectedPlot === index ? 'is-selected' : ''}`}
-          aria-label={plant ? `Parcela ${index + 1}: ${plant.name}. Abrir Pasaporte Vivo` : `Parcela vacía ${index + 1}. Registrar planta`}
-          aria-haspopup={plant ? 'dialog' : undefined} onClick={() => plant ? onSelect(plant) : onRegister(index)} onKeyDown={event => moveFocus(event, index)}>
-          <span className="garden-parcel-ground" aria-hidden="true"/>
-          <span className="garden-parcel-bed" aria-hidden="true"/>
-          {plant ? <span className="garden-parcel-photo"><img src={plant.photo} alt=""/><GardenIcon name="leaf"/></span> : <span className="garden-parcel-plus"><GardenIcon name="plus"/></span>}
-          <span className="garden-parcel-label"><strong>{plant ? plant.name : `Parcela ${index + 1}`}</strong><small>{plant ? 'Ver Pasaporte Vivo' : 'Registrar planta'}</small></span>
-        </button></li>
-      })}
-    </ol>
-    <p className="garden-scene-note">Escenario ilustrado · Las fotografías representan tus registros de esta visita, no crecimiento verificado.</p>
+  return <section className="garden-scene" aria-label={scene.title} data-garden-kind={kind}>
+    <div className="garden-scene-caption"><GardenIcon name={scene.icon}/><span>{scene.title}</span></div>
+    <p className="garden-sr-only" id="garden-keyboard-hint">Usa Tab o las flechas para recorrer los seis espacios. Inicio y Fin van al primero y al último. Enter o Espacio abren el registro o el Pasaporte Vivo.</p>
+    <div className="garden-stage" data-kind={kind} data-surface={REGIONAL_SURFACES[region]}>
+      <GardenRegionalScenery region={region}/>
+      {kind === 'ground' && <GardenGroundSurface/>}
+      {kind === 'hanging' && <GardenPergola/>}
+      {kind === 'vertical' && <GardenVerticalStructure/>}
+      <ol className="garden-parcels" ref={gridRef} aria-label={`Seis espacios de cultivo: ${scene.title.toLocaleLowerCase('es-EC')}`} aria-describedby="garden-keyboard-hint">
+        {Array.from({ length: PLOT_COUNT }, (_, index) => {
+          const plant = plants.find(record => record.plot === index)
+          const point = kind === 'vertical' ? VERTICAL_POINTS[index] : kind === 'hanging' ? HANGING_POINTS[index] : null
+          const art = potArtwork(region, index)
+          const style = { '--soil-from-bottom': art.soilFromBottom, ...(point ? { '--plot-x': `${point[0]}%`, '--plot-y': `${point[1]}%` } : {}) } as CSSProperties
+          return <li key={index} style={style}>
+            <button type="button" data-plot-index={index} ref={element => { plotRefs.current[index] = element }}
+              className={`garden-parcel ${plant ? 'is-occupied' : 'is-empty'} ${selectedPlot === index ? 'is-selected' : ''}`}
+              aria-label={plant ? `${scene.unit} ${index + 1}: ${plant.name}. Abrir Pasaporte Vivo` : `${scene.empty} ${index + 1}. Registrar planta`}
+              aria-haspopup={plant ? 'dialog' : undefined} onClick={() => plant ? onSelect(plant) : onRegister(index)} onKeyDown={event => moveFocus(event, index)}>
+              {kind === 'pots' && <GardenContainer region={region} index={index}/>}
+              {plant ? <span className="garden-parcel-photo"><img src={plant.photo} alt=""/></span> : <span className="garden-parcel-plus"><GardenIcon name="plus"/></span>}
+              <span className="garden-parcel-label"><strong>{plant ? plant.name : kind === 'ground' ? `Punto ${index + 1}` : `${scene.unit} ${index + 1}`}</strong><small>{plant ? 'Ver Pasaporte Vivo' : 'Registrar planta'}</small></span>
+            </button>
+          </li>
+        })}
+      </ol>
+    </div>
+    <p className="garden-scene-note">Escenario ilustrado{plants.length ? ' · Fotografías registradas durante esta visita' : ''}</p>
   </section>
 }

@@ -172,8 +172,8 @@ for (const kind of KINDS) {
       await page.screenshot({ path: test.info().outputPath(`${kind}-${region}.png`), fullPage: true })
       await page.locator('.garden-parcels button').nth(5).click()
       await expect(page.getByRole('heading', { name: 'Registrar planta', exact: true })).toBeVisible()
-      await expect(page.getByText('Destino: parcela 6.', { exact: true })).toBeVisible()
-      await navigation(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
+      await expect(page.getByLabel('Posición de cultivo')).toHaveValue('5')
+      await page.getByRole('button', { name: 'Cerrar registro de planta' }).click()
       await expect(page.locator('.garden-parcels button').nth(5)).toHaveClass(/is-selected/)
       await expect(page.locator('.my-garden-page')).toHaveAttribute('data-region', region)
     })
@@ -242,6 +242,7 @@ test('barra colorida: contraste, foco, cuatro acciones y Retos verdes', async ({
   await expect(register).toHaveCSS('outline-style', 'solid')
   await register.press('Enter')
   await expect(page.getByRole('heading', { name: 'Registrar planta', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Cerrar registro de planta' }).click()
   await navigation(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
   await actions(page).getByRole('button', { name: 'Bitácora', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Mi historia', exact: true })).toBeVisible()
@@ -251,6 +252,7 @@ test('barra colorida: contraste, foco, cuatro acciones y Retos verdes', async ({
   await page.getByRole('button', { name: 'Conectar con Mi Jardín' }).click()
   await actions(page).getByRole('button', { name: 'Pasaporte Vivo', exact: true }).click()
   await expect(page.getByText('Tu Pasaporte Vivo comienza con una fotografía.', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
   await navigation(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
   await page.getByRole('button', { name: /Nuestra primera comunidad/ }).click()
   await expect(page.locator('.communities-page')).toBeVisible()
@@ -272,7 +274,7 @@ for (const [width, columns] of [[1440, 2], [390, 2]]) {
     await page.keyboard.press('End')
     await expect(buttons.nth(5)).toBeFocused()
     await page.keyboard.press('Enter')
-    await expect(page.getByText('Destino: parcela 6.', { exact: true })).toBeVisible()
+    await expect(page.getByLabel('Posición de cultivo')).toHaveValue('5')
   })
 }
 
@@ -310,7 +312,7 @@ test.describe('toque', () => {
     await enterDemo(page)
     await registerGarden(page, 'hanging', REGIONS.sierra)
     await page.locator('.garden-parcels button').nth(1).tap()
-    await expect(page.getByText('Destino: parcela 2.', { exact: true })).toBeVisible()
+    await expect(page.getByLabel('Posición de cultivo')).toHaveValue('1')
   })
 })
 
@@ -323,6 +325,6 @@ for (const kind of ['ground', 'pots', 'vertical'] as const) {
     await assertGrounding(page, kind)
     await page.screenshot({ path: test.info().outputPath(`${kind}-390.png`), fullPage: true })
     await page.locator('.garden-parcels button').nth(5).click()
-    await expect(page.getByText('Destino: parcela 6.', { exact: true })).toBeVisible()
+    await expect(page.getByLabel('Posición de cultivo')).toHaveValue('5')
   })
 }

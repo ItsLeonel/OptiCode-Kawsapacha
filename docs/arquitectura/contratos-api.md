@@ -422,3 +422,4 @@ Permite a QA y al frontend validar la disponibilidad del backend y la conexión 
     }
   }
   ```
+

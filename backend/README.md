@@ -126,3 +126,4 @@ backend/
 ## 🔗 Contratos de API
 La especificación detallada de cada endpoint, códigos de respuesta y formatos de solicitud se encuentra documentada en:
 👉 [docs/arquitectura/contratos-api.md](../docs/arquitectura/contratos-api.md)
+

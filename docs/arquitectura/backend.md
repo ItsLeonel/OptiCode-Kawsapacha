@@ -236,3 +236,4 @@ backend/
 2. **Mensajes de Error Seguros:** El endpoint de login retorna `"Correo o contraseña incorrectos"` de forma genérica para mitigar ataques de enumeración de usuarios.
 3. **Límites de Carga:** Prevención de ataques DoS por carga de archivos limitando el tamaño a 3 MB y validando la extensión y MIME type.
 4. **Verificación de Salud:** Endpoint `/api/health` ejecuta una consulta en vivo a SQLite (`SELECT 1`) para monitorización continua.
+

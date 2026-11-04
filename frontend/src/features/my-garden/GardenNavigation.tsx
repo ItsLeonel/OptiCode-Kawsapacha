@@ -9,10 +9,12 @@ const ITEMS = [
   { destination: 'history', label: 'Mi historia', icon: 'history' },
 ] as const
 
-export default function GardenNavigation({ active, onNavigate, onWelcome }: {
+export default function GardenNavigation({ active, onNavigate, onWelcome, user, onLogout }: {
   active: GardenDestination
   onNavigate: (destination: GardenDestination) => void
   onWelcome: () => void
+  user?: { name: string; role: string } | null
+  onLogout?: () => void
 }) {
   return <aside className="garden-sidebar">
     <button className="garden-brand" type="button" onClick={() => onNavigate('garden')} aria-label="Kawsapacha, ir a Mi jardín">
@@ -27,6 +29,11 @@ export default function GardenNavigation({ active, onNavigate, onWelcome }: {
       <p>Aprendiz → Oficial → Maestro</p><small>Grado y Semillas de vida sin asignar.</small>
       <button type="button" onClick={() => onNavigate('history')}>Conocer mi camino <GardenIcon name="arrow"/></button>
     </div>
-    <div className="garden-sidebar-footer"><span>Visitante · Sin sesión</span><button type="button" onClick={onWelcome}><GardenIcon name="back"/> Volver a bienvenida</button></div>
+    <div className="garden-sidebar-footer">
+      <span>{user ? `${user.name} · ${user.role}` : 'Visitante · Sin sesión'}</span>
+      <button type="button" onClick={user && onLogout ? onLogout : onWelcome}>
+        <GardenIcon name="back"/> {user ? 'Cerrar sesión' : 'Volver a bienvenida'}
+      </button>
+    </div>
   </aside>
 }

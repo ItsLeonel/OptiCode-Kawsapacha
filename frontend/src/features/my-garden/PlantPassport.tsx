@@ -20,7 +20,7 @@ export default function PlantPassport({ plant, onClose, onHistory }: {
       <div className="garden-passport-header"><span><GardenIcon name="history"/> PASAPORTE VIVO</span><button type="button" autoFocus onClick={() => dialogRef.current?.close()} aria-label="Cerrar Pasaporte Vivo"><GardenIcon name="close"/></button></div>
       <img className="garden-passport-photo" src={plant.photo} alt={`Fotografía registrada de ${plant.name}`}/>
       <div className="garden-passport-copy"><span className="garden-eyebrow">REGISTRO LOCAL · DEMOSTRACIÓN</span><h2 id="plant-passport-title">{plant.name}</h2><p><em>{plant.latin}</em></p>
-        <dl><div><dt>Registrada en esta visita</dt><dd>{plant.date}</dd></div><div><dt>Ubicación digital</dt><dd>Parcela {plant.plot + 1}</dd></div></dl>
+        <dl><div><dt>Registrada en esta visita</dt><dd>{plant.date}</dd></div><div><dt>Ubicación digital</dt><dd>Parcela {plant.plot + 1}</dd></div>{plant.plantedOn && <div><dt>Fecha de siembra</dt><dd>{new Date(`${plant.plantedOn}T12:00:00`).toLocaleDateString('es-EC')}</dd></div>}</dl>
         <p>Esta fotografía identifica tu planta. El historial de crecimiento y su verificación se integrarán con el servidor.</p>
         <button type="button" className="garden-solid-button" onClick={onHistory}><GardenIcon name="book"/> Ver Bitácora de cultivo</button>
       </div>

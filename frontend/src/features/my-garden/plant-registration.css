@@ -1,0 +1,79 @@
+.plant-registration { width: min(1060px, calc(100vw - 40px)); max-height: calc(100dvh - 40px); margin: auto; padding: 0; overflow: auto; border: 1px solid #c6df83; border-radius: 30px; color: #f3f5e7; background: linear-gradient(135deg, #173d28f5, #0a342bf5 65%, #304d20f5); box-shadow: inset 0 1px 0 #f5ffdb52, 0 25px 90px #021d18a6; backdrop-filter: blur(16px); }
+.plant-registration::backdrop { background: #041b154f; backdrop-filter: blur(3px); }
+.plant-registration *, .plant-registration *::before, .plant-registration *::after { box-sizing: border-box; }
+.plant-registration button, .plant-registration input, .plant-registration select { font: inherit; }
+.plant-registration button { cursor: pointer; }
+.plant-registration button:disabled { cursor: not-allowed; opacity: .55; }
+.plant-registration :is(button, select, input):focus-visible { outline: 3px solid #ddf796; outline-offset: 4px; }
+.plant-registration-header { display: flex; align-items: center; gap: 18px; padding: 24px 28px 20px; }
+.plant-registration-header > .garden-icon { width: 48px; height: 48px; color: #d3f05c; }
+.plant-registration-header > div { flex: 1; min-width: 0; }
+.plant-registration-header h2 { margin: 0; font: 600 30px/1.15 'Outfit', sans-serif; letter-spacing: -.025em; }
+.plant-registration-header p { margin: 8px 0 0; color: #e1eace; font-size: 14px; line-height: 1.5; }
+.plant-registration-close { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 1px solid #d3e7b5; border-radius: 50%; color: #f1f4e8; background: #e0eeae0d; }
+.plant-registration-close:hover { background: #d8eea42b; }
+.plant-registration-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; padding: 0 24px 24px; }
+.plant-photo-panel { display: flex; min-width: 0; gap: 14px; align-items: stretch; padding-block: 4px; }
+.plant-photo-sources { display: flex; flex-direction: column; gap: 16px; padding-top: 34px; }
+.plant-photo-sources button { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 9px; width: 86px; min-height: 88px; padding: 14px 8px; border: 1px solid #b9cb8e99; border-radius: 22px; color: #f4f5dc; background: linear-gradient(140deg, #78952a1a, #081f1e4d); font-size: 14px; font-weight: 600; transition: background .2s, border-color .2s; }
+.plant-photo-sources button .garden-icon { width: 30px; height: 30px; }
+.plant-photo-sources button[aria-pressed=true], .plant-photo-sources button:hover { color: #eaff92; background: linear-gradient(135deg, #78992c99, #355720b3); border-color: #c5e752; box-shadow: inset 0 1px 0 #e4f6a84d; }
+.plant-photo-workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 2px solid #dedfba; border-radius: 22px; background: #071e18b3; }
+.plant-viewfinder { position: relative; flex: 1; min-height: 300px; isolation: isolate; background: radial-gradient(ellipse at 50% 45%, #66895047, #0c241d); }
+.plant-viewfinder :is(img, video) { position: absolute; width: 100%; height: 100%; object-fit: contain; }
+.plant-viewfinder video[hidden] { display: none; }
+.plant-viewfinder-corners { position: absolute; inset: 24px; pointer-events: none; border: 2px solid #f4f8ddc9; border-radius: 15px; mask: conic-gradient(at 24px 24px, transparent 75%, #000 0) 0 0 / calc(100% - 24px) calc(100% - 24px); }
+.plant-photo-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 26px; text-align: center; color: #e3eccd; }
+.plant-photo-empty > .garden-icon { width: 64px; height: 64px; color: #c1dc80; opacity: .8; }
+.plant-photo-empty span { font: 500 21px 'Outfit', sans-serif; }
+.plant-photo-empty small { font-size: 12px; line-height: 1.6; }
+.plant-photo-controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; min-height: 82px; padding: 12px; border-top: 1px solid #a8bc7d59; background: linear-gradient(120deg, #6b512994, #1d352c); }
+.plant-photo-controls > span { font-size: 13px; color: #e6ebd4; text-align: center; }
+.plant-shutter { display: grid; place-items: center; width: 58px; height: 58px; border: 4px solid #f5f8e8; outline: 2px solid #c2e989; outline-offset: 3px; border-radius: 50%; color: #254934; background: #f6f8e9; box-shadow: 0 3px 15px #0006; }
+.plant-shutter:not(:disabled):hover { background: #ddf797; }
+.plant-camera-stop { min-height: 44px; padding: 10px; border: 1px solid #dbe7bc99; border-radius: 12px; background: #09271f66; color: #f3f6df; font-size: 12px !important; }
+.plant-camera-status { position: absolute; bottom: 20px; left: 16px; right: 16px; padding: 12px; text-align: center; font-size: 13px; border-radius: 12px; color: #f4f8e9; background: #102c23e8; }
+.plant-details-panel { min-width: 0; display: flex; flex-direction: column; gap: 16px; padding: 24px; border: 1px solid #cfc6a4; border-radius: 23px; color: #20382a; background: linear-gradient(130deg, #faf5e9f5, #eee4cff5); box-shadow: inset 0 1px 0 #fff; }
+.plant-details-panel h3 { margin: 0; font-size: 16px; }
+.plant-selected-species { display: flex; align-items: center; gap: 16px; }
+.plant-selected-species > img, .plant-preview-placeholder { flex-shrink: 0; width: 86px; height: 98px; border: 1px solid #b7c38f; border-radius: 15px; object-fit: cover; }
+.plant-preview-placeholder { display: grid; place-items: center; color: #56733d; background: #dbe5c5; }
+.plant-preview-placeholder .garden-icon { width: 42px; height: 42px; }
+.plant-selected-species > div { min-width: 0; }
+.plant-selected-species strong { display: block; overflow-wrap: anywhere; font: 600 24px/1.15 'Outfit', sans-serif; }
+.plant-selected-species em { display: block; margin-top: 8px; color: #65583e; font-size: 14px; overflow-wrap: anywhere; }
+.plant-registration-field { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 14px; font-weight: 600; }
+.plant-registration-field > span { font-size: 12px; font-weight: 400; color: #5c624d; }
+.plant-registration-field :is(select, input) { display: block; width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1px solid #9a9b7b; border-radius: 11px; color: #213b2b; background: #fffdf5; font-size: 15px; color-scheme: light; }
+.plant-details-panel :is(button, select, input):focus-visible { outline-color: #326845; outline-offset: 3px; }
+.plant-registration-actions { display: flex; gap: 12px; margin-top: auto; padding-top: 6px; }
+.plant-registration-actions button { display: inline-flex; justify-content: center; align-items: center; gap: 9px; min-height: 48px; padding: 12px 16px; border: 1px solid #9c9b79; border-radius: 14px; font-size: 14px; font-weight: 600; }
+.plant-registration-cancel { color: #334330; background: #e1d6ba; }
+.plant-registration-cancel:hover { background: #ede2c8; }
+.plant-registration-submit { flex: 1; color: #18390f; border-color: #9cae40 !important; background: linear-gradient(135deg, #e2f792, #b2d443); }
+.plant-registration-submit:not(:disabled):hover { background: #e7fb9d; }
+.plant-registration-notice, .plant-registration-error, .plant-registration-setup p { margin: 0; font-size: 13px; line-height: 1.5; }
+.plant-registration-error { padding: 12px; border: 1px solid #ad5d48; border-radius: 12px; color: #772f20; background: #fff0e3; }
+.plant-registration-notice { color: #4e6141; }
+.plant-registration-setup { padding: 12px; border: 1px solid #a8bb90; border-radius: 12px; background: #e4ebd3; }
+.plant-registration-setup button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 6px; padding: 6px 10px; border: 1px solid #57764a; border-radius: 10px; color: #254f30; background: #f3f7e9; font-size: 13px; }
+.plant-registration-temporary { display: block; text-align: center; color: #62664f; font-size: 11px; }
+.plant-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (max-width: 760px) {
+  .plant-registration { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 22px; }
+  .plant-registration-header { gap: 10px; padding: 18px 16px; }
+  .plant-registration-header > .garden-icon { width: 32px; height: 32px; }
+  .plant-registration-header h2 { font-size: 25px; }
+  .plant-registration-header p { font-size: 12px; }
+  .plant-registration-body { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 0 16px 16px; }
+  .plant-photo-panel { flex-direction: column; gap: 12px; }
+  .plant-photo-sources { flex-direction: row; padding: 0; gap: 12px; }
+  .plant-photo-sources button { flex: 1; flex-direction: row; width: auto; min-height: 50px; padding: 10px; border-radius: 15px; }
+  .plant-photo-sources button .garden-icon { width: 24px; height: 24px; }
+  .plant-viewfinder { min-height: 235px; }
+  .plant-photo-controls { min-height: 56px; }
+  .plant-details-panel { padding: 20px; }
+  .plant-registration-actions { flex-wrap: wrap; }
+  .plant-registration-actions button { padding-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .plant-registration * { transition: none !important; } }

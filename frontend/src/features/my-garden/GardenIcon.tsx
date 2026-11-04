@@ -1,4 +1,4 @@
-type IconName = 'leaf' | 'garden' | 'community' | 'history' | 'plus' | 'book' | 'map' | 'seed' | 'target' | 'arrow' | 'close' | 'mountain' | 'back' | 'pot' | 'vertical' | 'hanging'
+type IconName = 'leaf' | 'garden' | 'community' | 'history' | 'plus' | 'book' | 'map' | 'seed' | 'target' | 'arrow' | 'close' | 'mountain' | 'back' | 'pot' | 'vertical' | 'hanging' | 'camera' | 'gallery'
 
 export default function GardenIcon({ name, className = '' }: { name: IconName; className?: string }) {
   return <svg className={`garden-icon ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
@@ -7,6 +7,8 @@ export default function GardenIcon({ name, className = '' }: { name: IconName; c
     {name === 'community' && <><circle cx="12" cy="7" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3H6ZM4 6a3 3 0 0 0 0 6m16-6a3 3 0 0 1 0 6M2 15v5m20-5v5"/></>}
     {name === 'history' && <><path d="M12 5C9 3 6 3 2 4v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15M5 8h3m-3 4h3m8-4h3m-3 4h3"/></>}
     {name === 'plus' && <path d="M12 4v16M4 12h16"/>}
+    {name === 'camera' && <><path d="M3 7h4l2-3h6l2 3h4v14H3Z"/><circle cx="12" cy="13" r="4"/></>}
+    {name === 'gallery' && <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></>}
     {name === 'book' && <><rect x="5" y="3" width="15" height="18" rx="2"/><path d="M5 7H2m3 5H2m3 5H2m8-9h6m-6 4h6m-6 4h3"/></>}
     {name === 'map' && <><path d="M16 10c0 4-4 8-4 8s-4-4-4-8a4 4 0 0 1 8 0Z"/><circle cx="12" cy="9" r="1"/><path d="m6 14-3 7h18l-3-7"/></>}
     {name === 'seed' && <><path d="M12 21V11m0 4C5 15 3 12 3 7c6 0 9 3 9 8Zm0-4c0-6 4-9 9-8 0 6-3 9-9 8Z" fill="currentColor" fillOpacity=".12"/><path d="M7 21h10"/></>}

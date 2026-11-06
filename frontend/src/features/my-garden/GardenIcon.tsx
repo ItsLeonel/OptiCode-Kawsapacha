@@ -1,4 +1,4 @@
-type IconName = 'leaf' | 'garden' | 'community' | 'history' | 'plus' | 'book' | 'map' | 'seed' | 'target' | 'arrow' | 'close' | 'mountain' | 'back' | 'logout' | 'bell'
+type IconName = 'leaf' | 'garden' | 'community' | 'history' | 'plus' | 'book' | 'map' | 'seed' | 'target' | 'arrow' | 'close' | 'mountain' | 'back' | 'logout' | 'bell' | 'pot' | 'vertical' | 'hanging' | 'camera' | 'gallery'
 
 export default function GardenIcon({ name, className = '' }: { name: IconName; className?: string }) {
   return <svg className={`garden-icon ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
@@ -7,6 +7,8 @@ export default function GardenIcon({ name, className = '' }: { name: IconName; c
     {name === 'community' && <><circle cx="12" cy="7" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3H6ZM4 6a3 3 0 0 0 0 6m16-6a3 3 0 0 1 0 6M2 15v5m20-5v5"/></>}
     {name === 'history' && <><path d="M12 5C9 3 6 3 2 4v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15M5 8h3m-3 4h3m8-4h3m-3 4h3"/></>}
     {name === 'plus' && <path d="M12 4v16M4 12h16"/>}
+    {name === 'camera' && <><path d="M3 7h4l2-3h6l2 3h4v14H3Z"/><circle cx="12" cy="13" r="4"/></>}
+    {name === 'gallery' && <><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 6-6 4 4 3-3 5 5"/></>}
     {name === 'book' && <><rect x="5" y="3" width="15" height="18" rx="2"/><path d="M5 7H2m3 5H2m3 5H2m8-9h6m-6 4h6m-6 4h3"/></>}
     {name === 'map' && <><path d="M16 10c0 4-4 8-4 8s-4-4-4-8a4 4 0 0 1 8 0Z"/><circle cx="12" cy="9" r="1"/><path d="m6 14-3 7h18l-3-7"/></>}
     {name === 'seed' && <><path d="M12 21V11m0 4C5 15 3 12 3 7c6 0 9 3 9 8Zm0-4c0-6 4-9 9-8 0 6-3 9-9 8Z" fill="currentColor" fillOpacity=".12"/><path d="M7 21h10"/></>}
@@ -17,5 +19,8 @@ export default function GardenIcon({ name, className = '' }: { name: IconName; c
     {name === 'mountain' && <><path d="m2 21 8-16 5 8 2-3 5 11H2Zm5-10 3 2 3-3"/></>}
     {name === 'logout' && <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>}
     {name === 'bell' && <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>}
+    {name === 'pot' && <><path d="M3 10h18v3H3ZM5 13l3 8h8l3-8M12 10V6m0 0C7 6 6 4 6 2c4 0 6 2 6 4Zm0 0c0-4 3-5 6-5 0 4-3 5-6 5Z"/><path d="m9 17 3 2 3-2"/></>}
+    {name === 'vertical' && <><path d="M4 2v20m16-20v20M3 9h18M3 18h18M7 6v3m5-5v5m5-3v3M7 14v4m5-6v6m5-4v4"/><path d="M6 2h12M6 22h12"/></>}
+    {name === 'hanging' && <><path d="M12 1v3M12 4 3 14h18L12 4ZM4 14l4 8h8l4-8M8 18h8"/><path d="M12 14V9m0 3c-3 0-4-2-4-4 3 0 4 2 4 4Z"/></>}
   </svg>
 }

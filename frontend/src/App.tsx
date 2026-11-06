@@ -1,10 +1,12 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AuthPage from './features/auth/AuthPage'
 import MyGardenPage from './features/my-garden/MyGardenPage'
 import GardenNavigation from './features/my-garden/GardenNavigation'
 import GardenHistory from './features/my-garden/GardenHistory'
 import PlantPassport from './features/my-garden/PlantPassport'
 import NotificationsModal from './features/notifications/NotificationsModal'
+import PlantRegistrationModal from './features/my-garden/PlantRegistrationModal'
+import { PLANT_SPECIES as SPECIES, type PlantRegistration, type PlantRegistrationResult } from './features/my-garden/plant-species'
 import CommunitiesPage from './features/communities/CommunitiesPage'
 import type { Community } from './features/communities/communities'
 import RealGardenPage from './features/real-gardens/RealGardenPage'
@@ -24,7 +26,7 @@ import {
   type CommunityInvitationItem,
 } from './services/api'
 
-type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual' | 'Mi historia'
+type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Mi historia'
 type Plant = GardenPlant
 
 const STATIC_SPECIES = [
@@ -40,11 +42,10 @@ const STATIC_SPECIES = [
 
 const SCREENS: { name: Screen; icon: string; subtitle: string }[] = [
   { name: 'Inicio', icon: '⌂', subtitle: 'Tu huerto real y tu huerto digital' },
-  { name: 'Usuarios', icon: '♙', subtitle: 'Acceso y perfiles' },
-  { name: 'Comunidades', icon: '♧', subtitle: 'Personas que cultivan' },
+  { name: 'Usuarios', icon: '♟', subtitle: 'Acceso y perfiles' },
+  { name: 'Comunidades', icon: '§', subtitle: 'Personas que cultivan' },
   { name: 'Huertos reales', icon: '⌖', subtitle: 'Ubicación y terreno' },
-  { name: 'Plantas medicinales', icon: '❃', subtitle: 'Explora el catálogo' },
-  { name: 'Huerto virtual', icon: '✿', subtitle: 'Una fotografía real para tu parcela digital' },
+  { name: 'Plantas medicinales', icon: '⁂', subtitle: 'Explora el catálogo' },
   { name: 'Mi historia', icon: '▤', subtitle: 'Bitácora de cultivo y Mi camino verde' },
 ]
 
@@ -65,9 +66,9 @@ export default function App() {
   const garden = realGarden?.name ?? ''
   const savedProvince = realGarden?.location?.province ?? ''
   const [plants, setPlants] = useState<Plant[]>([])
-  const [species, setSpecies] = useState(STATIC_SPECIES[0].name)
-  const [picture, setPicture] = useState<File | null>(null)
-  const [preview, setPreview] = useState('')
+  const [registration, setRegistration] = useState<{ plot: number | null; species: string; notice?: string } | null>(null)
+  const savedPhotos = useRef<string[]>([])
+  const nextPlantId = useRef(0)
   const [detail, setDetail] = useState<Plant | null>(null)
   const [query, setQuery] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -81,22 +82,25 @@ export default function App() {
       setCurrentCommunityRole(null)
       return
     }
-    memberApi.list(activeCommunityId).then(members => {
-      const mine = members.find(m => m.userId === user.id && m.status === 'ACCEPTED')
-      if (mine) {
-        setCurrentCommunityRole(mine.roleInCommunity === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
-      } else if (communityRecord && (communityRecord as any).creatorId === user.id) {
-        setCurrentCommunityRole('RESPONSABLE')
-      } else {
-        setCurrentCommunityRole(user.role === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
-      }
-    }).catch(() => {
-      if (communityRecord && (communityRecord as any).creatorId === user.id) {
-        setCurrentCommunityRole('RESPONSABLE')
-      } else {
-        setCurrentCommunityRole(null)
-      }
-    })
+    memberApi
+      .list(activeCommunityId)
+      .then(members => {
+        const mine = members.find(m => m.userId === user.id && m.status === 'ACCEPTED')
+        if (mine) {
+          setCurrentCommunityRole(mine.roleInCommunity === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
+        } else if (communityRecord && (communityRecord as any).creatorId === user.id) {
+          setCurrentCommunityRole('RESPONSABLE')
+        } else {
+          setCurrentCommunityRole(user.role === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
+        }
+      })
+      .catch(() => {
+        if (communityRecord && (communityRecord as any).creatorId === user.id) {
+          setCurrentCommunityRole('RESPONSABLE')
+        } else {
+          setCurrentCommunityRole(null)
+        }
+      })
   }, [activeCommunityId, communityRecord, user])
 
   async function loadPendingInvitations() {
@@ -115,6 +119,10 @@ export default function App() {
   useEffect(() => {
     loadPendingInvitations()
   }, [user])
+
+  useEffect(() => () => {
+    savedPhotos.current.forEach(url => URL.revokeObjectURL(url))
+  }, [])
 
   async function handleInvitationAccepted(communityId: string) {
     try {
@@ -139,11 +147,14 @@ export default function App() {
 
   // Cargar especies desde el catálogo SQLite
   useEffect(() => {
-    catalogApi.list().then(items => {
-      if (items && items.length > 0) {
-        setSpeciesCatalog(items.map(s => ({ name: s.name, latin: s.latinName, icon: s.icon || '🌿' })))
-      }
-    }).catch(() => {})
+    catalogApi
+      .list()
+      .then(items => {
+        if (items && items.length > 0) {
+          setSpeciesCatalog(items.map(s => ({ name: s.name, latin: s.latinName, icon: s.icon || '🌿' })))
+        }
+      })
+      .catch(() => {})
   }, [])
 
   // Cargar datos persistentes del usuario desde SQLite
@@ -151,59 +162,63 @@ export default function App() {
     if (!user) return
 
     // Cargar comunidades del usuario (filtradas por membresía en backend)
-    communityApi.list().then(list => {
-      const comms = list || []
-      setUserCommunities(comms)
-      if (comms.length > 0) {
-        // Preferir la comunidad creada por el propio usuario (donde es creador) si existe
-        const own = comms.find((c: any) => c.creatorId === user.id)
-        const active = (own || comms[0]) as unknown as (Community & { id: string })
-        setCommunityRecord(active)
-        if (active.id) {
-          setActiveCommunityId(active.id)
-          loadGardenForCommunity(active.id)
+    communityApi
+      .list()
+      .then(list => {
+        const comms = list || []
+        setUserCommunities(comms)
+        if (comms.length > 0) {
+          // Preferir la comunidad creada por el propio usuario (donde es creador) si existe
+          const own = comms.find((c: any) => c.creatorId === user.id)
+          const active = (own || comms[0]) as unknown as Community & { id: string }
+          setCommunityRecord(active)
+          if (active.id) {
+            setActiveCommunityId(active.id)
+            loadGardenForCommunity(active.id)
+          }
+        } else {
+          // Usuario nuevo sin comunidad: estado limpio y sin datos ajenos
+          setCommunityRecord(null)
+          setActiveCommunityId(null)
+          setActiveGardenId(null)
+          setRealGarden(null)
+          setRealGardenDraft(toGardenDraft(null))
+          setPlants([])
         }
-      } else {
-        // Usuario nuevo sin comunidad: estado limpio y sin datos ajenos
+      })
+      .catch(() => {
+        setUserCommunities([])
         setCommunityRecord(null)
         setActiveCommunityId(null)
         setActiveGardenId(null)
         setRealGarden(null)
         setRealGardenDraft(toGardenDraft(null))
         setPlants([])
-      }
-    }).catch(() => {
-      setUserCommunities([])
-      setCommunityRecord(null)
-      setActiveCommunityId(null)
-      setActiveGardenId(null)
-      setRealGarden(null)
-      setRealGardenDraft(toGardenDraft(null))
-      setPlants([])
-    })
+      })
   }, [user])
 
   async function loadGardenForCommunity(cId: string) {
     try {
       const gardensList = await gardenApi.list(cId)
       if (gardensList && gardensList.length > 0) {
-        const g = gardensList[0] as unknown as (RealGarden & { id: string })
+        const g = gardensList[0] as unknown as RealGarden & { id: string }
         setActiveGardenId(g.id)
         setRealGarden(g)
         setRealGardenDraft(toGardenDraft(g))
 
         const apiPlants = await plantApi.listByGarden(g.id)
         if (apiPlants && apiPlants.length > 0) {
-          // Incluir plantas GROWING, READY_TO_HARVEST y REGROWING — excluir solo HARVESTED puro (estado sin lastHarvestDate) que no existe ya
           const activePlants = apiPlants.filter(p => p.lifecycleStatus !== 'HARVESTED')
-          setPlants(activePlants.map(p => ({
-            id: p.id,
-            name: p.species?.name || p.speciesId,
-            latin: p.species?.latinName || '',
-            photo: p.photoUrl,
-            date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
-            plot: p.plotIndex,
-          })))
+          setPlants(
+            activePlants.map(p => ({
+              id: p.id,
+              name: p.species?.name || p.speciesId,
+              latin: p.species?.latinName || '',
+              photo: p.photoUrl,
+              date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
+              plot: p.plotIndex,
+            }))
+          )
         } else {
           setPlants([])
         }
@@ -231,6 +246,7 @@ export default function App() {
   }
 
   function goto(next: Screen) {
+    setRegistration(null)
     setScreen(next)
     setFeedback('')
   }
@@ -267,7 +283,7 @@ export default function App() {
 
   async function saveCommunity(next: Community) {
     setCommunityRecord(next)
-    setRealGarden(current => current ? { ...current, communityName: next.name } : current)
+    setRealGarden(current => (current ? { ...current, communityName: next.name } : current))
     if (user) {
       try {
         const created = await communityApi.create(next)
@@ -306,174 +322,169 @@ export default function App() {
     }
   }
 
-  function choosePicture(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null
-    if (!file) return
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) {
-      setFeedback('Usa JPG, PNG o WebP de hasta 3 MB.')
-      setPicture(null)
-      setPreview('')
-      return
-    }
-    setPicture(file)
-    setPreview(URL.createObjectURL(file))
-    setFeedback('')
-  }
+  async function addPlant({ photo, species, plot, plantedOn }: PlantRegistration): Promise<PlantRegistrationResult> {
+    if (user) {
+      if (!activeGardenId) {
+        return { ok: false, error: 'Primero vincula tu comunidad y registra tu huerto real.' }
+      }
+      if (!Number.isInteger(plot) || plot < 0 || plot >= PLOT_COUNT) {
+        return { ok: false, error: 'Selecciona un espacio de cultivo válido.' }
+      }
+      if (plants.some(plant => plant.plot === plot)) {
+        return { ok: false, error: 'Ese espacio ya tiene una planta. Elige otro espacio disponible.' }
+      }
 
-  async function addPlant(e: FormEvent) {
-    e.preventDefault()
-    if (!community || !garden) {
-      setFeedback('Primero crea una comunidad y su huerto.')
-      return
-    }
-    if (!picture || !preview) {
-      setFeedback('Selecciona una fotografía válida para registrar la planta.')
-      return
-    }
-    const nextPlot = selectedPlot !== null && !plants.some(plant => plant.plot === selectedPlot)
-      ? selectedPlot
-      : Array.from({ length: PLOT_COUNT }, (_, plotIndex) => plotIndex).find(plotIndex => !plants.some(plant => plant.plot === plotIndex))
-
-    if (nextPlot === undefined) {
-      setFeedback('Las seis parcelas están ocupadas. Puedes consultar sus Pasaportes Vivos.')
-      return
-    }
-    const s = speciesCatalog.find(x => x.name === species) || STATIC_SPECIES[0]
-
-    // Si el usuario está autenticado y tenemos huerto persistido en BD:
-    if (user && activeGardenId) {
       try {
-        setFeedback('Subiendo fotografía y guardando en SQLite...')
+        const file = new File([photo], `${species.name.toLowerCase().replace(/\s+/g, '-')}.jpg`, {
+          type: photo.type || 'image/jpeg',
+        })
         const apiPlant = await plantApi.register(activeGardenId, {
-          file: picture,
-          speciesId: s.name,
-          plotIndex: nextPlot,
-          customName: s.name,
-          notes: 'Registrada desde el huerto virtual Kawsapacha',
+          file,
+          speciesId: species.name,
+          plotIndex: plot,
+          customName: species.name,
+          notes: plantedOn ? `Sembrada el ${plantedOn}` : 'Registrada con cámara Kawsapacha',
         })
 
         const record: Plant = {
           id: apiPlant.id,
-          name: apiPlant.species?.name || s.name,
-          latin: apiPlant.species?.latinName || s.latin,
+          name: apiPlant.species?.name || species.name,
+          latin: apiPlant.species?.latinName || species.latin,
           photo: apiPlant.photoUrl,
           date: new Date(apiPlant.plantingDate).toLocaleDateString('es-EC'),
           plot: apiPlant.plotIndex,
+          plantedOn,
         }
         setPlants(existing => [...existing, record])
+        setRegistration(null)
         setDetail(record)
-        setPicture(null)
-        setPreview('')
         setSelectedPlot(null)
         setFeedback('¡Fotografía y planta guardadas exitosamente en el servidor!')
-        const input = document.getElementById('plant-photo') as HTMLInputElement | null
-        if (input) input.value = ''
-        return
+        return { ok: true }
       } catch (err: unknown) {
-        setFeedback(err instanceof Error ? err.message : 'Error al registrar la planta en el servidor.')
-        return
+        const msg = err instanceof Error ? err.message : 'Error al registrar la planta en el servidor.'
+        return { ok: false, error: msg }
       }
     }
 
-    // Modo visitante / demostración en memoria:
+    // Modo visitante
+    if (!realGarden) return { ok: false, error: 'Primero registra tu huerto' }
+    if (!Number.isInteger(plot) || plot < 0 || plot >= PLOT_COUNT) {
+      return { ok: false, error: 'Selecciona un espacio de cultivo válido.' }
+    }
+    if (plants.some(plant => plant.plot === plot)) {
+      return { ok: false, error: 'Ese espacio ya tiene una planta. Elige otro espacio disponible.' }
+    }
+
+    const id = `plant-${++nextPlantId.current}`
+    const date = new Date().toLocaleDateString('es-EC')
+    const photoUrl = URL.createObjectURL(photo)
+    savedPhotos.current.push(photoUrl)
     const record: Plant = {
-      id: `${Date.now()}-${Math.random()}`,
-      name: s.name,
-      latin: s.latin,
-      photo: preview,
-      date: new Date().toLocaleDateString('es-EC'),
-      plot: nextPlot,
+      id,
+      name: species.name,
+      latin: species.latin,
+      photo: photoUrl,
+      date,
+      plot,
+      ...(plantedOn ? { plantedOn } : {}),
     }
     setPlants(existing => [...existing, record])
+    setRegistration(null)
     setDetail(record)
-    setPicture(null)
-    setPreview('')
     setSelectedPlot(null)
-    setFeedback('Fotografía añadida a la parcela digital.')
-    const input = document.getElementById('plant-photo') as HTMLInputElement | null
-    if (input) input.value = ''
+    return { ok: true }
   }
 
   function handlePlantHarvested(_plantId: string) {
-    // NO eliminamos la planta del estado — las hierbas medicinales andinas son perennes.
-    // La cosecha es poda/recolección: la planta permanece sembrada en su parcela
-    // e inicia un nuevo ciclo de rebrote. Solo cerramos el pasaporte.
     setDetail(null)
     setFeedback('🌾 ¡Cosecha recolectada e ingresada al almacén! La planta permanece sembrada y ha iniciado un nuevo ciclo de rebrote.')
-    // Recargar datos frescos del huerto para reflejar el nuevo lifecycleStatus REGROWING
     if (activeGardenId) {
-      plantApi.listByGarden(activeGardenId).then(apiPlants => {
-        const activePlants = apiPlants.filter(p => p.lifecycleStatus !== 'REMOVED')
-        setPlants(activePlants.map(p => ({
-          id: p.id,
-          name: p.species?.name || p.speciesId,
-          latin: p.species?.latinName || '',
-          photo: p.photoUrl,
-          date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
-          plot: p.plotIndex,
-        })))
-      }).catch(() => {})
+      plantApi
+        .listByGarden(activeGardenId)
+        .then(apiPlants => {
+          const activePlants = apiPlants.filter(p => p.lifecycleStatus !== 'REMOVED')
+          setPlants(
+            activePlants.map(p => ({
+              id: p.id,
+              name: p.species?.name || p.speciesId,
+              latin: p.species?.latinName || '',
+              photo: p.photoUrl,
+              date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
+              plot: p.plotIndex,
+            }))
+          )
+        })
+        .catch(() => {})
     }
   }
 
   function handlePlantRemoved(plantId: string) {
-    // Eliminar la planta del estado local — se desarraigó físicamente
     setPlants(prev => prev.filter(p => p.id !== plantId))
     setDetail(null)
     setFeedback('🗑️ Planta desarraigada. La parcela ha quedado libre para un nuevo cultivo.')
   }
 
-  function registerInPlot(plotIndex?: number) {
-    if (plotIndex !== undefined) {
-      setSelectedPlot(plotIndex)
-    }
-    goto('Huerto virtual')
+  function registerInPlot(plot?: number, speciesName: string = SPECIES[0].name, notice?: string) {
+    setSelectedPlot(plot ?? null)
+    setDetail(null)
+    setRegistration({ plot: plot ?? null, species: speciesName, notice })
   }
 
   function beginCultivation(speciesName: string) {
-    setSpecies(speciesName)
-    goto('Huerto virtual')
+    registerInPlot(undefined, speciesName)
   }
 
   function gardenAction(action: GardenAction) {
     if (action === 'register') {
-      goto('Huerto virtual')
-      return
-    }
-    if (action === 'logbook') {
-      goto('Mi historia')
-      return
-    }
-    if (action === 'real-garden') {
+      registerInPlot()
+    } else if (action === 'real-garden') {
       goto('Huertos reales')
-      return
-    }
-    if (action === 'passport') {
+    } else if (action === 'logbook') {
+      goto('Mi historia')
+    } else if (action === 'passport') {
       if (plants.length > 0) {
-        setDetail(plants[0])
+        setDetail(plants[plants.length - 1])
       } else {
-        setFeedback('Aún no tienes plantas registradas para ver un Pasaporte Vivo.')
-        goto('Huerto virtual')
+        registerInPlot(undefined, SPECIES[0].name, 'Tu Pasaporte Vivo comienza con una fotografía. Registra tu primera planta para consultarlo.')
       }
     }
   }
 
   function navigateGarden(destination: GardenDestination) {
-    if (destination === 'garden') goto('Inicio')
-    if (destination === 'community') goto('Comunidades')
-    if (destination === 'real-garden') goto('Huertos reales')
-    if (destination === 'plants') goto('Plantas medicinales')
-    if (destination === 'history') goto('Mi historia')
+    const destinations = {
+      garden: 'Inicio',
+      community: 'Comunidades',
+      'real-garden': 'Huertos reales',
+      plants: 'Plantas medicinales',
+      history: 'Mi historia',
+    } as const
+    goto(destinations[destination])
   }
 
-  const visible = speciesCatalog.filter(s =>
-    s.name.toLowerCase().includes(query.toLowerCase()) ||
-    s.latin.toLowerCase().includes(query.toLowerCase())
+  const visible = speciesCatalog.filter(
+    s =>
+      s.name.toLowerCase().includes(query.toLowerCase()) ||
+      s.latin.toLowerCase().includes(query.toLowerCase())
   )
 
-  const ready = Boolean(community && garden)
-  const title = screen === 'Comunidades' ? 'Comunidad' : screen === 'Plantas medicinales' ? 'Descubrir plantas' : screen === 'Huerto virtual' ? 'Registrar planta' : screen
-  const activeNavigation: GardenDestination = screen === 'Comunidades' ? 'community' : screen === 'Huertos reales' ? 'real-garden' : screen === 'Plantas medicinales' ? 'plants' : screen === 'Mi historia' ? 'history' : 'garden'
+  const ready = user ? Boolean(community && activeGardenId) : Boolean(realGarden)
+  const title =
+    screen === 'Comunidades'
+      ? 'Comunidad'
+      : screen === 'Plantas medicinales'
+      ? 'Descubrir plantas'
+      : screen
+  const activeNavigation: GardenDestination =
+    screen === 'Comunidades'
+      ? 'community'
+      : screen === 'Huertos reales'
+      ? 'real-garden'
+      : screen === 'Plantas medicinales'
+      ? 'plants'
+      : screen === 'Mi historia'
+      ? 'history'
+      : 'garden'
 
   if (screen === 'Bienvenida' || screen === 'Usuarios') {
     return <AuthPage onExploreDemo={(destination = 'Inicio') => goto(destination)} onSubmit={handleAuth} />
@@ -536,15 +547,22 @@ export default function App() {
       ) : (
         <main className="main garden-module">
           <header className="topbar">
-            <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>
+            <span className="breadcrumbs">
+              Kawsapacha <span> / </span> {screen}
+            </span>
             <span className="user-pill">
-              <span className="user-dot" aria-hidden="true">{user ? '●' : 'V'}</span>
+              <span className="user-dot" aria-hidden="true">
+                {user ? '●' : 'V'}
+              </span>
               {user ? ` ${user.name} · ${user.role}` : ' Modo visitante · Sin sesión'}
             </span>
           </header>
           <div className="page">
             {user ? (
-              <div className="prototype-alert" style={{ background: 'rgba(56, 161, 105, 0.15)', borderColor: '#38a169', color: '#2f855a' }}>
+              <div
+                className="prototype-alert"
+                style={{ background: 'rgba(56, 161, 105, 0.15)', borderColor: '#38a169', color: '#2f855a' }}
+              >
                 <strong>Sesión activa ({user.name}):</strong> Tus datos, comunidades, huertos y fotografías se guardan y persisten en la base de datos SQLite.
               </div>
             ) : (
@@ -555,15 +573,28 @@ export default function App() {
             <div className="heading">
               <div>
                 <span className="eyebrow">Kawsapacha · Versión 1</span>
-                <h1 tabIndex={-1} data-screen-heading>{title}</h1>
+                <h1 tabIndex={-1} data-screen-heading>
+                  {title}
+                </h1>
                 <p>{SCREENS.find(s => s.name === screen)?.subtitle}</p>
               </div>
-              <button className="cta small" onClick={() => goto('Inicio')}>Volver a Mi jardín <span aria-hidden>↗</span></button>
+              <button className="cta small" onClick={() => goto('Inicio')}>
+                Volver a Mi jardín <span aria-hidden>↗</span>
+              </button>
             </div>
-            {feedback ? <div className="feedback" role="status">{feedback}</div> : null}
+            {feedback ? (
+              <div className="feedback" role="status">
+                {feedback}
+              </div>
+            ) : null}
 
             {screen === 'Mi historia' && (
-              <GardenHistory plants={plants} onRegister={() => registerInPlot()} onSelect={setDetail} onRealGarden={() => goto('Huertos reales')} />
+              <GardenHistory
+                plants={plants}
+                onRegister={() => registerInPlot()}
+                onSelect={setDetail}
+                onRealGarden={() => goto('Huertos reales')}
+              />
             )}
 
             {screen === 'Plantas medicinales' && (
@@ -576,13 +607,20 @@ export default function App() {
                   </div>
                   <label className="search-label">
                     <span>⌕</span>
-                    <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nombre…" aria-label="Buscar plantas" />
+                    <input
+                      value={query}
+                      onChange={e => setQuery(e.target.value)}
+                      placeholder="Buscar por nombre…"
+                      aria-label="Buscar plantas"
+                    />
                   </label>
                 </div>
                 <div className="catalog-grid">
                   {visible.map((s, i) => (
                     <article className="species-card" key={s.name}>
-                      <div className={`species-art tone-${i % 4}`}><span>{s.icon}</span></div>
+                      <div className={`species-art tone-${i % 4}`}>
+                        <span>{s.icon}</span>
+                      </div>
                       <div className="species-copy">
                         <strong>{s.name}</strong>
                         <em>{s.latin}</em>
@@ -594,92 +632,36 @@ export default function App() {
                 {!visible.length && <p>No se encontraron especies con ese nombre.</p>}
               </section>
             )}
-
-            {screen === 'Huerto virtual' && (
-              <>
-                <section className="garden-header">
-                  <div>
-                    <span className="eyebrow">04 · MI HUERTO VIVO</span>
-                    <h2>{garden || 'Tu jardín está esperando'}</h2>
-                    <p>{ready ? `${community} · ${savedProvince}` : 'Primero registra tu comunidad y tu huerto para empezar.'}</p>
-                  </div>
-                  <div className="garden-count">{plants.length} <span>plantas registradas</span></div>
-                </section>
-                <div className="two-col garden-layout">
-                  <section className="card garden-card">
-                    <div className="garden-sky"><span>☀</span><span>Un lugar para crecer</span></div>
-                    <div className="plot-grid">
-                      {Array.from({ length: PLOT_COUNT }, (_, i) => {
-                        const plant = plants.find(record => record.plot === i)
-                        return (
-                          <button
-                            key={i}
-                            className={`plot ${plant ? 'occupied' : ''}`}
-                            onClick={() => plant ? setDetail(plant) : setSelectedPlot(i)}
-                            aria-label={plant ? `Abrir ficha de ${plant.name}` : `Parcela vacía ${i + 1}`}
-                          >
-                            {plant ? (
-                              <>
-                                <img src={plant.photo} alt={plant.name} />
-                                <span className="plot-title">{plant.name}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="plot-empty">＋</span>
-                                <small>Parcela {i + 1}</small>
-                              </>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <div className="garden-footer">✿ Fotografías reales + parcelas interactivas · persistencia activa</div>
-                  </section>
-                  <div className="garden-side">
-                    <section className="card">
-                      <span className="eyebrow">REGISTRA UNA PLANTA</span>
-                      <h2>Haz florecer tu jardín</h2>
-                      <p>{selectedPlot === null ? 'Se utilizará la primera parcela disponible.' : `Destino: parcela ${selectedPlot + 1}.`}</p>
-                      <form onSubmit={addPlant}>
-                        <label className="field">
-                          Especie medicinal
-                          <select value={species} onChange={e => setSpecies(e.target.value)}>
-                            {speciesCatalog.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                          </select>
-                        </label>
-                        <label className="field">
-                          Fotografía de tu planta <span className="muted">(JPG, PNG, WebP · máx. 3 MB)</span>
-                          <input id="plant-photo" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onChange={choosePicture} />
-                        </label>
-                        {preview ? <img className="preview-image" src={preview} alt="Vista previa de planta seleccionada" /> : null}
-                        <button type="submit" className="cta" disabled={!ready || plants.length >= PLOT_COUNT}>Añadir a mi huerto ↗</button>
-                        {!ready && (
-                          <div className="garden-registration-steps">
-                            <span>Primero vincula tu comunidad y un huerto real para registrar la planta.</span>
-                            <button type="button" className="outline" onClick={() => goto(community ? 'Huertos reales' : 'Comunidades')}>
-                              {community ? 'Registrar mi huerto real' : 'Crear mi comunidad'} →
-                            </button>
-                          </div>
-                        )}
-                        {plants.length >= PLOT_COUNT && <p className="tiny">Las seis parcelas iniciales están ocupadas.</p>}
-                      </form>
-                    </section>
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         </main>
       )}
+
+      {registration && (
+        <PlantRegistrationModal
+          plants={plants}
+          initialPlot={registration.plot}
+          initialSpecies={registration.species}
+          notice={registration.notice}
+          ready={ready}
+          onConfirm={addPlant}
+          onClose={() => setRegistration(null)}
+          onSetup={() => goto('Huertos reales')}
+        />
+      )}
+
       <PlantPassport
         plant={detail}
         user={user}
         currentCommunityRole={currentCommunityRole}
         onClose={() => setDetail(null)}
-        onHistory={() => { setDetail(null); goto('Mi historia') }}
+        onHistory={() => {
+          setDetail(null)
+          goto('Mi historia')
+        }}
         onPlantHarvested={handlePlantHarvested}
         onPlantRemoved={handlePlantRemoved}
       />
+
       {isNotificationsOpen && (
         <NotificationsModal
           onClose={() => setNotificationsOpen(false)}

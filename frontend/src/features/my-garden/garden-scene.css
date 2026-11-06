@@ -1,0 +1,295 @@
+/* Scene geometry is independent of plant records and of the navigation shell. */
+.my-garden-page {
+  --scene-ambient: #a88a50;
+  --scene-art-light: .96;
+  --scene-art-saturation: .88;
+  --scene-earth-light: .91;
+}
+.my-garden-page[data-region=costa] {
+  --scene-ambient: #edba72;
+  --scene-art-light: 1.04;
+  --scene-art-saturation: 1.04;
+  --scene-earth-light: 1.07;
+}
+.my-garden-page[data-region=oriente] {
+  --scene-ambient: #386348;
+  --scene-art-light: .84;
+  --scene-art-saturation: .93;
+  --scene-earth-light: .75;
+}
+.my-garden-page[data-region=galapagos] {
+  --scene-ambient: #485b66;
+  --scene-art-light: .88;
+  --scene-art-saturation: .8;
+  --scene-earth-light: .83;
+}
+.my-garden-page .garden-welcome { margin-bottom: 16px; }
+.my-garden-page .garden-welcome > div { padding: 8px 12px; }
+.my-garden-page .garden-welcome h1 { font-size: clamp(29px, 2.7vw, 40px); }
+.my-garden-page .garden-welcome p { font-size: 15px; }
+.my-garden-page .garden-world-content { align-items: center; }
+
+.my-garden-page .garden-scene { --garden-house-clearance: clamp(56px, 20%, 180px); position: relative; min-width: 0; width: 100%; padding: 0; align-self: center; }
+.my-garden-page .garden-scene-caption {
+  display: inline-flex;
+  position: relative;
+  z-index: 5;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 16px;
+  border: 1px solid #d4e3a68c;
+  border-radius: 17px;
+  color: #f3f7df;
+  background: #153c2bef;
+  font: 500 15px 'Outfit', sans-serif;
+  box-shadow: inset 0 1px 0 #e2efab25, 0 4px 14px #0e2b1a26;
+}
+.my-garden-page .garden-stage {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  margin: 14px auto 0;
+}
+.my-garden-page .garden-stage::before,
+.my-garden-page .garden-stage::after { content: none; }
+.my-garden-page .garden-regional-details {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+}
+.my-garden-page .garden-regional-details::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 80% 100%, var(--scene-ambient), transparent 65%); opacity: .12; mix-blend-mode: soft-light; }
+.my-garden-page .garden-region-edge { position: absolute; bottom: -1%; width: 18%; height: auto; aspect-ratio: 3 / 2; filter: brightness(var(--scene-art-light)); }
+.my-garden-page .garden-region-edge-left { left: -3%; }
+.my-garden-page .garden-region-edge-right { right: -3%; transform: scaleX(-1); }
+.my-garden-page .garden-parcels {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 15px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.my-garden-page .garden-parcels > li { position: relative; min-width: 0; }
+.my-garden-page .garden-parcel {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  color: #f7f3df;
+  background: transparent;
+  container-type: size;
+}
+.my-garden-page .garden-parcel:focus-visible {
+  outline: 3px solid #e3ff9e;
+  outline-offset: 3px !important;
+  background: #e4f3a10d;
+}
+.my-garden-page .garden-parcel-plus {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  right: auto;
+  top: var(--marker-y, 45%);
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  margin: 0;
+  translate: -50% -50%;
+  border: 1px solid #e6f5b9;
+  border-radius: 50%;
+  color: #ecffc1;
+  background: #153b25ed;
+  box-shadow: inset 0 1px 0 #e7f5b72e, 0 2px 5px #17291680;
+}
+.my-garden-page .garden-parcel-plus .garden-icon { width: 25px; height: 25px; }
+.my-garden-page .garden-parcel:hover .garden-parcel-plus,
+.my-garden-page .garden-parcel:focus-visible .garden-parcel-plus { background: #3f6128; box-shadow: 0 0 0 4px #d2ec752b, 0 2px 5px #17291680; }
+.my-garden-page .garden-parcel-label {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  right: auto;
+  top: var(--label-y, auto);
+  bottom: 0;
+  width: max-content;
+  min-width: 90px;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 12px;
+  translate: -50% 0;
+  border: 1px solid #d9c38fbd;
+  border-radius: 10px;
+  color: #fff8df;
+  background: linear-gradient(125deg, #49391eea, #282b19eb);
+  box-shadow: inset 0 1px 0 #eed7a326, 0 2px 4px #1b251a59;
+  text-align: center;
+}
+.my-garden-page .garden-parcel-label::before { content: none; }
+.my-garden-page .garden-parcel-label strong { display: block; font: 500 13px/1.15 'Outfit', sans-serif; overflow-wrap: anywhere; }
+.my-garden-page .garden-parcel-label small { display: none; }
+.my-garden-page .garden-parcel-photo {
+  position: absolute;
+  z-index: 5;
+  top: calc(var(--marker-y, 45%) - 58px);
+  left: 50%;
+  right: auto;
+  width: 64px;
+  height: 72px;
+  margin: 0;
+  translate: -50% 0;
+  filter: none;
+}
+.my-garden-page .garden-parcel-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 3px solid #e5f5ac;
+  border-radius: 15px 15px 11px 11px;
+  box-shadow: 0 3px 5px #1828158c;
+}
+
+/* A single field, with six unobtrusive positions inside its irregular perimeter. */
+.my-garden-page .garden-stage:is([data-kind=ground], [data-kind=pots]) {
+  width: calc(100% - var(--garden-house-clearance));
+  margin-left: var(--garden-house-clearance);
+  margin-right: 0;
+}
+.my-garden-page .garden-stage[data-kind=ground] {
+  margin-top: clamp(100px, 11vw, 165px);
+  aspect-ratio: 2.15;
+  min-height: 300px;
+}
+.my-garden-page .garden-earth-surface { position: absolute; z-index: 2; inset: 0; pointer-events: none; }
+.my-garden-page .garden-earth-texture { display: block; width: 100%; height: 100%; filter: brightness(var(--scene-earth-light)) saturate(.84); }
+.my-garden-page .garden-stage[data-kind=ground] .garden-parcels { position: absolute; inset: 17% 10% 13%; gap: 16px 12px; }
+.my-garden-page .garden-stage[data-kind=ground] .garden-parcel { --marker-y: 38%; height: 100%; min-height: 65px; }
+.my-garden-page .garden-stage[data-kind=ground] .garden-parcel-label { top: calc(var(--marker-y) + 26px); bottom: auto; opacity: 0; pointer-events: none; }
+.my-garden-page .garden-stage[data-kind=ground] :is(.garden-parcel:hover, .garden-parcel:focus-visible, .garden-parcel.is-selected, .garden-parcel.is-occupied) .garden-parcel-label { opacity: 1; }
+
+/* Each pot keeps its native perspective and a base shadow in the same coordinate system. */
+.my-garden-page .garden-stage[data-kind=pots] { padding: 56px 2% 8px 5%; }
+.my-garden-page .garden-stage[data-kind=pots] .garden-parcel {
+  --vessel-depth: 1;
+  height: 235px;
+  --marker-y: calc(100cqh - 36px - min(100cqw, calc(100cqh - 36px)) * var(--vessel-depth) * var(--soil-from-bottom));
+}
+.my-garden-page .garden-stage[data-kind=pots] li:nth-child(-n+3) .garden-parcel { --vessel-depth: .88; }
+.my-garden-page .garden-container {
+  position: absolute;
+  inset: 0 0 36px;
+  width: 100%;
+  height: calc(100% - 36px);
+  transform: scale(var(--vessel-depth));
+  transform-origin: 50% 100%;
+  filter: brightness(var(--scene-art-light)) saturate(var(--scene-art-saturation));
+}
+.my-garden-page .garden-container-contact { opacity: .9; }
+.my-garden-page .garden-parcel:hover .garden-container { filter: brightness(calc(var(--scene-art-light) + .04)) saturate(var(--scene-art-saturation)); }
+
+/* Shared grounded structures. Controls are calibrated to the six visible soil mouths. */
+.my-garden-page .garden-stage:is([data-kind=vertical], [data-kind=hanging]) .garden-parcels { position: absolute; inset: 0; gap: 0; }
+.my-garden-page .garden-stage:is([data-kind=vertical], [data-kind=hanging]) .garden-parcels > li {
+  position: absolute;
+  left: var(--plot-x);
+  top: var(--plot-y);
+  translate: -50% -20%;
+}
+.my-garden-page .garden-stage:is([data-kind=vertical], [data-kind=hanging]) .garden-parcel { --marker-y: 20%; height: 100%; min-height: 44px; }
+.my-garden-page .garden-hanging-frame,
+.my-garden-page .garden-vertical-structure { position: absolute; z-index: 2; inset: 0; border: 0; background: none; box-shadow: none; pointer-events: none; }
+.my-garden-page .garden-hanging-frame::before,
+.my-garden-page .garden-hanging-frame::after { content: none; }
+.my-garden-page .garden-structure-art { position: absolute; z-index: 1; inset: 0; display: block; width: 100%; height: 100%; filter: brightness(var(--scene-art-light)) saturate(var(--scene-art-saturation)); }
+.my-garden-page .garden-frame-contact {
+  position: absolute;
+  z-index: 0;
+  width: 18%;
+  height: 2.8%;
+  border-radius: 50%;
+  translate: -55% -35%;
+  background: radial-gradient(ellipse, #161d13c4, #22281959 50%, transparent 74%);
+  transform: skewX(-24deg);
+}
+.my-garden-page .garden-stage[data-kind=vertical] {
+  width: min(calc(100% - var(--garden-house-clearance)), clamp(440px, 60vh, 660px));
+  aspect-ratio: 1;
+  min-height: 580px;
+  margin-top: clamp(100px, 11vw, 165px);
+  margin-left: auto;
+  margin-right: 0;
+}
+.my-garden-page .garden-stage[data-kind=vertical] .garden-vertical-planter {
+  position: absolute;
+  z-index: 2;
+  width: 35%;
+  height: auto;
+  aspect-ratio: 1536 / 720;
+  translate: -50% -33.333333%;
+  filter: brightness(var(--scene-art-light)) saturate(var(--scene-art-saturation));
+  pointer-events: none;
+}
+.my-garden-page .garden-stage[data-kind=vertical] .garden-parcels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.my-garden-page .garden-stage[data-kind=vertical] .garden-parcels > li { width: 31%; height: 13%; }
+.my-garden-page .garden-stage[data-kind=vertical] .garden-parcel-label { top: calc(20% + 20px); bottom: auto; min-width: 80px; padding: 5px 8px; }
+.my-garden-page .garden-stage[data-kind=hanging] { max-width: 840px; aspect-ratio: 3 / 2; }
+.my-garden-page .garden-stage[data-kind=hanging] .garden-parcels > li { width: 19%; height: 16%; }
+.my-garden-page .garden-stage[data-kind=hanging] .garden-parcel-label { top: 82%; bottom: auto; min-width: 92px; }
+.my-garden-page .garden-scene-note { position: relative; z-index: 5; display: inline-block; margin: 10px 0 0; padding: 5px 10px; border-radius: 8px; color: #eff6de; background: #163a2bd9; font-size: 10px; }
+
+@media (min-width: 1600px) {
+  .my-garden-page .garden-stage[data-kind=pots] .garden-parcel { height: 255px; }
+}
+@media (max-width: 1200px) {
+  .my-garden-page .garden-stage[data-kind=pots] .garden-parcel { height: 195px; }
+  .my-garden-page .garden-stage[data-kind=pots] { padding-top: 60px; padding-inline: 0; }
+  .my-garden-page .garden-parcel-label { min-width: 78px; padding-inline: 8px; }
+}
+@media (max-width: 900px) {
+  .my-garden-page .garden-stage[data-kind=pots] .garden-parcel { height: 180px; }
+  .my-garden-page .garden-parcel-label strong { font-size: 12px; }
+  .my-garden-page .garden-stage[data-kind=ground] { min-height: 270px; margin-top: 100px; }
+}
+@media (max-width: 700px) {
+  .my-garden-page .garden-scene { --garden-house-clearance: clamp(8px, 4%, 18px); }
+  .my-garden-page .garden-welcome { gap: 12px; }
+  .my-garden-page .garden-welcome > div { padding: 10px 12px; }
+  .my-garden-page .garden-scene-caption { font-size: 14px; padding: 9px 12px; }
+  .my-garden-page .garden-stage[data-kind=ground] { min-height: 230px; margin-top: 26px; }
+  .my-garden-page .garden-stage[data-kind=ground] .garden-parcels { inset: 16% 7% 12%; gap: 10px; }
+  .my-garden-page .garden-stage[data-kind=ground] .garden-parcel { min-height: 62px; }
+  .my-garden-page .garden-stage[data-kind=pots] { padding: 25px 0 0; }
+  .my-garden-page .garden-stage[data-kind=pots] .garden-parcels { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 8px; }
+  .my-garden-page .garden-stage[data-kind=pots] .garden-parcel { height: 195px; }
+  .my-garden-page .garden-stage[data-kind=pots] li:nth-child(-n+3) .garden-parcel { --vessel-depth: 1; }
+  .my-garden-page .garden-stage[data-kind=pots] li:nth-child(-n+2) .garden-parcel { --vessel-depth: .9; }
+  .my-garden-page .garden-stage[data-kind=vertical] { width: min(100%, 440px); min-height: 500px; margin-top: 16px; }
+  .my-garden-page .garden-stage[data-kind=hanging] { margin-top: 20px; }
+  .my-garden-page .garden-stage[data-kind=hanging] .garden-parcel-plus { width: 32px; height: 32px; }
+  .my-garden-page .garden-stage[data-kind=hanging] .garden-parcel-plus .garden-icon { width: 22px; height: 22px; }
+  .my-garden-page .garden-stage[data-kind=hanging] .is-empty .garden-parcel-label { display: none; }
+  .my-garden-page .garden-stage[data-kind=hanging] .garden-parcel-label { min-width: 0; padding: 4px 6px; max-width: 160%; }
+  .my-garden-page .garden-stage[data-kind=hanging] .garden-parcel-label strong { font-size: 10px; }
+  .my-garden-page .garden-stage[data-kind=hanging] .garden-parcel-photo { width: 43px; height: 49px; top: calc(var(--marker-y) - 37px); }
+  .my-garden-page .garden-stage[data-kind=ground] .garden-parcel-photo { width: 48px; height: 54px; top: calc(var(--marker-y) - 42px); }
+  .my-garden-page .garden-stage[data-kind=ground] .garden-parcel-label { min-width: 0; padding: 4px 8px; }
+}
+@media (max-width: 420px) {
+  .my-garden-page .garden-stage[data-kind=pots] .garden-parcel { height: 185px; }
+  .my-garden-page .garden-stage[data-kind=ground] .garden-parcel-plus { width: 35px; height: 35px; }
+  .my-garden-page .garden-stage[data-kind=vertical] .garden-parcel-plus { width: 34px; height: 34px; }
+  .my-garden-page .garden-stage[data-kind=vertical] .garden-parcel-label { min-width: 70px; padding-inline: 5px; }
+  .my-garden-page .garden-stage[data-kind=vertical] .garden-parcel-label strong { font-size: 11px; }
+  .my-garden-page .garden-stage[data-kind=vertical] .garden-parcel-photo { width: 48px; height: 54px; top: calc(var(--marker-y) - 42px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .my-garden-page *, .my-garden-page *::before, .my-garden-page *::after { transition: none !important; animation: none !important; }
+}

@@ -13,7 +13,7 @@ import {
   type UserSession,
 } from '../../services/api'
 
-// ─── Badge de salud ───────────────────────────────────────────────────────────
+// ─── Badge de salud ──────────────────────────────────────────────────────────
 
 function HealthBadge({ status }: { status: HealthStatus | undefined }) {
   if (!status) return null
@@ -36,7 +36,7 @@ function HealthBadge({ status }: { status: HealthStatus | undefined }) {
   )
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
+// ─── Componente principal ────────────────────────────────────────────────────
 
 export default function PlantPassport({
   plant,
@@ -142,7 +142,7 @@ export default function PlantPassport({
     setError('')
     setMessage('')
     const label =
-      actionType === 'WATERING' ? 'Riego 💧' : actionType === 'FERTILIZER' ? 'Abono 🧪' : 'Poda ✂'
+      actionType === 'WATERING' ? 'Riego 💧' : actionType === 'FERTILIZER' ? 'Abono 🧪' : 'Poda ✂️'
 
     // Validación local de sobrecuidado (modo demo)
     if (!user || plant.id.includes('-')) {
@@ -172,12 +172,11 @@ export default function PlantPassport({
       setActionNotes('')
       await loadPlantData()
     } catch (err: unknown) {
-      // El backend devuelve mensajes claros de sobrecuidado
       setError(err instanceof Error ? err.message : 'Error al registrar cuidado')
     }
   }
 
-  // ─── Cosecha no-destructiva ───────────────────────────────────────────────
+  // ─── Cosecha no-destructiva ────────────────────────────────────────────────
 
   async function handleHarvest() {
     if (!plant) return
@@ -199,7 +198,7 @@ export default function PlantPassport({
     }
   }
 
-  // ─── Remover / desarraigar ────────────────────────────────────────────────
+  // ─── Remover / desarraigar ─────────────────────────────────────────────────
 
   async function handleRemovePlant() {
     if (!plant) return
@@ -218,10 +217,10 @@ export default function PlantPassport({
     }
   }
 
-  // ─── Renderizado ──────────────────────────────────────────────────────────
+  // ─── Renderizado ───────────────────────────────────────────────────────────
 
   const isRegrowing = growth?.lifecycleStatus === 'REGROWING'
-  const canHarvest = (growth?.percentage ?? 0) >= 75 && !isRegrowing || (isRegrowing && (growth?.percentage ?? 0) >= 75)
+  const canHarvest = ((growth?.percentage ?? 0) >= 75 && !isRegrowing) || (isRegrowing && (growth?.percentage ?? 0) >= 75)
   const hasStress = growth?.overWatered || growth?.overFertilized || growth?.overPruned
 
   return (
@@ -269,7 +268,8 @@ export default function PlantPassport({
                 <em>{plant.latin}</em>
               </p>
               <div style={{ fontSize: '0.85rem', color: '#718096' }}>
-                Ubicación: <strong>Parcela {plant.plot + 1}</strong> · Sembrada: {plant.date}
+                Ubicación: <strong>Parcela {plant.plot + 1}</strong> · Registrada: {plant.date}
+                {plant.plantedOn && ` · Sembrada: ${new Date(`${plant.plantedOn}T12:00:00`).toLocaleDateString('es-EC')}`}
               </div>
               <div style={{ marginTop: '6px' }}>
                 <HealthBadge status={growth?.healthStatus} />
@@ -349,7 +349,7 @@ export default function PlantPassport({
                 <strong>Historial reciente:</strong>{' '}
                 {logs.slice(0, 3).map(l => (
                   <span key={l.id} style={{ marginRight: '8px' }}>
-                    {l.actionType === 'WATERING' ? '💧 Riego' : l.actionType === 'FERTILIZER' ? '🧪 Abono' : '✂ Poda'} ({new Date(l.performedAt).toLocaleDateString('es-EC')})
+                    {l.actionType === 'WATERING' ? '💧 Riego' : l.actionType === 'FERTILIZER' ? '🧪 Abono' : '✂️ Poda'} ({new Date(l.performedAt).toLocaleDateString('es-EC')})
                   </span>
                 ))}
               </div>
@@ -362,7 +362,6 @@ export default function PlantPassport({
               🌿 Registrar cuidado realizado hoy:
             </h3>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-              {/* Botón de riego — deshabilitado si ya está húmedo */}
               <button
                 type="button"
                 onClick={() => {
@@ -387,7 +386,6 @@ export default function PlantPassport({
                 {growth?.needsWatering ? '💧 Regué la planta' : '✓ Suelo húmedo'}
               </button>
 
-              {/* Botón de abono — deshabilitado si ya está nutrido */}
               <button
                 type="button"
                 onClick={() => {
@@ -423,7 +421,7 @@ export default function PlantPassport({
                   opacity: loading ? 0.6 : 1,
                 }}
               >
-                ✂ Poda / Mantenimiento
+                ✂️ Poda / Mantenimiento
               </button>
             </div>
             <input

@@ -7,6 +7,7 @@ export type GardenPlant = {
   photo: string
   date: string
   plot: number
+  plantedOn?: string
 }
 
 export type GardenDestination = 'garden' | 'community' | 'real-garden' | 'plants' | 'history'

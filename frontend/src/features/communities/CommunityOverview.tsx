@@ -6,7 +6,7 @@ import type { Community } from './communities'
 export default function CommunityOverview({ community, garden, onEdit, onGarden }: {
   community: Community
   garden: string
-  onEdit: () => void
+  onEdit?: () => void
   onGarden: () => void
 }) {
   return <section className="community-panel community-overview" aria-label="Mi comunidad registrada">
@@ -14,7 +14,9 @@ export default function CommunityOverview({ community, garden, onEdit, onGarden 
     <div className="community-overview-body">
       <div className="community-overview-heading">
         <div><span className="community-kicker">MI COMUNIDAD · REGISTRO TEMPORAL</span><h2>{community.name}</h2></div>
-        <button className="community-secondary-button" type="button" onClick={onEdit}><CommunityIcon name="edit"/> Editar comunidad</button>
+        {onEdit && (
+          <button className="community-secondary-button" type="button" onClick={onEdit}><CommunityIcon name="edit"/> Editar comunidad</button>
+        )}
       </div>
       <div className="community-overview-grid">
         <div className="community-overview-information"><p>{community.description || 'Aún no has añadido una descripción.'}</p></div>

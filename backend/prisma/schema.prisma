@@ -1,0 +1,249 @@
+// Kawsapacha V1.1 — Esquema Prisma con SQLite (Ampliado)
+// Responsable: Ronny Veloz (Rodni15)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USUARIOS Y AUTENTICACIÓN ─────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("PARTICIPANTE") // RESPONSABLE | PARTICIPANTE
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  communitiesCreated   Community[]       @relation("CommunityCreator")
+  communityMemberships CommunityMember[]
+  gardensCreated       RealGarden[]      @relation("GardenCreator")
+  plantsRegistered     CultivatedPlant[] @relation("PlantRegistrar")
+  careLogs             CareLog[]
+  harvestsPerformed    HarvestRecord[]
+
+  @@map("users")
+}
+
+// ─── COMUNIDADES ─────────────────────────────────────────────────────────────
+
+model Community {
+  id          String  @id @default(cuid())
+  name        String
+  responsible String
+  location    String
+  description String
+
+  creatorId String
+  creator   User   @relation("CommunityCreator", fields: [creatorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members     CommunityMember[]
+  invitations CommunityInvitation[]
+  gardens     RealGarden[]
+  resources   CommunityResource[]
+  harvests    HarvestRecord[]
+
+  @@map("communities")
+}
+
+model CommunityMember {
+  id              String @id @default(cuid())
+  communityId     String
+  userId          String
+  // RESPONSABLE | CUIDADOR | PARTICIPANTE
+  roleInCommunity String @default("PARTICIPANTE")
+  // PENDING | ACCEPTED | REJECTED
+  status          String @default("ACCEPTED")
+
+  joinedAt DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@map("community_members")
+}
+
+model CommunityInvitation {
+  id          String   @id @default(cuid())
+  communityId String
+  email       String
+  role        String   @default("PARTICIPANTE")
+  status      String   @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  invitedById String
+  createdAt   DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@map("community_invitations")
+}
+
+// ─── HUERTOS REALES ───────────────────────────────────────────────────────────
+
+model RealGarden {
+  id      String @id @default(cuid())
+  name    String
+  kind    String // ground | pots | vertical | hanging
+  areaM2  Float
+
+  province     String
+  provinceCode String
+  canton       String  @default("")
+  cantonCode   String?
+  parish       String  @default("")
+  parishCode   String?
+  reference    String  @default("")
+
+  latitude  Float?
+  longitude Float?
+
+  irrigationAvailability String  @default("unknown")
+  soilType               String?
+
+  communityId String?
+  community   Community? @relation(fields: [communityId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("GardenCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plants   CultivatedPlant[]
+  harvests HarvestRecord[]
+
+  @@map("real_gardens")
+}
+
+// ─── CATÁLOGO DE PLANTAS MEDICINALES ─────────────────────────────────────────
+
+model MedicinalCatalog {
+  id                      String @id @default(cuid())
+  name                    String
+  latinName               String
+  icon                    String
+  description             String @default("")
+  medicinalProperties     String @default("")
+  preparation             String @default("")
+  contraindications       String @default("")
+  defaultPhotoUrl         String @default("")
+  // Calendario agrícola y cuidados
+  wateringFrequencyDays   Int    @default(3)
+  fertilizerFrequencyDays Int    @default(30)
+  growthCycleDays         Int    @default(45)
+  bestPlantingSeason      String @default("Todo el año")
+  lunarPhaseTip           String @default("Sembrar en cuarto creciente para mayor vigor foliar")
+
+  createdAt DateTime @default(now())
+
+  cultivatedPlants CultivatedPlant[]
+
+  @@map("medicinal_catalog")
+}
+
+// ─── HUERTO VIRTUAL 2D — PLANTAS CULTIVADAS ───────────────────────────────────
+
+model CultivatedPlant {
+  id String @id @default(cuid())
+
+  plotIndex Int // 0 a 5 (UNIQUE por huerto)
+
+  speciesId String
+  species   MedicinalCatalog @relation(fields: [speciesId], references: [id])
+
+  realGardenId String
+  realGarden   RealGarden @relation(fields: [realGardenId], references: [id])
+
+  photoUrl  String @default("")
+  photoPath String @default("")
+  photoMime String @default("")
+  photoSize Int    @default(0)
+
+  customName   String   @default("")
+  plantingDate DateTime @default(now())
+  notes        String   @default("")
+
+  // Estado del ciclo de vida: GROWING | READY_TO_HARVEST | HARVESTED | REGROWING
+  lifecycleStatus  String    @default("GROWING")
+  lastHarvestDate  DateTime?
+
+  registeredById String
+  registeredBy   User   @relation("PlantRegistrar", fields: [registeredById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  careLogs CareLog[]
+
+  @@unique([realGardenId, plotIndex])
+  @@map("cultivated_plants")
+}
+
+// ─── BITÁCORA DE CUIDADOS ─────────────────────────────────────────────────────
+
+model CareLog {
+  id          String   @id @default(cuid())
+  plantId     String
+  // WATERING | FERTILIZER | PRUNING | PEST_CONTROL | OTHER
+  actionType  String
+  notes       String   @default("")
+  performedAt DateTime @default(now())
+  userId      String
+
+  plant CultivatedPlant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  user  User            @relation(fields: [userId], references: [id])
+
+  @@map("care_logs")
+}
+
+// ─── COSECHAS ─────────────────────────────────────────────────────────────────
+
+model HarvestRecord {
+  id               String   @id @default(cuid())
+  communityId      String?
+  realGardenId     String
+  speciesName      String
+  speciesLatinName String   @default("")
+  quantity         String
+  harvestDate      DateTime @default(now())
+  harvestedById    String
+  notes            String   @default("")
+
+  community   Community?  @relation(fields: [communityId], references: [id])
+  realGarden  RealGarden  @relation(fields: [realGardenId], references: [id])
+  harvestedBy User        @relation(fields: [harvestedById], references: [id])
+
+  @@map("harvest_records")
+}
+
+// ─── BODEGA Y RECURSOS COMUNITARIOS ──────────────────────────────────────────
+
+model CommunityResource {
+  id          String @id @default(cuid())
+  communityId String
+  name        String
+  // TOOL | SUPPLY | SEED
+  category    String
+  quantity    Int    @default(1)
+  unit        String @default("unidades")
+  // DISPONIBLE | EN_USO | MANTENIMIENTO | AGOTADO
+  status      String @default("DISPONIBLE")
+  description String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@map("community_resources")
+}

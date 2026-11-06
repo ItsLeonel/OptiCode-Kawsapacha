@@ -11,7 +11,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   initialSpecies: string
   ready: boolean
   notice?: string
-  onConfirm: (registration: PlantRegistration) => PlantRegistrationResult
+  onConfirm: (registration: PlantRegistration) => PlantRegistrationResult | Promise<PlantRegistrationResult>
   onClose: () => void
   onSetup: () => void
 }) {
@@ -107,7 +107,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     if (captured && request === selection.current) { setPhoto(captured); setMode('gallery') }
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     if (saving.current) return
     if (!ready) { setError('Primero registra tu huerto'); return }
@@ -119,7 +119,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     saving.current = true
     try {
       camera.stop()
-      const result = onConfirm({ photo, species, plot, ...(plantedOn ? { plantedOn } : {}) })
+      const result = await onConfirm({ photo, species, plot, ...(plantedOn ? { plantedOn } : {}) })
       if (!result.ok) { saving.current = false; setError(result.error) }
     } catch {
       saving.current = false

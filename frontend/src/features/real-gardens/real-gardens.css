@@ -52,6 +52,7 @@ body:has(.real-garden-page) { min-width: 0; }
 .real-garden-page :disabled { opacity: 1; -webkit-text-fill-color: currentColor; cursor: default; }
 .real-garden-page :is(input, select, textarea):disabled { background: #f0e8dbb3; color: #615c4d; }
 .rg-error { margin: 0; color: #a03923; font-size: 12px; line-height: 1.5; }
+.rg-feedback { margin: 0; padding: 12px 16px; border: 1px solid var(--rg-border); border-radius: 14px; color: var(--rg-ink); background: #fff9f0f2; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .rg-hint { display: block; color: var(--rg-muted); font-size: 11px; line-height: 1.6; }
 .rg-location-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
 .rg-location .map-shell { display: contents; }

@@ -4,7 +4,7 @@ import MyGardenPage from './features/my-garden/MyGardenPage'
 import GardenNavigation from './features/my-garden/GardenNavigation'
 import GardenHistory from './features/my-garden/GardenHistory'
 import PlantPassport from './features/my-garden/PlantPassport'
-import PlantRegistrationModal from './features/my-garden/PlantRegistrationModal'
+import PlantRegistrationModal, { type PlantRegistrationDraft } from './features/my-garden/PlantRegistrationModal'
 import { PLANT_SPECIES as SPECIES, type PlantRegistration, type PlantRegistrationResult } from './features/my-garden/plant-species'
 import CommunitiesPage from './features/communities/CommunitiesPage'
 import type { Community } from './features/communities/communities'
@@ -13,6 +13,14 @@ import { toGardenDraft, type RealGarden, type RealGardenDraft } from './features
 import { PLOT_COUNT, type GardenAction, type GardenDestination, type GardenPlant } from './features/my-garden/garden'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Mi historia'
+
+const SCREEN_PATHS: Record<Screen, string> = {
+  Bienvenida: '#bienvenida', Inicio: '#mi-jardin', Usuarios: '#usuarios', Comunidades: '#comunidades',
+  'Huertos reales': '#huerto-real', 'Plantas medicinales': '#plantas', 'Mi historia': '#mi-historia',
+}
+function currentScreen(): Screen {
+  return (Object.keys(SCREEN_PATHS) as Screen[]).find(key => SCREEN_PATHS[key] === window.location.hash) ?? 'Bienvenida'
+}
 type Plant = GardenPlant
 const SCREENS: {name:Screen; icon:string; subtitle:string}[] = [
   {name:'Inicio',icon:'⌂',subtitle:'Tu huerto real y tu huerto digital'},
@@ -32,7 +40,8 @@ export default function App() {
   const garden = realGarden?.name ?? ''
   const savedProvince = realGarden?.location.province ?? ''
   const [plants,setPlants] = useState<Plant[]>([])
-  const [registration, setRegistration] = useState<{ plot: number | null; species: string; notice?: string } | null>(null)
+  const [registration, setRegistration] = useState<PlantRegistrationDraft | null>(null)
+  const [pendingRegistration, setPendingRegistration] = useState<PlantRegistrationDraft | null>(null)
   const savedPhotos = useRef<string[]>([])
   const nextPlantId = useRef(0)
   const [detail,setDetail] = useState<Plant|null>(null)
@@ -47,7 +56,27 @@ export default function App() {
 
   useEffect(() => () => { savedPhotos.current.forEach(url => URL.revokeObjectURL(url)) }, [])
 
-  function goto(next: Screen) {setRegistration(null);setScreen(next)}
+  useEffect(() => {
+    // Routing changes the screen only. Visit records stay in App until a reload.
+    window.history.replaceState(null, '', SCREEN_PATHS.Bienvenida)
+    const restoreScreen = () => { setRegistration(null); setDetail(null); setScreen(currentScreen()) }
+    window.addEventListener('popstate', restoreScreen)
+    return () => window.removeEventListener('popstate', restoreScreen)
+  }, [])
+
+  function goto(next: Screen) {
+    if (window.location.hash !== SCREEN_PATHS[next]) window.history.pushState(null, '', SCREEN_PATHS[next])
+    setRegistration(null)
+    setDetail(null)
+    setScreen(next)
+  }
+  function connectGarden() {
+    goto('Inicio')
+    if (pendingRegistration) {
+      setRegistration(pendingRegistration)
+      setPendingRegistration(null)
+    }
+  }
   function saveCommunity(next: Community) {
     setCommunityRecord(next)
     setRealGarden(current => current ? { ...current, communityName: next.name } : current)
@@ -63,8 +92,7 @@ export default function App() {
     savedPhotos.current.push(photoUrl)
     const record: Plant = { id, name: species.name, latin: species.latin, photo: photoUrl, date, plot, ...(plantedOn ? { plantedOn } : {}) }
     setPlants(existing => [...existing, record])
-    setRegistration(null)
-    setScreen('Inicio')
+    goto('Inicio')
     setDetail(record)
     setSelectedPlot(null)
     return { ok: true }
@@ -77,7 +105,8 @@ export default function App() {
   function registerInPlot(plot?: number, species: string = SPECIES[0].name, notice?: string) {
     setSelectedPlot(plot ?? null)
     setDetail(null)
-    setRegistration({ plot: plot ?? null, species, notice })
+    setPendingRegistration(null)
+    setRegistration({ plot: plot ?? null, species, notice, photo: null, plantedOn: '' })
   }
   function gardenAction(action: GardenAction) {
     if (action === 'register') registerInPlot()
@@ -99,14 +128,14 @@ export default function App() {
     <GardenNavigation active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
     {screen === 'Inicio' ? <MyGardenPage plants={plants} community={community} garden={garden} province={savedProvince} realGarden={realGarden} selectedPlot={selectedPlot} onSelect={setDetail} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden}/>
       : screen === 'Comunidades' ? <CommunitiesPage community={communityRecord} garden={garden} onSave={saveCommunity} onGarden={() => goto('Huertos reales')} onHome={() => goto('Inicio')}/>
-      : screen === 'Huertos reales' ? <RealGardenPage garden={realGarden} draft={realGardenDraft} onDraftChange={setRealGardenDraft} communityName={communityRecord?.name ?? null} onSave={setRealGarden} onConnect={() => goto('Inicio')} onHome={() => goto('Inicio')} onCommunity={() => goto('Comunidades')}/>
+      : screen === 'Huertos reales' ? <RealGardenPage garden={realGarden} draft={realGardenDraft} onDraftChange={setRealGardenDraft} communityName={communityRecord?.name ?? null} onSave={setRealGarden} onConnect={connectGarden} plantRegistrationPending={Boolean(pendingRegistration)} onHome={() => goto('Inicio')} onCommunity={() => goto('Comunidades')}/>
       : <main className="main garden-module">
       <header className="topbar">
         <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>
         <span className="user-pill"><span className="user-dot" aria-hidden="true">V</span> Modo visitante · Sin sesión</span>
       </header>
       <div className="page">
-        <div className="prototype-alert"><strong>Modo visitante, sin sesión iniciada:</strong> los registros y las imágenes solo viven en esta visita. Aún no hay autenticación real, API ni base de datos conectadas.</div>
+        <div className="prototype-alert">Demostración · Los registros y las fotografías se conservan durante esta visita. Se pierden al recargar.</div>
         <div className="heading"><div><span className="eyebrow">Kawsapacha · Versión 1</span><h1 tabIndex={-1} data-screen-heading>{title}</h1><p>{SCREENS.find(s=>s.name===screen)?.subtitle}</p></div>
           <button className="cta small" onClick={()=>goto('Inicio')}>Volver a Mi jardín <span aria-hidden>↗</span></button>
         </div>
@@ -114,7 +143,7 @@ export default function App() {
         {screen === 'Mi historia' && <GardenHistory plants={plants} onRegister={() => registerInPlot()} onSelect={setDetail} onRealGarden={() => goto('Huertos reales')}/>}
 
         {screen==='Plantas medicinales'&&<section className="section">
-          <div className="catalog-header"><div><span className="eyebrow">03 · BOTÁNICA</span><h2>Explora las especies</h2><p>Selección inicial para definir la experiencia visual. Leonardo incorporará las fichas botánicas verificadas.</p></div>
+          <div className="catalog-header"><div><span className="eyebrow">03 · BOTÁNICA</span><h2>Explora las especies</h2><p>Catálogo de demostración. Elige la especie de tu planta; la fotografía no la identifica automáticamente.</p></div>
             <label className="search-label"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar por nombre…" aria-label="Buscar plantas"/></label></div>
           <div className="catalog-grid">
             {visible.map((s,i)=><article className="species-card" key={s.name}><div className={`species-art tone-${i%4}`}><span>{s.icon}</span></div>
@@ -127,7 +156,7 @@ export default function App() {
 
       </div>
     </main>}
-    {registration && <PlantRegistrationModal plants={plants} initialPlot={registration.plot} initialSpecies={registration.species} notice={registration.notice} ready={ready} onConfirm={addPlant} onClose={() => setRegistration(null)} onSetup={() => goto('Huertos reales')}/>}
+    {registration && <PlantRegistrationModal plants={plants} initialPlot={registration.plot} initialSpecies={registration.species} initialPhoto={registration.photo} initialPlantedOn={registration.plantedOn} notice={registration.notice} ready={ready} onConfirm={addPlant} onClose={() => setRegistration(null)} onSetup={draft => { setPendingRegistration(draft); goto('Huertos reales') }}/>}
     <PlantPassport plant={detail} onClose={() => setDetail(null)} onHistory={() => {setDetail(null);goto('Mi historia')}}/>
   </div>
 }

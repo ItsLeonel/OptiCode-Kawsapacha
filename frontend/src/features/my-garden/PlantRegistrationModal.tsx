@@ -5,21 +5,32 @@ import { PLANT_SPECIES, type PlantRegistration, type PlantRegistrationResult } f
 import { usePlantCamera } from './usePlantCamera'
 import './plant-registration.css'
 
-export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, ready, notice, onConfirm, onClose, onSetup }: {
+// Held only in App memory while the visitor sets up their real garden.
+export type PlantRegistrationDraft = {
+  plot: number | null
+  species: string
+  photo: Blob | null
+  plantedOn: string
+  notice?: string
+}
+
+export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup }: {
   plants: GardenPlant[]
   initialPlot: number | null
   initialSpecies: string
+  initialPhoto: Blob | null
+  initialPlantedOn: string
   ready: boolean
   notice?: string
   onConfirm: (registration: PlantRegistration) => PlantRegistrationResult
   onClose: () => void
-  onSetup: () => void
+  onSetup: (draft: PlantRegistrationDraft) => void
 }) {
   const available = Array.from({ length: PLOT_COUNT }, (_, index) => index).filter(plot => !plants.some(plant => plant.plot === plot))
   const [plot, setPlot] = useState(initialPlot !== null && available.includes(initialPlot) ? initialPlot : available[0] ?? -1)
   const [speciesName, setSpeciesName] = useState(initialSpecies)
-  const [plantedOn, setPlantedOn] = useState('')
-  const [photo, setPhoto] = useState<Blob | null>(null)
+  const [plantedOn, setPlantedOn] = useState(initialPlantedOn)
+  const [photo, setPhoto] = useState<Blob | null>(initialPhoto)
   const [preview, setPreview] = useState('')
   const [mode, setMode] = useState<'gallery' | 'camera'>('gallery')
   const [error, setError] = useState('')
@@ -171,7 +182,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
           <label className="plant-registration-field" htmlFor="plant-sowing-date">Fecha de siembra <span>(opcional)</span><input type="date" id="plant-sowing-date" value={plantedOn} onChange={event => setPlantedOn(event.target.value)}/></label>
           {notice && <p className="plant-registration-notice">{notice}</p>}
           {!available.length && <p className="plant-registration-notice" role="status">Los seis espacios están ocupados. Consulta sus Pasaportes Vivos en el jardín.</p>}
-          {!ready && <div className="plant-registration-setup"><p>Primero registra tu huerto</p><button type="button" onClick={onSetup}>Ir a Mi Huerto <GardenIcon name="arrow"/></button></div>}
+          {!ready && <div className="plant-registration-setup"><p>Primero registra tu huerto. La comunidad es opcional.</p><button type="button" disabled={reading || cameraActive} onClick={() => onSetup({ plot, species: speciesName, photo, plantedOn, notice })}>Ir a Mi Huerto <GardenIcon name="arrow"/></button></div>}
           {(error || (mode === 'camera' && camera.error)) && <p className="plant-registration-error" role="alert">{error || camera.error}</p>}
           <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={!ready || !available.length || !photo || reading || cameraActive}><GardenIcon name="seed"/>Añadir a mi huerto</button></div>
           <small className="plant-registration-temporary">Registro temporal durante esta visita.</small>

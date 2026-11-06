@@ -14,8 +14,16 @@ export default function CommunityDialog({ title, description, onClose, children 
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     if (!dialog.open) dialog.showModal()
     dialog.querySelector<HTMLElement>('[data-community-autofocus]')?.focus()
+    return () => {
+      dialog.close()
+      document.body.style.overflow = previousOverflow
+      if (opener?.isConnected) opener.focus({ preventScroll: true })
+    }
   }, [])
 
   function keepFocusInDialog(event: KeyboardEvent<HTMLDialogElement>) {
@@ -32,10 +40,10 @@ export default function CommunityDialog({ title, description, onClose, children 
     }
   }
 
-  return <dialog ref={dialogRef} className="community-dialog" aria-labelledby={titleId} aria-describedby={descriptionId} onClose={onClose} onKeyDown={keepFocusInDialog}>
+  return <dialog ref={dialogRef} className="community-dialog" aria-labelledby={titleId} aria-describedby={descriptionId} onCancel={event => { event.preventDefault(); onClose() }} onKeyDown={keepFocusInDialog}>
     <div className="community-dialog-header">
       <span className="community-kicker"><GardenIcon name="leaf"/> COMUNIDAD · KAWSAPACHA</span>
-      <button className="community-close" type="button" aria-label="Cerrar ventana" onClick={() => dialogRef.current?.close()}><GardenIcon name="close"/></button>
+      <button className="community-close" type="button" aria-label="Cerrar ventana" onClick={onClose}><GardenIcon name="close"/></button>
     </div>
     <h2 id={titleId}>{title}</h2>
     <p id={descriptionId} className="community-dialog-description">{description}</p>

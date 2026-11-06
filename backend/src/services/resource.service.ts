@@ -1,7 +1,5 @@
 // backend/src/services/resource.service.ts
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '../config/prisma'
 
 export async function listResources(communityId: string) {
   return prisma.communityResource.findMany({

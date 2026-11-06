@@ -19,12 +19,17 @@ export async function registerPlant(input: RegisterPlantInput) {
     throw Object.assign(new Error(`La parcela debe estar entre 0 y ${MAX_PLOTS - 1}.`), { code: 'INVALID_PLOT' })
   }
 
-  // Verificar que la parcela esté libre
+  // Verificar que la parcela esté libre (si estaba cosechada, liberar la parcela automáticamente)
   const existing = await prisma.cultivatedPlant.findUnique({
     where: { realGardenId_plotIndex: { realGardenId: input.realGardenId, plotIndex: input.plotIndex } },
   })
   if (existing) {
-    throw Object.assign(new Error('Esa parcela ya está ocupada. Elige otra.'), { code: 'PLOT_OCCUPIED' })
+    if (existing.lifecycleStatus === 'HARVESTED') {
+      await prisma.careLog.deleteMany({ where: { plantId: existing.id } })
+      await prisma.cultivatedPlant.delete({ where: { id: existing.id } })
+    } else {
+      throw Object.assign(new Error('Esa parcela ya está ocupada. Elige otra.'), { code: 'PLOT_OCCUPIED' })
+    }
   }
 
   // Verificar que el huerto existe
@@ -62,6 +67,27 @@ export async function listPlantsByGarden(gardenId: string) {
     include: { species: true },
     orderBy: { plotIndex: 'asc' },
   })
+}
+
+export async function removePlant(plantId: string, requestingUserId: string) {
+  const plant = await prisma.cultivatedPlant.findUnique({
+    where: { id: plantId },
+    select: { id: true, registeredById: true, realGarden: { select: { createdById: true } } },
+  })
+  if (!plant) throw Object.assign(new Error('Planta no encontrada.'), { code: 'NOT_FOUND' })
+
+  // Solo el registrador o el creador del huerto pueden desarraigar la planta
+  const isOwner = plant.registeredById === requestingUserId
+  const isGardenOwner = plant.realGarden?.createdById === requestingUserId
+  if (!isOwner && !isGardenOwner) {
+    throw Object.assign(
+      new Error('No tienes permiso para remover esta planta. Solo el registrador o el dueño del huerto pueden desarraigarla.'),
+      { code: 'FORBIDDEN' }
+    )
+  }
+
+  // Eliminar careLogs en cascada (definido en el schema con onDelete: Cascade)
+  await prisma.cultivatedPlant.delete({ where: { id: plantId } })
 }
 
 export async function getPlantPassport(plantId: string) {

@@ -4,6 +4,7 @@ import MyGardenPage from './features/my-garden/MyGardenPage'
 import GardenNavigation from './features/my-garden/GardenNavigation'
 import GardenHistory from './features/my-garden/GardenHistory'
 import PlantPassport from './features/my-garden/PlantPassport'
+import NotificationsModal from './features/notifications/NotificationsModal'
 import CommunitiesPage from './features/communities/CommunitiesPage'
 import type { Community } from './features/communities/communities'
 import RealGardenPage from './features/real-gardens/RealGardenPage'
@@ -16,8 +17,11 @@ import {
   gardenApi,
   catalogApi,
   plantApi,
+  invitationApi,
+  memberApi,
   getUser,
   type UserSession,
+  type CommunityInvitationItem,
 } from './services/api'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Huertos reales' | 'Plantas medicinales' | 'Huerto virtual' | 'Mi historia'
@@ -53,10 +57,13 @@ export default function App() {
 
   const [communityRecord, setCommunityRecord] = useState<Community | null>(null)
   const community = communityRecord?.name ?? ''
+  // Rol del usuario actual dentro de la comunidad activa
+  const [currentCommunityRole, setCurrentCommunityRole] = useState<'RESPONSABLE' | 'PARTICIPANTE' | null>(null)
+  const [userCommunities, setUserCommunities] = useState<Community[]>([])
   const [realGarden, setRealGarden] = useState<RealGarden | null>(null)
   const [realGardenDraft, setRealGardenDraft] = useState<RealGardenDraft>(() => toGardenDraft(null))
   const garden = realGarden?.name ?? ''
-  const savedProvince = realGarden?.location.province ?? ''
+  const savedProvince = realGarden?.location?.province ?? ''
   const [plants, setPlants] = useState<Plant[]>([])
   const [species, setSpecies] = useState(STATIC_SPECIES[0].name)
   const [picture, setPicture] = useState<File | null>(null)
@@ -65,6 +72,63 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [feedback, setFeedback] = useState('')
   const [selectedPlot, setSelectedPlot] = useState<number | null>(null)
+  const [isNotificationsOpen, setNotificationsOpen] = useState(false)
+  const [pendingInvitations, setPendingInvitations] = useState<CommunityInvitationItem[]>([])
+
+  // Resolver el rol del usuario actual en la comunidad activa
+  useEffect(() => {
+    if (!user || !activeCommunityId) {
+      setCurrentCommunityRole(null)
+      return
+    }
+    memberApi.list(activeCommunityId).then(members => {
+      const mine = members.find(m => m.userId === user.id && m.status === 'ACCEPTED')
+      if (mine) {
+        setCurrentCommunityRole(mine.roleInCommunity === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
+      } else if (communityRecord && (communityRecord as any).creatorId === user.id) {
+        setCurrentCommunityRole('RESPONSABLE')
+      } else {
+        setCurrentCommunityRole(user.role === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
+      }
+    }).catch(() => {
+      if (communityRecord && (communityRecord as any).creatorId === user.id) {
+        setCurrentCommunityRole('RESPONSABLE')
+      } else {
+        setCurrentCommunityRole(null)
+      }
+    })
+  }, [activeCommunityId, communityRecord, user])
+
+  async function loadPendingInvitations() {
+    if (!user) {
+      setPendingInvitations([])
+      return
+    }
+    try {
+      const list = await invitationApi.getMyInvitations()
+      setPendingInvitations(list || [])
+    } catch {
+      setPendingInvitations([])
+    }
+  }
+
+  useEffect(() => {
+    loadPendingInvitations()
+  }, [user])
+
+  async function handleInvitationAccepted(communityId: string) {
+    try {
+      const list = await communityApi.list()
+      setUserCommunities(list || [])
+      const found = list.find((c: any) => c.id === communityId)
+      if (found) {
+        await selectActiveCommunity(found)
+      } else if (list && list.length > 0 && !communityRecord) {
+        await selectActiveCommunity(list[0])
+      }
+      await loadPendingInvitations()
+    } catch {}
+  }
 
   // Desplazar al encabezado al cambiar de pantalla
   useEffect(() => {
@@ -86,40 +150,85 @@ export default function App() {
   useEffect(() => {
     if (!user) return
 
-    // Cargar comunidades del usuario
+    // Cargar comunidades del usuario (filtradas por membresía en backend)
     communityApi.list().then(list => {
-      if (list && list.length > 0) {
-        const c = list[0] as unknown as (Community & { id: string })
-        setCommunityRecord(c)
-        if (c.id) setActiveCommunityId(c.id)
+      const comms = list || []
+      setUserCommunities(comms)
+      if (comms.length > 0) {
+        // Preferir la comunidad creada por el propio usuario (donde es creador) si existe
+        const own = comms.find((c: any) => c.creatorId === user.id)
+        const active = (own || comms[0]) as unknown as (Community & { id: string })
+        setCommunityRecord(active)
+        if (active.id) {
+          setActiveCommunityId(active.id)
+          loadGardenForCommunity(active.id)
+        }
+      } else {
+        // Usuario nuevo sin comunidad: estado limpio y sin datos ajenos
+        setCommunityRecord(null)
+        setActiveCommunityId(null)
+        setActiveGardenId(null)
+        setRealGarden(null)
+        setRealGardenDraft(toGardenDraft(null))
+        setPlants([])
       }
-    }).catch(() => {})
+    }).catch(() => {
+      setUserCommunities([])
+      setCommunityRecord(null)
+      setActiveCommunityId(null)
+      setActiveGardenId(null)
+      setRealGarden(null)
+      setRealGardenDraft(toGardenDraft(null))
+      setPlants([])
+    })
+  }, [user])
 
-    // Cargar huertos del usuario
-    gardenApi.list().then(async (gardensList) => {
+  async function loadGardenForCommunity(cId: string) {
+    try {
+      const gardensList = await gardenApi.list(cId)
       if (gardensList && gardensList.length > 0) {
         const g = gardensList[0] as unknown as (RealGarden & { id: string })
         setActiveGardenId(g.id)
         setRealGarden(g)
         setRealGardenDraft(toGardenDraft(g))
 
-        // Cargar plantas del huerto virtual
-        try {
-          const apiPlants = await plantApi.listByGarden(g.id)
-          if (apiPlants && apiPlants.length > 0) {
-            setPlants(apiPlants.map(p => ({
-              id: p.id,
-              name: p.species?.name || p.speciesId,
-              latin: p.species?.latinName || '',
-              photo: p.photoUrl,
-              date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
-              plot: p.plotIndex,
-            })))
-          }
-        } catch {}
+        const apiPlants = await plantApi.listByGarden(g.id)
+        if (apiPlants && apiPlants.length > 0) {
+          // Incluir plantas GROWING, READY_TO_HARVEST y REGROWING — excluir solo HARVESTED puro (estado sin lastHarvestDate) que no existe ya
+          const activePlants = apiPlants.filter(p => p.lifecycleStatus !== 'HARVESTED')
+          setPlants(activePlants.map(p => ({
+            id: p.id,
+            name: p.species?.name || p.speciesId,
+            latin: p.species?.latinName || '',
+            photo: p.photoUrl,
+            date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
+            plot: p.plotIndex,
+          })))
+        } else {
+          setPlants([])
+        }
+      } else {
+        setActiveGardenId(null)
+        setRealGarden(null)
+        setRealGardenDraft(toGardenDraft(null))
+        setPlants([])
       }
-    }).catch(() => {})
-  }, [user])
+    } catch {
+      setActiveGardenId(null)
+      setRealGarden(null)
+      setRealGardenDraft(toGardenDraft(null))
+      setPlants([])
+    }
+  }
+
+  async function selectActiveCommunity(comm: Community) {
+    setCommunityRecord(comm)
+    const cId = (comm as any).id
+    if (cId) {
+      setActiveCommunityId(cId)
+      await loadGardenForCommunity(cId)
+    }
+  }
 
   function goto(next: Screen) {
     setScreen(next)
@@ -146,9 +255,13 @@ export default function App() {
     setUser(null)
     setCommunityRecord(null)
     setActiveCommunityId(null)
+    setCurrentCommunityRole(null)
     setRealGarden(null)
     setActiveGardenId(null)
     setPlants([])
+    setPendingInvitations([])
+    setUserCommunities([])
+    setNotificationsOpen(false)
     goto('Bienvenida')
   }
 
@@ -158,7 +271,11 @@ export default function App() {
     if (user) {
       try {
         const created = await communityApi.create(next)
-        if (created?.id) setActiveCommunityId(created.id)
+        if (created?.id) {
+          setActiveCommunityId(created.id)
+          const list = await communityApi.list()
+          setUserCommunities(list || [])
+        }
         setFeedback('¡Comunidad guardada con éxito en la base de datos!')
       } catch (err: unknown) {
         setFeedback(err instanceof Error ? err.message : 'Error al guardar la comunidad')
@@ -170,9 +287,19 @@ export default function App() {
     setRealGarden(next)
     if (user) {
       try {
-        const created = await gardenApi.create(next, communityRecord?.name) as unknown as (RealGarden & { id: string })
-        if (created?.id) setActiveGardenId(created.id)
-        setFeedback('¡Huerto real guardado con éxito en la base de datos!')
+        let saved: RealGarden & { id: string }
+        if (activeGardenId) {
+          saved = await gardenApi.update(activeGardenId, next, activeCommunityId)
+        } else {
+          saved = await gardenApi.create(next, activeCommunityId)
+        }
+        if (saved?.id) setActiveGardenId(saved.id)
+        setRealGarden(saved)
+        setRealGardenDraft(toGardenDraft(saved))
+        if (activeCommunityId) {
+          await loadGardenForCommunity(activeCommunityId)
+        }
+        setFeedback('¡Huerto real guardado y sincronizado con la comunidad!')
       } catch (err: unknown) {
         setFeedback(err instanceof Error ? err.message : 'Error al guardar el huerto')
       }
@@ -267,10 +394,33 @@ export default function App() {
     if (input) input.value = ''
   }
 
-  function handlePlantHarvested(plantId: string) {
+  function handlePlantHarvested(_plantId: string) {
+    // NO eliminamos la planta del estado — las hierbas medicinales andinas son perennes.
+    // La cosecha es poda/recolección: la planta permanece sembrada en su parcela
+    // e inicia un nuevo ciclo de rebrote. Solo cerramos el pasaporte.
+    setDetail(null)
+    setFeedback('🌾 ¡Cosecha recolectada e ingresada al almacén! La planta permanece sembrada y ha iniciado un nuevo ciclo de rebrote.')
+    // Recargar datos frescos del huerto para reflejar el nuevo lifecycleStatus REGROWING
+    if (activeGardenId) {
+      plantApi.listByGarden(activeGardenId).then(apiPlants => {
+        const activePlants = apiPlants.filter(p => p.lifecycleStatus !== 'REMOVED')
+        setPlants(activePlants.map(p => ({
+          id: p.id,
+          name: p.species?.name || p.speciesId,
+          latin: p.species?.latinName || '',
+          photo: p.photoUrl,
+          date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
+          plot: p.plotIndex,
+        })))
+      }).catch(() => {})
+    }
+  }
+
+  function handlePlantRemoved(plantId: string) {
+    // Eliminar la planta del estado local — se desarraigó físicamente
     setPlants(prev => prev.filter(p => p.id !== plantId))
     setDetail(null)
-    setFeedback('🌾 ¡Planta cosechada con éxito! La parcela quedó libre y el producto se registró en el almacén de la comunidad.')
+    setFeedback('🗑️ Planta desarraigada. La parcela ha quedado libre para un nuevo cultivo.')
   }
 
   function registerInPlot(plotIndex?: number) {
@@ -331,7 +481,15 @@ export default function App() {
 
   return (
     <div className="garden-shell">
-      <GardenNavigation active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')} user={user} onLogout={handleLogout} />
+      <GardenNavigation
+        active={activeNavigation}
+        onNavigate={navigateGarden}
+        onWelcome={() => goto('Bienvenida')}
+        user={user}
+        onLogout={handleLogout}
+        pendingInvitationsCount={pendingInvitations.length}
+        onOpenNotifications={() => setNotificationsOpen(true)}
+      />
       {screen === 'Inicio' ? (
         <MyGardenPage
           plants={plants}
@@ -345,6 +503,8 @@ export default function App() {
           onAction={gardenAction}
           onNavigate={navigateGarden}
           user={user}
+          pendingInvitationsCount={pendingInvitations.length}
+          onOpenNotifications={() => setNotificationsOpen(true)}
         />
       ) : screen === 'Comunidades' ? (
         <CommunitiesPage
@@ -352,6 +512,10 @@ export default function App() {
           communityId={activeCommunityId}
           garden={garden}
           user={user}
+          currentCommunityRole={currentCommunityRole}
+          userCommunities={userCommunities}
+          onSelectCommunity={selectActiveCommunity}
+          hasCreatedOwnCommunity={userCommunities.some(c => (c as any).creatorId === user?.id)}
           onSave={saveCommunity}
           onGarden={() => goto('Huertos reales')}
           onHome={() => goto('Inicio')}
@@ -367,6 +531,7 @@ export default function App() {
           onHome={() => goto('Inicio')}
           onCommunity={() => goto('Comunidades')}
           user={user}
+          currentCommunityRole={currentCommunityRole}
         />
       ) : (
         <main className="main garden-module">
@@ -509,10 +674,18 @@ export default function App() {
       <PlantPassport
         plant={detail}
         user={user}
+        currentCommunityRole={currentCommunityRole}
         onClose={() => setDetail(null)}
         onHistory={() => { setDetail(null); goto('Mi historia') }}
         onPlantHarvested={handlePlantHarvested}
+        onPlantRemoved={handlePlantRemoved}
       />
+      {isNotificationsOpen && (
+        <NotificationsModal
+          onClose={() => setNotificationsOpen(false)}
+          onAccepted={handleInvitationAccepted}
+        />
+      )}
     </div>
   )
 }

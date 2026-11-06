@@ -20,6 +20,7 @@ export default function RealGardenPage({
   onHome,
   onCommunity,
   user,
+  currentCommunityRole,
 }: {
   garden: RealGarden | null
   communityName: string | null
@@ -30,9 +31,15 @@ export default function RealGardenPage({
   onHome: () => void
   onCommunity: () => void
   user?: UserSession | null
+  /** Rol del usuario actual en la comunidad vinculada al huerto */
+  currentCommunityRole?: 'RESPONSABLE' | 'PARTICIPANTE' | null
 }) {
   const values = draft
   const setValues = onDraftChange
+  // Si el usuario NO es RESPONSABLE ni creador del huerto, mostrar el formulario en modo lectura
+  const isCreator = Boolean(user && garden?.createdById && garden.createdById === user.id)
+  const canEdit = !user || !currentCommunityRole || currentCommunityRole === 'RESPONSABLE' || isCreator
+
   const [editing, setEditing] = useState(!garden || JSON.stringify(draft) !== JSON.stringify(toGardenDraft(garden)))
   const [errors, setErrors] = useState<RealGardenErrors>({})
   const [notice, setNotice] = useState('')
@@ -42,7 +49,7 @@ export default function RealGardenPage({
   const region = regionForProvince(readOnly && garden ? garden.location.province : values.province)
 
   function update<K extends keyof RealGardenDraft>(field: K, value: RealGardenDraft[K]) {
-    if (readOnly) return
+    if (readOnly || !canEdit) return
     setValues({
       ...values,
       [field]: value,
@@ -63,6 +70,7 @@ export default function RealGardenPage({
   }
 
   function edit() {
+    if (!canEdit) return
     setValues(toGardenDraft(garden))
     setEditing(true)
     setErrors({})
@@ -80,7 +88,7 @@ export default function RealGardenPage({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (readOnly) return
+    if (readOnly || !canEdit) return
     const result = parseRealGarden(values, communityName)
     if (!result.ok) {
       setErrors(result.errors)
@@ -154,7 +162,32 @@ export default function RealGardenPage({
 
         {readOnly && garden ? (
           <div className="rg-summary-focus" ref={summaryRef} tabIndex={-1} aria-label="Ficha del huerto">
-            <RealGardenSummary garden={garden} onEdit={edit} onConnect={onConnect} onCommunity={onCommunity} />
+            {!canEdit && (
+              <div
+                role="note"
+                style={{
+                  background: '#fffaf0',
+                  border: '1px solid #fbd38d',
+                  color: '#744210',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                <span>Solo el <strong>Responsable</strong> de la comunidad puede modificar los datos del terreno.</span>
+              </div>
+            )}
+            <RealGardenSummary
+              garden={garden}
+              onEdit={canEdit ? edit : undefined}
+              onConnect={onConnect}
+              onCommunity={onCommunity}
+            />
           </div>
         ) : (
           <form
@@ -165,29 +198,57 @@ export default function RealGardenPage({
             aria-label={garden ? 'Editar mi huerto' : 'Registrar mi huerto'}
             aria-describedby="rg-visit-note"
           >
+            {!canEdit && (
+              <div
+                role="note"
+                style={{
+                  background: '#fffaf0',
+                  border: '1px solid #fbd38d',
+                  color: '#744210',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                <span>Solo el <strong>Responsable</strong> de la comunidad puede modificar los datos del terreno.</span>
+              </div>
+            )}
             <div className="rg-form-panels">
-              <GardenLocation values={values} errors={errors} disabled={false} onChange={update} />
+              <GardenLocation values={values} errors={errors} disabled={!canEdit} onChange={update} />
               <GardenCharacteristics
                 values={values}
                 errors={errors}
-                disabled={false}
+                disabled={!canEdit}
                 onChange={update}
                 actions={
-                  <div className="rg-form-footer">
-                    <p>* Campos obligatorios</p>
-                    <div>
-                      {garden && (
-                        <button className="rg-outline-button" type="button" onClick={cancel}>
-                          Cancelar edición
+                  canEdit ? (
+                    <div className="rg-form-footer">
+                      <p>* Campos obligatorios</p>
+                      <div>
+                        {garden && (
+                          <button className="rg-outline-button" type="button" onClick={cancel}>
+                            Cancelar edición
+                          </button>
+                        )}
+                        <button className="rg-primary-button" type="submit">
+                          <GardenIcon name="seed" />
+                          {garden ? 'Guardar cambios' : 'Guardar mi huerto'}
+                          <GardenIcon name="arrow" />
                         </button>
-                      )}
-                      <button className="rg-primary-button" type="submit">
-                        <GardenIcon name="seed" />
-                        {garden ? 'Guardar cambios' : 'Guardar mi huerto'}
-                        <GardenIcon name="arrow" />
-                      </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="rg-form-footer">
+                      <p style={{ color: '#718096', fontStyle: 'italic', margin: 0 }}>
+                        Modo lectura · Solo el Responsable puede guardar cambios en los datos del terreno.
+                      </p>
+                    </div>
+                  )
                 }
               />
             </div>

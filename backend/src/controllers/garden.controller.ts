@@ -1,5 +1,6 @@
+// backend/src/controllers/garden.controller.ts
 import type { Response } from 'express'
-import { createGarden, listGardens, getGardenById } from '../services/garden.service'
+import { createGarden, listGardens, getGardenById, updateGarden } from '../services/garden.service'
 import { ok, fail } from '../utils/response'
 import type { AuthRequest } from '../types'
 
@@ -38,15 +39,16 @@ export async function create(req: AuthRequest, res: Response): Promise<void> {
       createdById: req.user.userId,
     })
     ok(res, { garden }, 'Huerto registrado exitosamente.', 201)
-  } catch {
-    fail(res, 'INTERNAL_ERROR', 'Error al registrar el huerto.', 500)
+  } catch (err: any) {
+    fail(res, 'INTERNAL_ERROR', err?.message || 'Error al registrar el huerto.', 500)
   }
 }
 
 export async function list(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
   try {
     const communityId = req.query['communityId'] ? String(req.query['communityId']) : undefined
-    const gardens = await listGardens(communityId)
+    const gardens = await listGardens(req.user.userId, communityId)
     ok(res, { gardens }, 'Listado de huertos.')
   } catch {
     fail(res, 'INTERNAL_ERROR', 'Error al obtener los huertos.', 500)
@@ -60,5 +62,39 @@ export async function getById(req: AuthRequest, res: Response): Promise<void> {
     ok(res, { garden }, 'Detalle del huerto.')
   } catch {
     fail(res, 'INTERNAL_ERROR', 'Error al obtener el huerto.', 500)
+  }
+}
+
+export async function update(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  const id = String(req.params['id'] ?? '')
+  const b = req.body as Record<string, unknown>
+
+  try {
+    const coords = b['coordinates'] as { latitude: number; longitude: number } | null
+    const updated = await updateGarden(id, req.user.userId, {
+      name: b['name'] ? String(b['name']) : undefined,
+      kind: b['kind'] ? String(b['kind']) : undefined,
+      areaM2: b['areaM2'] !== undefined ? Number(b['areaM2']) : undefined,
+      province: b['province'] ? String(b['province']) : undefined,
+      provinceCode: b['provinceCode'] ? String(b['provinceCode']) : undefined,
+      canton: b['canton'] ? String(b['canton']) : undefined,
+      cantonCode: b['cantonCode'] !== undefined ? (b['cantonCode'] ? String(b['cantonCode']) : null) : undefined,
+      parish: b['parish'] ? String(b['parish']) : undefined,
+      parishCode: b['parishCode'] !== undefined ? (b['parishCode'] ? String(b['parishCode']) : null) : undefined,
+      reference: b['reference'] !== undefined ? String(b['reference'] ?? '').slice(0, 300) : undefined,
+      latitude: coords?.latitude !== undefined ? coords.latitude : (b['latitude'] !== undefined ? Number(b['latitude']) : undefined),
+      longitude: coords?.longitude !== undefined ? coords.longitude : (b['longitude'] !== undefined ? Number(b['longitude']) : undefined),
+      irrigationAvailability: b['irrigationAvailability'] ? String(b['irrigationAvailability']) : undefined,
+      soilType: b['soilType'] !== undefined ? (b['soilType'] ? String(b['soilType']) : null) : undefined,
+      communityId: b['communityId'] !== undefined ? (b['communityId'] ? String(b['communityId']) : null) : undefined,
+    })
+    ok(res, { garden: updated }, 'Huerto actualizado.')
+  } catch (err: any) {
+    if (err?.code === 'FORBIDDEN') {
+      fail(res, 'FORBIDDEN', err.message || 'Solo el creador o Responsable puede modificar el huerto.', 403)
+    } else {
+      fail(res, 'INTERNAL_ERROR', err?.message || 'Error al actualizar el huerto.', 500)
+    }
   }
 }

@@ -5,11 +5,38 @@ import {
   careApi,
   catalogApi,
   harvestApi,
+  plantApi,
   type CareLog,
   type GrowthData,
+  type HealthStatus,
   type CalendarTips,
   type UserSession,
 } from '../../services/api'
+
+// ─── Badge de salud ───────────────────────────────────────────────────────────
+
+function HealthBadge({ status }: { status: HealthStatus | undefined }) {
+  if (!status) return null
+  const map: Record<HealthStatus, { label: string; color: string; bg: string; border: string }> = {
+    VIGOROSA:       { label: 'Salud: Vigorosa 🌿',               color: '#276749', bg: '#f0fff4', border: '#c6f6d5' },
+    EXCESO_AGUA:    { label: 'Riesgo: Exceso de agua 💧⚠️',       color: '#7b341e', bg: '#fff5f5', border: '#fc8181' },
+    EXCESO_ABONO:   { label: 'Riesgo: Exceso de abono 🧪⚠️',      color: '#7b341e', bg: '#fffaf0', border: '#fbd38d' },
+    ESTRES_PODA:    { label: 'Estrés: Poda excesiva ✂️⚠️',        color: '#744210', bg: '#fffff0', border: '#fefcbf' },
+    REQUIERE_RIEGO: { label: 'Requiere riego 🍂',                 color: '#744210', bg: '#fefcbf', border: '#f6e05e' },
+    REQUIERE_ABONO: { label: 'Requiere abono 🌱',                 color: '#553c9a', bg: '#faf5ff', border: '#e9d8fd' },
+  }
+  const { label, color, bg, border } = map[status]
+  return (
+    <span style={{
+      display: 'inline-block', padding: '4px 10px', borderRadius: '20px',
+      background: bg, border: `1px solid ${border}`, color, fontSize: '0.78rem', fontWeight: 700,
+    }}>
+      {label}
+    </span>
+  )
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function PlantPassport({
   plant,
@@ -17,12 +44,15 @@ export default function PlantPassport({
   onClose,
   onHistory,
   onPlantHarvested,
+  onPlantRemoved,
 }: {
   plant: GardenPlant | null
   user?: UserSession | null
+  currentCommunityRole?: 'RESPONSABLE' | 'PARTICIPANTE' | null
   onClose: () => void
   onHistory: () => void
   onPlantHarvested?: (plantId: string) => void
+  onPlantRemoved?: (plantId: string) => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [logs, setLogs] = useState<CareLog[]>([])
@@ -32,6 +62,7 @@ export default function PlantPassport({
   const [actionNotes, setActionNotes] = useState('')
   const [harvestQuantity, setHarvestQuantity] = useState('200g')
   const [showHarvestDialog, setShowHarvestDialog] = useState(false)
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -55,6 +86,7 @@ export default function PlantPassport({
     setMessage('')
     setError('')
     setShowHarvestDialog(false)
+    setShowRemoveDialog(false)
     setActionNotes('')
   }
 
@@ -63,7 +95,6 @@ export default function PlantPassport({
     setLoading(true)
     setError('')
     try {
-      // Si la planta tiene ID válido en el backend
       if (user && !plant.id.includes('-')) {
         const [careLogs, growthData] = await Promise.all([
           careApi.list(plant.id).catch(() => []),
@@ -72,24 +103,23 @@ export default function PlantPassport({
         setLogs(careLogs)
         setGrowth(growthData)
       } else {
-        // Modo demostración local simulado
+        // Modo demostración local
         setGrowth({
           percentage: 45,
           stage: 'Brote 🌿',
           daysUntilHarvest: 25,
           needsWatering: true,
           needsFertilizer: false,
+          healthStatus: 'REQUIERE_RIEGO',
           lifecycleStatus: 'GROWING',
           plantingDate: new Date().toISOString(),
         })
       }
 
-      // Cargar tips del calendario botánico
       try {
         const tips = await catalogApi.getCalendarTips(plant.name)
         setCalendar(tips)
       } catch {
-        // Fallback genérico si no se encuentra por nombre
         setCalendar({
           wateringFrequencyDays: 3,
           fertilizerFrequencyDays: 25,
@@ -105,40 +135,49 @@ export default function PlantPassport({
     }
   }
 
+  // ─── Cuidados con validación de sobrecuidado ──────────────────────────────
+
   async function handleApplyCare(actionType: 'WATERING' | 'FERTILIZER' | 'PRUNING') {
     if (!plant) return
     setError('')
     setMessage('')
     const label =
       actionType === 'WATERING' ? 'Riego 💧' : actionType === 'FERTILIZER' ? 'Abono 🧪' : 'Poda ✂'
-    try {
-      if (user && !plant.id.includes('-')) {
-        await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
-        setMessage(`¡${label} registrado con éxito!`)
-        setActionNotes('')
-        await loadPlantData()
-      } else {
-        // Demo en memoria
-        setMessage(`¡${label} registrado en modo demostración!`)
-        if (growth) {
-          setGrowth({
-            ...growth,
-            percentage: Math.min(100, growth.percentage + 15),
-            needsWatering: actionType === 'WATERING' ? false : growth.needsWatering,
-            needsFertilizer: actionType === 'FERTILIZER' ? false : growth.needsFertilizer,
-            stage:
-              growth.percentage + 15 >= 75
-                ? 'Lista para cosechar ✨'
-                : growth.percentage + 15 >= 50
-                ? 'Crecimiento 🪴'
-                : 'Brote 🌿',
-          })
-        }
+
+    // Validación local de sobrecuidado (modo demo)
+    if (!user || plant.id.includes('-')) {
+      if (actionType === 'WATERING' && growth && !growth.needsWatering) {
+        setError('⚠️ Esta planta ya tiene suficiente humedad. Regar en exceso puede pudrir sus raíces.')
+        return
       }
+      if (actionType === 'FERTILIZER' && growth && !growth.needsFertilizer) {
+        setError('⚠️ El suelo ya está nutrido. El exceso de abono quema las raíces por toxicidad de sales.')
+        return
+      }
+      setMessage(`¡${label} registrado en modo demostración!`)
+      if (growth) {
+        setGrowth({
+          ...growth,
+          needsWatering: actionType === 'WATERING' ? false : growth.needsWatering,
+          needsFertilizer: actionType === 'FERTILIZER' ? false : growth.needsFertilizer,
+          healthStatus: 'VIGOROSA',
+        })
+      }
+      return
+    }
+
+    try {
+      await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
+      setMessage(`¡${label} registrado con éxito!`)
+      setActionNotes('')
+      await loadPlantData()
     } catch (err: unknown) {
+      // El backend devuelve mensajes claros de sobrecuidado
       setError(err instanceof Error ? err.message : 'Error al registrar cuidado')
     }
   }
+
+  // ─── Cosecha no-destructiva ───────────────────────────────────────────────
 
   async function handleHarvest() {
     if (!plant) return
@@ -147,18 +186,43 @@ export default function PlantPassport({
     try {
       if (user && !plant.id.includes('-')) {
         await harvestApi.harvest(plant.id, harvestQuantity, actionNotes || 'Cosecha realizada desde Pasaporte Vivo')
-        setMessage(`¡Planta cosechada! Se agregaron ${harvestQuantity} al almacén comunitario.`)
+        setMessage('🌾 ¡Cosecha recolectada e ingresada al almacén! La planta permanece sembrada y ha iniciado un nuevo ciclo de rebrote.')
       } else {
-        setMessage(`¡Cosecha de ${harvestQuantity} registrada con éxito!`)
+        setMessage(`🌾 ¡Cosecha de ${harvestQuantity} registrada! La planta sigue en su parcela iniciando rebrote.`)
       }
+      setShowHarvestDialog(false)
       setTimeout(() => {
         if (onPlantHarvested) onPlantHarvested(plant.id)
-        dialogRef.current?.close()
-      }, 1200)
+      }, 1400)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al registrar cosecha')
     }
   }
+
+  // ─── Remover / desarraigar ────────────────────────────────────────────────
+
+  async function handleRemovePlant() {
+    if (!plant) return
+    setError('')
+    setLoading(true)
+    try {
+      if (user && !plant.id.includes('-')) {
+        await plantApi.remove(plant.id)
+      }
+      setShowRemoveDialog(false)
+      dialogRef.current?.close()
+      if (onPlantRemoved) onPlantRemoved(plant.id)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al desarraigar la planta')
+      setLoading(false)
+    }
+  }
+
+  // ─── Renderizado ──────────────────────────────────────────────────────────
+
+  const isRegrowing = growth?.lifecycleStatus === 'REGROWING'
+  const canHarvest = (growth?.percentage ?? 0) >= 75 && !isRegrowing || (isRegrowing && (growth?.percentage ?? 0) >= 75)
+  const hasStress = growth?.overWatered || growth?.overFertilized || growth?.overPruned
 
   return (
     <dialog
@@ -207,6 +271,9 @@ export default function PlantPassport({
               <div style={{ fontSize: '0.85rem', color: '#718096' }}>
                 Ubicación: <strong>Parcela {plant.plot + 1}</strong> · Sembrada: {plant.date}
               </div>
+              <div style={{ marginTop: '6px' }}>
+                <HealthBadge status={growth?.healthStatus} />
+              </div>
             </div>
           </div>
 
@@ -218,17 +285,28 @@ export default function PlantPassport({
 
           {error && (
             <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', color: '#9b2c2c', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>
-              ⚠ {error}
+              {error}
+            </div>
+          )}
+
+          {/* ─── Alerta de sobrecuidado ─── */}
+          {hasStress && (
+            <div style={{ background: '#fff5f5', border: '2px solid #fc8181', color: '#9b2c2c', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              <strong>⚠️ Alerta agronómica:</strong>
+              {growth?.overWatered && <div>💧 Suelo saturado de agua: riesgo inminente de <strong>asfixia radicular y pudrición de raíces</strong>. Suspende el riego.</div>}
+              {growth?.overFertilized && <div>🧪 Suelo sobrefertilizado: exceso de sales puede <strong>quemar las raíces</strong>. No apliques más abono.</div>}
+              {growth?.overPruned && <div>✂️ Poda excesiva esta semana: la planta necesita tiempo para <strong>recuperarse del estrés</strong>.</div>}
+              <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#c53030' }}>El crecimiento está pausado hasta que el estrés ceda.</div>
             </div>
           )}
 
           {/* ─── INDICADOR DE CRECIMIENTO DINÁMICO ─── */}
-          <section style={{ background: '#f0fff4', border: '1px solid #c6f6d5', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
+          <section style={{ background: isRegrowing ? '#fffff0' : '#f0fff4', border: `1px solid ${isRegrowing ? '#fefcbf' : '#c6f6d5'}`, borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <strong style={{ color: '#22543d', fontSize: '1rem' }}>
+              <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
                 Etapa: {growth?.stage || 'Calculando...'}
               </strong>
-              <span style={{ fontWeight: 'bold', color: '#2f855a', fontSize: '1.1rem' }}>
+              <span style={{ fontWeight: 'bold', color: isRegrowing ? '#d69e2e' : '#2f855a', fontSize: '1.1rem' }}>
                 {growth ? `${growth.percentage}%` : '0%'}
               </span>
             </div>
@@ -239,7 +317,9 @@ export default function PlantPassport({
                 style={{
                   width: `${growth ? growth.percentage : 0}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, #68d391 0%, #38a169 100%)',
+                  background: isRegrowing
+                    ? 'linear-gradient(90deg, #f6e05e 0%, #d69e2e 100%)'
+                    : 'linear-gradient(90deg, #68d391 0%, #38a169 100%)',
                   borderRadius: '7px',
                   transition: 'width 0.4s ease-in-out',
                 }}
@@ -247,7 +327,14 @@ export default function PlantPassport({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#4a5568' }}>
-              <span>Días estimados para cosecha: <strong>{growth?.daysUntilHarvest ?? 0} días</strong></span>
+              <span>
+                {isRegrowing
+                  ? (canHarvest
+                    ? '✨ Rebrote maduro — ¡lista para cosechar de nuevo!'
+                    : `🌱 En recuperación: lista para cosechar en aprox. ${growth?.daysUntilHarvest ?? 0} días`)
+                  : `Días estimados para cosecha: `}
+                {!isRegrowing && <strong>{growth?.daysUntilHarvest ?? 0} días</strong>}
+              </span>
               <span>
                 {growth?.needsWatering ? (
                   <strong style={{ color: '#d69e2e' }}>💧 Requiere riego</strong>
@@ -269,44 +356,71 @@ export default function PlantPassport({
             )}
           </section>
 
-          {/* ─── ACCIONES DE CUIDADO ─── */}
+          {/* ─── ACCIONES DE CUIDADO CON ESTADO DINÁMICO ─── */}
           <section style={{ marginBottom: '18px' }}>
             <h3 style={{ fontSize: '0.95rem', color: '#2d3748', marginBottom: '8px' }}>
               🌿 Registrar cuidado realizado hoy:
             </h3>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              {/* Botón de riego — deshabilitado si ya está húmedo */}
               <button
                 type="button"
-                onClick={() => handleApplyCare('WATERING')}
+                onClick={() => {
+                  if (!growth?.needsWatering) {
+                    setError('⚠️ Esta planta ya tiene suficiente humedad. Regar en exceso puede pudrir sus raíces.')
+                    return
+                  }
+                  void handleApplyCare('WATERING')
+                }}
                 disabled={loading}
+                title={!growth?.needsWatering ? 'Suelo húmedo — no requiere riego ahora' : 'Registrar riego'}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #bee3f8',
-                  background: '#ebf8ff', color: '#2b6cb0', fontWeight: 600, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  border: growth?.needsWatering ? '1px solid #bee3f8' : '1px solid #c6f6d5',
+                  background: growth?.needsWatering ? '#ebf8ff' : '#f0fff4',
+                  color: growth?.needsWatering ? '#2b6cb0' : '#276749',
+                  fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  opacity: loading ? 0.6 : 1,
                 }}
               >
-                💧 Regué la planta
+                {growth?.needsWatering ? '💧 Regué la planta' : '✓ Suelo húmedo'}
               </button>
+
+              {/* Botón de abono — deshabilitado si ya está nutrido */}
               <button
                 type="button"
-                onClick={() => handleApplyCare('FERTILIZER')}
+                onClick={() => {
+                  if (!growth?.needsFertilizer) {
+                    setError('⚠️ El suelo ya está nutrido. El exceso de abono quema las raíces por toxicidad de sales.')
+                    return
+                  }
+                  void handleApplyCare('FERTILIZER')
+                }}
                 disabled={loading}
+                title={!growth?.needsFertilizer ? 'Suelo nutrido — no requiere abono ahora' : 'Registrar abono'}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #feebc8',
-                  background: '#fffaf0', color: '#c05621', fontWeight: 600, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  border: growth?.needsFertilizer ? '1px solid #feebc8' : '1px solid #c6f6d5',
+                  background: growth?.needsFertilizer ? '#fffaf0' : '#f0fff4',
+                  color: growth?.needsFertilizer ? '#c05621' : '#276749',
+                  fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  opacity: loading ? 0.6 : 1,
                 }}
               >
-                🧪 Apliqué abono
+                {growth?.needsFertilizer ? '🧪 Apliqué abono' : '✓ Suelo nutrido'}
               </button>
+
               <button
                 type="button"
-                onClick={() => handleApplyCare('PRUNING')}
+                onClick={() => void handleApplyCare('PRUNING')}
                 disabled={loading}
                 style={{
                   flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0',
                   background: '#edf2f7', color: '#4a5568', fontWeight: 600, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  opacity: loading ? 0.6 : 1,
                 }}
               >
                 ✂ Poda / Mantenimiento
@@ -341,18 +455,24 @@ export default function PlantPassport({
           {/* ─── ACCIÓN DE COSECHA ─── */}
           <section style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginBottom: '16px' }}>
             {!showHarvestDialog ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <span style={{ fontSize: '0.85rem', color: '#718096' }}>
-                  {growth && growth.percentage >= 75
-                    ? '✨ ¡Tu planta está lista para cosechar!'
-                    : 'Puedes cosecharla cuando lo desees para transferirla al almacén.'}
+                  {canHarvest
+                    ? (isRegrowing ? '✨ ¡Rebrote maduro! La planta está lista para una nueva cosecha.' : '✨ ¡Tu planta está lista para cosechar!')
+                    : (isRegrowing
+                      ? `🌱 En recuperación: lista para cosechar en aprox. ${growth?.daysUntilHarvest ?? 0} días.`
+                      : 'La planta necesita más tiempo para madurar antes de cosechar.')}
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowHarvestDialog(true)}
+                  disabled={!canHarvest || loading}
+                  title={!canHarvest ? (isRegrowing ? `La planta aún está en rebrote. Espera ${growth?.daysUntilHarvest ?? 0} días más.` : 'Espera a que la planta madure (≥75%)') : 'Cosechar'}
                   style={{
-                    padding: '8px 16px', background: '#38a169', color: '#fff', border: 'none',
-                    borderRadius: '8px', fontWeight: 600, cursor: 'pointer'
+                    padding: '8px 16px', background: canHarvest ? '#38a169' : '#a0aec0', color: '#fff', border: 'none',
+                    borderRadius: '8px', fontWeight: 600,
+                    cursor: canHarvest ? 'pointer' : 'not-allowed',
+                    opacity: canHarvest ? 1 : 0.65,
                   }}
                 >
                   🌾 Cosechar planta
@@ -362,7 +482,7 @@ export default function PlantPassport({
               <div style={{ background: '#fffff0', border: '1px solid #fefcbf', padding: '14px', borderRadius: '10px' }}>
                 <h4 style={{ margin: '0 0 8px', color: '#744210' }}>Registrar Cosecha de {plant.name}</h4>
                 <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#744210' }}>
-                  Al cosechar, la parcela quedará libre para un nuevo cultivo y el producto recolectado se registrará en el inventario comunitario.
+                  🌱 La planta permanecerá en su parcela e iniciará un nuevo ciclo de rebrote. El producto recolectado se registrará en el inventario comunitario.
                 </p>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <input
@@ -374,7 +494,7 @@ export default function PlantPassport({
                   />
                   <button
                     type="button"
-                    onClick={handleHarvest}
+                    onClick={() => void handleHarvest()}
                     disabled={loading}
                     style={{ padding: '8px 16px', background: '#d69e2e', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                   >
@@ -383,6 +503,57 @@ export default function PlantPassport({
                   <button
                     type="button"
                     onClick={() => setShowHarvestDialog(false)}
+                    style={{ background: 'none', border: 'none', color: '#718096', cursor: 'pointer', fontSize: '0.85rem' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ─── BOTÓN DESARRAIGAR / REMOVER PLANTA ─── */}
+          <section style={{ borderTop: '1px solid #fed7d7', paddingTop: '14px', marginBottom: '14px' }}>
+            {!showRemoveDialog ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', color: '#718096' }}>
+                  ¿Quieres liberar esta parcela para sembrar otro cultivo?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveDialog(true)}
+                  disabled={loading}
+                  style={{
+                    padding: '7px 14px', background: 'transparent', color: '#e53e3e',
+                    border: '1px solid #feb2b2', borderRadius: '8px',
+                    fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem',
+                  }}
+                >
+                  🗑️ Desarraigar / Liberar parcela
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: '#fff5f5', border: '2px solid #fc8181', padding: '14px', borderRadius: '10px' }}>
+                <h4 style={{ margin: '0 0 8px', color: '#9b2c2c' }}>⚠️ Confirmar desarraigo de {plant.name}</h4>
+                <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: '#9b2c2c', lineHeight: 1.5 }}>
+                  ¿Estás seguro de arrancar esta planta? Se liberará la <strong>Parcela {plant.plot + 1}</strong> permanentemente para que puedas sembrar otro cultivo. Esta acción no se puede deshacer.
+                </p>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => void handleRemovePlant()}
+                    disabled={loading}
+                    style={{
+                      padding: '8px 18px', background: '#e53e3e', color: '#fff', border: 'none',
+                      borderRadius: '8px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {loading ? 'Removiendo...' : '🗑️ Sí, desarraigar y liberar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowRemoveDialog(false)}
+                    disabled={loading}
                     style={{ background: 'none', border: 'none', color: '#718096', cursor: 'pointer', fontSize: '0.85rem' }}
                   >
                     Cancelar

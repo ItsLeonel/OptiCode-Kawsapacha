@@ -14,8 +14,8 @@ export async function harvestPlant(req: AuthRequest, res: Response): Promise<voi
   try {
     const harvest = await harvestService.harvestPlant(plantId, quantity.trim(), notes ?? '', req.user.userId)
     ok(res, { harvest }, 'Cosecha registrada.', 201)
-  } catch {
-    fail(res, 'INTERNAL_ERROR', 'Error al registrar cosecha.', 500)
+  } catch (err: any) {
+    fail(res, 'INTERNAL_ERROR', err?.message || 'Error al registrar cosecha.', 500)
   }
 }
 
@@ -24,8 +24,8 @@ export async function listByGarden(req: AuthRequest, res: Response): Promise<voi
     const gardenId = String(req.params['id'] ?? '')
     const harvests = await harvestService.listHarvestsByGarden(gardenId)
     ok(res, { harvests }, 'Cosechas del huerto.')
-  } catch {
-    fail(res, 'INTERNAL_ERROR', 'Error al listar cosechas.', 500)
+  } catch (err: any) {
+    fail(res, 'INTERNAL_ERROR', err?.message || 'Error al listar cosechas.', 500)
   }
 }
 
@@ -34,7 +34,7 @@ export async function listByCommunity(req: AuthRequest, res: Response): Promise<
     const communityId = String(req.params['id'] ?? '')
     const harvests = await harvestService.listHarvestsByCommunity(communityId)
     ok(res, { harvests }, 'Cosechas de la comunidad.')
-  } catch {
-    fail(res, 'INTERNAL_ERROR', 'Error al listar cosechas.', 500)
+  } catch (err: any) {
+    fail(res, 'INTERNAL_ERROR', err?.message || 'Error al listar cosechas.', 500)
   }
 }

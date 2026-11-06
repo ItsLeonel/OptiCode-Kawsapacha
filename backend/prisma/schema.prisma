@@ -173,8 +173,9 @@ model CultivatedPlant {
   plantingDate DateTime @default(now())
   notes        String   @default("")
 
-  // Estado del ciclo de vida: GROWING | READY_TO_HARVEST | HARVESTED
-  lifecycleStatus String @default("GROWING")
+  // Estado del ciclo de vida: GROWING | READY_TO_HARVEST | HARVESTED | REGROWING
+  lifecycleStatus  String    @default("GROWING")
+  lastHarvestDate  DateTime?
 
   registeredById String
   registeredBy   User   @relation("PlantRegistrar", fields: [registeredById], references: [id])

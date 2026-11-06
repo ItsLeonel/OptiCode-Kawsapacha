@@ -63,19 +63,32 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Content-Type'] = 'application/json'
   }
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  })
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    })
+  } catch {
+    throw new Error('No se pudo conectar con el servidor backend (http://localhost:3000). Asegúrate de tenerlo encendido ejecutando "npm run dev" en la carpeta backend.')
+  }
 
-  const json = await res.json()
+  let json: { ok?: boolean; data?: T; message?: string; error?: { message?: string } } | null = null
+  try {
+    json = await res.json()
+  } catch {
+    if (!res.ok) {
+      throw new Error(`El servidor backend respondió con error (${res.status} ${res.statusText}). Revisa que el backend esté ejecutándose en http://localhost:3000.`)
+    }
+    throw new Error('Respuesta inválida del servidor backend.')
+  }
 
-  if (!res.ok || json.ok === false) {
-    const errorMsg = json.error?.message || json.message || 'Error en la solicitud'
+  if (!res.ok || json?.ok === false) {
+    const errorMsg = json?.error?.message || json?.message || `Error en la solicitud (${res.status})`
     throw new Error(errorMsg)
   }
 
-  return json.data as T
+  return json?.data as T
 }
 
 // ─── Módulo de Autenticación ─────────────────────────────────────────────────
@@ -200,13 +213,98 @@ export const memberApi = {
   },
 }
 
+// ─── Módulo de Invitaciones y Notificaciones ─────────────────────────────────
+
+export interface CommunityInvitationItem {
+  id: string
+  communityId: string
+  communityName: string
+  communityLocation?: string
+  role: string
+  invitedById: string
+  invitedByName: string
+  createdAt: string
+  status: string
+}
+
+export const invitationApi = {
+  async getMyInvitations(): Promise<CommunityInvitationItem[]> {
+    const data = await request<{ invitations: CommunityInvitationItem[] }>('/api/invitations/me')
+    return data.invitations || []
+  },
+
+  async accept(id: string): Promise<{ invitation: unknown; member: unknown; communityId: string }> {
+    return request<{ invitation: unknown; member: unknown; communityId: string }>(`/api/invitations/${id}/accept`, {
+      method: 'POST',
+    })
+  },
+
+  async reject(id: string): Promise<void> {
+    await request<unknown>(`/api/invitations/${id}/reject`, {
+      method: 'POST',
+    })
+  },
+}
+
 // ─── Módulo de Huertos Reales ────────────────────────────────────────────────
 
+interface RawBackendGarden {
+  id: string
+  name: string
+  kind: string
+  areaM2: number
+  province: string
+  provinceCode: string
+  canton?: string
+  cantonCode?: string | null
+  parish?: string
+  parishCode?: string | null
+  reference?: string
+  latitude?: number | null
+  longitude?: number | null
+  irrigationAvailability: string
+  soilType?: string | null
+  communityId?: string | null
+  community?: { id: string; name: string } | null
+  location?: RealGarden['location']
+  communityName?: string | null
+  createdById?: string
+}
+
+function normalizeGarden(raw: RawBackendGarden): RealGarden & { id: string } {
+  if (raw.location) {
+    return {
+      ...(raw as RealGarden & { id: string }),
+      createdById: raw.createdById,
+    }
+  }
+  return {
+    id: raw.id,
+    name: raw.name,
+    kind: (raw.kind as RealGarden['kind']) || 'ground',
+    areaM2: raw.areaM2,
+    location: {
+      province: raw.province || '',
+      provinceCode: raw.provinceCode || '',
+      canton: raw.canton || '',
+      cantonCode: raw.cantonCode || null,
+      parish: raw.parish || '',
+      parishCode: raw.parishCode || null,
+      reference: raw.reference || '',
+      coordinates: raw.latitude && raw.longitude ? { latitude: raw.latitude, longitude: raw.longitude } : null,
+    },
+    irrigationAvailability: (raw.irrigationAvailability as RealGarden['irrigationAvailability']) || 'available',
+    soilType: (raw.soilType as RealGarden['soilType']) || null,
+    communityName: raw.community?.name ?? raw.communityName ?? null,
+    createdById: raw.createdById,
+  }
+}
+
 export const gardenApi = {
-  async list(communityId?: string): Promise<RealGarden[]> {
+  async list(communityId?: string): Promise<(RealGarden & { id: string })[]> {
     const query = communityId ? `?communityId=${encodeURIComponent(communityId)}` : ''
-    const data = await request<{ gardens: RealGarden[] }>(`/api/gardens${query}`)
-    return data.gardens
+    const data = await request<{ gardens: RawBackendGarden[] }>(`/api/gardens${query}`)
+    return (data.gardens || []).map(normalizeGarden)
   },
 
   async create(garden: RealGarden, communityId?: string | null): Promise<RealGarden & { id: string }> {
@@ -227,16 +325,41 @@ export const gardenApi = {
       communityId: communityId ?? null,
     }
 
-    const data = await request<{ garden: RealGarden & { id: string } }>('/api/gardens', {
+    const data = await request<{ garden: RawBackendGarden }>('/api/gardens', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
-    return data.garden
+    return normalizeGarden(data.garden)
   },
 
-  async getById(id: string): Promise<RealGarden> {
-    const data = await request<{ garden: RealGarden }>(`/api/gardens/${id}`)
-    return data.garden
+  async update(id: string, garden: RealGarden, communityId?: string | null): Promise<RealGarden & { id: string }> {
+    const payload = {
+      name: garden.name,
+      kind: garden.kind,
+      areaM2: garden.areaM2,
+      province: garden.location.province,
+      provinceCode: garden.location.provinceCode,
+      canton: garden.location.canton,
+      cantonCode: garden.location.cantonCode,
+      parish: garden.location.parish,
+      parishCode: garden.location.parishCode,
+      reference: garden.location.reference,
+      coordinates: garden.location.coordinates,
+      irrigationAvailability: garden.irrigationAvailability,
+      soilType: garden.soilType,
+      communityId: communityId ?? null,
+    }
+
+    const data = await request<{ garden: RawBackendGarden }>(`/api/gardens/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+    return normalizeGarden(data.garden)
+  },
+
+  async getById(id: string): Promise<RealGarden & { id: string }> {
+    const data = await request<{ garden: RawBackendGarden }>(`/api/gardens/${id}`)
+    return normalizeGarden(data.garden)
   },
 }
 
@@ -332,6 +455,10 @@ export const plantApi = {
     const data = await request<{ passport: unknown }>(`/api/plants/${plantId}/passport`)
     return data.passport
   },
+
+  async remove(plantId: string): Promise<void> {
+    await request<unknown>(`/api/plants/${plantId}`, { method: 'DELETE' })
+  },
 }
 
 // ─── Módulo de Bitácora de Cuidados ──────────────────────────────────────────
@@ -346,14 +473,27 @@ export interface CareLog {
   user?: { id: string; name: string }
 }
 
+export type HealthStatus =
+  | 'VIGOROSA'
+  | 'EXCESO_AGUA'
+  | 'EXCESO_ABONO'
+  | 'ESTRES_PODA'
+  | 'REQUIERE_RIEGO'
+  | 'REQUIERE_ABONO'
+
 export interface GrowthData {
   percentage: number
   stage: string
   daysUntilHarvest: number
   needsWatering: boolean
   needsFertilizer: boolean
+  healthStatus?: HealthStatus
+  overWatered?: boolean
+  overFertilized?: boolean
+  overPruned?: boolean
   lifecycleStatus: string
   plantingDate: string
+  lastHarvestDate?: string | null
 }
 
 export const careApi = {

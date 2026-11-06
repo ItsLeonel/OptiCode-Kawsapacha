@@ -11,10 +11,23 @@ import { errorMiddleware } from './middlewares/error.middleware'
 const app = express()
 
 // ─── Middlewares globales ────────────────────────────────────────────────────
-app.use(helmet())
+// Helmet relajado para acceso en red local (demos, presentaciones)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}))
+
+// CORS dinámico: acepta localhost y cualquier IP privada de red local
+const ALLOWED_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})(:\d+)?$/
 app.use(cors({
-  origin: env.corsOrigin,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: (origin, callback) => {
+    // Sin origen (curl, Postman, same-origin) → permitir
+    if (!origin) return callback(null, true)
+    if (ALLOWED_ORIGIN_PATTERN.test(origin)) return callback(null, true)
+    callback(new Error(`CORS bloqueado para origen: ${origin}`))
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json())

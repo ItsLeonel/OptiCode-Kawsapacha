@@ -25,6 +25,7 @@ export type SoilType = keyof typeof SOIL_OPTIONS
 export type GardenCoordinates = { latitude: number; longitude: number }
 
 export type RealGarden = {
+  id?: string
   name: string
   kind: GardenKind
   location: {
@@ -35,6 +36,7 @@ export type RealGarden = {
   irrigationAvailability: IrrigationAvailability
   soilType: SoilType | null
   communityName: string | null
+  createdById?: string
 }
 
 export type RealGardenDraft = {
@@ -52,12 +54,22 @@ export type RealGardenDraft = {
 export type RealGardenErrors = Partial<Record<keyof RealGardenDraft, string>>
 
 export function toGardenDraft(garden: RealGarden | null): RealGardenDraft {
-  return garden ? {
-    name: garden.name, kind: garden.kind, province: garden.location.province,
-    cantonCode: garden.location.cantonCode ?? '', parishCode: garden.location.parishCode ?? '',
-    coordinates: garden.location.coordinates, reference: garden.location.reference, areaM2: String(garden.areaM2),
-    irrigationAvailability: garden.irrigationAvailability, soilType: garden.soilType ?? '',
-  } : { name: '', kind: '', province: '', cantonCode: '', parishCode: '', coordinates: null, reference: '', areaM2: '', irrigationAvailability: '', soilType: '' }
+  if (!garden) {
+    return { name: '', kind: '', province: '', cantonCode: '', parishCode: '', coordinates: null, reference: '', areaM2: '', irrigationAvailability: '', soilType: '' }
+  }
+  const loc = (garden as any).location ?? {}
+  return {
+    name: garden.name,
+    kind: garden.kind ?? '',
+    province: loc.province ?? (garden as any).province ?? '',
+    cantonCode: loc.cantonCode ?? (garden as any).cantonCode ?? '',
+    parishCode: loc.parishCode ?? (garden as any).parishCode ?? '',
+    coordinates: loc.coordinates ?? ((garden as any).latitude ? { latitude: (garden as any).latitude, longitude: (garden as any).longitude } : null),
+    reference: loc.reference ?? (garden as any).reference ?? '',
+    areaM2: String(garden.areaM2 ?? ''),
+    irrigationAvailability: garden.irrigationAvailability ?? '',
+    soilType: garden.soilType ?? '',
+  }
 }
 
 export function parseRealGarden(draft: RealGardenDraft, communityName: string | null):

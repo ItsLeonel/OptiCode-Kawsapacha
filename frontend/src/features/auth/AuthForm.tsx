@@ -59,8 +59,8 @@ export default function AuthForm({ mode, onProgress, onSubmit }: Props) {
     try {
       const result = await onSubmit(toAuthSubmission(values, mode))
       setMessage(result.message)
-    } catch {
-      setMessage('No pudimos completar la solicitud. Inténtalo de nuevo más tarde.')
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'No pudimos completar la solicitud. Inténtalo de nuevo más tarde.')
     } finally {
       sending.current = false
       setBusy(false)
@@ -103,6 +103,6 @@ export default function AuthForm({ mode, onProgress, onSubmit }: Props) {
       <AuthIcon name="arrow"/>
     </button>
     <div className={`auth-submit-message ${message ? 'is-visible' : ''}`} role="status" aria-live="polite" aria-atomic="true">{message}</div>
-    <p className="auth-connection-note"><AuthIcon name="lock"/> Conexión con el servidor pendiente.</p>
+    <p className="auth-connection-note"><AuthIcon name="lock"/> Kawsapacha · Sistema de Cultivo Vivo y Saberes</p>
   </form>
 }

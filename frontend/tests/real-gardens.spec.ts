@@ -1,9 +1,15 @@
-import { test, expect, type Page } from '@playwright/test'
+import { createCommunity } from './community-helpers'
+import { test, expect, type Page } from './e2e'
 import catalogue from '../src/features/real-gardens/data/dpa-2026.json' with { type: 'json' }
+
+// The real UI fixture now completes territorial pickers and community card editors first.
+// Match the garden suite's cold-start allowance; individual assertion timeouts stay unchanged.
+test.setTimeout(60_000)
 
 async function openGarden(page: Page) {
   await page.goto('/')
   await page.getByRole('button', { name: 'Descubrir Kawsapacha' }).click()
+  await createCommunity(page)
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi Huerto', exact: true }).click()
   await expect(page.locator('.map-visual path[role="button"]')).toHaveCount(24)
 }
@@ -185,9 +191,7 @@ test('Comunidad, fotografía, Mi Jardín y Pasaporte Vivo conservan el recorrido
   await fillEssentials(page)
   await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Comunidad', exact: true }).click()
-  await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-  await page.getByLabel('Nombre de la comunidad').fill('Comunidad de prueba')
-  await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
+  await expect(page.locator('.community-overview')).toContainText('Comunidad de prueba')
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi Huerto', exact: true }).click()
   await expect(page.locator('.rg-summary-community')).toContainText('Comunidad de prueba')
   await page.getByRole('button', { name: 'Conectar con Mi Jardín' }).click()
@@ -298,7 +302,9 @@ for (const [region, province] of [['sierra', 'Azuay'], ['costa', 'Manabí'], ['o
     await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
     await expect(page.locator('.real-garden-page')).toHaveAttribute('data-region', region)
     await expect(page.locator('.rg-registered-location')).toHaveText(province)
-    await expect(page.locator('.rg-summary-extra')).toHaveCount(0)
+    await expect(page.locator('.rg-summary-extra > div')).toHaveCount(1)
+    await expect(page.locator('.rg-summary-community')).toContainText('Comunidad de prueba')
+    await expect(page.locator('.rg-summary-extra')).not.toContainText(/Dirección o referencia|Ubicación marcada/)
     await expect(page.locator('.rg-summary-facts > div')).toHaveCount(3)
     await expect(page.locator('.rg-form, .rg-location, .rg-characteristics')).toHaveCount(0)
     await expect(page.locator('.rg-summary')).not.toContainText(/Sin especificar|altitud|fotos|galería|exposición solar/i)

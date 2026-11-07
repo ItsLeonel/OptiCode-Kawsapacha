@@ -1,11 +1,12 @@
-import { test, expect, type Page } from '@playwright/test'
+import { createCommunity } from './community-helpers'
+import { test, expect, type Page } from './e2e'
 
 // Vite can spend over 25 seconds compiling the existing app on a cold start.
 test.setTimeout(60_000)
 
 const KINDS = ['ground', 'pots', 'vertical', 'hanging'] as const
 const REGIONS = { sierra: 'Imbabura', costa: 'Manabí', oriente: 'Napo', galapagos: 'Galápagos' }
-const BACKGROUNDS = { sierra: 'fondo_sierra_jardin_v2.webp', costa: 'fondo_costa_jardin_v2.webp', oriente: 'fondo_amazonia_jardin_v2.webp', galapagos: 'fondo_galapagos_jardin_v2.webp' }
+const BACKGROUNDS = { sierra: 'fondo_comunidad_sierra.webp', costa: 'fondo_comunidad_costa.webp', oriente: 'fondo_comunidad_oriente.webp', galapagos: 'fondo_comunidad_galapagos.webp' }
 const browserErrors = new WeakMap<Page, string[]>()
 
 const navigation = (page: Page) => page.getByRole('navigation', { name: 'Navegación principal' })
@@ -32,6 +33,8 @@ async function chooseKind(page: Page, kind: typeof KINDS[number]) {
 }
 
 async function registerGarden(page: Page, kind: typeof KINDS[number], province: string) {
+  await createCommunity(page)
+  await navigation(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
   await page.getByRole('button', { name: 'Registrar mi huerto', exact: true }).click()
   await page.locator('#rg-province').selectOption(province)
   await page.getByLabel('Nombre del huerto').fill('Huerto de prueba')
@@ -184,9 +187,7 @@ test('fotografía y Pasaporte Vivo se conservan al cambiar tipo y región', asyn
   await enterDemo(page)
   await registerGarden(page, 'ground', REGIONS.sierra)
   await navigation(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
-  await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-  await page.getByLabel('Nombre de la comunidad').fill('Comunidad de prueba')
-  await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
+  await expect(page.locator('.community-overview')).toContainText('Comunidad de prueba')
   await navigation(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
   await page.locator('.garden-parcels button').nth(5).click()
   await page.locator('#plant-photo').setInputFiles('src/features/real-gardens/assets/en-tierra-v1.jpg')

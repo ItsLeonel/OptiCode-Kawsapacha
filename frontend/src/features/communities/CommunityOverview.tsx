@@ -19,7 +19,7 @@ export default function CommunityOverview({ community, garden, onEdit, onGarden 
       <div className="community-overview-grid">
         <div className="community-overview-information"><p>{community.description || 'Aún no has añadido una descripción.'}</p></div>
         <dl className="community-overview-location"><div><dt><GardenIcon name="map"/> Localidad</dt><dd>{community.location || 'Sin especificar'}</dd></div><div><dt>Responsable</dt><dd>{community.responsible || 'Sin especificar'}</dd></div></dl>
-        <div className="community-overview-members"><h3><GardenIcon name="community"/> Integrantes</h3><p>Aún no hay integrantes registrados.</p></div>
+        <div className="community-overview-members"><h3><GardenIcon name="community"/> Integrantes</h3><p>{community.members?.length ? `${community.members.length} integrante(s) adicional(es). Datos privados disponibles al editar.` : community.type === 'personal' ? 'Comunidad personal · 1 persona.' : 'Aún no hay integrantes adicionales registrados.'}</p></div>
         <div className="community-overview-garden"><h3><GardenIcon name="seed"/>{garden || 'Huerto compartido'}</h3><button className="community-text-button" type="button" onClick={onGarden}>{garden ? 'Ir al huerto compartido' : 'Registrar huerto compartido'}<GardenIcon name="arrow"/></button></div>
       </div>
     </div>

@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import GardenIcon from '../my-garden/GardenIcon'
 
-export default function CommunityDialog({ title, description, onClose, children }: {
+export default function CommunityDialog({ title, description, onClose, children, className = '', artwork }: {
   title: string
   description: string
   onClose: () => void
   children: ReactNode
+  className?: string
+  artwork?: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -40,7 +42,8 @@ export default function CommunityDialog({ title, description, onClose, children 
     }
   }
 
-  return <dialog ref={dialogRef} className="community-dialog" aria-labelledby={titleId} aria-describedby={descriptionId} onCancel={event => { event.preventDefault(); onClose() }} onKeyDown={keepFocusInDialog}>
+  return <dialog ref={dialogRef} className={`community-dialog ${className}`} aria-labelledby={titleId} aria-describedby={descriptionId} onCancel={event => { event.preventDefault(); onClose() }} onKeyDown={keepFocusInDialog}>
+    {artwork}
     <div className="community-dialog-header">
       <span className="community-kicker"><GardenIcon name="leaf"/> COMUNIDAD · KAWSAPACHA</span>
       <button className="community-close" type="button" aria-label="Cerrar ventana" onClick={onClose}><GardenIcon name="close"/></button>

@@ -1,51 +1,151 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { provinces } from '../../EcuadorMap'
+import { GameButton, GameGuide, GamePanel, GameSteps, GameWorld, gameRegionAssets } from '../../shared/ui/game-ui/GameUI'
+import { regionForProvince } from '../real-gardens/garden-region'
+import { provinceForName } from '../real-gardens/territory'
 import GardenIcon from '../my-garden/GardenIcon'
 import CommunityDialog from './CommunityDialog'
-import type { Community } from './communities'
+import { type Community, type CommunityMember, type CommunitySave, type CommunityType } from './communities'
+import './community-wizard.css'
+import './community-experience-v2.css'
+import CommunityTypeStep from './CommunityTypeStep'
+import CommunityTerritoryStep from './CommunityTerritoryStep'
+import CommunityBuilderStep, { type CommunityEditor } from './CommunityBuilderStep'
+import { COMMUNITY_TYPES as TYPES } from './community-art'
+import { communityLocation, communityTerritoryLabels, validateCommunityTerritory, type CommunityTerritory } from './community-territory'
 
-const EMPTY_COMMUNITY: Community = { name: '', responsible: '', location: '', description: '' }
+const STEPS = ['Tipo de comunidad', 'Ubicación en Ecuador', 'Datos de la comunidad', 'Confirmación']
+type Values = Community & CommunityTerritory & { type: CommunityType; contact: { phone: string; email: string }; members: CommunityMember[] }
+type Errors = Record<string, string>
+const today = () => {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
 
 export default function CommunityForm({ community, onSave, onClose }: {
-  community: Community | null
-  onSave: (community: Community) => void
-  onClose: () => void
+  community: Community | null; onSave: CommunitySave; onClose: () => void
 }) {
-  const [values, setValues] = useState<Community>(community ?? EMPTY_COMMUNITY)
-  const [nameError, setNameError] = useState('')
-  const nameRef = useRef<HTMLInputElement>(null)
+  const [values, setValues] = useState<Values>(() => ({
+    name: '', responsible: '', description: '', ...community,
+    // A province-only payload is not an additional locality. Keep it derived on edit.
+    location: community?.location === community?.province ? '' : community?.location ?? '',
+    type: community?.type ?? 'personal',
+    province: community?.province ?? provinces.find(name => provinceForName(community?.location ?? '')?.code === provinceForName(name)?.code) ?? '',
+    cantonCode: community?.cantonCode ?? '', parishCode: community?.parishCode ?? '', sector: community?.sector ?? '',
+    contact: community?.contact ?? { phone: '', email: '' }, members: community?.members ?? [],
+  }))
+  const [step, setStep] = useState(0)
+  const [errors, setErrors] = useState<Errors>({})
+  const [saveError, setSaveError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editor, setEditor] = useState<CommunityEditor>(null)
+  const [editingMember, setEditingMember] = useState<string | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const nextMember = useRef(0)
+  const region = regionForProvince(values.province)
+  const regional = gameRegionAssets[region]
+  const territorial = communityTerritoryLabels(values)
 
-  function update(field: keyof Community, value: string) {
-    setValues(current => ({ ...current, [field]: value }))
-    if (field === 'name') setNameError('')
+  function update<K extends keyof Values>(field: K, value: Values[K]) {
+    setValues(current => ({ ...current, [field]: value,
+      ...(field === 'province' && value !== current.province ? { cantonCode: '', parishCode: '', sector: '', location: '' } : {}),
+      ...(field === 'cantonCode' && value !== current.cantonCode ? { parishCode: '' } : {}),
+    }))
+    setErrors({}); setSaveError('')
   }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (values.name.trim().length < 3 || values.name.trim().length > 80) {
-      setNameError('Escribe un nombre de entre 3 y 80 caracteres, sin contar espacios al inicio o al final.')
-      nameRef.current?.focus()
-      return
+  function updateMember(id: string, field: keyof CommunityMember, value: string) {
+    update('members', values.members.map(member => member.id === id ? { ...member, [field]: value } : member))
+  }
+  function addMember() {
+    const id = `local-${Date.now()}-${++nextMember.current}`
+    update('members', [...values.members, { id, name: '', birthDate: '', gender: '', certifiedTalents: '', experience: 'Aprendiz' }])
+    setEditor('members'); setEditingMember(id)
+    requestAnimationFrame(() => document.getElementById(`member-${id}-name`)?.focus())
+  }
+  function removeMember(id: string) {
+    update('members', values.members.filter(member => member.id !== id))
+    if (editingMember === id) setEditingMember(null)
+  }
+  function validate(target: number): Errors {
+    const result: Errors = {}
+    if (target === 1) return validateCommunityTerritory(values)
+    if (target === 2) {
+      if (values.name.trim().length < 3 || values.name.trim().length > 80) result['community-name'] = 'Escribe un nombre de entre 3 y 80 caracteres, sin contar espacios al inicio o al final.'
+      if (values.responsible.trim().length < 2 || values.responsible.trim().length > 80) result['community-responsible'] = 'Escribe el nombre de la persona responsable (entre 2 y 80 caracteres).'
+      const phoneDigits = values.contact.phone.replace(/\D/g, '')
+      if (values.contact.phone && (!/^\+?[\d\s()-]{7,24}$/.test(values.contact.phone.trim()) || phoneDigits.length < 7 || phoneDigits.length > 15)) result['community-phone'] = 'Escribe un teléfono válido, con 7 a 15 dígitos.'
+      if (values.contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.contact.email.trim())) result['community-email'] = 'Escribe un correo electrónico válido.'
+      if (values.description.length > 500) result['community-description'] = 'Usa hasta 500 caracteres para la descripción.'
+      values.members.forEach(member => {
+        if (member.name.trim().length < 2 || member.name.trim().length > 80) result[`member-${member.id}-name`] = 'Escribe el nombre del integrante (entre 2 y 80 caracteres).'
+        if (member.birthDate && (!/^\d{4}-\d{2}-\d{2}$/.test(member.birthDate) || member.birthDate < '1900-01-01' || member.birthDate > today() || Number.isNaN(Date.parse(member.birthDate)) || new Date(member.birthDate).toISOString().slice(0,10) !== member.birthDate)) result[`member-${member.id}-birthDate`] = 'Indica una fecha válida entre 1900 y hoy.'
+      })
     }
-    onSave({ name: values.name.trim(), responsible: values.responsible.trim(), location: values.location.trim(), description: values.description.trim() })
+    return result
+  }
+  function focusStep(target: number, nextErrors: Errors = {}) {
+    setStep(target); setErrors(nextErrors)
+    if (target === 2 && Object.keys(nextErrors).length) {
+      const first = Object.keys(nextErrors)[0]
+      if (first.startsWith('member-')) {
+        setEditor('members')
+        setEditingMember(values.members.find(member => first.startsWith(`member-${member.id}-`))?.id ?? null)
+      } else setEditor(first === 'community-name' || first === 'community-description' ? 'identity' : 'responsible')
+    }
+    requestAnimationFrame(() => {
+      const errorId = Object.keys(nextErrors)[0]
+      if (errorId) formRef.current?.querySelector<HTMLElement>(`[id="${errorId}"]`)?.focus()
+      else formRef.current?.querySelector<HTMLElement>('[data-step-heading]')?.focus({ preventScroll: true })
+    })
+  }
+  function navigate(target: number) {
+    if (saving) return
+    if (target > step) {
+      for (let index = 0; index < target; index++) {
+        const nextErrors = validate(index)
+        if (Object.keys(nextErrors).length) { focusStep(index, nextErrors); return }
+      }
+    }
+    focusStep(target)
+  }
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (saving) return
+    if (step < 3) { navigate(step + 1); return }
+    for (const index of [1, 2]) {
+      const nextErrors = validate(index)
+      if (Object.keys(nextErrors).length) { focusStep(index, nextErrors); return }
+    }
+    setSaving(true); setSaveError('')
+    try {
+      await onSave({ ...values, name: values.name.trim(), responsible: values.responsible.trim(),
+        location: communityLocation(values), sector: values.sector.trim(), description: values.description.trim(),
+        contact: { phone: values.contact.phone.trim(), email: values.contact.email.trim() },
+        members: values.members.map(member => ({ ...member, name: member.name.trim() })),
+      })
+    } catch {
+      setSaveError('No se pudo guardar la comunidad. Tus datos siguen aquí; vuelve a intentarlo.')
+      setSaving(false)
+    }
   }
 
-  return <CommunityDialog title={community ? 'Editar mi comunidad' : 'Crear mi comunidad'} description="Dale un nombre a este nuevo encuentro con la tierra. Solo el nombre es obligatorio." onClose={onClose}>
-    <p className="community-demo-note" id="community-form-demo">Registro temporal. Se pierde al recargar.</p>
-    <form className="community-form" onSubmit={submit} noValidate aria-describedby="community-form-demo">
-      <label htmlFor="community-name">Nombre de la comunidad <span aria-hidden="true">*</span></label>
-      <input ref={nameRef} id="community-name" name="name" data-community-autofocus required minLength={3} maxLength={80} value={values.name} onChange={event => update('name', event.target.value)} placeholder="¿Cómo se llama tu comunidad?" aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'community-name-error' : 'community-name-hint'}/>
-      {nameError ? <p className="community-field-error" id="community-name-error" role="alert">{nameError}</p> : <small id="community-name-hint">Entre 3 y 80 caracteres.</small>}
-      <label htmlFor="community-responsible">Persona responsable <span>(opcional)</span></label>
-      <input id="community-responsible" name="responsible" autoComplete="name" maxLength={80} value={values.responsible} onChange={event => update('responsible', event.target.value)} placeholder="Nombre de la persona responsable"/>
-      <label htmlFor="community-location">Localidad o provincia <span>(opcional)</span></label>
-      <input id="community-location" name="location" maxLength={120} value={values.location} onChange={event => update('location', event.target.value)} placeholder="¿Dónde cultivan sus raíces?"/>
-      <label htmlFor="community-description">Acerca de la comunidad <span>(opcional)</span></label>
-      <textarea id="community-description" name="description" rows={3} maxLength={500} value={values.description} onChange={event => update('description', event.target.value)} placeholder="Cuéntanos qué les une y qué les gustaría cultivar." aria-describedby="community-description-hint"/>
-      <small id="community-description-hint">{values.description.length} de 500 caracteres.</small>
-      <div className="community-form-actions">
-        <button className="community-secondary-button" type="button" onClick={onClose}>Cancelar</button>
-        <button className="community-primary-button" type="submit"><GardenIcon name={community ? 'leaf' : 'community'}/>{community ? 'Guardar cambios' : 'Crear comunidad'}<GardenIcon name="arrow"/></button>
+  return <CommunityDialog className="community-wizard" title={community ? 'Editar tu Comunidad' : 'Crear tu Comunidad'} description="Un lugar para echar raíces y cultivar juntos." onClose={() => { if (!saving) onClose() }} artwork={<GameWorld region={region} className="cw-world">{null}</GameWorld>}>
+    <GameSteps labels={STEPS} activeIndex={step} onSelect={navigate}/>
+    <form ref={formRef} onSubmit={submit} noValidate className="cw-form" aria-label={community ? 'Editar comunidad' : 'Crear comunidad'} aria-describedby="cw-temporary" aria-busy={saving}>
+      <div className={`cw-stage cw-stage--${step}`}>
+        <GameGuide region={region} message={step === 0 ? 'Elige tu comunidad. ¡Cada historia empieza con una semilla!' : step === 1 ? 'Primero tu provincia. Después, el cantón y la parroquia donde echarán raíces.' : step === 2 ? 'Tres tarjetas, una historia compartida. ¡Vamos a construir tu comunidad!' : '¡Tus raíces están listas! Revisa los datos antes de crear tu comunidad.'}/>
+        {step === 0 && <CommunityTypeStep value={values.type} onChange={value => update('type', value)}/>}
+        {step === 1 && <CommunityTerritoryStep values={values} errors={errors} onChange={update}/>}
+        {step === 2 && <CommunityBuilderStep values={values} errors={errors} editor={editor} editingMember={editingMember} birthdayMax={today()} onEditorChange={setEditor} onMemberEdit={id => { setEditor('members'); setEditingMember(id) }} onMemberAdd={addMember} onMemberRemove={removeMember} onMemberChange={updateMember} onChange={update} onTerritory={() => navigate(1)}/>}
+        {step === 3 && <GamePanel className="cw-confirm"><p className="cw-eyebrow">PASO 4 · LISTOS PARA CULTIVAR</p><h3 data-step-heading tabIndex={-1}>Así comienzan tus raíces</h3><div className="cw-summary-banner" style={{ backgroundImage: `linear-gradient(0deg,#092e24ed,transparent),url("${regional.background}")` }}><GardenIcon name="community"/><strong>{values.name}</strong><span>{values.province} · {regional.label}</span></div>
+          <dl className="cw-summary"><div><dt>Comunidad</dt><dd>{TYPES.find(type => type.value === values.type)?.label}</dd><button type="button" onClick={() => navigate(0)}>Editar tipo</button></div><div><dt>Territorio</dt><dd className="cw-confirm-territory"><span>Provincia: {territorial.province}</span><span>Cantón: {territorial.canton}</span><span>Parroquia: {territorial.parish}</span><span>Sector: {territorial.sector || 'Sin especificar'}</span><span>Región: {territorial.region}</span></dd><button type="button" onClick={() => navigate(1)}>Editar ubicación</button></div><div><dt>Responsable</dt><dd>{values.responsible}</dd><button type="button" onClick={() => { setEditor('responsible'); navigate(2) }}>Editar datos</button></div><div><dt>Integrantes</dt><dd>{values.members.length + 1} {values.members.length ? 'personas' : 'persona'} · {values.members.length ? `${values.members.length} adicional(es)` : 'Sin integrantes adicionales'} · Datos privados</dd></div></dl>
+          {values.description && <p className="cw-confirm-description">{values.description}</p>}<p className="cw-soft-note">Al confirmar se guarda solo durante esta visita. No se envía al servidor y se pierde al recargar.</p>
+        </GamePanel>}
       </div>
+      {Object.keys(errors).length > 0 && <p className="cw-validation" role="alert">{Object.values(errors)[0]}</p>}
+      {saveError && <p className="cw-validation" role="alert">{saveError}</p>}
+      <footer className="cw-footer"><GameButton variant="secondary" type="button" disabled={saving} onClick={() => step ? navigate(step - 1) : onClose()}>{step ? '← Atrás' : 'Cancelar'}</GameButton><p id="cw-temporary">Modo visitante · Registro temporal<br/><span>Contacto e integrantes: provisionales, solo en memoria.</span></p><GameButton type="submit" disabled={saving}>{saving ? 'Guardando…' : step === 3 ? community ? 'Guardar cambios' : 'Crear comunidad' : 'Continuar →'}</GameButton></footer>
+      {step > 0 && <button className="cw-cancel" type="button" onClick={onClose} disabled={saving}>Cancelar</button>}
     </form>
   </CommunityDialog>
 }

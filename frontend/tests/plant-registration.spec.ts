@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test'
+import { createCommunity, ensureGardenCommunity } from './community-helpers'
+import { test, expect, type Page } from './e2e'
 
 test.setTimeout(60_000)
 test.use({ launchOptions: { args: ['--use-fake-device-for-media-stream'] } })
@@ -50,10 +51,7 @@ async function enterDemo(page: Page) {
 async function createGarden(page: Page, withCommunity = true) {
   await enterDemo(page)
   if (withCommunity) {
-    await navigation(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
-    await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-    await page.getByLabel('Nombre de la comunidad').fill('Comunidad de prueba')
-    await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
+    await createCommunity(page)
   }
   await navigation(page).getByRole('button', { name: 'Mi Huerto', exact: true }).click()
   await page.locator('#rg-province').selectOption('Imbabura')
@@ -62,6 +60,11 @@ async function createGarden(page: Page, withCommunity = true) {
   await page.locator('.rg-type-option:has(input[value="vertical"])').click()
   await page.locator('.rg-more-characteristics summary').click()
   await page.getByLabel('Agua de riego').selectOption('unknown')
+  if (!withCommunity) {
+    await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
+    await expect(page.getByRole('status')).toContainText('Primero crea o selecciona una comunidad')
+    await ensureGardenCommunity(page)
+  }
   await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
   await page.getByRole('button', { name: 'Conectar con Mi Jardín' }).click()
 }
@@ -75,7 +78,7 @@ async function expectStopped(page: Page) {
   await expect.poll(() => page.evaluate(() => window.cameraAudit.tracks.every(track => track.readyState === 'ended'))).toBe(true)
 }
 
-test('galería sin comunidad: especie, posición, siembra, jardín y Pasaporte conservan la misma fotografía', async ({ page }) => {
+test('galería desde visita sin comunidad: especie, posición, siembra, jardín y Pasaporte conservan la misma fotografía', async ({ page }) => {
   await createGarden(page, false)
   await page.locator('.garden-parcels button').nth(2).click()
   await expect(page.getByLabel('Posición de cultivo')).toHaveValue('2')
@@ -110,7 +113,7 @@ test('galería sin comunidad: especie, posición, siembra, jardín y Pasaporte c
   await expect(page.locator('.garden-passport-photo')).toHaveAttribute('src', photo!)
 })
 
-test('sin comunidad y sin crypto.randomUUID: registra la fotografía y permite abrir su Pasaporte', async ({ page }) => {
+test('comunidad personal y sin crypto.randomUUID: registra la fotografía y permite abrir su Pasaporte', async ({ page }) => {
   await createGarden(page, false)
   // This API can be unavailable outside secure contexts, while Gallery still works.
   await page.evaluate(() => Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true }))
@@ -137,7 +140,7 @@ test('sin comunidad y sin crypto.randomUUID: registra la fotografía y permite a
   await expect(page.locator('.garden-passport-photo')).toHaveAttribute('src', photo!)
 })
 
-test('un fallo al guardar muestra un aviso y conserva la fotografía para reintentar sin comunidad', async ({ page }) => {
+test('un fallo al guardar muestra un aviso y conserva la fotografía para reintentar tras crear comunidad', async ({ page }) => {
   await createGarden(page, false)
   await openRegistration(page)
   await page.locator('#plant-photo').setInputFiles(PHOTO)
@@ -209,15 +212,12 @@ for (const withCommunity of [false, true]) {
   test(`sin huerto, comunidad ${withCommunity ? 'registrada' : 'ausente'}: bloquea guardar y dirige a Mi Huerto`, async ({ page }) => {
     await enterDemo(page)
     if (withCommunity) {
-      await navigation(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
-      await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-      await page.getByLabel('Nombre de la comunidad').fill('Comunidad de prueba')
-      await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
+      await createCommunity(page)
       await navigation(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
     }
     await openRegistration(page)
     await expect(registration(page).getByText('Primero registra tu huerto.', { exact: false })).toBeVisible()
-    await expect(registration(page)).toContainText('La comunidad es opcional.')
+    await expect(registration(page)).toContainText('Una comunidad personal es válida.')
     await page.locator('#plant-photo').setInputFiles(PHOTO)
     await expect(page.getByAltText('Vista previa de tu planta', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Añadir a mi huerto' })).toBeDisabled()
@@ -251,7 +251,7 @@ test('los seis espacios pueden registrarse sin fecha y nunca se reemplaza uno oc
 test.describe('captura del navegador con dispositivo de vídeo de prueba', () => {
   test.use({ permissions: ['camera'] })
 
-  test('captura JPEG sin comunidad: libera cámara y registra la foto', async ({ page }) => {
+  test('captura JPEG con comunidad personal: libera cámara y registra la foto', async ({ page }) => {
     await createGarden(page, false)
     await openRegistration(page)
     expect(await page.evaluate(() => window.cameraAudit.calls)).toBe(0)

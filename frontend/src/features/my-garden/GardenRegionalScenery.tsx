@@ -3,10 +3,10 @@ import type { GardenRegion } from '../real-gardens/garden-region'
 import { SCENE_ART } from './scene-art'
 
 const GARDEN_BACKGROUNDS: Record<GardenRegion, string> = {
-  sierra: new URL('../../assets/jardin-regiones/fondo_sierra_jardin_v2.webp', import.meta.url).href,
-  costa: new URL('../../assets/jardin-regiones/fondo_costa_jardin_v2.webp', import.meta.url).href,
-  oriente: new URL('../../assets/jardin-regiones/fondo_amazonia_jardin_v2.webp', import.meta.url).href,
-  galapagos: new URL('../../assets/jardin-regiones/fondo_galapagos_jardin_v2.webp', import.meta.url).href,
+  sierra: new URL('../../shared/assets/regional-backgrounds/fondo_comunidad_sierra.webp', import.meta.url).href,
+  costa: new URL('../../shared/assets/regional-backgrounds/fondo_comunidad_costa.webp', import.meta.url).href,
+  oriente: new URL('../../shared/assets/regional-backgrounds/fondo_comunidad_oriente.webp', import.meta.url).href,
+  galapagos: new URL('../../shared/assets/regional-backgrounds/fondo_comunidad_galapagos.webp', import.meta.url).href,
 }
 
 export function GardenRegionalBackground({ region }: { region: GardenRegion }) {

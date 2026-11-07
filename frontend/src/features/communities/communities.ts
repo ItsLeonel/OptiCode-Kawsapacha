@@ -3,7 +3,29 @@ export type Community = {
   responsible: string
   location: string
   description: string
+  /** UI provisional: solo memoria de la visita, sin contrato de API validado. */
+  type?: CommunityType
+  province?: string
+  cantonCode?: string
+  parishCode?: string
+  sector?: string
+  contact?: { phone: string; email: string }
+  members?: CommunityMember[]
 }
+
+export type CommunityType = 'personal' | 'familiar' | 'condominio' | 'barrial'
+export type CommunityMember = {
+  id: string
+  name: string
+  birthDate: string
+  gender: string
+  certifiedTalents: string
+  experience: 'Aprendiz' | 'Oficial' | 'Maestro'
+}
+
+/** Únicos campos aceptados por el backend actual. No enviar extensiones de UI. */
+export type CommunityPayload = Pick<Community, 'name' | 'responsible' | 'location' | 'description'>
+export type CommunitySave = (community: Community) => void | Promise<void>
 
 export type CommunitySpace = 'wisdom' | 'experience' | 'practice' | 'conversations' | 'news' | 'communities' | 'garden' | 'activities'
 

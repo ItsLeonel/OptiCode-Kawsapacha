@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test'
+import { createCommunity, ensureGardenCommunity, nextCommunityStep, openCommunityInfo } from './community-helpers'
+import { test, expect, type Page } from './e2e'
 
 test.use({ launchOptions: { args: ['--use-fake-device-for-media-stream'] } })
 
@@ -12,7 +13,7 @@ test.beforeEach(async ({ page }) => {
   const errors: string[] = []
   pageErrors.set(page, errors)
   page.on('pageerror', error => errors.push(error.message))
-  // Only map tiles and the camera device are fixtures; records use the real UI and App state.
+  // Tiles, camera and the external font dependency are fixtures; records use real UI and App state.
   await page.route('https://tile.openstreetmap.org/**', route => route.fulfill({
     contentType: 'image/png',
     body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5N8AAAAASUVORK5CYII=', 'base64'),
@@ -65,23 +66,28 @@ for (const scenario of [
       test.setTimeout(90_000)
       await nav(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
       await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-      await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
+      await openCommunityInfo(page, 'Imbabura', 'San Antonio')
+      await nextCommunityStep(page)
       await expect(page.getByRole('alert')).toContainText('entre 3 y 80 caracteres')
       await expect(page.getByLabel('Nombre de la comunidad')).toBeFocused()
       await page.getByLabel('Nombre de la comunidad').fill('  Comunidad de la minga  ')
-      await page.getByLabel('Persona responsable').fill('Ana')
-      await page.getByLabel('Localidad o provincia').fill('San Antonio, Imbabura')
       await page.getByLabel('Acerca de la comunidad').fill('Cultivamos plantas y compartimos saberes.')
+      await page.getByRole('button', {name:'Editar responsable',exact:true}).click()
+      await page.getByLabel('Persona responsable').fill('Ana')
       await assertFits(page, true)
+      await nextCommunityStep(page)
       await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
       const community = page.getByRole('region', { name: 'Mi comunidad registrada' })
       await expect(community.getByRole('heading', { name: 'Comunidad de la minga', exact: true })).toBeVisible()
       await page.getByRole('button', { name: 'Editar comunidad', exact: true }).click()
+      await openCommunityInfo(page)
       await page.getByLabel('Nombre de la comunidad').fill('Cambio descartado')
       await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
       await expect(community).not.toContainText('Cambio descartado')
       await page.getByRole('button', { name: 'Editar comunidad', exact: true }).click()
+      await openCommunityInfo(page)
       await page.getByLabel('Nombre de la comunidad').fill('Comunidad Kawsapacha')
+      await nextCommunityStep(page)
       await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
       await expect(community).toContainText('Comunidad Kawsapacha')
       await page.screenshot({ path: test.info().outputPath('comunidad.png'), fullPage: true })
@@ -177,7 +183,7 @@ for (const scenario of [
   })
 }
 
-test('sin huerto: pausa y recupera fotografía, especie, espacio y fecha al conectar, sin comunidad', async ({ page }) => {
+test('sin huerto: pausa y recupera fotografía, especie, espacio y fecha al conectar, creando su comunidad personal', async ({ page }) => {
   await nav(page).getByRole('button', { name: 'Descubrir plantas', exact: true }).click()
   await page.locator('.species-card').filter({ hasText: 'Lavanda' }).getByRole('button').click()
   await page.locator('#plant-photo').setInputFiles(PHOTO)
@@ -189,6 +195,10 @@ test('sin huerto: pausa y recupera fotografía, especie, espacio y fecha al cone
   await fillGarden(page)
   await nav(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
   await page.goBack()
+  await expect(page.getByLabel('Nombre del huerto')).toHaveValue('Huerto de la minga')
+  await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Primero crea o selecciona una comunidad')
+  await ensureGardenCommunity(page)
   await expect(page.getByLabel('Nombre del huerto')).toHaveValue('Huerto de la minga')
   await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
   await page.getByRole('button', { name: 'Conectar con Mi Jardín' }).click()
@@ -205,10 +215,7 @@ test('sin huerto: pausa y recupera fotografía, especie, espacio y fecha al cone
 })
 
 test('edición inválida y cancelación conservan comunidad, huerto y planta registrados', async ({ page }) => {
-  await nav(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
-  await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-  await page.getByLabel('Nombre de la comunidad').fill('Comunidad original')
-  await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
+  await createCommunity(page, 'Comunidad original')
   await nav(page).getByRole('button', { name: 'Mi Huerto', exact: true }).click()
   await fillGarden(page)
   await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
@@ -230,8 +237,9 @@ test('edición inválida y cancelación conservan comunidad, huerto y planta reg
   await expect(page.locator('.rg-summary')).toContainText('25 m²')
   await nav(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
   await page.getByRole('button', { name: 'Editar comunidad', exact: true }).click()
+  await openCommunityInfo(page)
   await page.getByLabel('Nombre de la comunidad').fill('  ')
-  await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
+  await nextCommunityStep(page)
   await expect(page.getByRole('alert')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('region', { name: 'Mi comunidad registrada' })).toContainText('Comunidad original')

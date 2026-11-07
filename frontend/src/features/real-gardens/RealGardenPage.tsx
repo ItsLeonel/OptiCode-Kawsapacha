@@ -74,6 +74,11 @@ export default function RealGardenPage({ garden, draft, onDraftChange, community
       })
       return
     }
+    if (!communityName) {
+      setNotice('Primero crea o selecciona una comunidad. Una comunidad personal es válida. Tu borrador sigue aquí.')
+      document.getElementById('rg-create-community')?.focus()
+      return
+    }
     onSave(result.garden)
     setValues(toGardenDraft(result.garden))
     setEditing(false)
@@ -90,9 +95,10 @@ export default function RealGardenPage({ garden, draft, onDraftChange, community
         <div className="rg-connection-preview" aria-label="Mi Huerto es el espacio real y Mi Jardín su representación digital"><div><GardenIcon name="seed"/><span><strong>Mi Huerto <small>(Real)</small></strong><span>Tu espacio físico de cultivo</span></span></div><GardenIcon name="arrow"/><div><RealGardenIcon name="digital"/><span><strong>Mi Jardín <small>(Digital)</small></strong><span>Tu representación virtual para aprender y compartir</span></span></div></div>
       </section>
       {plantRegistrationPending && <p className="rg-feedback">Tu planta está en pausa. Guarda el huerto y pulsa «Conectar con Mi Jardín» para continuar con la fotografía y los datos elegidos.</p>}
+      {!communityName && <section className="rg-feedback" aria-label="Comunidad requerida"><h2>Primero, una comunidad para tu huerto</h2><p>Puedes explorar y preparar este borrador. Para registrar el huerto, crea o selecciona una comunidad; una personal de 1 persona es válida. Tus datos y tu fotografía pendiente se conservan al volver.</p><button id="rg-create-community" type="button" className="rg-primary-button" onClick={onCommunity}>Crear comunidad para mi huerto<GardenIcon name="arrow"/></button></section>}
       {readOnly && garden ? <div className="rg-summary-focus" ref={summaryRef} tabIndex={-1} aria-label="Ficha del huerto"><RealGardenSummary garden={garden} onEdit={edit} onConnect={onConnect} onCommunity={onCommunity}/></div> :
         <form ref={formRef} className="rg-form" onSubmit={submit} noValidate aria-label={garden ? 'Editar mi huerto' : 'Registrar mi huerto'} aria-describedby="rg-visit-note">
-          <div className="rg-form-panels"><GardenLocation values={values} errors={errors} disabled={false} onChange={update}/><GardenCharacteristics values={values} errors={errors} disabled={false} onChange={update} actions={<div className="rg-form-footer"><p>* Campos obligatorios · Comunidad opcional</p><div>{garden && <button className="rg-outline-button" type="button" onClick={cancel}>Cancelar edición</button>}<button className="rg-primary-button" type="submit"><GardenIcon name="seed"/>{garden ? 'Guardar cambios' : 'Guardar mi huerto'}<GardenIcon name="arrow"/></button></div></div>}/></div>
+          <div className="rg-form-panels"><GardenLocation values={values} errors={errors} disabled={false} onChange={update}/><GardenCharacteristics values={values} errors={errors} disabled={false} onChange={update} actions={<div className="rg-form-footer"><p>* Campos obligatorios · Comunidad requerida</p><div>{garden && <button className="rg-outline-button" type="button" onClick={cancel}>Cancelar edición</button>}<button className="rg-primary-button" type="submit"><GardenIcon name="seed"/>{garden ? 'Guardar cambios' : 'Guardar mi huerto'}<GardenIcon name="arrow"/></button></div></div>}/></div>
         </form>}
       <p className={notice ? 'rg-feedback' : 'rg-sr-only'} role="status" aria-live="polite" aria-atomic="true">{notice}</p>
       <footer className="rg-visit-note" id="rg-visit-note"><GardenIcon name="leaf"/><span>Datos temporales de demostración. Se pierden al recargar.</span></footer>

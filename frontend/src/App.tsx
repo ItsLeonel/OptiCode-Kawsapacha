@@ -81,6 +81,10 @@ export default function App() {
     setCommunityRecord(next)
     setRealGarden(current => current ? { ...current, communityName: next.name } : current)
   }
+  function saveGarden(next: RealGarden) {
+    if (!communityRecord) return
+    setRealGarden({ ...next, communityName: communityRecord.name })
+  }
   function addPlant({ photo, species, plot, plantedOn }: PlantRegistration): PlantRegistrationResult {
     if (!realGarden) return { ok: false, error: 'Primero registra tu huerto' }
     if (!Number.isInteger(plot) || plot < 0 || plot >= PLOT_COUNT) return { ok: false, error: 'Selecciona un espacio de cultivo válido.' }
@@ -128,7 +132,7 @@ export default function App() {
     <GardenNavigation active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
     {screen === 'Inicio' ? <MyGardenPage plants={plants} community={community} garden={garden} province={savedProvince} realGarden={realGarden} selectedPlot={selectedPlot} onSelect={setDetail} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden}/>
       : screen === 'Comunidades' ? <CommunitiesPage community={communityRecord} garden={garden} onSave={saveCommunity} onGarden={() => goto('Huertos reales')} onHome={() => goto('Inicio')}/>
-      : screen === 'Huertos reales' ? <RealGardenPage garden={realGarden} draft={realGardenDraft} onDraftChange={setRealGardenDraft} communityName={communityRecord?.name ?? null} onSave={setRealGarden} onConnect={connectGarden} plantRegistrationPending={Boolean(pendingRegistration)} onHome={() => goto('Inicio')} onCommunity={() => goto('Comunidades')}/>
+      : screen === 'Huertos reales' ? <RealGardenPage garden={realGarden} draft={realGardenDraft} onDraftChange={setRealGardenDraft} communityName={communityRecord?.name ?? null} onSave={saveGarden} onConnect={connectGarden} plantRegistrationPending={Boolean(pendingRegistration)} onHome={() => goto('Inicio')} onCommunity={() => goto('Comunidades')}/>
       : <main className="main garden-module">
       <header className="topbar">
         <span className="breadcrumbs">Kawsapacha <span> / </span> {screen}</span>

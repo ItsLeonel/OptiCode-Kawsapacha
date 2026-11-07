@@ -6,7 +6,7 @@ import CommunityIcon from './CommunityIcon'
 import CommunityOverview from './CommunityOverview'
 import CommunityShortcutIcon from './CommunityShortcutIcon'
 import CommunityActions from './CommunityActions'
-import { COMMUNITY_SPACES, type Community, type CommunitySpace } from './communities'
+import { COMMUNITY_SPACES, type Community, type CommunitySave, type CommunitySpace } from './communities'
 import './communities.css'
 
 const UPDATES = [
@@ -18,7 +18,7 @@ const UPDATES = [
 export default function CommunitiesPage({ community, garden, onSave, onGarden, onHome }: {
   community: Community | null
   garden: string
-  onSave: (community: Community) => void
+  onSave: CommunitySave
   onGarden: () => void
   onHome: () => void
 }) {
@@ -33,8 +33,8 @@ export default function CommunitiesPage({ community, garden, onSave, onGarden, o
     setFormOpen(true)
   }
 
-  function saveCommunity(values: Community) {
-    onSave(values)
+  async function saveCommunity(values: Community) {
+    await onSave(values)
     setFormOpen(false)
     setNotice(community ? 'Cambios guardados durante esta visita.' : 'Comunidad creada durante esta visita. Ya puedes consultar sus datos y registrar su huerto compartido.')
   }
@@ -53,6 +53,7 @@ export default function CommunitiesPage({ community, garden, onSave, onGarden, o
       </section>
 
       <p className="community-save-status" role="status" aria-live="polite" aria-atomic="true">{notice}</p>
+      {notice && community && !garden && <button className="community-primary-button" type="button" onClick={onGarden}><GardenIcon name="seed"/>Registrar Mi Huerto<GardenIcon name="arrow"/></button>}
 
       {community && <CommunityOverview community={community} garden={garden} onEdit={editCommunity} onGarden={onGarden}/>}
 

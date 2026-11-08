@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { GardenSceneBridge, type SceneCommand } from './bridge'
-import { BED_ART, BORDER_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
+import { BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
 import { LAYOUT_PROFILES } from './layouts'
 import { GardenScenePainter } from './scene-painter'
 import type { SlotId } from './model'
@@ -10,7 +10,7 @@ class ModularGardenScene extends Phaser.Scene {
   private failedAssets = new Set<string>()
   private requestedAssets = new Set<string>()
   private ready = false
-  private drag: { x: number; y: number; scrollX: number; scrollY: number; moved: boolean } | null = null
+  private drag: { x: number; y: number; moved: boolean } | null = null
   private hovered: SlotId | null = null
   private focused: SlotId | null = null
   private lastCamera = ''
@@ -65,22 +65,19 @@ class ModularGardenScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, release)
     this.events.once(Phaser.Scenes.Events.DESTROY, release)
 
+    // Pointer movement is used only to distinguish a click from a drag.
+    // Moving the pointer never moves the camera or the garden.
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.primaryDown || this.bridge.snapshot.blocked) return
-      const camera = this.cameras.main
-      this.drag = { x: pointer.x, y: pointer.y, scrollX: camera.scrollX, scrollY: camera.scrollY, moved: false }
+      this.drag = { x: pointer.x, y: pointer.y, moved: false }
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (this.drag && pointer.isDown) {
-        const dx = pointer.x - this.drag.x
-        const dy = pointer.y - this.drag.y
-        this.drag.moved ||= Math.hypot(dx, dy) > 8
-        if (this.drag.moved) this.cameras.main.setScroll(this.drag.scrollX - dx / this.cameras.main.zoom, this.drag.scrollY - dy / this.cameras.main.zoom)
+        this.drag.moved ||= Math.hypot(pointer.x - this.drag.x, pointer.y - this.drag.y) > 8
       }
       const slot = this.pickSlot(pointer)
-      const hovered = this.drag?.moved ? null : slot?.id ?? null
-      this.setHover(hovered)
-      this.game.canvas.style.cursor = this.drag?.moved ? 'grabbing' : slot ? 'pointer' : 'grab'
+      this.setHover(this.drag?.moved ? null : slot?.id ?? null)
+      this.game.canvas.style.cursor = slot && !this.drag?.moved ? 'pointer' : 'default'
     })
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       const wasClick = this.drag && !this.drag.moved
@@ -91,12 +88,6 @@ class ModularGardenScene extends Phaser.Scene {
     })
     this.input.on('pointerupoutside', () => { this.drag = null })
     this.input.on('gameout', () => this.setHover(null))
-    this.input.on('wheel', (pointer: Phaser.Input.Pointer, _objects: unknown, _dx: number, dy: number) => {
-      const event = pointer.event as WheelEvent
-      // Keep the browser's Ctrl+wheel zoom available.
-      if (event.ctrlKey || this.bridge.snapshot.blocked) return
-      this.zoom(Math.exp(-dy * .001), pointer.x, pointer.y)
-    })
     this.syncAssets()
     this.draw()
     this.resetCamera()
@@ -116,19 +107,10 @@ class ModularGardenScene extends Phaser.Scene {
     }
     if (this.bridge.snapshot.blocked) return
     if (command.type === 'feedback') { this.painter?.feedback(this.bridge.snapshot.model, command.activity, command.plot, command.reducedMotion); return }
-    const camera = this.cameras.main
-    if (command.type === 'zoom') this.zoom(command.factor)
-    if (command.type === 'pan') camera.setScroll(camera.scrollX + command.x / camera.zoom, camera.scrollY + command.y / camera.zoom)
+    // Fixed composition: legacy pan/zoom commands have no effect.
     if (command.type === 'reset-camera') this.resetCamera()
     if (command.type === 'focus-slot') {
-      const slot = this.bridge.snapshot.model.slots.find(item => item.id === command.slot)
       this.focused = command.slot
-      if (slot) {
-        const point = camera.getWorldPoint(0, 0)
-        const x = (slot.anchor.x - point.x) * camera.zoom
-        const y = (slot.anchor.y - point.y) * camera.zoom
-        if (x < 55 || x > camera.width - 55 || y < 150 || y > camera.height - 90) camera.centerOn(slot.anchor.x, slot.anchor.y)
-      }
       this.drawEffects()
     }
     if (command.type === 'clear-focus') { this.focused = null; this.drawEffects() }
@@ -142,7 +124,15 @@ class ModularGardenScene extends Phaser.Scene {
       ['ground-materials', MATERIAL_ART],
       ['organic-soil', ORGANIC_SOIL_ART],
     ]
-    if (model.kind === 'ground' && model.characteristics.groundDesigns.includes('beds')) needed.push(['empty-bed', BED_ART])
+    if (model.region === 'costa' && model.kind === 'ground') {
+      if (model.soilType === 'marsh') needed.push(['costa-plot-marsh', COSTA_MARSH_PLOT_ART])
+      else COSTA_PLOT_ART.forEach((url, plot) => needed.push([`costa-plot-${plot}`, url]))
+    }
+    if (model.region === 'costa' && model.characteristics.fences.some(kind => kind === 'living')) needed.push(['costa-fence-flora', COSTA_FENCE_ART.foliage])
+    if (model.region === 'costa' && model.characteristics.fences.some(kind => kind === 'metal' || kind === 'conventional')) {
+      needed.push(['costa-fence-segment', COSTA_FENCE_ART.segment], ['costa-fence-corner', COSTA_FENCE_ART.corner], ['costa-fence-gate', COSTA_FENCE_ART.gate])
+    }
+    if (model.kind === 'ground' && model.region !== 'costa' && model.characteristics.groundDesigns.includes('beds')) needed.push(['empty-bed', BED_ART])
     if (model.kind === 'pots' || model.kind === 'hanging') needed.push(['empty-pots', POTS_ART])
     if (model.kind === 'vertical') needed.push(['empty-trough', TROUGH_ART], ['garden-trellis', TRELLIS_ART])
     if (model.kind === 'hanging') needed.push(['garden-pergola', PERGOLA_ART])
@@ -167,10 +157,45 @@ class ModularGardenScene extends Phaser.Scene {
   private draw() {
     if (!this.ready || !this.painter) return
     const model = this.bridge.snapshot.model
-    this.painter.draw(model)
-    this.painter.updateHorizon(this.cameras.main)
-    this.drawEffects()
-    this.bridge.emit({ type: 'rendered', components: [...this.painter.components] })
+    try {
+      this.painter.draw(model)
+      this.painter.updateHorizon(this.cameras.main)
+      this.drawEffects()
+      this.bridge.emit({ type: 'rendered', components: [...this.painter.components] })
+      if (model.region === 'costa') this.logCoastalRender(model)
+    } catch (error) {
+      // Keep the original exception visible to Phaser while reporting the exact
+      // painter phase and complete stack in DevTools for manual diagnosis.
+      const stage = this.painter.lastRenderStage
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`[Kawsapacha][Phaser] render failed at ${stage}`, error)
+      this.bridge.emit({ type: 'render-error', stage, message })
+      throw error
+    }
+  }
+
+  private logCoastalRender(model: GardenSceneBridge['snapshot']['model']) {
+    const camera = this.cameras.main
+    const topLeft = camera.getWorldPoint(0, 0)
+    const right = topLeft.x + camera.width / camera.zoom
+    const bottom = topLeft.y + camera.height / camera.zoom
+    const surfaceKey = 'garden-art:courtyard-costa-cohesive-v5'
+    const surface = this.textures.exists(surfaceKey) ? this.textures.get(surfaceKey).getSourceImage() as HTMLCanvasElement : null
+    const alpha = surface?.getContext('2d')?.getImageData(960, 1000, 1, 1).data[3] ?? null
+    console.info('[Kawsapacha][Phaser] Costa draw complete', {
+      kind: model.kind,
+      floorTextureExists: Boolean(surface),
+      floorSampleAlphaAt960x1000: alpha,
+      camera: { zoom: camera.zoom, left: topLeft.x, top: topLeft.y, right, bottom },
+      slots: model.slots.map(slot => ({
+        id: slot.id,
+        x: slot.anchor.x,
+        y: slot.anchor.y,
+        visible: slot.anchor.x >= topLeft.x && slot.anchor.x <= right && slot.anchor.y >= topLeft.y && slot.anchor.y <= bottom,
+        created: this.painter?.components.has('slot:' + slot.id) ?? false,
+      })),
+      depths: { landscape: -99999, ground: -50000, parcels: 'slot.depth * 10' },
+    })
   }
 
   private drawEffects() {
@@ -188,27 +213,18 @@ class ModularGardenScene extends Phaser.Scene {
     const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
     const profile = LAYOUT_PROFILES[this.bridge.snapshot.model.kind]
     // Keep direct canvas targets at least 44 CSS pixels even on narrow screens.
-    const hitX = Math.max(profile.hitX, 22 / this.cameras.main.zoom)
-    const hitY = Math.max(profile.hitY, 22 / this.cameras.main.zoom)
+    const coastalGround = this.bridge.snapshot.model.region === 'costa' && this.bridge.snapshot.model.kind === 'ground'
+    const hitX = Math.max(coastalGround ? 178 : profile.hitX, 22 / this.cameras.main.zoom)
+    const hitY = Math.max(coastalGround ? 78 : profile.hitY, 22 / this.cameras.main.zoom)
     return this.bridge.snapshot.model.slots
       .map(slot => ({ slot, distance: Math.hypot((point.x - slot.anchor.x) / hitX, (point.y - slot.anchor.y) / hitY) }))
       .filter(item => item.distance <= 1)
       .sort((a, b) => a.distance - b.distance)[0]?.slot
   }
 
-  private zoom(factor: number, x = this.scale.width / 2, y = this.scale.height / 2) {
-    const camera = this.cameras.main
-    const before = camera.getWorldPoint(x, y)
-    const minZoom = Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2)
-    camera.setZoom(Phaser.Math.Clamp(camera.zoom * factor, minZoom, Math.max(minZoom, 1.8)))
-    camera.preRender()
-    const after = camera.getWorldPoint(x, y)
-    camera.setScroll(camera.scrollX + before.x - after.x, camera.scrollY + before.y - after.y)
-  }
-
   private resizeCamera() {
     // Phaser also emits RESIZE on a bounds refresh after page scrolling.
-    // Preserve user pan/zoom unless the actual viewport dimensions changed.
+    // Keep the fixed framing until the viewport dimensions actually change.
     if (`${this.scale.width}:${this.scale.height}` !== this.viewportSize) this.resetCamera()
   }
 
@@ -216,9 +232,19 @@ class ModularGardenScene extends Phaser.Scene {
     if (!this.ready) return
     this.viewportSize = `${this.scale.width}:${this.scale.height}`
     this.drag = null
-    const minZoom = Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2)
-    const zoom = Math.max(minZoom, Math.min(this.scale.width / 1750, this.scale.height / 1100, 1.3))
-    this.cameras.main.setZoom(zoom).centerOn(WORLD.centerX, WORLD.centerY)
+    const coast = this.bridge.snapshot.model.region === 'costa'
+    // Coast shows the complete flat cultivation area without hiding the horizon
+    // or the front supports behind the React action bar.
+    // Other regions preserve the existing initial framing until their art is adapted.
+    const zoom = coast
+      ? Math.min(this.scale.width / WORLD.width, this.scale.height / 1030)
+      : Math.max(
+          Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2),
+          Math.min(this.scale.width / 1750, this.scale.height / 1100, 1.3),
+        )
+    const centerX = coast ? WORLD.width / 2 : WORLD.centerX
+    const centerY = coast ? 800 : WORLD.centerY
+    this.cameras.main.setZoom(zoom).centerOn(centerX, centerY)
   }
 
   private publishCamera() {

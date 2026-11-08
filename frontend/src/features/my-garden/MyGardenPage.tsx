@@ -51,6 +51,7 @@ export default function MyGardenPage({
   progress,
   interactionBlocked = false,
   demo = true,
+  fullScreenGarden = false,
 }: {
   plants: GardenPlant[]
   community: Community | null
@@ -68,6 +69,7 @@ export default function MyGardenPage({
   onCreateCommunity?: () => void
   onJoinCommunity?: () => void
   demo?: boolean
+  fullScreenGarden?: boolean
   onSelect: (plant: GardenPlant) => void
   onRegister: (plot: number) => void
   onAction: (action: GardenAction) => void
@@ -83,6 +85,7 @@ export default function MyGardenPage({
     <main
       className="my-garden-page game-v3"
       data-view={terrainView ? 'terrain' : 'garden'}
+      data-fullscreen-garden={fullScreenGarden && !terrainView ? 'true' : undefined}
       data-region={region}
       data-garden-kind={realGarden?.kind ?? 'unregistered'}
       data-onboarding={community && realGarden ? 'complete' : community ? 'real-garden' : 'community'}

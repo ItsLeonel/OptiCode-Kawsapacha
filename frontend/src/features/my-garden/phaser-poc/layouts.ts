@@ -16,8 +16,15 @@ export const VERTICAL_GROUPS = [
 export const HANGING_GROUPS = [
   { x: 1080, y: 1000, width: 720 }, { x: 590, y: 1280, width: 450 }, { x: 1530, y: 1190, width: 330 },
 ] as const
-export function hangingGeometry(plot: number) {
-  const group = HANGING_GROUPS[plot < 3 ? 0 : plot < 5 ? 1 : 2]
+// The new coastal layout is compact and stays clear of the action toolbar.
+export const COASTAL_HANGING_GROUPS = [
+  { x: 960, y: 970, width: 540 },
+  { x: 590, y: 1140, width: 420 },
+  { x: 1450, y: 1140, width: 360 },
+] as const
+export function hangingGeometry(plot: number, region: GardenRegion = 'sierra') {
+  const groups = region === 'costa' ? COASTAL_HANGING_GROUPS : HANGING_GROUPS
+  const group = groups[plot < 3 ? 0 : plot < 5 ? 1 : 2]
   const offset = plot < 3 ? (plot - 1) * 175 : plot < 5 ? (plot - 3.5) * 145 : 0
   const x = group.x + offset
   const top = group.y - group.width * .54 - offset * .075
@@ -42,14 +49,19 @@ export function projectGround(column: number, row: number, scale = 1): WorldPoin
 export function layoutSlot(kind: GardenKind, plot: number, scale: number, region: GardenRegion = 'sierra') {
   const column = plot % 3
   const row = Math.floor(plot / 3)
-  const base = projectGround(column, row, scale)
+  // The coastal scene follows the open, level 3×2 composition of its reference.
+  // These are presentation anchors only; plot ids and stored garden data stay stable.
+  const coastBase = region === 'costa'
+    ? { x: (row === 0 ? 640 : 602) + column * (row === 0 ? 390 : 428), y: row === 0 ? 814 : 1002 }
+    : null
+  const base = coastBase ?? projectGround(column, row, scale)
   if (kind === 'vertical') {
     const group = VERTICAL_GROUPS[column]
     const anchor = { x: group.x, y: group.y - group.width * (row ? .18 : .53) }
     return { anchor, base: { x: group.x, y: group.y } }
   }
   if (kind === 'hanging') {
-    const geometry = hangingGeometry(plot)
+    const geometry = hangingGeometry(plot, region)
     return { anchor: { x: geometry.x, y: geometry.y }, base: geometry.base }
   }
   const pot = POT_GEOMETRY[potArtwork(region, plot).variant]

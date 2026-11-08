@@ -823,6 +823,7 @@ export default function App({
       ? 'real-garden'
       : 'garden'
 
+  const immersiveGarden = screen === 'Inicio' && Boolean(realGarden)
   const visible = speciesCatalog.filter(species => `${species.name} ${species.latin}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
 
   if (screen === 'Bienvenida' || screen === 'Usuarios') {
@@ -858,8 +859,8 @@ export default function App({
   }
 
   return (
-    <div className="garden-shell">
-      <GardenNavigation
+    <div className={`garden-shell${immersiveGarden ? ' garden-shell--immersive' : ''}`}>
+      <GardenNavigation key={immersiveGarden ? 'immersive' : 'standard'} overlayMode={immersiveGarden}
         active={activeNavigation}
         onNavigate={navigateGarden}
         onWelcome={() => goto('Bienvenida')}
@@ -878,7 +879,7 @@ export default function App({
       />
 
       {screen === 'Inicio' || screen === 'Mi terreno' ? (
-        <MyGardenPage
+        <MyGardenPage fullScreenGarden={immersiveGarden}
           demo={!user && !authenticated}
           plants={activePlants}
           community={communityRecord}

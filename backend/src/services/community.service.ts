@@ -7,6 +7,7 @@ export interface CreateCommunityInput {
   responsible: string
   location: string
   description: string
+  type?: string
   creatorId: string
 }
 
@@ -27,12 +28,21 @@ export async function createCommunity(input: CreateCommunityInput) {
       responsible: input.responsible,
       location: input.location,
       description: input.description,
+      type: input.type || 'personal',
       creatorId: input.creatorId,
       members: {
         create: { userId: input.creatorId, roleInCommunity: 'RESPONSABLE', status: 'ACCEPTED' },
       },
     },
-    include: { members: true },
+    include: {
+      members: true,
+      _count: {
+        select: {
+          members: { where: { status: 'ACCEPTED' } },
+          gardens: true,
+        },
+      },
+    },
   })
   return community
 }
@@ -57,7 +67,12 @@ export async function listCommunities(userId: string) {
       ],
     },
     include: {
-      _count: { select: { members: true, gardens: true } },
+      _count: {
+        select: {
+          members: { where: { status: 'ACCEPTED' } },
+          gardens: true,
+        },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -80,5 +95,16 @@ export async function updateCommunity(id: string, userId: string, data: Partial<
     ;(error as any).code = 'FORBIDDEN'
     throw error
   }
-  return prisma.community.update({ where: { id }, data })
+  return prisma.community.update({
+    where: { id },
+    data,
+    include: {
+      _count: {
+        select: {
+          members: { where: { status: 'ACCEPTED' } },
+          gardens: true,
+        },
+      },
+    },
+  })
 }

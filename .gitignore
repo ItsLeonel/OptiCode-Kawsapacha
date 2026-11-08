@@ -13,6 +13,14 @@ playwright-report/
 !.env.example
 !.env.*.example
 
+# Local SQLite databases and uploads
+*.db
+*.db-journal
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/uploads/plants/*
+!backend/uploads/plants/.gitkeep
+
 # Editor / operating system
 .DS_Store
 Thumbs.db
@@ -23,3 +31,12 @@ Thumbs.db
 *.log
 
 *.tsbuildinfo
+
+# Generated review outputs and local-only design experiments
+frontend/artifacts/
+VISTA_PREVIA.webp
+kawsapacha_codex_*.zip
+PROMPT_UNICO_CODEX.md
+referencias/PROMPT_CODEX_JARDIN_FASES_1_A_7.md
+referencias/jardin-v1-referencias/
+referencias/jardin-v3/

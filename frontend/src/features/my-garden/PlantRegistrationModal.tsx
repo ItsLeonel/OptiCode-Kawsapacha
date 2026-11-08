@@ -4,26 +4,48 @@ import { PLOT_COUNT, type GardenPlant } from './garden'
 import { PLANT_SPECIES, type PlantRegistration, type PlantRegistrationResult } from './plant-species'
 import { usePlantCamera } from './usePlantCamera'
 import './plant-registration.css'
+import { localDate, recordId, validDate } from './plant-record'
 
-export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, ready, notice, onConfirm, onClose, onSetup }: {
+// Held only in App memory while the visitor sets up their real garden.
+export type PlantRegistrationDraft = {
+  plot: number | null
+  species: string
+  photo: Blob | null
+  plantedOn: string
+  notice?: string
+  requestId?: string
+  recordSowing?: boolean
+  responsible?: string
+}
+
+export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialResponsible = '', initialRequestId }: {
   plants: GardenPlant[]
   initialPlot: number | null
   initialSpecies: string
+  initialPhoto: Blob | null
+  initialPlantedOn: string
   ready: boolean
   notice?: string
   onConfirm: (registration: PlantRegistration) => PlantRegistrationResult | Promise<PlantRegistrationResult>
+  initialSowing?: boolean
+  initialResponsible?: string
+  initialRequestId?: string
   onClose: () => void
-  onSetup: () => void
+  onSetup: (draft: PlantRegistrationDraft) => void
 }) {
   const available = Array.from({ length: PLOT_COUNT }, (_, index) => index).filter(plot => !plants.some(plant => plant.plot === plot))
   const [plot, setPlot] = useState(initialPlot !== null && available.includes(initialPlot) ? initialPlot : available[0] ?? -1)
   const [speciesName, setSpeciesName] = useState(initialSpecies)
-  const [plantedOn, setPlantedOn] = useState('')
-  const [photo, setPhoto] = useState<Blob | null>(null)
+  const [plantedOn, setPlantedOn] = useState(initialPlantedOn)
+  const [photo, setPhoto] = useState<Blob | null>(initialPhoto)
   const [preview, setPreview] = useState('')
   const [mode, setMode] = useState<'gallery' | 'camera'>('gallery')
   const [error, setError] = useState('')
   const [reading, setReading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [recordSowing, setRecordSowing] = useState(initialSowing)
+  const [responsible, setResponsible] = useState(initialResponsible)
+  const requestId = useRef(initialRequestId ?? recordId('registration'))
   const dialogRef = useRef<HTMLDialogElement>(null)
   const openerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -116,13 +138,16 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
       return
     }
     setError('')
+    if ((plantedOn && !validDate(plantedOn)) || (recordSowing && (!plantedOn || responsible.trim().length < 2))) { setError('Para registrar la siembra, indica una fecha válida y la persona responsable.'); return }
     saving.current = true
+    setBusy(true)
     try {
       camera.stop()
-      const result = await onConfirm({ photo, species, plot, ...(plantedOn ? { plantedOn } : {}) })
-      if (!result.ok) { saving.current = false; setError(result.error) }
+      const result = await onConfirm({ photo, species, plot, requestId: requestId.current, recordSowing, responsible, ...(plantedOn ? { plantedOn } : {}) })
+      if (!result.ok) { saving.current = false; setBusy(false); setError(result.error) }
     } catch {
       saving.current = false
+      setBusy(false)
       setError('No se pudo registrar tu planta. Tu fotografía sigue disponible; vuelve a intentarlo.')
     }
   }
@@ -136,11 +161,11 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
   }
 
-  return <dialog ref={dialogRef} className="plant-registration" aria-labelledby="plant-registration-title" aria-describedby="plant-registration-description" onKeyDown={keepFocus} onCancel={event => { event.preventDefault(); onClose() }}>
+  return <dialog ref={dialogRef} className="plant-registration" aria-labelledby="plant-registration-title" aria-describedby="plant-registration-description" onKeyDown={keepFocus} onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
     <header className="plant-registration-header">
       <GardenIcon name="seed"/>
       <div><h2 id="plant-registration-title">Registrar planta</h2><p id="plant-registration-description">Toma una fotografía o elige una imagen de tu planta.</p></div>
-      <button className="plant-registration-close" type="button" autoFocus aria-label="Cerrar registro de planta" onClick={onClose}><GardenIcon name="close"/></button>
+      <button className="plant-registration-close" type="button" disabled={busy} autoFocus aria-label="Cerrar registro de planta" onClick={onClose}><GardenIcon name="close"/></button>
     </header>
     <form onSubmit={submit}>
       <div className="plant-registration-body">
@@ -168,13 +193,15 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
           <div className="plant-selected-species">{preview ? <img src={preview} alt="Fotografía seleccionada"/> : <span className="plant-preview-placeholder" aria-hidden="true"><GardenIcon name="seed"/></span>}<div><strong>{species?.name ?? 'Tu planta'}</strong>{species && <em>{species.latin}</em>}</div></div>
           <label className="plant-registration-field" htmlFor="plant-species">Especie medicinal<select id="plant-species" value={speciesName} onChange={event => setSpeciesName(event.target.value)} required>{PLANT_SPECIES.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label>
           <label className="plant-registration-field" htmlFor="plant-position">Posición de cultivo<select id="plant-position" value={plot} onChange={event => setPlot(Number(event.target.value))} required disabled={!available.length}>{!available.length && <option value={-1}>Sin espacios disponibles</option>}{Array.from({ length: PLOT_COUNT }, (_, index) => <option key={index} value={index} disabled={!available.includes(index)}>Espacio {index + 1}{!available.includes(index) ? ' · ocupado' : ''}</option>)}</select></label>
-          <label className="plant-registration-field" htmlFor="plant-sowing-date">Fecha de siembra <span>(opcional)</span><input type="date" id="plant-sowing-date" value={plantedOn} onChange={event => setPlantedOn(event.target.value)}/></label>
+          <label className="plant-registration-field" htmlFor="plant-sowing-date">Fecha de siembra <span>(opcional)</span><input type="date" id="plant-sowing-date" max={localDate()} value={plantedOn} onChange={event => setPlantedOn(event.target.value)}/></label>
+          <label className="journal-check"><input type="checkbox" checked={recordSowing} onChange={event => setRecordSowing(event.target.checked)}/>Registrar también la actividad de siembra realizada</label>
+          {recordSowing && <label className="plant-registration-field">Persona responsable de la siembra<input required minLength={2} maxLength={100} value={responsible} onChange={event => setResponsible(event.target.value)}/></label>}
           {notice && <p className="plant-registration-notice">{notice}</p>}
           {!available.length && <p className="plant-registration-notice" role="status">Los seis espacios están ocupados. Consulta sus Pasaportes Vivos en el jardín.</p>}
-          {!ready && <div className="plant-registration-setup"><p>Primero registra tu huerto</p><button type="button" onClick={onSetup}>Ir a Mi Huerto <GardenIcon name="arrow"/></button></div>}
+          {!ready && <div className="plant-registration-setup"><p>Primero registra tu terreno en Mi Jardín. Debe estar vinculado a una comunidad. Una comunidad personal es válida.</p><button type="button" disabled={reading || cameraActive} onClick={() => onSetup({ plot, species: speciesName, photo, plantedOn, notice, requestId: requestId.current, recordSowing, responsible })}>Ir a Mi terreno <GardenIcon name="arrow"/></button></div>}
           {(error || (mode === 'camera' && camera.error)) && <p className="plant-registration-error" role="alert">{error || camera.error}</p>}
-          <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={!ready || !available.length || !photo || reading || cameraActive}><GardenIcon name="seed"/>Añadir a mi huerto</button></div>
-          <small className="plant-registration-temporary">Registro temporal durante esta visita.</small>
+          <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" disabled={busy} onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={busy || !ready || !available.length || !photo || reading || cameraActive}><GardenIcon name="seed"/>{busy ? 'Guardando…' : 'Añadir a mi huerto'}</button></div>
+          <small className="plant-registration-temporary">Se guardan la ficha y la fotografía en este navegador.</small>
         </section>
       </div>
     </form>

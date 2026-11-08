@@ -7,6 +7,7 @@ interface Props {
   communityName: string
   currentUser: UserSession | null
   onClose: () => void
+  onMembersUpdated?: () => void
 }
 
 export default function CommunityMembersPanel({
@@ -14,6 +15,7 @@ export default function CommunityMembersPanel({
   communityName,
   currentUser,
   onClose,
+  onMembersUpdated,
 }: Props) {
   const [members, setMembers] = useState<CommunityMember[]>([])
   const [email, setEmail] = useState('')
@@ -59,6 +61,7 @@ export default function CommunityMembersPanel({
       setMessage(`Invitación enviada con éxito a ${email.trim()} con rol propuesto "${role}". El usuario la recibirá en sus notificaciones.`)
       setEmail('')
       await loadMembers()
+      onMembersUpdated?.()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al enviar invitación')
     } finally {
@@ -73,6 +76,7 @@ export default function CommunityMembersPanel({
       await memberApi.updateRole(communityId, userId, newRole)
       setMessage('Rol actualizado correctamente.')
       await loadMembers()
+      onMembersUpdated?.()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al cambiar rol')
     }
@@ -87,6 +91,7 @@ export default function CommunityMembersPanel({
       await memberApi.remove(communityId, userId)
       setMessage(isPending ? 'Invitación cancelada.' : 'Miembro removido de la comunidad.')
       await loadMembers()
+      onMembersUpdated?.()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al remover miembro')
     }

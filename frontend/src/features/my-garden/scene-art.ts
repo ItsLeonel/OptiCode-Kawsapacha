@@ -20,19 +20,7 @@ export const HANGING_POINTS = [
   [29.8, 76.8], [50.1, 76.8], [71.0, 76.8],
 ] as const
 
-const POT_ORDER: Record<GardenRegion, readonly number[]> = {
-  sierra: [0, 5, 3, 1, 4, 2],
-  costa: [0, 1, 2, 3, 4, 5],
-  oriente: [1, 5, 0, 2, 3, 4],
-  galapagos: [3, 4, 0, 5, 1, 2],
-}
-const POT_BASE = [481, 480, 481, 457, 457, 449]
-const SOIL_FROM_BOTTOM = [.75, .67, .72, .74, .74, .69]
-
-export function potArtwork(region: GardenRegion, slot: number) {
-  const variant = POT_ORDER[region][slot]
-  return { variant, column: variant % 3, row: Math.floor(variant / 3), offsetY: 480 - POT_BASE[variant], soilFromBottom: SOIL_FROM_BOTTOM[variant] }
-}
+export { potArtwork } from './pot-artwork'
 
 export const REGIONAL_SURFACES: Record<GardenRegion, string> = {
   sierra: 'suelo-andino', costa: 'tierra-calida', oriente: 'madera-humeda', galapagos: 'piedra-volcanica',

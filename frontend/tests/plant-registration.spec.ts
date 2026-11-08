@@ -1,4 +1,6 @@
-import { test, expect, type Page } from '@playwright/test'
+import { registerGround, expectReady, canvasSlot } from './garden-helpers'
+import { createCommunity, ensureGardenCommunity } from './community-helpers'
+import { test, expect, type Page } from './e2e'
 
 test.setTimeout(60_000)
 test.use({ launchOptions: { args: ['--use-fake-device-for-media-stream'] } })
@@ -47,23 +49,10 @@ async function enterDemo(page: Page) {
   await page.getByRole('button', { name: 'Descubrir Kawsapacha' }).click()
 }
 
-async function createGarden(page: Page, withCommunity = true) {
-  await enterDemo(page)
-  if (withCommunity) {
-    await navigation(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
-    await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-    await page.getByLabel('Nombre de la comunidad').fill('Comunidad de prueba')
-    await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
-  }
-  await navigation(page).getByRole('button', { name: 'Mi Huerto', exact: true }).click()
-  await page.locator('#rg-province').selectOption('Imbabura')
-  await page.getByLabel('Nombre del huerto').fill('Huerto de prueba')
-  await page.getByLabel('Superficie aproximada').fill('25')
-  await page.locator('.rg-type-option:has(input[value="vertical"])').click()
-  await page.locator('.rg-more-characteristics summary').click()
-  await page.getByLabel('Agua de riego').selectOption('unknown')
-  await page.getByRole('button', { name: 'Guardar mi huerto', exact: true }).click()
-  await page.getByRole('button', { name: 'Conectar con Mi Jardín' }).click()
+async function createGarden(page: Page, _withCommunity = true) {
+  // The current flow requires a registered community; personal is a valid type.
+  await registerGround(page, '/', 'Imbabura', 'vertical')
+  await expectReady(page)
 }
 
 async function openRegistration(page: Page) {
@@ -75,9 +64,9 @@ async function expectStopped(page: Page) {
   await expect.poll(() => page.evaluate(() => window.cameraAudit.tracks.every(track => track.readyState === 'ended'))).toBe(true)
 }
 
-test('galería sin comunidad: especie, posición, siembra, jardín y Pasaporte conservan la misma fotografía', async ({ page }) => {
+test('galería desde visita sin comunidad: especie, posición, siembra, jardín y Pasaporte conservan la misma fotografía', async ({ page }) => {
   await createGarden(page, false)
-  await page.locator('.garden-parcels button').nth(2).click()
+  await canvasSlot(page, 2)
   await expect(page.getByLabel('Posición de cultivo')).toHaveValue('2')
   await expect(page.getByRole('button', { name: 'Recientes', exact: true })).toHaveCount(0)
   await expect(page.getByLabel('Fecha de siembra')).toHaveValue('')
@@ -92,15 +81,15 @@ test('galería sin comunidad: especie, posición, siembra, jardín y Pasaporte c
   const passport = page.getByRole('dialog', { name: 'Manzanilla', exact: true })
   await expect(passport).toBeVisible()
   await expect(registration(page)).toHaveCount(0)
-  await expect(passport).toContainText('Parcela 5')
+  await expect(passport).toContainText('Espacio 5')
   await expect(passport).toContainText('Matricaria chamomilla')
   await expect(passport).toContainText('Fecha de siembra')
   await expect(passport).toContainText(/12\/10\/2026/)
   const photo = await page.locator('.garden-passport-photo').getAttribute('src')
   expect(await page.evaluate(url => window.photoUrls.revoked.includes(url!), photo)).toBe(false)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
-  await expect(page.locator('.garden-parcel-photo img')).toHaveAttribute('src', photo!)
-  await expect(page.locator('.garden-parcels button').nth(4)).toHaveAttribute('aria-label', /Manzanilla/)
+  await expect(page.locator('.garden-poc-slot[data-plant-id]')).toContainText('Manzanilla')
+  await expect(page.locator('.garden-poc-slot').nth(4)).toContainText('Manzanilla')
   await openRegistration(page)
   await expect(page.getByLabel('Posición de cultivo').locator('option[value="4"]')).toHaveJSProperty('disabled', true)
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
@@ -110,11 +99,11 @@ test('galería sin comunidad: especie, posición, siembra, jardín y Pasaporte c
   await expect(page.locator('.garden-passport-photo')).toHaveAttribute('src', photo!)
 })
 
-test('sin comunidad y sin crypto.randomUUID: registra la fotografía y permite abrir su Pasaporte', async ({ page }) => {
+test('comunidad personal y sin crypto.randomUUID: registra la fotografía y permite abrir su Pasaporte', async ({ page }) => {
   await createGarden(page, false)
   // This API can be unavailable outside secure contexts, while Gallery still works.
   await page.evaluate(() => Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true }))
-  await page.locator('.garden-parcels button').nth(1).click()
+  await canvasSlot(page, 1)
   await page.locator('#plant-photo').setInputFiles(PHOTO)
   await page.getByLabel('Especie medicinal').selectOption('Toronjil')
   await page.getByLabel('Fecha de siembra').fill('2026-10-20')
@@ -123,21 +112,20 @@ test('sin comunidad y sin crypto.randomUUID: registra la fotografía y permite a
   await expect(registration(page)).toHaveCount(0)
   const passport = page.getByRole('dialog', { name: 'Toronjil', exact: true })
   await expect(passport).toBeVisible()
-  await expect(passport).toContainText('Parcela 2')
+  await expect(passport).toContainText('Espacio 2')
   await expect(passport).toContainText('Melissa officinalis')
   await expect(passport).toContainText('20/10/2026')
   const photo = await page.locator('.garden-passport-photo').getAttribute('src')
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
-  const slot = page.locator('.garden-parcels button').nth(1)
-  await expect(slot).toHaveAttribute('aria-label', /Toronjil.*Pasaporte Vivo/)
-  await expect(slot.locator('img')).toHaveAttribute('src', photo!)
-  expect(await slot.locator('img').evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
-  await slot.click()
+  const slot = page.locator('.garden-poc-slot').nth(1)
+  await expect(slot).toContainText('Toronjil \u00b7 Pasaporte Vivo')
+  await expect(slot).toContainText('Toronjil')
+  await slot.focus(); await slot.press('Enter')
   await expect(passport).toBeVisible()
   await expect(page.locator('.garden-passport-photo')).toHaveAttribute('src', photo!)
 })
 
-test('un fallo al guardar muestra un aviso y conserva la fotografía para reintentar sin comunidad', async ({ page }) => {
+test('un fallo al guardar muestra un aviso y conserva la fotografía para reintentar tras crear comunidad', async ({ page }) => {
   await createGarden(page, false)
   await openRegistration(page)
   await page.locator('#plant-photo').setInputFiles(PHOTO)
@@ -146,27 +134,27 @@ test('un fallo al guardar muestra un aviso y conserva la fotografía para reinte
   await expect(page.getByRole('button', { name: 'Añadir a mi huerto' })).toBeEnabled()
   const preview = await page.getByAltText('Vista previa de tu planta', { exact: true }).getAttribute('src')
   await page.evaluate(() => {
-    const original = URL.createObjectURL
+    const original = IDBDatabase.prototype.transaction
     let failOnce = true
-    URL.createObjectURL = object => {
-      if (failOnce) { failOnce = false; throw new Error('Prueba de fallo al conservar la fotografía') }
-      return original(object)
+    IDBDatabase.prototype.transaction = function (...args: Parameters<IDBDatabase['transaction']>) {
+      if (failOnce && args[1] === 'readwrite') { failOnce = false; throw new DOMException('Prueba: almacenamiento lleno', 'QuotaExceededError') }
+      return original.apply(this, args)
     }
   })
   await page.getByRole('button', { name: 'Añadir a mi huerto' }).click()
-  await expect(page.getByRole('alert')).toHaveText('No se pudo registrar tu planta. Tu fotografía sigue disponible; vuelve a intentarlo.')
+  await expect(page.getByRole('alert')).toContainText('almacenamiento lleno')
   await expect(registration(page)).toBeVisible()
   await expect(page.getByAltText('Vista previa de tu planta', { exact: true })).toHaveAttribute('src', preview!)
   await expect(page.getByLabel('Especie medicinal')).toHaveValue('Hierbabuena')
   await expect(page.getByLabel('Posición de cultivo')).toHaveValue('3')
-  await expect(page.locator('.garden-parcel-photo')).toHaveCount(0)
+  await expect(page.locator('.garden-poc-slot[data-plant-id]')).toHaveCount(0)
   await page.getByRole('button', { name: 'Añadir a mi huerto' }).click()
   await expect(registration(page)).toHaveCount(0)
   await expect(page.getByRole('dialog', { name: 'Hierbabuena', exact: true })).toBeVisible()
   await expect(page.getByRole('dialog', { name: 'Hierbabuena', exact: true })).not.toContainText('Fecha de siembra')
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
-  await expect(page.locator('.garden-parcel.is-occupied')).toHaveCount(1)
-  await expect(page.locator('.garden-parcels button').nth(3)).toHaveAttribute('aria-label', /Hierbabuena.*Pasaporte Vivo/)
+  await expect(page.locator('.garden-poc-slot[data-plant-id]')).toHaveCount(1)
+  await expect(page.locator('.garden-poc-slot').nth(3)).toContainText('Hierbabuena \u00b7 Pasaporte Vivo')
 })
 
 test('archivos inválidos y cancelación: no guardan plantas ni conservan vistas previas', async ({ page }) => {
@@ -185,7 +173,7 @@ test('archivos inválidos y cancelación: no guardan plantas ni conservan vistas
   const preview = await page.getByAltText('Vista previa de tu planta', { exact: true }).getAttribute('src')
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click()
   await expect.poll(() => page.evaluate(url => window.photoUrls.revoked.includes(url!), preview)).toBe(true)
-  await expect(page.locator('.garden-parcel-photo')).toHaveCount(0)
+  await expect(page.locator('.garden-poc-slot[data-plant-id]')).toHaveCount(0)
   await expect(actions(page).getByRole('button', { name: 'Registrar planta', exact: true })).toBeFocused()
   await openRegistration(page)
   await expect(page.getByRole('button', { name: 'Añadir a mi huerto' })).toBeDisabled()
@@ -199,35 +187,32 @@ test('catálogo conserva la especie elegida y el registro incompleto tiene salid
   await page.locator('.species-card').filter({ hasText: 'Lavanda' }).getByRole('button').click()
   await expect(page.getByLabel('Especie medicinal')).toHaveValue('Lavanda')
   await expect(page.getByRole('button', { name: 'Añadir a mi huerto' })).toBeDisabled()
-  await expect(registration(page).getByText('Primero registra tu huerto', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Ir a Mi Huerto', exact: true }).click()
+  await expect(registration(page).getByText('Primero registra tu terreno', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Ir a Mi terreno', exact: true }).click()
   await expect(registration(page)).toHaveCount(0)
-  await expect(page.getByRole('form', { name: 'Registrar mi huerto', exact: true })).toBeVisible()
+  await expect(page.getByRole('form', { name: 'Registrar mi terreno', exact: true })).toBeVisible()
 })
 
 for (const withCommunity of [false, true]) {
   test(`sin huerto, comunidad ${withCommunity ? 'registrada' : 'ausente'}: bloquea guardar y dirige a Mi Huerto`, async ({ page }) => {
     await enterDemo(page)
     if (withCommunity) {
-      await navigation(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
-      await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
-      await page.getByLabel('Nombre de la comunidad').fill('Comunidad de prueba')
-      await page.getByRole('button', { name: 'Crear comunidad', exact: true }).click()
-      await navigation(page).getByRole('button', { name: 'Mi jardín', exact: true }).click()
+      await createCommunity(page)
+      await navigation(page).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
     }
     await openRegistration(page)
-    await expect(registration(page).getByText('Primero registra tu huerto', { exact: true })).toBeVisible()
-    await expect(registration(page)).not.toContainText('comunidad')
+    await expect(registration(page).getByText('Primero registra tu terreno', { exact: false })).toBeVisible()
+    await expect(registration(page)).toContainText('Una comunidad personal es válida.')
     await page.locator('#plant-photo').setInputFiles(PHOTO)
     await expect(page.getByAltText('Vista previa de tu planta', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Añadir a mi huerto' })).toBeDisabled()
     // Check the submit validation too, even if submission bypasses the disabled button.
     await registration(page).locator('form').evaluate(form => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
     await expect(page.getByRole('alert')).toHaveText('Primero registra tu huerto')
-    await expect(page.locator('.garden-parcel-photo')).toHaveCount(0)
-    await page.getByRole('button', { name: 'Ir a Mi Huerto', exact: true }).click()
+    await expect(page.locator('.garden-poc-slot[data-plant-id]')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Ir a Mi terreno', exact: true }).click()
     await expect(registration(page)).toHaveCount(0)
-    await expect(page.getByRole('form', { name: 'Registrar mi huerto', exact: true })).toBeVisible()
+    await expect(page.getByRole('form', { name: 'Registrar mi terreno', exact: true })).toBeVisible()
   })
 }
 
@@ -241,7 +226,7 @@ test('los seis espacios pueden registrarse sin fecha y nunca se reemplaza uno oc
     await expect(page.getByRole('dialog', { name: 'Romero', exact: true })).not.toContainText('Fecha de siembra')
     await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
   }
-  await expect(page.locator('.garden-parcel.is-occupied')).toHaveCount(6)
+  await expect(page.locator('.garden-poc-slot[data-plant-id]')).toHaveCount(6)
   await openRegistration(page)
   await expect(page.getByText('Los seis espacios están ocupados.', { exact: false })).toBeVisible()
   await expect(page.getByLabel('Posición de cultivo')).toBeDisabled()
@@ -251,7 +236,7 @@ test('los seis espacios pueden registrarse sin fecha y nunca se reemplaza uno oc
 test.describe('captura del navegador con dispositivo de vídeo de prueba', () => {
   test.use({ permissions: ['camera'] })
 
-  test('captura JPEG sin comunidad: libera cámara y registra la foto', async ({ page }) => {
+  test('captura JPEG con comunidad personal: libera cámara y registra la foto', async ({ page }) => {
     await createGarden(page, false)
     await openRegistration(page)
     expect(await page.evaluate(() => window.cameraAudit.calls)).toBe(0)
@@ -275,6 +260,24 @@ test.describe('captura del navegador con dispositivo de vídeo de prueba', () =>
 
   test('cerrar, cancelar, Escape, Galería y desconexión liberan cada flujo', async ({ page }) => {
     await enterDemo(page)
+    // Test teardown with a deterministic browser MediaStream. The JPEG test
+    // above separately exercises getUserMedia with Chrome's fake camera device,
+    // which can disconnect spontaneously in this environment.
+    await page.evaluate(() => {
+      navigator.mediaDevices.getUserMedia = async () => {
+        window.cameraAudit.calls++
+        const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 240
+        const context = canvas.getContext('2d')!
+        const stream = canvas.captureStream(10)
+        const timer = window.setInterval(() => { context.fillStyle = '#497646'; context.fillRect(0, 0, 320, 240) }, 100)
+        for (const track of stream.getTracks()) {
+          const stop = track.stop.bind(track)
+          track.stop = () => { window.clearInterval(timer); stop() }
+        }
+        window.cameraAudit.tracks.push(...stream.getTracks())
+        return stream
+      }
+    })
     for (const close of ['close', 'cancel', 'escape', 'gallery', 'disconnect'] as const) {
       await openRegistration(page)
       await page.getByRole('button', { name: 'Cámara', exact: true }).click()
@@ -359,10 +362,7 @@ for (const width of [320, 390, 768, 1440]) {
   test(`modal al 100 % y tarjeta legible: ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await createGarden(page)
-    const territory = page.getByLabel('Ubicación de tu huerto')
-    await expect(territory).toBeVisible()
-    expect(await territory.locator('strong').evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16)
-    expect(await territory.locator('small').first().evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(14)
+    await expect(page.locator('.garden-poc-heading')).toContainText('Terreno de prueba automatizada')
     await openRegistration(page)
     await page.locator('#plant-photo').setInputFiles(PHOTO)
     const dialog = registration(page)

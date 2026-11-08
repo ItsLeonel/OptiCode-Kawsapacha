@@ -4,6 +4,7 @@
 import type { AuthSubmission } from '../features/auth/auth'
 import type { Community } from '../features/communities/communities'
 import type { RealGarden } from '../features/real-gardens/real-garden'
+import { toGardenFeatures, type GardenFeatures } from '../features/real-gardens/garden-characteristics'
 
 const BASE_URL = '' // Utiliza el proxy de Vite configurado hacia http://localhost:3000
 
@@ -145,6 +146,29 @@ export const authApi = {
   },
 }
 
+// ─── Módulo de Búsqueda y Validación de Usuarios ──────────────────────────────
+
+export interface UserLookupResult {
+  found: boolean
+  user?: {
+    id: string
+    name: string
+    email: string
+  }
+  isMember?: boolean
+  isPending?: boolean
+  roleInCommunity?: string | null
+  message?: string
+}
+
+export const userApi = {
+  async lookup(email: string, communityId?: string): Promise<UserLookupResult> {
+    const params = new URLSearchParams({ email })
+    if (communityId) params.append('communityId', communityId)
+    return request<UserLookupResult>(`/api/users/lookup?${params.toString()}`)
+  },
+}
+
 // ─── Módulo de Comunidades ───────────────────────────────────────────────────
 
 export const communityApi = {
@@ -163,6 +187,14 @@ export const communityApi = {
 
   async getById(id: string): Promise<Community> {
     const data = await request<{ community: Community }>(`/api/communities/${id}`)
+    return data.community
+  },
+
+  async update(id: string, community: Partial<Community>): Promise<Community & { id: string }> {
+    const data = await request<{ community: Community & { id: string } }>(`/api/communities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(community),
+    })
     return data.community
   },
 }
@@ -264,6 +296,7 @@ interface RawBackendGarden {
   longitude?: number | null
   irrigationAvailability: string
   soilType?: string | null
+  characteristics?: string | GardenFeatures | null
   communityId?: string | null
   community?: { id: string; name: string } | null
   location?: RealGarden['location']
@@ -271,10 +304,26 @@ interface RawBackendGarden {
   createdById?: string
 }
 
+function parseCharacteristics(chars: unknown): GardenFeatures | undefined {
+  if (!chars) return undefined
+  if (typeof chars === 'object') return toGardenFeatures(chars as any)
+  if (typeof chars === 'string') {
+    try {
+      const parsed = JSON.parse(chars)
+      return toGardenFeatures(parsed)
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+}
+
 function normalizeGarden(raw: RawBackendGarden): RealGarden & { id: string } {
+  const characteristics = parseCharacteristics(raw.characteristics)
   if (raw.location) {
     return {
       ...(raw as RealGarden & { id: string }),
+      characteristics: characteristics ?? (raw as any).characteristics,
       createdById: raw.createdById,
     }
   }
@@ -295,6 +344,7 @@ function normalizeGarden(raw: RawBackendGarden): RealGarden & { id: string } {
     },
     irrigationAvailability: (raw.irrigationAvailability as RealGarden['irrigationAvailability']) || 'available',
     soilType: (raw.soilType as RealGarden['soilType']) || null,
+    characteristics,
     communityName: raw.community?.name ?? raw.communityName ?? null,
     createdById: raw.createdById,
   }
@@ -322,6 +372,7 @@ export const gardenApi = {
       coordinates: garden.location.coordinates,
       irrigationAvailability: garden.irrigationAvailability,
       soilType: garden.soilType,
+      characteristics: garden.characteristics ? JSON.stringify(garden.characteristics) : null,
       communityId: communityId ?? null,
     }
 
@@ -347,6 +398,7 @@ export const gardenApi = {
       coordinates: garden.location.coordinates,
       irrigationAvailability: garden.irrigationAvailability,
       soilType: garden.soilType,
+      characteristics: garden.characteristics ? JSON.stringify(garden.characteristics) : null,
       communityId: communityId ?? null,
     }
 
@@ -407,13 +459,14 @@ export const catalogApi = {
 
 export interface ApiPlant {
   id: string
-  plotIndex: number
+  plotIndex: number | null
   speciesId: string
   customName: string
   photoUrl: string
   plantingDate: string
   notes?: string
   lifecycleStatus?: string
+  archivedAt?: string | null
   species: {
     name: string
     latinName: string
@@ -454,6 +507,13 @@ export const plantApi = {
   async passport(plantId: string): Promise<unknown> {
     const data = await request<{ passport: unknown }>(`/api/plants/${plantId}/passport`)
     return data.passport
+  },
+
+  async archive(plantId: string): Promise<ApiPlant> {
+    const data = await request<{ plant: ApiPlant }>(`/api/plants/${plantId}/archive`, {
+      method: 'PATCH',
+    })
+    return data.plant
   },
 
   async remove(plantId: string): Promise<void> {

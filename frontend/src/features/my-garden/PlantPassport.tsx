@@ -1,17 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import GardenIcon from './GardenIcon'
-import type { GardenPlant } from './garden'
+import { PLANT_STATES, type GardenPlant } from './garden'
 import {
   careApi,
   catalogApi,
   harvestApi,
-  plantApi,
   type CareLog,
   type GrowthData,
   type HealthStatus,
   type CalendarTips,
   type UserSession,
 } from '../../services/api'
+import './garden-journal.css'
 
 // ─── Badge de salud ──────────────────────────────────────────────────────────
 
@@ -41,10 +41,16 @@ function HealthBadge({ status }: { status: HealthStatus | undefined }) {
 export default function PlantPassport({
   plant,
   user,
+  currentCommunityRole,
   onClose,
   onHistory,
   onPlantHarvested,
-  onPlantRemoved,
+  onPlantRemoved: _onPlantRemoved,
+  onEdit,
+  onArchive,
+  onRestore,
+  onActivity,
+  activityItems,
 }: {
   plant: GardenPlant | null
   user?: UserSession | null
@@ -53,6 +59,11 @@ export default function PlantPassport({
   onHistory: () => void
   onPlantHarvested?: (plantId: string) => void
   onPlantRemoved?: (plantId: string) => void
+  onEdit?: () => void
+  onArchive?: () => void | Promise<void>
+  onRestore?: () => string | null | Promise<string | null>
+  onActivity?: () => void
+  activityItems?: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [logs, setLogs] = useState<CareLog[]>([])
@@ -62,7 +73,7 @@ export default function PlantPassport({
   const [actionNotes, setActionNotes] = useState('')
   const [harvestQuantity, setHarvestQuantity] = useState('200g')
   const [showHarvestDialog, setShowHarvestDialog] = useState(false)
-  const [showRemoveDialog, setShowRemoveDialog] = useState(false)
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -86,7 +97,7 @@ export default function PlantPassport({
     setMessage('')
     setError('')
     setShowHarvestDialog(false)
-    setShowRemoveDialog(false)
+    setShowArchiveDialog(false)
     setActionNotes('')
   }
 
@@ -198,30 +209,12 @@ export default function PlantPassport({
     }
   }
 
-  // ─── Remover / desarraigar ─────────────────────────────────────────────────
-
-  async function handleRemovePlant() {
-    if (!plant) return
-    setError('')
-    setLoading(true)
-    try {
-      if (user && !plant.id.includes('-')) {
-        await plantApi.remove(plant.id)
-      }
-      setShowRemoveDialog(false)
-      dialogRef.current?.close()
-      if (onPlantRemoved) onPlantRemoved(plant.id)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al desarraigar la planta')
-      setLoading(false)
-    }
-  }
-
   // ─── Renderizado ───────────────────────────────────────────────────────────
 
   const isRegrowing = growth?.lifecycleStatus === 'REGROWING'
   const canHarvest = ((growth?.percentage ?? 0) >= 75 && !isRegrowing) || (isRegrowing && (growth?.percentage ?? 0) >= 75)
   const hasStress = growth?.overWatered || growth?.overFertilized || growth?.overPruned
+  const isResponsible = !user || currentCommunityRole === 'RESPONSABLE'
 
   return (
     <dialog
@@ -510,56 +503,96 @@ export default function PlantPassport({
             )}
           </section>
 
-          {/* ─── BOTÓN DESARRAIGAR / REMOVER PLANTA ─── */}
-          <section style={{ borderTop: '1px solid #fed7d7', paddingTop: '14px', marginBottom: '14px' }}>
-            {!showRemoveDialog ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.82rem', color: '#718096' }}>
-                  ¿Quieres liberar esta parcela para sembrar otro cultivo?
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowRemoveDialog(true)}
-                  disabled={loading}
-                  style={{
-                    padding: '7px 14px', background: 'transparent', color: '#e53e3e',
-                    border: '1px solid #feb2b2', borderRadius: '8px',
-                    fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem',
-                  }}
-                >
-                  🗑️ Desarraigar / Liberar parcela
-                </button>
-              </div>
-            ) : (
-              <div style={{ background: '#fff5f5', border: '2px solid #fc8181', padding: '14px', borderRadius: '10px' }}>
-                <h4 style={{ margin: '0 0 8px', color: '#9b2c2c' }}>⚠️ Confirmar desarraigo de {plant.name}</h4>
-                <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: '#9b2c2c', lineHeight: 1.5 }}>
-                  ¿Estás seguro de arrancar esta planta? Se liberará la <strong>Parcela {plant.plot + 1}</strong> permanentemente para que puedas sembrar otro cultivo. Esta acción no se puede deshacer.
-                </p>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => void handleRemovePlant()}
-                    disabled={loading}
-                    style={{
-                      padding: '8px 18px', background: '#e53e3e', color: '#fff', border: 'none',
-                      borderRadius: '8px', fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
-                    {loading ? 'Removiendo...' : '🗑️ Sí, desarraigar y liberar'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowRemoveDialog(false)}
-                    disabled={loading}
-                    style={{ background: 'none', border: 'none', color: '#718096', cursor: 'pointer', fontSize: '0.85rem' }}
-                  >
-                    Cancelar
-                  </button>
+          {/* ─── BOTÓN UNIFICADO ARCHIVAR Y LIBERAR PARCELA (SOLO RESPONSABLE) ─── */}
+          {!plant.archivedAt && onArchive && (
+            <section style={{ borderTop: '1px solid #fed7aa', paddingTop: '14px', marginBottom: '14px' }}>
+              {isResponsible ? (
+                !showArchiveDialog ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#718096' }}>
+                      ¿Quieres archivar esta ficha y liberar la parcela?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowArchiveDialog(true)}
+                      disabled={loading}
+                      style={{
+                        padding: '7px 14px',
+                        background: '#fffaf0',
+                        color: '#c05621',
+                        border: '1px solid #fbd38d',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      📦 Archivar planta y liberar parcela
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ background: '#fffaf0', border: '2px solid #f6ad55', padding: '14px', borderRadius: '10px' }}>
+                    <h4 style={{ margin: '0 0 8px', color: '#9c4221' }}>📦 Confirmar archivado de {plant.name}</h4>
+                    <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: '#7b341e', lineHeight: 1.5 }}>
+                      La <strong>Parcela {plant.plot >= 0 ? plant.plot + 1 : 'actual'}</strong> quedará libre para sembrar otro cultivo. Toda la información, fotos y bitácora de riegos/abonos se conservarán en la pestaña <strong>"Archivadas"</strong> de Mis Plantas y en <strong>"Mi historia"</strong>.
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setLoading(true)
+                          try {
+                            await onArchive()
+                            setShowArchiveDialog(false)
+                            dialogRef.current?.close()
+                          } finally {
+                            setLoading(false)
+                          }
+                        }}
+                        disabled={loading}
+                        style={{
+                          padding: '8px 18px',
+                          background: '#dd6b20',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {loading ? 'Archivando...' : '📦 Sí, archivar y liberar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowArchiveDialog(false)}
+                        disabled={loading}
+                        style={{ background: 'none', border: 'none', color: '#718096', cursor: 'pointer', fontSize: '0.85rem' }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#4a5568', display: 'block' }}>Permiso de Responsable requerido</strong>
+                    <span style={{ fontSize: '0.78rem', color: '#718096' }}>El archivado de plantas y liberación de parcelas está reservado para el Responsable de la comunidad. Los participantes no tienen permisos para archivar.</span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
+
+          <div className="journal-passport-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '12px 0' }}>
+            {onEdit && <button type="button" onClick={onEdit} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Actualizar foto y observaciones</button>}
+            {onActivity && !plant.archivedAt && <button type="button" onClick={onActivity} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Registrar actividad</button>}
+            {onRestore && plant.archivedAt && <button type="button" onClick={() => void onRestore()} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Restaurar al espacio</button>}
+          </div>
 
           <button
             type="button"
@@ -569,6 +602,9 @@ export default function PlantPassport({
           >
             <GardenIcon name="book" /> Ver Bitácora general de cultivo
           </button>
+          {/* Evidencias de main */}
+          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={evidence.photo} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
+          {activityItems}
         </div>
       )}
     </dialog>

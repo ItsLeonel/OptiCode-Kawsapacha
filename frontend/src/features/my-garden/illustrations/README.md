@@ -1,6 +1,6 @@
 # Ilustraciones de Mi Jardín V3
 
-Piezas decorativas generadas con la herramienta integrada de la habilidad imagegen. No son fotografías de huertos ni de plantas registradas. Los paisajes regionales originales se conservan en src/assets/jardin-regiones/. Ninguna referencia de pantalla se utiliza como fondo o como interfaz.
+Piezas decorativas generadas con la herramienta integrada de la habilidad imagegen. No son fotografías de huertos ni de plantas registradas. Los paisajes regionales originales se conservan en src/shared/assets/regional-backgrounds/. Ninguna referencia de pantalla se utiliza como fondo o como interfaz.
 
 Los PNG conservan su transparencia original. Los seis controles y las fotografías registradas se renderizan de forma independiente. El atlas contiene seis recipientes vacíos; la pared y la pérgola contienen seis posiciones vacías cada una; el terreno es una única superficie continua.
 

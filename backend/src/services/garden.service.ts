@@ -17,6 +17,7 @@ export interface CreateGardenInput {
   longitude: number | null
   irrigationAvailability: string
   soilType: string | null
+  characteristics?: string | null
   communityId: string | null
   createdById: string
 }
@@ -57,6 +58,7 @@ export async function createGarden(input: CreateGardenInput) {
         longitude: input.longitude,
         irrigationAvailability: input.irrigationAvailability,
         soilType: input.soilType,
+        characteristics: input.characteristics !== undefined ? input.characteristics : existingGarden.characteristics,
         communityId: input.communityId ?? existingGarden.communityId,
       },
     })
@@ -78,6 +80,7 @@ export async function createGarden(input: CreateGardenInput) {
       longitude: input.longitude,
       irrigationAvailability: input.irrigationAvailability,
       soilType: input.soilType,
+      characteristics: input.characteristics ?? null,
       communityId: input.communityId,
       createdById: input.createdById,
     },

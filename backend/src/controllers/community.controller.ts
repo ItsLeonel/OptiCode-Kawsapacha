@@ -6,7 +6,7 @@ import type { AuthRequest } from '../types'
 
 export async function create(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
-  const { name, responsible, location, description } = req.body as Record<string, string>
+  const { name, responsible, location, description, type } = req.body as Record<string, string>
 
   if (!name?.trim()) return void fail(res, 'VALIDATION_ERROR', 'El nombre de la comunidad es obligatorio.', 400, { name: 'El nombre es obligatorio.' })
   if (!responsible?.trim()) return void fail(res, 'VALIDATION_ERROR', 'El nombre del responsable es obligatorio.', 400, { responsible: 'El responsable es obligatorio.' })
@@ -18,6 +18,7 @@ export async function create(req: AuthRequest, res: Response): Promise<void> {
       responsible: responsible.trim(),
       location: location.trim(),
       description: (description ?? '').trim(),
+      type: type ? type.trim() : undefined,
       creatorId: req.user.userId,
     })
     ok(res, { community }, 'Comunidad creada exitosamente.', 201)
@@ -52,12 +53,18 @@ export async function getById(req: AuthRequest, res: Response): Promise<void> {
 
 export async function update(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
-  const { name, responsible, location, description } = req.body as Record<string, string>
+  const { name, responsible, location, description, type } = req.body as Record<string, string>
   try {
     const community = await updateCommunity(
       String(req.params['id'] ?? ''),
       req.user.userId,
-      { name, responsible, location, description }
+      {
+        ...(name !== undefined && { name: name.trim() }),
+        ...(responsible !== undefined && { responsible: responsible.trim() }),
+        ...(location !== undefined && { location: location.trim() }),
+        ...(description !== undefined && { description: description.trim() }),
+        ...(type !== undefined && { type: type.trim() }),
+      }
     )
     ok(res, { community }, 'Comunidad actualizada.')
   } catch (err: any) {

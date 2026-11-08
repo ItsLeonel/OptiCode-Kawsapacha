@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { divIcon, DomEvent, type LatLng } from 'leaflet'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import type { GardenCoordinates } from './real-garden'
@@ -12,6 +12,13 @@ const markerIcon = divIcon({
 
 function MapInteractions({ coordinates, onChange }: { coordinates: GardenCoordinates | null; onChange: (coordinates: GardenCoordinates) => void }) {
   const map = useMap()
+  useEffect(() => {
+    const container = map.getContainer()
+    const frame = requestAnimationFrame(() => map.invalidateSize())
+    const observer = new ResizeObserver(() => map.invalidateSize())
+    observer.observe(container)
+    return () => { cancelAnimationFrame(frame); observer.disconnect() }
+  }, [map])
   function select(latlng: LatLng) { onChange({ latitude: Number(latlng.lat.toFixed(6)), longitude: Number(latlng.wrap().lng.toFixed(6)) }) }
   useMapEvents({ click: event => select(event.latlng) })
   return <>

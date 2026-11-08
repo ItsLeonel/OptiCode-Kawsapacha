@@ -8,10 +8,16 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "dev:garden-poc": "vite --config vite.garden-poc.config.ts --configLoader runner --host 127.0.0.1 --port 5176 --strictPort",
+    "build:garden-poc": "tsc -b && vite build --config vite.garden-poc.config.ts --configLoader runner",
+    "test:garden-poc": "playwright test --config playwright.garden-poc.config.ts",
+    "test:unit": "playwright test --config playwright.unit.config.ts",
+    "test:production": "playwright test --config playwright.production.config.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
+    "phaser": "3.90.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-leaflet": "^5.0.0"

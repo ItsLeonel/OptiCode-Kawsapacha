@@ -1,0 +1,20 @@
+.ecuador-game-map { margin: 0; }
+.ecuador-game-map .map-visual { overflow: visible; background: radial-gradient(ellipse, #124c3a65, #05372b12 70%); border-radius: 42%; min-height: 220px; }
+.ecuador-game-map .map-visual svg { width: 100%; max-height: 385px; overflow: visible; }
+.ecuador-game-map .game-province { stroke: #fff4c9; stroke-width: 1.6; paint-order: stroke fill; vector-effect: non-scaling-stroke; transition: stroke-width .15s, filter .15s; }
+.ecuador-game-map .game-province:hover, .ecuador-game-map .game-province:focus, .ecuador-game-map .game-province[data-highlighted] { stroke: #bbf1ff; stroke-width: 2.6; stroke-dasharray: 4 3; filter: brightness(1.08) drop-shadow(0 0 2px #8fdbff); outline: none; }
+.ecuador-game-map .game-province[aria-pressed=true] { stroke: #fffab1; stroke-width: 4; stroke-dasharray: none; filter: brightness(1.15) drop-shadow(0 0 5px #f9ed89); }
+.ecuador-game-map .game-province-outline { vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px #f9ed89); }
+.ecuador-game-map .map-island-label { fill: #d5ffef; font: 800 12px system-ui, sans-serif; letter-spacing: 1px; }
+.ecuador-game-map .map-sea-label { fill: #b0e0cf; font: italic 14px Georgia, serif; }
+.ecuador-game-map .map-province-tooltip { position: absolute; top: auto; right: auto; bottom: 6px; left: 50%; transform: translateX(-50%); max-width: 90%; width: max-content; padding: 6px 16px; color: #fff8da; background: linear-gradient(#85572d, #4c2c1a); border: 2px solid #dbb669; border-radius: 20px; box-shadow: 0 4px 10px #001e2180; font-size: 14px; font-weight: 800; text-align: center; pointer-events: none; }
+.map-region-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px 12px; padding: 9px 4px; color: #fff5d4; font-size: 12px; }
+.map-region-legend span { display: inline-flex; gap: 5px; align-items: center; font-weight: 700; }
+.map-region-legend i { width: 11px; height: 11px; border: 1px solid #fff5c9; border-radius: 50%; box-shadow: 0 1px 3px #092e2b; }
+.ecuador-game-map .field { margin: 0; color: #fff4cd; display: grid; gap: 6px; font-size: 12px; }
+.ecuador-game-map select { width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 2px solid #dcb976; background: #fff1d4; color: #31472b; font-size: 14px; }
+.ecuador-game-map .tiny { font-size: 10px !important; color: #d9e9c7 !important; text-align: center; }
+.ecuador-game-map .tiny a { color: inherit; text-underline-offset: 2px; }
+.ecuador-game-map .map-note { color: #fff4cd; }
+.ecuador-game-map .map-province-tooltip[data-kind=preview] { background: #15566a; border-color: #a9e9fa; color: #e2f9ff; }
+@media(prefers-reduced-motion:reduce) { .ecuador-game-map .game-province { transition: none; } }

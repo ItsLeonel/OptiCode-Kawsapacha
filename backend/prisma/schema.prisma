@@ -40,6 +40,7 @@ model Community {
   responsible String
   location    String
   description String
+  type        String  @default("personal")
 
   creatorId String
   creator   User   @relation("CommunityCreator", fields: [creatorId], references: [id])
@@ -109,6 +110,7 @@ model RealGarden {
 
   irrigationAvailability String  @default("unknown")
   soilType               String?
+  characteristics        String? @default("{}")
 
   communityId String?
   community   Community? @relation(fields: [communityId], references: [id])
@@ -156,7 +158,7 @@ model MedicinalCatalog {
 model CultivatedPlant {
   id String @id @default(cuid())
 
-  plotIndex Int // 0 a 5 (UNIQUE por huerto)
+  plotIndex Int? // 0 a 5 (UNIQUE por huerto); null = archivada
 
   speciesId String
   species   MedicinalCatalog @relation(fields: [speciesId], references: [id])
@@ -173,9 +175,10 @@ model CultivatedPlant {
   plantingDate DateTime @default(now())
   notes        String   @default("")
 
-  // Estado del ciclo de vida: GROWING | READY_TO_HARVEST | HARVESTED | REGROWING
+  // Estado del ciclo de vida: GROWING | READY_TO_HARVEST | HARVESTED | REGROWING | ARCHIVED
   lifecycleStatus  String    @default("GROWING")
   lastHarvestDate  DateTime?
+  archivedAt       DateTime?
 
   registeredById String
   registeredBy   User   @relation("PlantRegistrar", fields: [registeredById], references: [id])

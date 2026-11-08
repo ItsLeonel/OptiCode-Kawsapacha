@@ -293,3 +293,19 @@
 @media (prefers-reduced-motion: reduce) {
   .my-garden-page *, .my-garden-page *::before, .my-garden-page *::after { transition: none !important; animation: none !important; }
 }
+
+.my-garden-page .garden-scene--sized .garden-stage { width: calc(100% * var(--scene-footprint)); margin-inline: auto; }
+.my-garden-page .garden-scene--sized .garden-stage:is([data-kind=ground], [data-kind=pots]) { width: calc((100% - var(--garden-house-clearance)) * var(--scene-footprint)); margin-left: auto; margin-right: 0; }
+.my-garden-page .garden-scene--sized .garden-stage[data-kind=ground] { aspect-ratio: var(--scene-ground-ratio); min-height: 250px; }
+.my-garden-page .garden-scene--sized .garden-stage:is([data-kind=ground], [data-kind=pots]) .garden-parcels { grid-template-columns: repeat(var(--scene-columns), minmax(0, 1fr)); gap: var(--scene-gap); }
+.my-garden-page .garden-scene--sized .garden-stage[data-kind=pots] .garden-parcel { height: calc(235px * var(--scene-depth)); --vessel-depth: 1; }
+.my-garden-page .garden-scene--sized .garden-stage[data-kind=vertical] { width: min(calc((100% - var(--garden-house-clearance)) * var(--scene-footprint)), 660px); min-height: 0; margin-left: auto; margin-right: 0; }
+.my-garden-page .garden-scene--sized .garden-stage[data-kind=hanging] { max-width: calc(840px * var(--scene-footprint)); }
+.my-garden-page .garden-scene--sized .garden-scene-note { max-width: 100%; line-height: 1.5; font-size: 12px; }
+@media (max-width: 700px) {
+  .my-garden-page .garden-scene--sized .garden-stage { width: max(85%, calc(100% * var(--scene-footprint))); }
+  .my-garden-page .garden-scene--sized .garden-stage:is([data-kind=ground], [data-kind=pots], [data-kind=vertical]) { width: max(85%, calc((100% - var(--garden-house-clearance)) * var(--scene-footprint))); }
+  .my-garden-page .garden-scene--sized .garden-stage:is([data-kind=ground], [data-kind=pots]) .garden-parcels { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--scene-gap) * .65); }
+  .my-garden-page .garden-scene--sized .garden-stage[data-kind=pots] .garden-parcel { height: calc(195px * var(--scene-depth)); }
+  .my-garden-page .garden-scene--sized .garden-stage[data-kind=ground] { min-height: 245px; }
+}

@@ -4,32 +4,37 @@ import GardenLocation from './GardenLocation'
 import GardenCharacteristics from './GardenCharacteristics'
 import RealGardenSummary from './RealGardenSummary'
 import RealGardenIcon from './RealGardenIcon'
-import GardenRegionalBackground from './GardenRegionalBackground'
-import { regionForProvince } from './garden-region'
+import GardenRegistrationDetails from './GardenRegistrationDetails'
+import type { Community } from '../communities/communities'
+import { withCommunityLocation } from './garden-community-location'
 import { parseRealGarden, toGardenDraft, type RealGarden, type RealGardenDraft, type RealGardenErrors } from './real-garden'
 import type { UserSession } from '../../services/api'
 import './real-gardens.css'
+import './garden-registration.css'
 
 export default function RealGardenPage({
   garden,
   draft,
   onDraftChange,
+  community,
   communityName,
   onSave,
   onConnect,
-  onHome,
   onCommunity,
+  plantRegistrationPending,
   user,
   currentCommunityRole,
 }: {
   garden: RealGarden | null
-  communityName: string | null
-  onSave: (garden: RealGarden) => void
+  community?: Community | null
+  communityName?: string | null
+  onSave: (garden: RealGarden) => void | Promise<void>
   draft: RealGardenDraft
   onDraftChange: (draft: RealGardenDraft) => void
   onConnect: () => void
-  onHome: () => void
+  onHome?: () => void
   onCommunity: () => void
+  plantRegistrationPending?: boolean
   user?: UserSession | null
   /** Rol del usuario actual en la comunidad vinculada al huerto */
   currentCommunityRole?: 'RESPONSABLE' | 'PARTICIPANTE' | null
@@ -40,13 +45,23 @@ export default function RealGardenPage({
   const isCreator = Boolean(user && garden?.createdById && garden.createdById === user.id)
   const canEdit = !user || !currentCommunityRole || currentCommunityRole === 'RESPONSABLE' || isCreator
 
-  const [editing, setEditing] = useState(!garden || JSON.stringify(draft) !== JSON.stringify(toGardenDraft(garden)))
+  const [editing, setEditing] = useState(!garden || draft.photo !== garden.photo || JSON.stringify(draft) !== JSON.stringify(toGardenDraft(garden)))
   const [errors, setErrors] = useState<RealGardenErrors>({})
   const [notice, setNotice] = useState('')
+  const [registrationDetailsOpen, setRegistrationDetailsOpen] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const saveGuard = useRef(false)
   const summaryRef = useRef<HTMLDivElement>(null)
   const readOnly = Boolean(garden) && !editing
-  const region = regionForProvince(readOnly && garden ? garden.location.province : values.province)
+  const resolvedCommunityName = community?.name ?? communityName ?? null
+  const registrationMode = !garden
+
+  function useCommunityLocation() {
+    if (!community || readOnly) return
+    setValues(withCommunityLocation(values, community))
+    setErrors(current => ({ ...current, province: undefined, cantonCode: undefined, parishCode: undefined, coordinates: undefined, reference: undefined }))
+    setNotice('Ubicación de la comunidad seleccionada.')
+  }
 
   function update<K extends keyof RealGardenDraft>(field: K, value: RealGardenDraft[K]) {
     if (readOnly || !canEdit) return
@@ -74,7 +89,7 @@ export default function RealGardenPage({
     setValues(toGardenDraft(garden))
     setEditing(true)
     setErrors({})
-    setNotice('Editando tu huerto. Guarda o cancela los cambios.')
+    setNotice('Editando tu terreno. Guarda o cancela los cambios.')
     requestAnimationFrame(() => formRef.current?.querySelector<HTMLInputElement>('#rg-name')?.focus())
   }
 
@@ -86,185 +101,145 @@ export default function RealGardenPage({
     requestAnimationFrame(() => summaryRef.current?.querySelector<HTMLButtonElement>('.rg-edit')?.focus())
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (readOnly || !canEdit) return
-    const result = parseRealGarden(values, communityName)
+    if (readOnly || !canEdit || saveGuard.current) return
+    const result = parseRealGarden(values, resolvedCommunityName)
     if (!result.ok) {
       setErrors(result.errors)
       setNotice('Revisa los campos indicados antes de guardar tu huerto.')
-      const first = Object.keys(result.errors)[0]
+      const fields = Object.keys(result.errors)
+      const configurationErrors = fields.filter(field => field !== 'name' && field !== 'areaM2')
+      if (registrationMode && !configurationErrors.length) {
+        if (!resolvedCommunityName) {
+          setNotice('Primero crea o selecciona una comunidad. Una comunidad personal es válida. Tu borrador sigue aquí.')
+          document.getElementById('rg-create-community')?.focus()
+          return
+        }
+        setRegistrationDetailsOpen(true)
+      }
+      const first = registrationMode ? configurationErrors[0] ?? fields[0] : fields[0]
       requestAnimationFrame(() => {
-        const control = formRef.current?.querySelector<HTMLElement>(`#rg-${first}`)
+        const control = formRef.current?.querySelector<HTMLElement>(`#rg-${first}`) ?? document.getElementById(`rg-${first}`)
         const details = control?.closest('details')
         if (details) details.open = true
-        control?.focus()
+        if (control) control.focus()
+        else if (registrationMode && ['province', 'cantonCode', 'parishCode', 'coordinates', 'reference'].includes(first)) document.getElementById('rg-change-location')?.focus()
       })
       return
     }
-    onSave(result.garden)
+    if (!resolvedCommunityName) {
+      setNotice('Primero crea o selecciona una comunidad. Una comunidad personal es válida. Tu borrador sigue aquí.')
+      document.getElementById('rg-create-community')?.focus()
+      return
+    }
+    saveGuard.current = true
+    try { await onSave(result.garden) }
+    catch (cause) { saveGuard.current = false; setNotice(cause instanceof Error ? cause.message : 'No se pudo guardar el terreno.'); return }
+    saveGuard.current = false
     setValues(toGardenDraft(result.garden))
     setEditing(false)
+    setRegistrationDetailsOpen(false)
     setErrors({})
-    setNotice(garden ? 'Huerto actualizado en el servidor.' : 'Huerto guardado exitosamente.')
+    setNotice(garden ? (user ? 'Huerto actualizado en el servidor.' : 'Terreno actualizado.') : (user ? 'Huerto guardado exitosamente.' : 'Terreno guardado en este navegador.'))
     requestAnimationFrame(() => summaryRef.current?.focus())
   }
 
   return (
-    <main className="real-garden-page" data-region={region} data-view={readOnly ? 'registered' : 'form'}>
-      <GardenRegionalBackground region={region} />
+    <section className={`real-garden-page garden-terrain-view${registrationMode ? ' rg-registration-page' : ''}`} data-view={readOnly ? 'registered' : 'form'} aria-label="Mi terreno">
       <div className="rg-content">
-        <header className="rg-topbar">
-          <nav className="rg-breadcrumbs" aria-label="Ruta de navegación">
-            <button type="button" onClick={onHome}>
-              <GardenIcon name="seed" /> Kawsapacha
+        {user && (
+          <span className="rg-visitor" style={{ background: 'rgba(56, 161, 105, 0.15)', color: '#2f855a', padding: '4px 10px', borderRadius: '12px', display: 'inline-block', marginBottom: '8px' }}>
+            <span aria-hidden="true">●</span> {user.name} · {user.role}
+          </span>
+        )}
+        {!readOnly && !registrationMode && (
+          <header className="rg-terrain-intro">
+            <RealGardenIcon name="check" />
+            <div>
+              <h2>Editar mi terreno</h2>
+              <p>Actualiza la ubicación y las características de tu huerto.</p>
+            </div>
+          </header>
+        )}
+        {plantRegistrationPending && (
+          <p className="rg-feedback">Tu planta está en pausa. Guarda el terreno y pulsa «Volver a Mi Jardín» para continuar con la fotografía y los datos elegidos.</p>
+        )}
+        {!resolvedCommunityName && (
+          <section className="rg-feedback" aria-label="Comunidad requerida">
+            <h2>Primero, una comunidad para tu huerto</h2>
+            <p>Puedes explorar y preparar este borrador. Para registrar el huerto, crea o selecciona una comunidad; una personal de 1 persona es válida. Tus datos y tu fotografía pendiente se conservan al volver.</p>
+            <button id="rg-create-community" type="button" className="rg-primary-button" onClick={onCommunity}>
+              Crear comunidad para mi huerto
+              <GardenIcon name="arrow" />
             </button>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page">Mi Huerto</span>
-          </nav>
-          {user ? (
-            <span className="rg-visitor" style={{ background: 'rgba(56, 161, 105, 0.15)', color: '#2f855a' }}>
-              <span aria-hidden="true">●</span> {user.name} · {user.role}
-            </span>
-          ) : (
-            <span className="rg-visitor">
-              <span aria-hidden="true" /> Demostración pública · Visitante sin sesión
-            </span>
-          )}
-        </header>
-
-        <section className="rg-hero" aria-labelledby="rg-page-title">
-          <div>
-            <h1 data-screen-heading tabIndex={-1} id="rg-page-title">
-              <GardenIcon name="seed" /> Mi Huerto
-            </h1>
-            <p className="rg-subtitle">Donde comienza la vida</p>
-            {!readOnly && <p className="rg-intro">Registra el lugar donde cultivas tus plantas medicinales.</p>}
+          </section>
+        )}
+        {!canEdit && (
+          <div
+            role="note"
+            style={{
+              background: '#fffaf0',
+              border: '1px solid #fbd38d',
+              color: '#744210',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>🔒</span>
+            <span>Solo el <strong>Responsable</strong> de la comunidad puede modificar los datos del terreno.</span>
           </div>
-          <div className="rg-connection-preview" aria-label="Mi Huerto es el espacio real y Mi Jardín su representación digital">
-            <div>
-              <GardenIcon name="seed" />
-              <span>
-                <strong>Mi Huerto <small>(Real)</small></strong>
-                <span>Tu espacio físico de cultivo</span>
-              </span>
-            </div>
-            <GardenIcon name="arrow" />
-            <div>
-              <RealGardenIcon name="digital" />
-              <span>
-                <strong>Mi Jardín <small>(Digital)</small></strong>
-                <span>Tu representación virtual para aprender y compartir</span>
-              </span>
-            </div>
-          </div>
-        </section>
-
+        )}
         {readOnly && garden ? (
-          <div className="rg-summary-focus" ref={summaryRef} tabIndex={-1} aria-label="Ficha del huerto">
-            {!canEdit && (
-              <div
-                role="note"
-                style={{
-                  background: '#fffaf0',
-                  border: '1px solid #fbd38d',
-                  color: '#744210',
-                  borderRadius: '10px',
-                  padding: '12px 16px',
-                  marginBottom: '16px',
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span style={{ fontSize: '1.2rem' }}>🔒</span>
-                <span>Solo el <strong>Responsable</strong> de la comunidad puede modificar los datos del terreno.</span>
-              </div>
-            )}
-            <RealGardenSummary
-              garden={garden}
-              onEdit={canEdit ? edit : undefined}
-              onConnect={onConnect}
-              onCommunity={onCommunity}
-            />
+          <div className="rg-summary-focus" ref={summaryRef} tabIndex={-1} aria-label="Características de mi terreno">
+            <RealGardenSummary garden={garden} onEdit={canEdit ? edit : undefined} onConnect={onConnect} onCommunity={onCommunity} />
           </div>
         ) : (
-          <form
-            ref={formRef}
-            className="rg-form"
-            onSubmit={submit}
-            noValidate
-            aria-label={garden ? 'Editar mi huerto' : 'Registrar mi huerto'}
-            aria-describedby="rg-visit-note"
-          >
-            {!canEdit && (
-              <div
-                role="note"
-                style={{
-                  background: '#fffaf0',
-                  border: '1px solid #fbd38d',
-                  color: '#744210',
-                  borderRadius: '10px',
-                  padding: '12px 16px',
-                  marginBottom: '16px',
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <span style={{ fontSize: '1.2rem' }}>🔒</span>
-                <span>Solo el <strong>Responsable</strong> de la comunidad puede modificar los datos del terreno.</span>
-              </div>
-            )}
-            <div className="rg-form-panels">
-              <GardenLocation values={values} errors={errors} disabled={!canEdit} onChange={update} />
+          <form ref={formRef} className="rg-form" onSubmit={submit} noValidate aria-label={garden ? 'Editar mi terreno' : 'Registrar mi terreno'} aria-describedby="rg-visit-note">
+            <div className={`rg-form-panels${registrationMode ? ' rg-registration-panels' : ''}`}>
+              <GardenLocation values={values} errors={errors} disabled={!canEdit} community={community ?? null} registrationMode={registrationMode} onUseCommunityLocation={useCommunityLocation} onChange={update} />
               <GardenCharacteristics
                 values={values}
                 errors={errors}
                 disabled={!canEdit}
+                registrationMode={registrationMode}
                 onChange={update}
                 actions={
-                  canEdit ? (
-                    <div className="rg-form-footer">
-                      <p>* Campos obligatorios</p>
-                      <div>
-                        {garden && (
-                          <button className="rg-outline-button" type="button" onClick={cancel}>
-                            Cancelar edición
-                          </button>
-                        )}
-                        <button className="rg-primary-button" type="submit">
-                          <GardenIcon name="seed" />
-                          {garden ? 'Guardar cambios' : 'Guardar mi huerto'}
-                          <GardenIcon name="arrow" />
+                  <div className="rg-form-footer">
+                    <p>* Campos obligatorios · Comunidad requerida</p>
+                    <div>
+                      {garden && (
+                        <button className="rg-outline-button" type="button" onClick={cancel}>
+                          Cancelar edición
                         </button>
-                      </div>
+                      )}
+                      <button className="rg-primary-button" type="submit" disabled={!canEdit}>
+                        <GardenIcon name="seed" />
+                        {garden ? 'Guardar cambios' : 'Guardar mi terreno'}
+                        <GardenIcon name="arrow" />
+                      </button>
                     </div>
-                  ) : (
-                    <div className="rg-form-footer">
-                      <p style={{ color: '#718096', fontStyle: 'italic', margin: 0 }}>
-                        Modo lectura · Solo el Responsable puede guardar cambios en los datos del terreno.
-                      </p>
-                    </div>
-                  )
+                  </div>
                 }
               />
             </div>
           </form>
         )}
-
-        <p className="rg-sr-only" role="status" aria-live="polite" aria-atomic="true">
+        <p className={notice ? 'rg-feedback' : 'rg-sr-only'} role="status" aria-live="polite" aria-atomic="true">
           {notice}
         </p>
-        <footer className="rg-visit-note" id="rg-visit-note">
-          <GardenIcon name="leaf" />
-          <span>
-            {user ? 'Datos guardados en la base de datos de tu huerto.' : 'Datos temporales de demostración. Inicia sesión para persistir.'}
-          </span>
-        </footer>
+        <p className="rg-visit-note" id="rg-visit-note">
+          {user ? 'Datos guardados en la base de datos de tu huerto.' : 'Guardado local en este navegador · Sin sincronización multiusuario.'}
+        </p>
       </div>
-    </main>
+      {registrationMode && registrationDetailsOpen && (
+        <GardenRegistrationDetails values={values} errors={errors} onChange={update} onConfirm={submit} onClose={() => setRegistrationDetailsOpen(false)} />
+      )}
+    </section>
   )
 }

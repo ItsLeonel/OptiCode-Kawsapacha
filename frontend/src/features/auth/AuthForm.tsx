@@ -13,9 +13,10 @@ type Props = {
   mode: AuthMode
   onProgress: (validFields: number) => void
   onSubmit?: AuthSubmitHandler
+  onAuthenticated?: () => void
 }
 
-export default function AuthForm({ mode, onProgress, onSubmit }: Props) {
+export default function AuthForm({ mode, onProgress, onSubmit, onAuthenticated }: Props) {
   const [values, setValues] = useState<AuthValues>({ name: '', email: '', password: '', confirmPassword: '' })
   const [touched, setTouched] = useState<Partial<Record<AuthFieldName, boolean>>>({})
   const [submitted, setSubmitted] = useState(false)
@@ -24,12 +25,17 @@ export default function AuthForm({ mode, onProgress, onSubmit }: Props) {
   const [busy, setBusy] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const sending = useRef(false)
+  const active = useRef(false)
   const errors = validateAuth(values, mode)
   const fields = AUTH_FIELDS[mode]
   const validFields = fields.filter(field => !errors[field]).length
   const visibleErrorCount = fields.filter(field => errors[field] && (touched[field] || submitted)).length
 
   useEffect(() => { onProgress(validFields) }, [validFields, onProgress])
+  useEffect(() => {
+    active.current = true
+    return () => { active.current = false }
+  }, [])
 
   function updateField(field: AuthFieldName, value: string) {
     setValues(current => ({ ...current, [field]: value }))
@@ -58,12 +64,14 @@ export default function AuthForm({ mode, onProgress, onSubmit }: Props) {
     setBusy(true)
     try {
       const result = await onSubmit(toAuthSubmission(values, mode))
+      if (!active.current) return
       setMessage(result.message)
+      if (result.authenticated === true) onAuthenticated?.()
     } catch (err: unknown) {
-      setMessage(err instanceof Error ? err.message : 'No pudimos completar la solicitud. Inténtalo de nuevo más tarde.')
+      if (active.current) setMessage(err instanceof Error ? err.message : 'No pudimos completar la solicitud. Inténtalo de nuevo más tarde.')
     } finally {
       sending.current = false
-      setBusy(false)
+      if (active.current) setBusy(false)
     }
   }
 

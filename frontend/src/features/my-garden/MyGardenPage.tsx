@@ -1,21 +1,31 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import GardenIcon from './GardenIcon'
-import GardenScene from './GardenScene'
 import GreenChallenges from './GreenChallenges'
+import GardenOnboarding from './GardenOnboarding'
+import type { Community } from '../communities/communities'
 import { GardenRegionalBackground } from './GardenRegionalScenery'
 import { regionForProvince } from '../real-gardens/garden-region'
+import GameTitle from '../../shared/ui/game-ui/GameTitle'
+import GameDecoration from '../../shared/ui/game-ui/GameDecoration'
 import type { GardenAction, GardenDestination, GardenPlant } from './garden'
+import type { GardenSceneRenderer } from './garden-scene-renderer'
+import type { GardenSceneRendererProps } from './garden-scene-renderer'
 import { GARDEN_KINDS, formatGardenArea, type RealGarden } from '../real-gardens/real-garden'
 import type { UserSession } from '../../services/api'
 import './my-garden.css'
 import './my-garden-v2.css'
 import './garden-scene.css'
+import './my-garden-v3.css'
 
 const ACTIONS = [
+  { action: 'activity', label: 'Registrar actividad', icon: 'book' },
   { action: 'register', label: 'Registrar planta', icon: 'seed' },
   { action: 'logbook', label: 'Bitácora', icon: 'book' },
-  { action: 'real-garden', label: 'Mi huerto real', icon: 'map' },
   { action: 'passport', label: 'Pasaporte Vivo', icon: 'history' },
+  { action: 'my-plants', label: 'Mis plantas', icon: 'pot' },
+  { action: 'progress', label: 'Progreso', icon: 'target' },
 ] as const
+const PhaserGarden = lazy(() => import('./phaser-poc/PhaserGardenPoc'))
 
 export default function MyGardenPage({
   plants,
@@ -31,13 +41,33 @@ export default function MyGardenPage({
   user,
   pendingInvitationsCount = 0,
   onOpenNotifications,
+  onCreateCommunity,
+  onJoinCommunity,
+  terrainView,
+  terrainProvince,
+  renderGardenScene,
+  activities,
+  feedback,
+  progress,
+  interactionBlocked = false,
+  demo = true,
 }: {
   plants: GardenPlant[]
-  community: string
-  garden: string
-  province: string
+  community: Community | null
+  garden?: string
+  province?: string
   realGarden: RealGarden | null
   selectedPlot: number | null
+  terrainView?: ReactNode
+  terrainProvince?: string
+  renderGardenScene?: GardenSceneRenderer
+  activities?: GardenSceneRendererProps['activities']
+  feedback?: GardenSceneRendererProps['feedback']
+  progress?: GardenSceneRendererProps['progress']
+  interactionBlocked?: boolean
+  onCreateCommunity?: () => void
+  onJoinCommunity?: () => void
+  demo?: boolean
   onSelect: (plant: GardenPlant) => void
   onRegister: (plot: number) => void
   onAction: (action: GardenAction) => void
@@ -46,14 +76,18 @@ export default function MyGardenPage({
   pendingInvitationsCount?: number
   onOpenNotifications?: () => void
 }) {
-  const currentKind = realGarden?.kind ?? 'ground'
-  const region = regionForProvince(realGarden?.location?.province ?? province ?? '')
-  const hasLinkedGardenAndCommunity = Boolean(community && realGarden)
-  const isNewUser = Boolean(user) && !hasLinkedGardenAndCommunity
+  const territory = (terrainView ? terrainProvince : realGarden?.location?.province) || community?.province || province || ''
+  const region = regionForProvince(territory)
 
   return (
-    <main className="my-garden-page" data-region={region} data-garden-kind={realGarden?.kind ?? 'unregistered'}>
-      <GardenRegionalBackground region={region} />
+    <main
+      className="my-garden-page game-v3"
+      data-view={terrainView ? 'terrain' : 'garden'}
+      data-region={region}
+      data-garden-kind={realGarden?.kind ?? 'unregistered'}
+      data-onboarding={community && realGarden ? 'complete' : community ? 'real-garden' : 'community'}
+    >
+      <GardenRegionalBackground region={region} variant={realGarden && !terrainView ? 'garden' : 'welcome'} />
       {user ? (
         <div className="garden-visitor-notice" style={{ background: 'rgba(56, 161, 105, 0.15)', color: '#276749' }}>
           <span className="garden-visitor-dot" style={{ background: '#38a169' }} />
@@ -73,145 +107,98 @@ export default function MyGardenPage({
         </div>
       ) : (
         <div className="garden-visitor-notice">
-          <span className="garden-visitor-dot" /> Demostración pública · Visitante sin sesión{' '}
-          <span>Registros temporales, solo en esta visita.</span>
+          <span className="garden-visitor-dot" /> {demo ? 'Demostración pública · Visitante sin sesión' : 'Sesión confirmada · Guardado local'}
         </div>
       )}
 
       <header className="garden-welcome">
-        <div>
-          <span className="garden-eyebrow">MI JARDÍN · KAWSAPACHA</span>
-          <h1 tabIndex={-1} data-screen-heading>
-            ¡Bienvenido a <span>tu Jardín!</span> <GardenIcon name="leaf" />
-          </h1>
+        <div className="garden-welcome-sign">
+          <GameDecoration kind="plank" className="garden-welcome-wood" />
+          <GameTitle as="h1" screenHeading tabIndex={-1} icon={<GardenIcon name="leaf" />}>
+            {terrainView ? 'Mi terreno' : '¡Bienvenido a tu Jardín!'}
+          </GameTitle>
           <p>
-            Aquí tu huerto real y tu huerto digital
-            <br className="garden-desktop-break" /> crecen juntos.
+            {terrainView
+              ? realGarden
+                ? 'La ubicación y las características de tu espacio de cultivo.'
+                : 'Registra y describe tu espacio de cultivo real.'
+              : 'Tu huerto real y tu jardín digital crecen juntos.'}
           </p>
         </div>
-        <span className="garden-territory" aria-label="Ubicación de tu huerto">
-          <GardenIcon name="map" />
-          <strong>{province || 'Raíces ecuatorianas'}</strong>
-          <small className="garden-territory-name">{garden || 'Tu próximo huerto empieza aquí'}</small>
-          {realGarden && (
+        {realGarden && !terrainView && (
+          <span className="garden-territory" aria-label="Ubicación de tu huerto">
+            <GardenIcon name="map" />
+            <strong>{realGarden.location?.province || province || 'Raíces ecuatorianas'}</strong>
+            <small className="garden-territory-name">{realGarden.name || garden || 'Tu huerto'}</small>
             <small>
               {GARDEN_KINDS[realGarden.kind]?.label ?? 'En tierra'} · {formatGardenArea(realGarden.areaM2)}
               {realGarden.location?.canton && ` · ${realGarden.location.canton}`}
             </small>
-          )}
-        </span>
+          </span>
+        )}
       </header>
 
-      {/* Estado limpio y acogedor para usuario sin comunidad ni huerto */}
-      {isNewUser && (
-        <div
-          style={{
-            margin: '20px auto',
-            maxWidth: '680px',
-            background: 'rgba(255,255,255,0.95)',
-            border: '2px dashed #48bb78',
-            borderRadius: '16px',
-            padding: '24px 28px',
-            textAlign: 'center',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
-          }}
-        >
-          <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🌱</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: '1.2rem', color: '#22543d' }}>
-            Bienvenido/a a Kawsapacha
-          </h2>
-          <p style={{ margin: '0 0 16px', fontSize: '0.92rem', color: '#2d3748', lineHeight: 1.5 }}>
-            Aún no tienes un huerto ni una comunidad asignada. Crea una comunidad como <strong>Responsable</strong> o acepta una invitación en <strong>Notificaciones 🔔</strong> para comenzar.
-          </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="is-primary"
-              onClick={() => onNavigate('community')}
-              style={{ padding: '10px 20px', borderRadius: '10px', fontWeight: 700 }}
-            >
-              <GardenIcon name="community" /> Crear mi comunidad
-            </button>
-            {onOpenNotifications && (
-              <button
-                type="button"
-                onClick={onOpenNotifications}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  background: pendingInvitationsCount > 0 ? '#feebc8' : '#edf2f7',
-                  color: pendingInvitationsCount > 0 ? '#744210' : '#4a5568',
-                  border: pendingInvitationsCount > 0 ? '1px solid #fbd38d' : '1px solid #cbd5e0',
-                }}
-              >
-                🔔 {pendingInvitationsCount > 0 ? `Ver invitaciones (${pendingInvitationsCount})` : 'Bandeja de Notificaciones'}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <nav className="garden-view-navigation" aria-label="Vistas de Mi Jardín">
+        <button type="button" aria-current={!terrainView ? 'page' : undefined} onClick={() => onNavigate('garden')}>
+          <GardenIcon name="garden" />
+          Mi Jardín
+        </button>
+        <button type="button" aria-current={terrainView ? 'page' : undefined} onClick={() => onAction('real-garden')}>
+          <GardenIcon name="map" />
+          Mi terreno
+        </button>
+      </nav>
 
-      <div className="garden-world-content">
-        {realGarden ? (
-          <GardenScene
-            kind={realGarden.kind}
-            region={region}
-            plants={plants}
-            selectedPlot={selectedPlot}
-            onRegister={onRegister}
-            onSelect={onSelect}
-            disabled={Boolean(user && !hasLinkedGardenAndCommunity)}
-          />
-        ) : !user ? (
-          <section className="garden-start" aria-labelledby="garden-start-title">
-            <div className="garden-start-emblem" aria-hidden="true">
-              <GardenIcon name="seed" />
-            </div>
-            <span className="garden-eyebrow">RAÍCES REALES, UN JARDÍN POR DESCUBRIR</span>
-            <h2 id="garden-start-title">
-              Tu jardín comienza
-              <br />
-              con un huerto real
-            </h2>
-            <p>Registra dónde cultivas y dale un lugar a cada planta.</p>
-            <button type="button" className="garden-start-button" onClick={() => onAction('real-garden')}>
-              <GardenIcon name="map" />
-              Registrar mi huerto
-              <GardenIcon name="arrow" />
-            </button>
-          </section>
-        ) : (
-          <GardenScene
-            kind={currentKind}
-            region={region}
-            plants={plants}
-            selectedPlot={selectedPlot}
-            onRegister={onRegister}
-            onSelect={onSelect}
-            disabled={true}
-          />
-        )}
-        <GreenChallenges onNavigate={onNavigate} onAction={onAction} />
+      <div className={`garden-world-content${terrainView ? ' garden-world-content--terrain' : ''}`}>
+        {terrainView ||
+          (community && realGarden ? (
+            renderGardenScene ? (
+              renderGardenScene({
+                realGarden,
+                plants,
+                selectedPlot,
+                interactionBlocked,
+                onRegister,
+                onSelect,
+                activities,
+                feedback,
+                progress,
+              })
+            ) : (
+              <Suspense fallback={<p role="status">Preparando Mi Jardín Vivo…</p>}>
+                <PhaserGarden
+                  realGarden={realGarden}
+                  plants={plants}
+                  selectedPlot={selectedPlot}
+                  interactionBlocked={interactionBlocked}
+                  onRegister={onRegister}
+                  onSelect={onSelect}
+                  activities={activities}
+                  feedback={feedback}
+                  progress={progress}
+                />
+              </Suspense>
+            )
+          ) : (
+            <GardenOnboarding
+              community={community}
+              region={region}
+              onCreateCommunity={onCreateCommunity ?? (() => onNavigate('community'))}
+              onJoinCommunity={onJoinCommunity ?? (() => onNavigate('community'))}
+              onCommunity={() => onNavigate('community')}
+              onRegisterGarden={() => onAction('real-garden')}
+              onOpenNotifications={onOpenNotifications}
+              pendingInvitationsCount={pendingInvitationsCount}
+            />
+          ))}
+        {!terrainView && <GreenChallenges onNavigate={onNavigate} onAction={onAction} />}
       </div>
 
       <nav className="garden-quick-actions" aria-label="Acciones de tu jardín">
         {ACTIONS.map(item => (
-          <button
-            key={item.action}
-            type="button"
-            data-action={item.action}
-            className={item.action === 'register' ? 'is-primary' : ''}
-            onClick={() => onAction(item.action)}
-            disabled={item.action === 'register' && Boolean(user && !hasLinkedGardenAndCommunity)}
-            style={
-              item.action === 'register' && Boolean(user && !hasLinkedGardenAndCommunity)
-                ? { opacity: 0.6, cursor: 'not-allowed' }
-                : undefined
-            }
-          >
+          <button key={item.action} type="button" data-action={item.action} onClick={() => onAction(item.action)}>
             <span>
-              <GardenIcon name={item.icon as any} />
+              <GardenIcon name={item.icon} />
             </span>
             {item.label}
           </button>
@@ -222,11 +209,11 @@ export default function MyGardenPage({
         <GardenIcon name="mountain" />
         {user
           ? community
-            ? `${community} · ${garden || 'Huerto por vincular'}`
+            ? `${community.name} · ${realGarden?.name || garden || 'Huerto por vincular'}`
             : 'Un jardín para aprender, compartir y cuidar nuestra tierra.'
           : community
-          ? `${community} · `
-          : 'Registros temporales. Se pierden al recargar.'}
+          ? `${community.name} · `
+          : 'Registros y fotografías guardados en este navegador.'}
       </p>
     </main>
   )

@@ -8,6 +8,7 @@ import memberRoutes from './member.routes'
 import careRoutes from './care.routes'
 import resourceRoutes from './resource.routes'
 import invitationRoutes from './invitation.routes'
+import userRoutes from './user.routes'
 import { plantHarvestRouter, gardenHarvestRouter, communityHarvestRouter } from './harvest.routes'
 import { getCalendarTips } from '../controllers/care.controller'
 import { requireAuth } from '../middlewares/auth.middleware'
@@ -15,6 +16,8 @@ import { requireAuth } from '../middlewares/auth.middleware'
 const router = Router()
 
 router.use('/auth', authRoutes)
+router.use('/users/me/invitations', invitationRoutes)
+router.use('/users', userRoutes)
 router.use('/communities', communityRoutes)
 router.use('/communities/:id/members', memberRoutes)
 router.use('/communities/:id/resources', resourceRoutes)

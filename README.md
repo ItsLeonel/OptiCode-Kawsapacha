@@ -14,7 +14,7 @@ Kawsapacha es una aplicación web educativa para que comunidades del Ecuador reg
 
 **Flujo de la demostración:** crear cuenta → iniciar sesión → crear comunidad → registrar huerto y provincia → elegir especie → subir foto real → colocar planta en una parcela → abrir su ficha → comprobar que los datos persisten.
 
-> **Estado actual:** los [PR #17 (documentación)](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/17) y [#18 (frontend inicial)](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/18) ya están fusionados en `main`. El frontend existente **es un prototipo**: todavía no tiene autenticación real, API, base de datos ni subida de imágenes al servidor. **Nadie debe dar por completada la V1.**
+> **Estado al 8/11/2026:** el frontend incluye el flujo local de comunidades, registro de terrenos y Mi Jardín Vivo con Phaser, plantas, fotografías, actividades, Pasaporte Vivo y progreso. Los datos se guardan en IndexedDB por navegador/origen. **Todavía NO hay autenticación real, backend, base de datos central ni sincronización multiusuario.** No presentar la V1 como completamente integrada. Véase [informe técnico](docs/mi-jardin-vivo-implementacion.md).
 
 ## 👥 Equipo: empiecen por estas tareas
 

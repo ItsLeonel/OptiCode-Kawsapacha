@@ -11,7 +11,7 @@ const EDUCATION = [
   { icon: 'sprout', title: 'Cultiva', text: 'Huertos saludables y sostenibles' },
 ] as const
 
-export default function AuthPage({ onExploreDemo, onSubmit }: { onExploreDemo: (destination?: 'Inicio' | 'Comunidades') => void; onSubmit?: AuthSubmitHandler }) {
+export default function AuthPage({ onExploreDemo, onSubmit, onAuthenticated }: { onExploreDemo: (destination?: 'Inicio' | 'Comunidades') => void; onSubmit?: AuthSubmitHandler; onAuthenticated?: () => void }) {
   const [mode, setMode] = useState<AuthMode>('register')
   const [validFields, setValidFields] = useState(0)
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
@@ -84,7 +84,7 @@ export default function AuthPage({ onExploreDemo, onSubmit }: { onExploreDemo: (
             <p>{mode === 'register' ? 'Únete a una comunidad que cultiva un Ecuador más sano y sostenible.' : 'Ingresa tus datos y continúa tu camino en Kawsapacha.'}</p>
           </div>
           <div className="auth-form-layout">
-            <AuthForm key={mode} mode={mode} onProgress={setValidFields} onSubmit={onSubmit}/>
+            <AuthForm key={mode} mode={mode} onProgress={setValidFields} onSubmit={onSubmit} onAuthenticated={onAuthenticated}/>
             <aside className="auth-growth" aria-label="Crecimiento según los campos válidos">
               <div className="auth-growth-illustration"><PlantIllustration stage={stage}/></div>
               <div className="auth-growth-details">

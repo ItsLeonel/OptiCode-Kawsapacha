@@ -35,6 +35,9 @@ export async function create(req: AuthRequest, res: Response): Promise<void> {
       longitude: coords?.longitude ?? null,
       irrigationAvailability: String(b['irrigationAvailability'] ?? 'unknown'),
       soilType: b['soilType'] ? String(b['soilType']) : null,
+      characteristics: b['characteristics']
+        ? (typeof b['characteristics'] === 'object' ? JSON.stringify(b['characteristics']) : String(b['characteristics']))
+        : null,
       communityId: b['communityId'] ? String(b['communityId']) : null,
       createdById: req.user.userId,
     })
@@ -87,6 +90,9 @@ export async function update(req: AuthRequest, res: Response): Promise<void> {
       longitude: coords?.longitude !== undefined ? coords.longitude : (b['longitude'] !== undefined ? Number(b['longitude']) : undefined),
       irrigationAvailability: b['irrigationAvailability'] ? String(b['irrigationAvailability']) : undefined,
       soilType: b['soilType'] !== undefined ? (b['soilType'] ? String(b['soilType']) : null) : undefined,
+      characteristics: b['characteristics'] !== undefined
+        ? (typeof b['characteristics'] === 'object' ? JSON.stringify(b['characteristics']) : (b['characteristics'] ? String(b['characteristics']) : null))
+        : undefined,
       communityId: b['communityId'] !== undefined ? (b['communityId'] ? String(b['communityId']) : null) : undefined,
     })
     ok(res, { garden: updated }, 'Huerto actualizado.')

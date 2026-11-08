@@ -110,14 +110,15 @@
 .garden-passport-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; color: #e9f0d6; background: #173d28; }
 .garden-passport-header > span { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .1em; }
 .garden-passport-header button { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #b9ce8852; border-radius: 50%; color: #e4f2cb; background: #c8e49414; }
-.garden-passport-photo { display: block; width: 100%; height: min(30dvh, 240px); object-fit: cover; }
+.garden-passport-photo { display: block; width: 100%; height: min(30dvh, 240px); object-fit: contain; background: #e3e8d5; }
 .garden-passport-copy { padding: 22px 26px 26px; }
 .garden-passport-copy .garden-eyebrow { color: #5e7745; font-size: 9px; }
 .garden-passport-copy h2 { font-size: 32px; margin: 8px 0 0; }
 .garden-passport-copy p { font-size: 13px; line-height: 1.6; margin: 8px 0 16px; }
 .garden-passport-copy dl { margin: 18px 0; }
 .garden-passport-copy dl > div { display: flex; gap: 16px; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #bdc9ae; font-size: 12px; }
-.garden-passport-copy dd { margin: 0; font-weight: 600; }
+.garden-passport-copy dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.garden-passport button:focus-visible { outline: 3px solid #91ad42; outline-offset: 3px; }
 .garden-history { display: grid; gap: 28px; }
 .garden-history-path { display: flex; gap: 20px; align-items: center; padding: 24px; border: 1px solid #bccd9f; border-radius: 20px; background: #e7efdd; }
 .garden-history-path > .garden-icon { width: 60px; height: 60px; color: #678b3b; }

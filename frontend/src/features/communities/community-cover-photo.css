@@ -1,0 +1,12 @@
+.community-cover-photo { position: relative; width: 100%; min-width: 0; height: 100%; min-height: 170px; overflow: hidden; border-radius: 16px; background: #24492b; }
+.community-cover-photo > img { display: block; width: 100%; height: 100%; min-height: 170px; max-height: 270px; object-fit: cover; }
+.community-cover-controls { position: absolute; inset: auto 8px 8px; display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.community-cover-controls label, .community-cover-controls button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; margin: 0; padding: 8px 12px; border: 2px solid #f2d68e; border-radius: 22px; background: #214e20; color: #fff9dc; font: 700 13px/1.3 'Trebuchet MS', system-ui, sans-serif; cursor: pointer; text-shadow: none; }
+.community-cover-controls .garden-icon { width: 21px; height: 21px; flex-shrink: 0; }
+.community-cover-controls input[type=file] { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+.community-cover-controls:has(input:focus-visible) label { outline: 3px solid #fff3a8; outline-offset: 3px; }
+.community-cover-error { position: absolute; z-index: 2; top: 8px; left: 8px; right: 8px; margin: 0; padding: 10px; border-radius: 10px; background: #fff3da; color: #9e2416; font-size: 13px; }
+.cw-story-painting .community-cover-photo, .cw-story-painting .community-cover-photo > img { height: 100%; min-height: 0; max-height: none; }
+.community-wizard .cw-identity-fields > .community-cover-photo { grid-column: 1 / -1; height: 200px; }
+.community-wizard.game-v3 .cw-fields .community-cover-controls label { color: #fff9dc; font-size: 13px; }
+.community-overview-cover > .community-cover-photo, .community-overview-cover > .community-cover-photo > img { height: 100%; max-height: none; }

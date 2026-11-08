@@ -1,5 +1,6 @@
 import { provinces } from '../../EcuadorMap'
 import { officialCantons, officialParishes, provinceForName, territoryLabel } from './territory'
+import { GARDEN_FEATURE_OPTIONS, toGardenFeatures, type GardenFeatures } from './garden-characteristics'
 
 export const GARDEN_KINDS = {
   ground: { label: 'En tierra', description: 'Cultivo directo en el suelo.' },
@@ -16,7 +17,7 @@ export const IRRIGATION_OPTIONS = {
 } as const
 
 export const SOIL_OPTIONS = {
-  loam: 'Franco', clay: 'Arcilloso', sand: 'Arenoso', silt: 'Limoso', other: 'Otro', unknown: 'Por determinar',
+  loam: 'Franco', clay: 'Arcilloso', sand: 'Arenoso', silt: 'Limoso', marl: 'Margoso', heavyClay: 'Gredoso', marsh: 'Pantanoso', other: 'Otro', unknown: 'Por determinar',
 } as const
 
 export type GardenKind = keyof typeof GARDEN_KINDS
@@ -37,6 +38,8 @@ export type RealGarden = {
   soilType: SoilType | null
   communityName: string | null
   createdById?: string
+  characteristics?: GardenFeatures
+  photo?: File
 }
 
 export type RealGardenDraft = {
@@ -50,12 +53,14 @@ export type RealGardenDraft = {
   areaM2: string
   irrigationAvailability: IrrigationAvailability | ''
   soilType: SoilType | ''
+  characteristics?: GardenFeatures
+  photo?: File
 }
 export type RealGardenErrors = Partial<Record<keyof RealGardenDraft, string>>
 
 export function toGardenDraft(garden: RealGarden | null): RealGardenDraft {
   if (!garden) {
-    return { name: '', kind: '', province: '', cantonCode: '', parishCode: '', coordinates: null, reference: '', areaM2: '', irrigationAvailability: '', soilType: '' }
+    return { name: '', kind: '', province: '', cantonCode: '', parishCode: '', coordinates: null, reference: '', areaM2: '', irrigationAvailability: '', soilType: '', characteristics: toGardenFeatures() }
   }
   const loc = (garden as any).location ?? {}
   return {
@@ -69,12 +74,15 @@ export function toGardenDraft(garden: RealGarden | null): RealGardenDraft {
     areaM2: String(garden.areaM2 ?? ''),
     irrigationAvailability: garden.irrigationAvailability ?? '',
     soilType: garden.soilType ?? '',
+    characteristics: toGardenFeatures(garden.characteristics),
+    photo: garden.photo,
   }
 }
 
 export function parseRealGarden(draft: RealGardenDraft, communityName: string | null):
   { ok: true; garden: RealGarden } | { ok: false; errors: RealGardenErrors } {
   const errors: RealGardenErrors = {}
+  const characteristics = toGardenFeatures(draft.characteristics)
   const areaM2 = Number(draft.areaM2)
   const province = provinceForName(draft.province)
   const canton = officialCantons.find(item => item.code === draft.cantonCode && item.provinceCode === province?.code)
@@ -90,6 +98,10 @@ export function parseRealGarden(draft: RealGardenDraft, communityName: string | 
   if (draft.coordinates && (!Number.isFinite(draft.coordinates.latitude) || Math.abs(draft.coordinates.latitude) > 90 ||
     !Number.isFinite(draft.coordinates.longitude) || Math.abs(draft.coordinates.longitude) > 180)) errors.coordinates = 'Marca una posición válida en el mapa.'
   if (draft.reference.trim().length > 300) errors.reference = 'Usa hasta 300 caracteres para la dirección o referencia.'
+  for (const field of Object.keys(GARDEN_FEATURE_OPTIONS) as (keyof GardenFeatures)[]) {
+    if (characteristics[field].some(value => !Object.hasOwn(GARDEN_FEATURE_OPTIONS[field], value))) errors.characteristics = 'Revisa las características seleccionadas.'
+  }
+  if (draft.photo && !draft.photo.type.startsWith('image/')) errors.photo = 'Selecciona un archivo de imagen para la fotografía del terreno.'
   if (Object.keys(errors).length) return { ok: false, errors }
   return { ok: true, garden: {
     name: draft.name.trim(), kind: draft.kind as GardenKind, areaM2,
@@ -100,6 +112,7 @@ export function parseRealGarden(draft: RealGardenDraft, communityName: string | 
     },
     irrigationAvailability: draft.irrigationAvailability as IrrigationAvailability,
     soilType: draft.kind === 'ground' ? draft.soilType as SoilType : null, communityName,
+    characteristics, photo: draft.photo,
   } }
 }
 

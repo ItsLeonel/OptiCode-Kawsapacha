@@ -1,5 +1,5 @@
 import type { Response } from 'express'
-import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant } from '../services/plant.service'
+import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant, archivePlant } from '../services/plant.service'
 import { ok, fail } from '../utils/response'
 import type { AuthRequest } from '../types'
 
@@ -68,5 +68,21 @@ export async function remove(req: AuthRequest, res: Response): Promise<void> {
     if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
     if (e.code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', e.message, 403)
     fail(res, 'INTERNAL_ERROR', 'Error al desarraigar la planta.', 500)
+  }
+}
+
+export async function archive(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  const plantId = String(req.params['id'] ?? '')
+  if (!plantId) return void fail(res, 'VALIDATION_ERROR', 'ID de planta requerido.', 400)
+
+  try {
+    const plant = await archivePlant(plantId, req.user.userId)
+    ok(res, { plant }, '📦 Planta archivada. La parcela ha quedado libre para un nuevo cultivo.')
+  } catch (err: unknown) {
+    const e = err as { code?: string; message: string }
+    if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
+    if (e.code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', e.message, 403)
+    fail(res, 'INTERNAL_ERROR', 'Error al archivar la planta.', 500)
   }
 }

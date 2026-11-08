@@ -1,12 +1,17 @@
 import GardenIcon from './GardenIcon'
 import type { GardenDestination } from './garden'
+import GameDecoration from '../../shared/ui/game-ui/GameDecoration'
+import { gameRegionAssets, type GameRegion } from '../../shared/ui/game-ui/game-region-assets'
+import './garden-navigation-v3.css'
 
 const ITEMS = [
-  { destination: 'garden', label: 'Mi jardín', icon: 'garden' },
+  { destination: 'garden', label: 'Mi Jardín', icon: 'garden' },
+  { destination: 'real-garden', label: 'Mi terreno', icon: 'map' },
   { destination: 'community', label: 'Comunidad', icon: 'community' },
-  { destination: 'real-garden', label: 'Mi Huerto', icon: 'seed' },
   { destination: 'plants', label: 'Descubrir plantas', icon: 'leaf' },
+  { destination: 'my-plants', label: 'Mis plantas', icon: 'pot' },
   { destination: 'history', label: 'Mi historia', icon: 'history' },
+  { destination: 'progress', label: 'Mi camino verde', icon: 'target' },
 ] as const
 
 export default function GardenNavigation({
@@ -17,6 +22,7 @@ export default function GardenNavigation({
   onLogout,
   pendingInvitationsCount = 0,
   onOpenNotifications,
+  region = 'sierra',
 }: {
   active: GardenDestination
   onNavigate: (destination: GardenDestination) => void
@@ -25,9 +31,10 @@ export default function GardenNavigation({
   onLogout?: () => void
   pendingInvitationsCount?: number
   onOpenNotifications?: () => void
+  region?: GameRegion
 }) {
   return (
-    <aside className="garden-sidebar">
+    <aside className="garden-sidebar" data-navigation={active}>
       <div className="garden-sidebar-header">
         <button
           className="garden-brand"
@@ -35,6 +42,7 @@ export default function GardenNavigation({
           onClick={() => onNavigate('garden')}
           aria-label="Kawsapacha, ir a Mi jardín"
         >
+          <GameDecoration kind="plank" className="garden-brand-plank"/>
           <span className="garden-brand-leaf">
             <GardenIcon name="leaf" />
           </span>
@@ -73,6 +81,14 @@ export default function GardenNavigation({
           )}
         </nav>
       </div>
+
+      <div className="garden-sidebar-territory" aria-hidden="true"><GardenIcon name="mountain"/></div>
+      {active !== 'community' && <div className="garden-path-preview">
+        <GardenIcon name="seed"/><strong>Mi camino verde</strong>
+        <p>Aprende · Cultiva · Comparte</p>
+        <button type="button" onClick={() => onNavigate('progress')}>Conocer mi camino <GardenIcon name="arrow"/></button>
+      </div>}
+      {active === 'community' && <img className="garden-sidebar-character" src={gameRegionAssets[region].guide} alt="" aria-hidden="true"/>}
 
       {/* Footer fijo e inamovible en la parte inferior izquierda */}
       <div className="garden-sidebar-footer">

@@ -463,7 +463,7 @@
 
 1. **Consultar ficha:** **Dado** que un espacio tiene una planta, **cuando** lo selecciono, **entonces** se abre su Pasaporte Vivo con especie, nombre científico, foto, fecha y espacio.
 2. **Actualizar ficha:** **Dado** que estoy en el Pasaporte Vivo, **cuando** registro estado, altura, observaciones o una nueva foto, **entonces** se guardan sin borrar las evidencias anteriores.
-3. **Archivar planta:** **Dado** que archivo una planta, **cuando** confirmo, **entonces** se libera su espacio sin borrar su ficha ni sus fotos.
+3. **Archivar planta:** **Dado** que soy Responsable de la comunidad y archivo una planta, **cuando** confirmo, **entonces** se libera su espacio sin borrar su ficha ni sus fotos; si soy Participante, la opción no está permitida.
 4. **Restaurar en espacio ocupado:** **Dado** que el espacio original de una planta archivada está ocupado, **cuando** intento restaurarla, **entonces** el sistema lo impide e informa el conflicto.
 5. **Cerrar la ficha:** **Dado** que tengo el Pasaporte abierto, **cuando** pulso Escape, **entonces** se cierra y el foco vuelve al espacio seleccionado.
 

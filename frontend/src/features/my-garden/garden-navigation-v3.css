@@ -1,31 +1,85 @@
-.garden-sidebar.game-v3 { isolation: isolate; gap: 17px; padding: 18px 12px 12px; overflow-x: hidden; overflow-y: auto; color: #fff6cf; background: radial-gradient(ellipse at 70% 30%, #375b22a0, transparent 65%), linear-gradient(110deg, #0c2b17, #184124 55%, #0b2e1d); border-right: 3px solid #b17a35; }
-.garden-sidebar.game-v3[data-navigation=community] { background: repeating-linear-gradient(91deg, #3f210a30 0 3px, transparent 4px 27px, #dda05f15 29px 32px), linear-gradient(90deg, #59320f, #9a5c27 50%, #5f3412); }
+.garden-sidebar.game-v3 {
+  isolation: isolate; gap: 16px; padding: 18px 12px 14px; overflow-x: hidden; overflow-y: auto;
+  color: #fff6cf; background: radial-gradient(ellipse at 70% 30%, #375b22a0, transparent 65%), linear-gradient(110deg, #0c2b17, #184124 55%, #0b2e1d);
+  border-right: 3px solid #b17a35;
+}
 .garden-sidebar.game-v3::after { height: 8px; z-index: 0; border-color: #e0b76d; background: linear-gradient(#ad7734, #5b3516); opacity: 1; }
 .garden-sidebar.game-v3 .garden-brand { position: relative; isolation: isolate; justify-content: center; flex-shrink: 0; min-height: 80px; padding: 12px 8px; gap: 6px; color: #fff8d9; }
 .garden-sidebar.game-v3 .garden-brand-plank { position: absolute; z-index: -1; inset: -5px -9px; width: calc(100% + 18px); height: calc(100% + 10px); filter: drop-shadow(0 4px 2px #23130b80); }
 .garden-sidebar.game-v3 .garden-brand strong { font: 900 24px/1.1 'Trebuchet MS', system-ui, sans-serif; text-shadow: 0 2px #452208; letter-spacing: -.8px; }
 .garden-sidebar.game-v3 .garden-brand small { margin-top: 6px; color: #fff1a0; font-size: 9px; letter-spacing: 1.3px; }
 .garden-sidebar.game-v3 .garden-brand-leaf { width: 29px; height: 37px; background: none; color: #c4e844; border-radius: 0; transform: none; }
-.garden-sidebar.game-v3 .garden-brand-leaf .garden-icon { width: 30px; height: 30px; transform: none; filter: drop-shadow(0 2px #293c0a); }
-.garden-sidebar.game-v3 .garden-nav { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 10px; }
-.garden-sidebar.game-v3 .garden-nav button { display: flex; flex-direction: row; min-height: 51px; margin: 0; padding: 10px 12px; gap: 11px; border: 2px solid #bf914f; border-radius: 21px; background: repeating-linear-gradient(2deg, #f8d19108 0 3px, transparent 4px 8px), linear-gradient(#945b27, #5e310f); box-shadow: inset 0 2px #e3b87170, 0 4px 0 #371d09, 0 6px 8px #081f1150; color: #fff8dc; font: 800 16px/1.2 'Trebuchet MS', system-ui, sans-serif; text-align: left; text-shadow: 0 2px #3f250c; }
+.garden-sidebar.game-v3 .garden-brand-leaf .garden-icon { width: 30px; height: 30px; filter: drop-shadow(0 2px #293c0a); }
+.garden-sidebar.game-v3 .garden-nav { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 9px; }
+.garden-sidebar.game-v3 .garden-nav::after { content: none; }
+.garden-sidebar.game-v3 .garden-nav button {
+  display: flex; flex-direction: row; align-items: center; min-height: 52px; width: 100%; margin: 0; padding: 10px 12px; gap: 11px;
+  border: 2px solid #bf914f; border-radius: 19px;
+  background: repeating-linear-gradient(2deg, #f8d19108 0 3px, transparent 4px 8px), linear-gradient(#945b27, #5e310f);
+  box-shadow: inset 0 2px #e3b87170, 0 4px 0 #371d09, 0 6px 8px #081f1150;
+  color: #fff8dc; font: 800 15px/1.2 'Trebuchet MS', system-ui, sans-serif; text-align: left; text-shadow: 0 2px #3f250c;
+}
 .garden-sidebar.game-v3 .garden-nav button .garden-icon { width: 28px; height: 28px; color: #fff0b3; }
-.garden-sidebar.game-v3 .garden-nav button[aria-current=page] { border-color: #f5eb8a; color: #fffbd5; background: linear-gradient(#7daf19, #306403); box-shadow: inset 0 2px #e7ffa1, 0 0 0 2px #acbe44, 0 0 14px #f5e75a80, 0 4px 0 #263d06; }
-.garden-sidebar.game-v3[data-navigation=community] .garden-nav button[aria-current=page] { background: linear-gradient(#ae6a19, #713800); box-shadow: inset 0 2px #ffec83, 0 0 0 2px #f8d842, 0 0 15px #ffe842, 0 4px 0 #4d2b05; }
+.garden-sidebar.game-v3 .garden-nav button[aria-current=page] {
+  border-color: #f5eb8a; color: #fffbd5; background: linear-gradient(#7daf19, #306403);
+  box-shadow: inset 0 2px #e7ffa1, 0 0 0 2px #acbe44, 0 0 14px #f5e75a80, 0 4px 0 #263d06;
+}
 .garden-sidebar.game-v3 .garden-nav button:hover { filter: brightness(1.13); }
-.garden-sidebar.game-v3 .garden-sidebar-territory { margin-top: auto; }
-.garden-sidebar.game-v3 .garden-sidebar-territory .garden-icon { height: 42px; width: 110px; color: #c1cd56; }
-.garden-sidebar.game-v3[data-navigation=community] .garden-sidebar-territory { visibility: hidden; }
-.garden-sidebar.game-v3 .garden-path-preview { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 13px 9px 9px; border: 3px solid #bb8940; border-radius: 24px; background: radial-gradient(ellipse at top, #47712490, #133c21); box-shadow: inset 0 0 0 1px #e8d682, 0 4px #4d3111; }
-.garden-sidebar.game-v3 .garden-path-preview > .garden-icon { width: 40px; height: 40px; margin: 0; color: #c6ed45; filter: drop-shadow(0 0 6px #b6f42690); }
-.garden-sidebar.game-v3 .garden-path-preview strong { font: 800 19px 'Trebuchet MS', system-ui, sans-serif; color: #fff9dd; }
-.garden-sidebar.game-v3 .garden-path-preview p { margin: 0; font-size: 10px; color: #f0edbf; }
-.garden-sidebar.game-v3 .garden-path-preview button { min-height: 44px; color: #fff2b2; font-size: 11px; }
-.garden-sidebar.game-v3 .garden-sidebar-character { position: absolute; z-index: 0; left: -13px; bottom: 48px; width: calc(100% + 26px); height: min(47vh, 430px); object-fit: contain; object-position: bottom; pointer-events: none; filter: drop-shadow(0 5px 4px #1b2e1260); }
-.garden-sidebar.game-v3 .garden-sidebar-footer { position: relative; z-index: 2; margin-top: auto; color: #fff2bc; }
-.garden-sidebar.game-v3 .garden-sidebar-footer button { color: #fff6cd; }
-body:has(.community-wizard[open]) .garden-sidebar-character { visibility: hidden; }
-@media (max-height: 850px) and (min-width: 901px) { .garden-sidebar.game-v3 { gap: 13px; padding-top: 12px; } .garden-sidebar.game-v3 .garden-sidebar-territory { display: none; } .garden-sidebar.game-v3 .garden-brand { min-height: 72px; } .garden-sidebar.game-v3 .garden-nav { gap: 9px; } .garden-sidebar.game-v3 .garden-nav button { min-height: 48px; } }
-@media (max-width: 1200px) and (min-width: 901px) { .garden-sidebar.game-v3 .garden-nav button { padding-inline: 9px; font-size: 14px; gap: 8px; } .garden-sidebar.game-v3 .garden-brand strong { font-size: 21px; } .garden-sidebar.game-v3 .garden-brand-leaf { width: 23px; } }
-@media (max-width: 900px) { .garden-sidebar.game-v3 { position: relative; height: auto; min-height: 0; padding: 12px 14px 13px; gap: 11px; overflow: visible; border-right: 0; border-bottom: 2px solid #bb9346; } .garden-sidebar.game-v3 .garden-brand { align-self: center; min-height: 60px; width: 240px; padding: 8px 20px; } .garden-sidebar.game-v3 .garden-brand-plank { inset: -5px; width: calc(100% + 10px); height: calc(100% + 10px); } .garden-sidebar.game-v3 .garden-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; } .garden-sidebar.game-v3 .garden-nav button { flex-direction: column; align-items: center; justify-content: center; min-height: 65px; padding: 8px 4px; gap: 4px; font-size: 11px; border-radius: 15px; text-align: center; } .garden-sidebar.game-v3 .garden-nav button .garden-icon { width: 24px; height: 24px; } .garden-sidebar.game-v3 .garden-sidebar-territory, .garden-sidebar.game-v3 .garden-path-preview, .garden-sidebar.game-v3 .garden-sidebar-character { display: none; } .garden-sidebar.game-v3 .garden-sidebar-footer { position: absolute; top: 16px; right: 9px; margin: 0; } .garden-sidebar.game-v3 .garden-sidebar-footer button { width: 35px; padding: 3px; font-size: 0; } }
-@media (max-width: 380px) { .garden-sidebar.game-v3 { padding-inline: 8px; } .garden-sidebar.game-v3 .garden-nav { gap: 5px; } .garden-sidebar.game-v3 .garden-nav button { min-height: 66px; border-width: 1px; font-size: 10px; } .garden-sidebar.game-v3 .garden-brand { width: 225px; margin-left: -18px; } }
+.garden-sidebar.game-v3 .garden-path-preview {
+  position: relative; z-index: 1; display: grid; width: 100%; gap: 8px; margin-top: auto; padding: 12px 10px 11px;
+  border: 3px solid #bb8940; border-radius: 21px; background: radial-gradient(ellipse at top, #47712490, #133c21);
+  box-shadow: inset 0 0 0 1px #e8d682, 0 4px #4d3111; color: #fff6cf; text-align: left;
+}
+.garden-sidebar.game-v3 .garden-path-preview:hover { filter: brightness(1.08); }
+.garden-sidebar.game-v3 .garden-progress-heading { display: flex; align-items: center; gap: 8px; font: 800 15px 'Trebuchet MS', system-ui, sans-serif; }
+.garden-sidebar.game-v3 .garden-progress-heading > .garden-icon { width: 24px; height: 24px; color: #d4ef58; }
+.garden-sidebar.game-v3 .garden-progress-level { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.garden-sidebar.game-v3 .garden-progress-level strong { color: #f4e38e; font-size: 14px; }
+.garden-sidebar.game-v3 .garden-progress-level output { color: #fffbe1; font-size: 11px; font-weight: 700; }
+.garden-sidebar.game-v3 .garden-path-preview progress { width: 100%; height: 10px; accent-color: #c8e924; }
+.garden-sidebar.game-v3 .garden-progress-next { color: #d7e9ab; font-size: 10px; }
+.garden-sidebar.game-v3 .garden-progress-badges { display: flex; min-height: 20px; align-items: center; gap: 6px; color: #ffe071; }
+.garden-sidebar.game-v3 .garden-progress-badges > span { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid #e4c35f; border-radius: 6px; background: #43280e80; font-size: 12px; }
+.garden-sidebar.game-v3 .garden-progress-badges small { color: #d6d8ad; font-size: 10px; }
+.garden-sidebar.game-v3 .garden-sidebar-footer { position: relative; z-index: 2; display: grid; flex-shrink: 0; gap: 6px; margin-top: 0; color: #fff2bc; text-align: center; font-size: 10px; }
+.garden-sidebar.game-v3 .garden-sidebar-footer button { display: flex; justify-content: center; align-items: center; gap: 7px; min-height: 42px; padding: 6px 8px; border: 1px solid #c0924e; border-radius: 14px; background: linear-gradient(#75451d, #4e2c13); color: #fff6cd; font: 700 11px/1.2 'Trebuchet MS', system-ui, sans-serif; }
+.garden-sidebar.game-v3 .garden-sidebar-footer button:hover { filter: brightness(1.14); }
+.garden-sidebar.game-v3 .garden-sidebar-footer .garden-icon { width: 16px; height: 16px; }
+
+@media (max-height: 850px) and (min-width: 901px) {
+  .garden-sidebar.game-v3 { gap: 12px; padding-top: 12px; }
+  .garden-sidebar.game-v3 .garden-brand { min-height: 68px; }
+  .garden-sidebar.game-v3 .garden-nav { gap: 8px; }
+  .garden-sidebar.game-v3 .garden-nav button { min-height: 47px; }
+  .garden-sidebar.game-v3 .garden-path-preview { gap: 6px; padding: 9px 9px; }
+}
+@media (max-width: 1200px) and (min-width: 901px) {
+  .garden-sidebar.game-v3 .garden-nav button { padding-inline: 9px; font-size: 13px; gap: 8px; }
+  .garden-sidebar.game-v3 .garden-brand strong { font-size: 21px; }
+  .garden-sidebar.game-v3 .garden-brand-leaf { width: 23px; }
+}
+@media (max-width: 900px) {
+  .garden-sidebar.game-v3 { position: relative; height: auto; min-height: 0; padding: 10px 14px 12px; gap: 10px; overflow: visible; border-right: 0; border-bottom: 2px solid #bb9346; }
+  .garden-sidebar.game-v3 .garden-brand { align-self: center; min-height: 58px; width: 240px; padding: 7px 20px; }
+  .garden-sidebar.game-v3 .garden-brand-plank { inset: -5px; width: calc(100% + 10px); height: calc(100% + 10px); }
+  .garden-sidebar.game-v3 .garden-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .garden-sidebar.game-v3 .garden-nav button { flex-direction: column; align-items: center; justify-content: center; min-height: 61px; padding: 7px 4px; gap: 4px; font-size: 11px; border-radius: 15px; text-align: center; }
+  .garden-sidebar.game-v3 .garden-nav button .garden-icon { width: 23px; height: 23px; }
+  .garden-sidebar.game-v3 .garden-path-preview { grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; margin: 0; padding: 8px 11px; border-radius: 15px; }
+  .garden-sidebar.game-v3 .garden-progress-heading { grid-column: 1; font-size: 13px; }
+  .garden-sidebar.game-v3 .garden-progress-level { grid-column: 2; grid-row: 1; flex-direction: column; align-items: flex-end; gap: 1px; }
+  .garden-sidebar.game-v3 .garden-path-preview progress { grid-column: 1 / -1; grid-row: 2; }
+  .garden-sidebar.game-v3 .garden-progress-next { grid-column: 1; grid-row: 3; }
+  .garden-sidebar.game-v3 .garden-progress-badges { grid-column: 2; grid-row: 3; justify-content: flex-end; }
+  .garden-sidebar.game-v3 .garden-sidebar-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
+  .garden-sidebar.game-v3 .garden-sidebar-footer > span { display: block; }
+  .garden-sidebar.game-v3 .garden-sidebar-footer button { min-height: 36px; }
+}
+@media (max-width: 380px) {
+  .garden-sidebar.game-v3 { padding-inline: 8px; }
+  .garden-sidebar.game-v3 .garden-nav { gap: 5px; }
+  .garden-sidebar.game-v3 .garden-nav button { min-height: 59px; border-width: 1px; font-size: 10px; }
+  .garden-sidebar.game-v3 .garden-brand { width: 225px; }
+  .garden-sidebar.game-v3 .garden-sidebar-footer { font-size: 9px; }
+  .garden-sidebar.game-v3 .garden-sidebar-footer button { padding-inline: 6px; font-size: 10px; }
+}

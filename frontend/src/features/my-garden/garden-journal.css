@@ -63,4 +63,17 @@
 .journal-community-progress output { font-size:24px; font-weight:800; }
 @media(max-width:700px) { .journal-progress-cards { grid-template-columns:1fr; gap:10px; } .journal-badges { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:600px) { .journal-fields { grid-template-columns:1fr; } .garden-journal-dialog form { padding:16px; } .garden-journal-dialog footer { flex-wrap:wrap; } .journal-plants,.journal-history,.journal-progress { padding:16px; } }
+
+.garden-internal-nav { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 22px; padding:10px; border:1px solid #c6ad72; border-radius:16px; background:#f5edcf; }
+.garden-internal-nav button { min-height:40px; padding:8px 14px; border:1px solid #9b7440; border-radius:12px; background:linear-gradient(#fff8df,#ead5a1); color:#463018; font-weight:700; }
+.garden-internal-nav button[aria-current=page] { border-color:#66863d; background:linear-gradient(#a5cc58,#6d9c35); color:#fffdf0; }
+.journal-personal-history { display:grid; grid-template-columns:minmax(180px,.7fr) minmax(0,1.3fr); gap:20px; align-items:start; margin:20px 0; padding:18px; border:1px solid #c9b478; border-radius:18px; background:linear-gradient(140deg,#fff7dc,#f1e6bb); }
+.journal-personal-history h3 { margin:0 0 5px; }
+.journal-personal-history p { margin:0; color:#62704f; }
+.journal-personal-history ol { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
+.journal-personal-history li { display:flex; align-items:center; gap:12px; padding:10px 12px; border-left:3px solid #82a641; border-radius:0 10px 10px 0; background:#fffdf4; }
+.journal-personal-history time { min-width:90px; color:#6a7656; font-size:12px; }
+.journal-personal-history li strong,.journal-personal-history li small { display:block; }
+.journal-personal-history li small { margin-top:3px; color:#6a7656; }
+@media(max-width:700px) { .garden-internal-nav { gap:6px; padding:7px; } .garden-internal-nav button { flex:1 1 auto; } .journal-personal-history { grid-template-columns:1fr; gap:12px; padding:14px; } }
 .garden-storage-status { pointer-events: none; }

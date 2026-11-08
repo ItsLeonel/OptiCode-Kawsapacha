@@ -14,7 +14,6 @@ import type { Community } from './features/communities/communities'
 import RealGardenPage from './features/real-gardens/RealGardenPage'
 import { toGardenDraft, type RealGarden, type RealGardenDraft } from './features/real-gardens/real-garden'
 import { PLOT_COUNT, type GardenAction, type GardenDestination, type GardenPlant } from './features/my-garden/garden'
-import { regionForProvince } from './features/real-gardens/garden-region'
 import { matchesCommunityLocation, withCommunityLocation } from './features/real-gardens/garden-community-location'
 import type { GardenSceneRenderer } from './features/my-garden/garden-scene-renderer'
 import { localDate, recordId, validatePlantUpdate, validDate, type PlantUpdate } from './features/my-garden/plant-record'
@@ -24,12 +23,13 @@ import ActivityList from './features/my-garden/journal/ActivityList'
 import { activityKey, type ActivityDraft, type ActivityType, type GardenActivity } from './features/my-garden/journal/activities'
 import './features/my-garden/garden-journal.css'
 import GardenProgress from './features/my-garden/GardenProgress'
+import GreenChallenges from './features/my-garden/GreenChallenges'
 import { calculateProgress } from './features/my-garden/journal/progress'
 
-type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Mi historia' | 'Mi camino verde'
+type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Bitácora' | 'Mi historia' | 'Mi camino verde'
 const SCREEN_PATHS: Record<Screen, string> = {
   Bienvenida: '#bienvenida', Inicio: '#mi-jardin', Usuarios: '#usuarios', Comunidades: '#comunidades',
-  'Mi terreno': '#mi-jardin/terreno', 'Plantas medicinales': '#plantas', 'Mis plantas': '#mis-plantas', 'Mi historia': '#mi-historia', 'Mi camino verde': '#progreso',
+  'Mi terreno': '#mi-jardin/terreno', 'Plantas medicinales': '#plantas', 'Mis plantas': '#mis-plantas', 'Bitácora': '#bitacora', 'Mi historia': '#mi-historia', 'Mi camino verde': '#progreso',
 }
 function currentScreen(): Screen {
   if (window.location.hash === '#huerto-real') return 'Mi terreno'
@@ -146,41 +146,44 @@ export default function App({ onAuthenticate, renderGardenScene }: { onAuthentic
   }
   async function voidActivity(id: string, reason: string) { await journal.commit({ id: recordId('activity-void'), type: 'activity-void', activityId: id, reason, at: new Date().toISOString() }); setNotice('Actividad anulada; la evidencia y el historial se conservan.') }
   function navigateGarden(destination: GardenDestination) {
-    const destinations = { garden: 'Inicio', community: 'Comunidades', 'real-garden': 'Mi terreno', plants: 'Plantas medicinales', 'my-plants': 'Mis plantas', history: 'Mi historia', progress: 'Mi camino verde' } as const
+    const destinations: Record<GardenDestination, Screen> = { garden: 'Inicio', community: 'Comunidades', 'real-garden': 'Mi terreno', plants: 'Plantas medicinales', 'my-plants': 'Mis plantas', history: 'Bitácora', progress: 'Mi camino verde' }
     goto(destinations[destination])
   }
   function gardenAction(action: GardenAction) {
     if (action === 'register') registerInPlot()
     else if (action === 'activity') openActivity()
     else if (action === 'real-garden') goto('Mi terreno')
-    else if (action === 'logbook') goto('Mi historia')
+    else if (action === 'logbook') goto('Bitácora')
     else if (action === 'my-plants') goto('Mis plantas')
     else if (action === 'progress') goto('Mi camino verde')
     else if (activePlants.length) setDetailId(activePlants[activePlants.length - 1].id)
     else registerInPlot(undefined, SPECIES[0].name, 'Tu Pasaporte Vivo comienza con una fotografía. Registra tu primera planta para consultarlo.')
   }
   const ready = Boolean(communityRecord && realGarden)
-  const activeNavigation: GardenDestination = screen === 'Comunidades' ? 'community' : screen === 'Plantas medicinales' ? 'plants' : screen === 'Mis plantas' ? 'my-plants' : screen === 'Mi historia' ? 'history' : screen === 'Mi camino verde' ? 'progress' : screen === 'Mi terreno' ? 'real-garden' : 'garden'
+  const activeNavigation: 'garden' | 'community' | 'progress' = screen === 'Comunidades' ? 'community' : screen === 'Mi historia' || screen === 'Mi camino verde' ? 'progress' : 'garden'
   const visible = SPECIES.filter(species => `${species.name} ${species.latin}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   if (screen === 'Bienvenida' || screen === 'Usuarios') return <AuthPage onSubmit={onAuthenticate} onAuthenticated={() => { setAuthenticated(true); goto('Inicio') }} onExploreDemo={(destination = 'Inicio') => { setAuthenticated(false); goto(destination) }}/>
   if (journal.loading || (journal.ready && !initializedDraft.current)) return <main className="journal-loading" role="status">Recuperando tu jardín y sus fotografías…</main>
   if (!journal.ready) return <main className="journal-loading"><h1>No se pudo abrir el jardín guardado</h1><p role="alert">{journal.failure}</p><p>Los datos existentes no se han sobrescrito.</p><button type="button" onClick={journal.retry}>Volver a intentar</button><button type="button" onClick={() => goto('Bienvenida')}>Volver a bienvenida</button></main>
   return <div className="garden-shell">
-    <GardenNavigation demo={!authenticated} region={regionForProvince(realGarden?.location.province ?? communityRecord?.province ?? '')} active={activeNavigation} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
+    <GardenNavigation demo={!authenticated} active={activeNavigation} progress={{ points: progress.points, level: progress.level, progressPercent: progress.progressPercent, nextLevel: progress.nextLevel, badges: progress.badges }} onNavigate={navigateGarden} onWelcome={() => goto('Bienvenida')}/>
     {screen === 'Inicio' || screen === 'Mi terreno' ? <MyGardenPage demo={!authenticated} plants={activePlants} community={communityRecord} realGarden={realGarden} selectedPlot={selectedPlot} onCreateCommunity={() => openCommunity('create')} onJoinCommunity={() => openCommunity('join')} onSelect={selectPlant} onRegister={registerInPlot} onAction={gardenAction} onNavigate={navigateGarden} renderGardenScene={renderGardenScene} activities={data.activities} feedback={feedback} progress={{ points: progress.points, level: progress.level, responsible: communityRecord?.responsible }} interactionBlocked={Boolean(registration || detail || editingPlant || activityForm)} terrainProvince={realGardenDraft.province} terrainView={screen === 'Mi terreno' ? <RealGardenPage garden={realGarden} draft={realGardenDraft} onDraftChange={setRealGardenDraft} community={communityRecord} onSave={saveGarden} onConnect={connectGarden} plantRegistrationPending={Boolean(pendingRegistration)} onCommunity={() => goto('Comunidades')}/> : undefined}/>
       : screen === 'Comunidades' ? <CommunitiesPage demo={!authenticated} entryAction={communityEntry} community={communityRecord} garden={realGarden?.name ?? ''} onSave={saveCommunity} onGarden={() => goto('Mi terreno')} onHome={() => goto('Inicio')}/>
-      : <main className="main garden-module"><header className="topbar"><span className="breadcrumbs">Kawsapacha / {screen}</span><span className="user-pill">{authenticated ? 'Sesión confirmada' : 'Modo visitante · Sin sesión'}</span></header><div className="page">
+      : <main className="main garden-module"><header className="topbar"><span className="breadcrumbs">Kawsapacha / {screen === 'Mi historia' || screen === 'Mi camino verde' ? 'Mi camino verde' : screen === 'Bitácora' || screen === 'Mis plantas' || screen === 'Plantas medicinales' ? 'Mi Huerto Vivo' : screen}</span><span className="user-pill">{authenticated ? 'Sesión confirmada' : 'Modo visitante · Sin sesión'}</span></header><div className="page">
         <div className="prototype-alert">Guardado en este navegador · No sincronizado con otras personas ni con una cuenta.</div>
-        <div className="heading"><div><span className="eyebrow">Kawsapacha · Mi Jardín Vivo</span><h1 tabIndex={-1} data-screen-heading>{screen === 'Plantas medicinales' ? 'Descubrir plantas' : screen}</h1></div><button className="cta small" onClick={() => goto('Inicio')}>Volver a Mi jardín <span aria-hidden>↗</span></button></div>
-        {screen === 'Mi camino verde' && <GardenProgress journal={data}/>}
+        <div className="heading"><div><span className="eyebrow">Kawsapacha · {screen === 'Mi historia' || screen === 'Mi camino verde' ? 'Mi camino verde' : 'Mi Huerto Vivo'}</span><h1 tabIndex={-1} data-screen-heading>{screen === 'Plantas medicinales' ? 'Catálogo de plantas medicinales' : screen === 'Bitácora' ? 'Bitácora agrícola' : screen === 'Mi historia' || screen === 'Mi camino verde' ? 'Mi camino verde' : screen}</h1></div><button className="cta small" onClick={() => goto('Inicio')}>Volver a Mi Huerto Vivo <span aria-hidden>↗</span></button></div>
+        {(screen === 'Plantas medicinales' || screen === 'Mis plantas' || screen === 'Bitácora') && <nav className="garden-internal-nav" aria-label="Secciones de Mi Huerto Vivo">
+          <button type="button" onClick={() => goto('Inicio')}>Jardín</button><button type="button" onClick={() => goto('Mi terreno')}>Editar terreno</button><button type="button" aria-current={screen === 'Plantas medicinales' ? 'page' : undefined} onClick={() => goto('Plantas medicinales')}>Catálogo</button><button type="button" aria-current={screen === 'Mis plantas' ? 'page' : undefined} onClick={() => goto('Mis plantas')}>Mis plantas</button><button type="button" aria-current={screen === 'Bitácora' ? 'page' : undefined} onClick={() => goto('Bitácora')}>Bitácora</button>
+        </nav>}
+        {(screen === 'Mi camino verde' || screen === 'Mi historia') && <><GardenProgress journal={data}/><GreenChallenges onNavigate={navigateGarden} onAction={gardenAction}/></>}
         {screen === 'Mis plantas' && <GardenPlants plants={plants} onRegister={() => registerInPlot()} onSelect={selectPlant}/>}
-        {screen === 'Mi historia' && <GardenHistory plants={plants} activities={data.activities} onActivity={() => openActivity()} onVoid={voidActivity} onRegister={() => registerInPlot()} onSelect={selectPlant} onRealGarden={() => goto('Mi terreno')}/>}
+        {screen === 'Bitácora' && <GardenHistory plants={plants} activities={data.activities} onActivity={() => openActivity()} onVoid={voidActivity} onRegister={() => registerInPlot()} onSelect={selectPlant} onRealGarden={() => goto('Mi terreno')}/>}
         {screen === 'Plantas medicinales' && <section className="section"><div className="catalog-header"><div><span className="eyebrow">BOTÁNICA</span><h2>Explora las especies</h2><p>Elige la especie de tu planta; la fotografía no la identifica automáticamente.</p></div><label className="search-label"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar por nombre…" aria-label="Buscar plantas"/></label></div><div className="catalog-grid">{visible.map((species, index) => <article className="species-card" key={species.name}><div className={`species-art tone-${index % 4}`}><span>{species.icon}</span></div><div className="species-copy"><strong>{species.name}</strong><em>{species.latin}</em><button onClick={() => registerInPlot(undefined, species.name)}>Registrar en mi huerto ↗</button></div></article>)}</div>{!visible.length && <p>No se encontraron especies con ese nombre.</p>}</section>}
       </div></main>}
     {registration && <PlantRegistrationModal plants={activePlants} initialPlot={registration.plot} initialSpecies={registration.species} initialPhoto={registration.photo} initialPlantedOn={registration.plantedOn} initialSowing={registration.recordSowing} initialResponsible={registration.responsible ?? communityRecord?.responsible ?? ''} initialRequestId={registration.requestId} notice={registration.notice} ready={ready} onConfirm={addPlant} onClose={() => setRegistration(null)} onSetup={draft => { setPendingRegistration(draft); goto('Mi terreno') }}/>}
     {editingPlant && <PlantEditor plant={editingPlant} plants={plants} onSave={updatePlant} onClose={() => { setEditingId(null); setDetailId(editingPlant.id) }}/>}
     {activityForm && <ActivityModal plants={activePlants} gardenId={data.gardenId} responsible={communityRecord?.responsible ?? ''} initialPlant={plants.find(plant => plant.id === activityForm.plantId)} initialPlot={activityForm.plot} onSave={saveActivity} onClose={() => setActivityForm(null)} onRegister={(plot, type) => { setActivityForm(null); registerInPlot(plot); setRegistration(current => current ? { ...current, recordSowing: type === 'sowing', plantedOn: type === 'sowing' ? localDate() : '', responsible: communityRecord?.responsible ?? '' } : current) }}/>}
-    <PlantPassport plant={detail} onClose={() => setDetailId(null)} onHistory={() => goto('Mi historia')} onEdit={detail ? () => { setEditingId(detail.id); setDetailId(null) } : undefined} onArchive={detail ? archivePlant : undefined} onRestore={detail ? restorePlant : undefined} onActivity={detail ? () => openActivity(detail) : undefined} activityItems={detail ? <section aria-label="Actividades de esta planta"><h3>Actividades de esta planta</h3><ActivityList activities={data.activities.filter(activity => activity.target.kind === 'plant' && activity.target.plantId === detail.id)} plants={plants}/></section> : undefined}/>
+    <PlantPassport plant={detail} onClose={() => setDetailId(null)} onHistory={() => goto('Bitácora')} onEdit={detail ? () => { setEditingId(detail.id); setDetailId(null) } : undefined} onArchive={detail ? archivePlant : undefined} onRestore={detail ? restorePlant : undefined} onActivity={detail ? () => openActivity(detail) : undefined} activityItems={detail ? <section aria-label="Actividades de esta planta"><h3>Actividades de esta planta</h3><ActivityList activities={data.activities.filter(activity => activity.target.kind === 'plant' && activity.target.plantId === detail.id)} plants={plants}/></section> : undefined}/>
     <div className="garden-storage-status" role="status" aria-label="Estado de guardado" data-state={journal.failure ? 'error' : journal.saving ? 'saving' : 'saved'}>{journal.failure || (journal.saving ? 'Guardando en este navegador…' : notice || 'Guardado local · Solo en este navegador')}</div>
   </div>
 }

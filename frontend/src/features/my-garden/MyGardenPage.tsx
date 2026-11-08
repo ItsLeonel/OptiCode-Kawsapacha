@@ -1,6 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import GardenIcon from './GardenIcon'
-import GreenChallenges from './GreenChallenges'
 import GardenOnboarding from './GardenOnboarding'
 import type { Community } from '../communities/communities'
 import { GardenRegionalBackground } from './GardenRegionalScenery'
@@ -11,6 +10,7 @@ import type { GardenAction, GardenDestination, GardenPlant } from './garden'
 import type { GardenSceneRenderer } from './garden-scene-renderer'
 import type { GardenSceneRendererProps } from './garden-scene-renderer'
 import { GARDEN_KINDS, formatGardenArea, type RealGarden } from '../real-gardens/real-garden'
+import GreenChallenges from './GreenChallenges'
 import type { UserSession } from '../../services/api'
 import './my-garden.css'
 import './my-garden-v2.css'
@@ -20,10 +20,10 @@ import './my-garden-v3.css'
 const ACTIONS = [
   { action: 'activity', label: 'Registrar actividad', icon: 'book' },
   { action: 'register', label: 'Registrar planta', icon: 'seed' },
-  { action: 'logbook', label: 'Bitácora', icon: 'book' },
-  { action: 'passport', label: 'Pasaporte Vivo', icon: 'history' },
-  { action: 'my-plants', label: 'Mis plantas', icon: 'pot' },
-  { action: 'progress', label: 'Progreso', icon: 'target' },
+  { destination: 'history', label: 'Bitácora', icon: 'book' },
+  { destination: 'plants', label: 'Catálogo medicinal', icon: 'leaf' },
+  { destination: 'my-plants', label: 'Mis plantas', icon: 'pot' },
+  { action: 'real-garden', label: 'Editar terreno', icon: 'map' },
 ] as const
 const PhaserGarden = lazy(() => import('./phaser-poc/PhaserGardenPoc'))
 
@@ -196,9 +196,14 @@ export default function MyGardenPage({
 
       <nav className="garden-quick-actions" aria-label="Acciones de tu jardín">
         {ACTIONS.map(item => (
-          <button key={item.action} type="button" data-action={item.action} onClick={() => onAction(item.action)}>
+          <button
+            key={'action' in item ? item.action : item.destination}
+            type="button"
+            data-action={'action' in item ? item.action : item.destination}
+            onClick={() => ('action' in item ? onAction(item.action as any) : onNavigate(item.destination as any))}
+          >
             <span>
-              <GardenIcon name={item.icon} />
+              <GardenIcon name={item.icon as any} />
             </span>
             {item.label}
           </button>

@@ -3,6 +3,10 @@ import AuthForm from './AuthForm'
 import AuthIcon from './AuthIcon'
 import PlantIllustration from './PlantIllustration'
 import { AUTH_FIELDS, type AuthMode, type AuthSubmitHandler } from './auth'
+import welcomeGuideSierra from '../../assets/welcome/guide-sierra.png'
+import welcomeGuideAmazonia from '../../assets/welcome/guide-amazonia.png'
+import welcomeFlowers from '../../assets/welcome/flower-cluster.png'
+import welcomeFlag from '../../assets/welcome/woven-flag.png'
 import './auth.css'
 
 const EDUCATION = [
@@ -39,35 +43,35 @@ export default function AuthPage({ onExploreDemo, onSubmit, onAuthenticated }: {
   return <main className="auth-page" id="auth-welcome">
     <div className="auth-landscape" aria-hidden="true"/>
     <div className="auth-warm-light" aria-hidden="true"/>
+    <div className="auth-scene-art" aria-hidden="true">
+      <img className="auth-guide auth-guide-sierra" src={welcomeGuideSierra} alt=""/>
+      <img className="auth-guide auth-guide-amazonia" src={welcomeGuideAmazonia} alt=""/>
+      <img className="auth-scene-flower" src={welcomeFlowers} alt=""/>
+      <img className="auth-scene-flag" src={welcomeFlag} alt=""/>
+    </div>
     <a href="#auth-panel" className="auth-skip-link">Ir al formulario</a>
-    <header className="auth-header">
-      <a className="auth-brand" href="#auth-welcome" aria-label="Kawsapacha, bienvenida">
-        <span className="auth-brand-symbol"><AuthIcon name="leaf"/></span>
-        <span><strong>Kawsapacha</strong><small>MI HUERTO VIVO</small></span>
-      </a>
-      <nav className="auth-navigation" aria-label="Navegación de bienvenida">
-        <a href="#auth-welcome" aria-current="page">Inicio</a>
-        <button type="button" onClick={() => onExploreDemo('Comunidades')}>Comunidad</button>
-        <a href="#auth-education">Aprende</a>
-        <a href="#auth-journey">Tu camino</a>
-      </nav>
-    </header>
+    <a className="auth-brand auth-brand-floating" href="#auth-welcome" aria-label="Kawsapacha, bienvenida">
+      <span className="auth-brand-symbol"><AuthIcon name="leaf"/></span>
+      <span><strong>Kawsapacha</strong><small>MI HUERTO VIVO</small></span>
+    </a>
 
     <div className="auth-layout">
       <section className="auth-story" aria-labelledby="auth-story-title">
         <div className="auth-story-copy">
-          <p className="auth-welcome"><AuthIcon name="sprout"/> Bienvenido a Kawsapacha</p>
-          <h1 id="auth-story-title"><span className="auth-title-ancestral">Saberes ancestrales</span>{' '}<span className="auth-title-continuation">que siguen cultivando</span>{' '}<em>vida<AuthIcon name="leaf"/></em></h1>
-          <p className="auth-story-description">Nuestras raíces guardan la sabiduría de generaciones. Honremos ese legado, compartamos nuestros saberes y cultivemos juntos un futuro donde nuestras tradiciones sigan floreciendo.</p>
+          <h1 className="auth-welcome-board" id="auth-story-title">
+            <span className="auth-board-leaf"><AuthIcon name="leaf"/></span>
+            <span className="auth-board-title">¡Bienvenido a<br/><strong>Kawsapacha!</strong></span>
+            <span className="auth-board-subtitle">Saberes ancestrales que<br className="auth-board-break"/> siguen cultivando <em>vida<AuthIcon name="leaf"/></em></span>
+            <span className="auth-board-leaf"><AuthIcon name="leaf"/></span>
+          </h1>
+          <div className="auth-education" id="auth-education">
+            {EDUCATION.map(card => <article key={card.title}><span className="auth-education-icon"><AuthIcon name={card.icon}/></span><h2>{card.title}</h2><p>{card.text}</p></article>)}
+          </div>
           <div className="auth-public-access">
             <button className="auth-discover" type="button" onClick={() => onExploreDemo()} aria-describedby="auth-public-hint">Descubrir Kawsapacha <AuthIcon name="arrow"/></button>
             <p id="auth-public-hint">Explora sin registrarte</p>
           </div>
         </div>
-        <div className="auth-education" id="auth-education">
-          {EDUCATION.map(card => <article key={card.title}><span className="auth-education-icon"><AuthIcon name={card.icon}/></span><h2>{card.title}</h2><p>{card.text}</p></article>)}
-        </div>
-        <p className="auth-origin"><AuthIcon name="mountain"/> Raíces ecuatorianas · Futuro compartido</p>
       </section>
 
       <section className="auth-panel" id="auth-panel" aria-label="Acceso a Kawsapacha" tabIndex={-1}>

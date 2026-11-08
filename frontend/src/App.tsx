@@ -40,9 +40,10 @@ import ActivityList from './features/my-garden/journal/ActivityList'
 import type { ActivityDraft, ActivityType, GardenActivity } from './features/my-garden/journal/activities'
 import './features/my-garden/garden-journal.css'
 import GardenProgress from './features/my-garden/GardenProgress'
+import GreenChallenges from './features/my-garden/GreenChallenges'
 import { calculateProgress } from './features/my-garden/journal/progress'
 
-type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Mi historia' | 'Mi camino verde'
+type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Bitácora' | 'Mi historia' | 'Mi camino verde'
 
 const SCREEN_PATHS: Record<Screen, string> = {
   Bienvenida: '#bienvenida',
@@ -52,6 +53,7 @@ const SCREEN_PATHS: Record<Screen, string> = {
   'Mi terreno': '#mi-jardin/terreno',
   'Plantas medicinales': '#plantas',
   'Mis plantas': '#mis-plantas',
+  'Bitácora': '#bitacora',
   'Mi historia': '#mi-historia',
   'Mi camino verde': '#progreso',
 }
@@ -782,15 +784,15 @@ export default function App({
   }
 
   function navigateGarden(destination: GardenDestination) {
-    const destinations = {
+    const destinations: Record<GardenDestination, Screen> = {
       garden: 'Inicio',
       community: 'Comunidades',
       'real-garden': 'Mi terreno',
       plants: 'Plantas medicinales',
       'my-plants': 'Mis plantas',
-      history: 'Mi historia',
+      history: 'Bitácora',
       progress: 'Mi camino verde',
-    } as const
+    }
     goto(destinations[destination])
   }
 
@@ -798,7 +800,7 @@ export default function App({
     if (action === 'register') registerInPlot()
     else if (action === 'activity') openActivity()
     else if (action === 'real-garden') goto('Mi terreno')
-    else if (action === 'logbook') goto('Mi historia')
+    else if (action === 'logbook') goto('Bitácora')
     else if (action === 'my-plants') goto('Mis plantas')
     else if (action === 'progress') goto('Mi camino verde')
     else if (activePlants.length) setDetailId(activePlants[activePlants.length - 1].id)
@@ -866,6 +868,13 @@ export default function App({
         pendingInvitationsCount={pendingInvitations.length}
         onOpenNotifications={() => setNotificationsOpen(true)}
         region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')}
+        progress={{
+          points: progress.points,
+          level: progress.level,
+          progressPercent: progress.progressPercent,
+          nextLevel: progress.nextLevel,
+          badges: progress.badges,
+        }}
       />
 
       {screen === 'Inicio' || screen === 'Mi terreno' ? (
@@ -931,9 +940,16 @@ export default function App({
       ) : (
         <main className="main garden-module">
           <header className="topbar">
-            <span className="breadcrumbs">Kawsapacha / {screen}</span>
+            <span className="breadcrumbs">
+              Kawsapacha /{' '}
+              {screen === 'Mi historia' || screen === 'Mi camino verde'
+                ? 'Mi camino verde'
+                : screen === 'Bitácora' || screen === 'Mis plantas' || screen === 'Plantas medicinales'
+                ? 'Mi Huerto Vivo'
+                : screen}
+            </span>
             <span className="user-pill">
-              {user ? `● ${user.name} · ${user.role}` : 'Modo visitante · Sin sesión'}
+              {user ? `● ${user.name} · ${user.role}` : authenticated ? 'Sesión confirmada' : 'Modo visitante · Sin sesión'}
             </span>
           </header>
           <div className="page">
@@ -951,18 +967,67 @@ export default function App({
             )}
             <div className="heading">
               <div>
-                <span className="eyebrow">Kawsapacha · Mi Jardín Vivo</span>
+                <span className="eyebrow">
+                  Kawsapacha ·{' '}
+                  {screen === 'Mi historia' || screen === 'Mi camino verde' ? 'Mi camino verde' : 'Mi Huerto Vivo'}
+                </span>
                 <h1 tabIndex={-1} data-screen-heading>
-                  {screen === 'Plantas medicinales' ? 'Descubrir plantas' : screen}
+                  {screen === 'Plantas medicinales'
+                    ? 'Catálogo de plantas medicinales'
+                    : screen === 'Bitácora'
+                    ? 'Bitácora agrícola'
+                    : screen === 'Mi historia' || screen === 'Mi camino verde'
+                    ? 'Mi camino verde'
+                    : screen}
                 </h1>
               </div>
               <button className="cta small" onClick={() => goto('Inicio')}>
-                Volver a Mi jardín <span aria-hidden>↗</span>
+                Volver a Mi Huerto Vivo <span aria-hidden>↗</span>
               </button>
             </div>
-            {screen === 'Mi camino verde' && <GardenProgress journal={journal.data} />}
-            {screen === 'Mis plantas' && <GardenPlants plants={plants} onRegister={() => registerInPlot()} onSelect={selectPlant} />}
-            {screen === 'Mi historia' && (
+
+            {(screen === 'Plantas medicinales' || screen === 'Mis plantas' || screen === 'Bitácora') && (
+              <nav className="garden-internal-nav" aria-label="Secciones de Mi Huerto Vivo">
+                <button type="button" onClick={() => goto('Inicio')}>
+                  Jardín
+                </button>
+                <button type="button" onClick={() => goto('Mi terreno')}>
+                  Editar terreno
+                </button>
+                <button
+                  type="button"
+                  aria-current={screen === 'Plantas medicinales' ? 'page' : undefined}
+                  onClick={() => goto('Plantas medicinales')}
+                >
+                  Catálogo
+                </button>
+                <button
+                  type="button"
+                  aria-current={screen === 'Mis plantas' ? 'page' : undefined}
+                  onClick={() => goto('Mis plantas')}
+                >
+                  Mis plantas
+                </button>
+                <button
+                  type="button"
+                  aria-current={screen === 'Bitácora' ? 'page' : undefined}
+                  onClick={() => goto('Bitácora')}
+                >
+                  Bitácora
+                </button>
+              </nav>
+            )}
+
+            {(screen === 'Mi camino verde' || screen === 'Mi historia') && (
+              <>
+                <GardenProgress journal={journal.data} />
+                <GreenChallenges onNavigate={navigateGarden} onAction={gardenAction} />
+              </>
+            )}
+            {screen === 'Mis plantas' && (
+              <GardenPlants plants={plants} onRegister={() => registerInPlot()} onSelect={selectPlant} />
+            )}
+            {(screen === 'Bitácora' || screen === 'Mi historia') && (
               <GardenHistory
                 plants={plants}
                 activities={journal.data.activities}
@@ -1076,7 +1141,7 @@ export default function App({
         user={user}
         currentCommunityRole={currentCommunityRole}
         onClose={() => setDetailId(null)}
-        onHistory={() => goto('Mi historia')}
+        onHistory={() => goto('Bitácora')}
         onPlantHarvested={handlePlantHarvested}
         onPlantRemoved={handlePlantRemoved}
         onEdit={

@@ -1,11 +1,14 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import GardenIcon from '../my-garden/GardenIcon'
+import GameTitle from '../../shared/ui/game-ui/GameTitle'
 
-export default function CommunityDialog({ title, description, onClose, children }: {
+export default function CommunityDialog({ title, description, onClose, children, className = '', artwork }: {
   title: string
   description: string
   onClose: () => void
   children: ReactNode
+  className?: string
+  artwork?: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -14,8 +17,16 @@ export default function CommunityDialog({ title, description, onClose, children 
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     if (!dialog.open) dialog.showModal()
     dialog.querySelector<HTMLElement>('[data-community-autofocus]')?.focus()
+    return () => {
+      dialog.close()
+      document.body.style.overflow = previousOverflow
+      if (opener?.isConnected) opener.focus({ preventScroll: true })
+    }
   }, [])
 
   function keepFocusInDialog(event: KeyboardEvent<HTMLDialogElement>) {
@@ -32,12 +43,13 @@ export default function CommunityDialog({ title, description, onClose, children 
     }
   }
 
-  return <dialog ref={dialogRef} className="community-dialog" aria-labelledby={titleId} aria-describedby={descriptionId} onClose={onClose} onKeyDown={keepFocusInDialog}>
+  return <dialog ref={dialogRef} className={`community-dialog ${className}`} aria-labelledby={titleId} aria-describedby={descriptionId} onCancel={event => { event.preventDefault(); onClose() }} onKeyDown={keepFocusInDialog}>
+    {artwork}
     <div className="community-dialog-header">
       <span className="community-kicker"><GardenIcon name="leaf"/> COMUNIDAD · KAWSAPACHA</span>
-      <button className="community-close" type="button" aria-label="Cerrar ventana" onClick={() => dialogRef.current?.close()}><GardenIcon name="close"/></button>
+      <button className="community-close" type="button" aria-label="Cerrar ventana" onClick={onClose}><GardenIcon name="close"/></button>
     </div>
-    <h2 id={titleId}>{title}</h2>
+    {className.includes('game-v3') ? <GameTitle as="h2" id={titleId} icon={<GardenIcon name="community"/>}>{title}</GameTitle> : <h2 id={titleId}>{title}</h2>}
     <p id={descriptionId} className="community-dialog-description">{description}</p>
     {children}
   </dialog>

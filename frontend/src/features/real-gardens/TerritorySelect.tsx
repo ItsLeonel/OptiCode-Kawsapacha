@@ -4,9 +4,10 @@ import { normalizeTerritory, territoryLabel } from './territory'
 
 type Option = { code: string; name: string }
 
-export default function TerritorySelect({ id, label, value, options, disabled, placeholder, error, onChange }: {
+export default function TerritorySelect({ id, label, value, options, disabled, placeholder, error, onChange, required = false }: {
   id: string; label: string; value: string; options: Option[]; disabled: boolean
   placeholder: string; error?: string; onChange: (code: string) => void
+  required?: boolean
 }) {
   const listId = useId()
   const [open, setOpen] = useState(false)
@@ -30,7 +31,7 @@ export default function TerritorySelect({ id, label, value, options, disabled, p
     }
   }
 
-  return <RealGardenField id={id} label={label} error={error}>{props =>
+  return <RealGardenField id={id} label={label} error={error} required={required}>{props =>
     <div className="rg-combobox" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); setQuery('') } }}>
       <input {...props} type="text" role="combobox" autoComplete="off" disabled={disabled}
         aria-expanded={open && !disabled} aria-controls={open ? listId : undefined} aria-autocomplete="list"
@@ -48,7 +49,7 @@ export default function TerritorySelect({ id, label, value, options, disabled, p
           </li>)}
         </ul>
         {!filtered.length && <p>No se encontraron coincidencias.</p>}
-        <button type="button" className="rg-text-button" onPointerDown={event => event.preventDefault()} onClick={() => choose('')}>Dejar sin especificar</button>
+        <button type="button" className="rg-text-button" onPointerDown={event => event.preventDefault()} onClick={() => choose('')}>{required ? 'Borrar selección' : 'Dejar sin especificar'}</button>
       </div>}
     </div>
   }</RealGardenField>

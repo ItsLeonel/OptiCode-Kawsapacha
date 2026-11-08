@@ -52,6 +52,7 @@ body:has(.real-garden-page) { min-width: 0; }
 .real-garden-page :disabled { opacity: 1; -webkit-text-fill-color: currentColor; cursor: default; }
 .real-garden-page :is(input, select, textarea):disabled { background: #f0e8dbb3; color: #615c4d; }
 .rg-error { margin: 0; color: #a03923; font-size: 12px; line-height: 1.5; }
+.rg-feedback { margin: 0; padding: 12px 16px; border: 1px solid var(--rg-border); border-radius: 14px; color: var(--rg-ink); background: #fff9f0f2; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
 .rg-hint { display: block; color: var(--rg-muted); font-size: 11px; line-height: 1.6; }
 .rg-location-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
 .rg-location .map-shell { display: contents; }
@@ -195,3 +196,97 @@ body:has(.real-garden-page) { min-width: 0; }
 @media (max-width: 420px) { .rg-content { padding: 14px 12px; } .rg-hero h1 { font-size: clamp(34px, 10vw, 42px); } .rg-panel { padding: 16px; border-radius: 21px; } .rg-essential-fields, .rg-locality-fields, .rg-characteristic-fields { grid-template-columns: 1fr; } .rg-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .rg-type-card > img { height: 105px; } .rg-type-copy { flex-direction: row; } .rg-type-copy strong { font-size: 12px; } .rg-form-footer > div, .rg-form-footer button { width: 100%; } .rg-summary-heading h2 { font-size: 26px; } .rg-summary-illustration { min-height: 210px; } .rg-map-center-control { top: auto; bottom: 32px; right: 8px; } .rg-map-dialog > footer button { flex: 1; padding-inline: 12px; } }
 @media (max-width: 700px) { .rg-summary::before { top: 8px; height: 3px; max-width: 25%; opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .real-garden-page *, .real-garden-page *::before, .real-garden-page *::after { transition: none !important; scroll-behavior: auto !important; } .real-garden-page .rg-mark-button:not(:disabled):hover { transform: none; } }
+
+.real-garden-page.garden-terrain-view { min-height: 0; background: transparent; }
+.garden-terrain-view .rg-content { min-height: 0; padding: 0; gap: 18px; }
+.garden-terrain-view .rg-panel, .rg-terrain-intro { border: 4px solid #d79e48; border-radius: 27px; background: radial-gradient(ellipse at top left, #fffbed, #ffe5ad); box-shadow: inset 0 0 0 2px #fff8da, 0 5px #84501e, 0 9px 17px #12311f50; color: #293e1c; }
+.rg-terrain-intro { display: flex; align-items: center; gap: 16px; padding: 18px 24px; }
+.rg-terrain-intro > .garden-icon { width: 42px; height: 42px; flex-shrink: 0; color: #417315; }
+.rg-terrain-intro h2 { margin: 0 0 4px; font: 800 clamp(21px, 2vw, 29px)/1.2 'Trebuchet MS', system-ui, sans-serif; }
+.rg-terrain-intro p { margin: 0; line-height: 1.5; }
+.garden-terrain-view .rg-summary-heading h2 { font-size: clamp(24px, 2.4vw, 35px); }
+.rg-location-community { display: flex; align-items: center; gap: 9px; padding: 11px 14px; border: 1px solid #d9b56a; border-radius: 14px; background: #ffe19a; overflow-wrap: anywhere; }
+.rg-location-community .garden-icon { flex-shrink: 0; }
+.garden-terrain-view .rg-location-layout[data-editing=false] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+.garden-terrain-view .rg-location-layout[data-editing=false] .map-shell { grid-column: 1; grid-row: 1; }
+.rg-inherited-location { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d5b980; border-radius: 16px; background: #fff9e8; }
+.rg-inherited-location > div { padding-block: 8px; border-bottom: 1px solid #dbc69b; }
+.rg-inherited-location > div:last-child { border: 0; }
+.rg-inherited-location dt { font-size: 12px; font-weight: 800; color: #556037; }
+.rg-inherited-location dd { margin: 3px 0 0; color: #243b1c; font-size: 15px; overflow-wrap: anywhere; }
+.rg-location-actions { display: flex; flex-direction: column; gap: 12px; margin: 18px 0; }
+.garden-terrain-view .rg-primary-button { border: 2px solid #d8b45b; border-radius: 25px; background: linear-gradient(#83ba1e, #2b6505); color: #fff9d8; box-shadow: inset 0 2px #e6f8ae, 0 3px #725021; font-weight: 800; text-shadow: 0 1px #294309; }
+.garden-terrain-view .rg-outline-button { border: 2px solid #cba260; border-radius: 25px; background: linear-gradient(#fffbed, #ffe0a5); color: #4c361a; font-weight: 800; }
+.garden-terrain-view .rg-visit-note { margin: 0; min-height: 0; padding: 6px 12px; align-self: center; border-radius: 10px; color: #fff8dc; background: #183d29e8; }
+@media (max-width: 1100px) { .garden-terrain-view .rg-form-panels { grid-template-columns: minmax(0, 1fr); } .garden-terrain-view .rg-type-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .rg-terrain-intro { padding: 16px; } .garden-terrain-view .rg-panel { padding: 18px 14px; } .garden-terrain-view .rg-location-layout[data-editing=false] { grid-template-columns: minmax(0, 1fr); } .garden-terrain-view .rg-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.rg-feature-checklists { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.rg-checklist { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d0b47b; border-radius: 16px; background: #fff8e5; }
+.rg-checklist legend { display: flex; align-items: center; gap: 7px; max-width: 100%; padding-inline: 4px; color: #365323; font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
+.rg-checklist > p { margin: 0 0 9px; color: #615e43; font-size: 12px; }
+.rg-checklist-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rg-checklist-options > label { position: relative; display: flex; align-items: center; gap: 9px; min-width: 0; min-height: 44px; padding: 9px; border: 1px solid #d8c699; border-radius: 11px; background: #fffdf4; color: #354527; cursor: pointer; font-size: 13px; overflow-wrap: anywhere; }
+.real-garden-page .rg-checklist-options input { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+.rg-checklist-mark { display: grid; place-items: center; flex-shrink: 0; width: 22px; height: 22px; border: 2px solid #9caa73; border-radius: 5px; background: #fff9e8; color: transparent; font-size: 16px; font-weight: 900; }
+.rg-checklist-options input:checked + .rg-checklist-mark { border-color: #4b731e; background: #578521; color: #fff9da; }
+.rg-checklist-options label:has(input:checked) { border-color: #7f9e43; background: #edf3ca; }
+.rg-checklist-options label:has(input:focus-visible) { outline: 3px solid #50752c; outline-offset: 2px; }
+.rg-garden-photo { position: relative; min-width: 0; width: 100%; margin: 18px 0; overflow: hidden; border: 2px solid #d4b47b; border-radius: 18px; background: #fff7df; }
+.rg-garden-photo > img { display: block; width: 100%; height: 220px; object-fit: cover; }
+.rg-garden-photo-empty { display: grid; justify-items: center; align-content: center; gap: 10px; min-height: 140px; padding: 20px; color: #627345; text-align: center; }
+.rg-garden-photo-empty .garden-icon { width: 38px; height: 38px; }
+.rg-garden-photo > figcaption { position: static; padding: 8px 12px; background: #f4e7c8; color: #41502a; font-size: 12px; }
+.rg-garden-photo-actions { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; }
+.rg-garden-photo-actions > label { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 16px; border: 1px solid #c4a159; border-radius: 23px; background: #426b1d; color: #fff9df; cursor: pointer; font-weight: 700; font-size: 13px; }
+.real-garden-page .rg-garden-photo-actions > input { position: absolute; width: 1px; height: 1px; min-height: 0; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
+.rg-garden-photo-actions:has(input:focus-visible) > label { outline: 3px solid #68872e; outline-offset: 3px; }
+.rg-garden-photo > .rg-error { padding: 0 12px 12px; }
+.rg-summary-illustration > .rg-garden-photo { display: flex; flex-direction: column; height: 100%; min-height: inherit; margin: 0; border: 0; border-radius: inherit; }
+.rg-summary-illustration .rg-garden-photo > img { position: static; inset: auto; flex: 1; min-height: 250px; height: 100%; }
+.rg-summary-illustration .rg-garden-photo > figcaption { max-width: 100%; }
+.rg-summary-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.rg-summary-features > div { min-width: 0; padding: 12px; border: 1px solid #cfb57b; border-radius: 14px; background: #fff8e4; }
+.rg-summary-features dt { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #45662c; }
+.rg-summary-features dd { margin: 6px 0 0; color: #344424; line-height: 1.5; overflow-wrap: anywhere; }
+.rg-map-dialog { --rg-green: #315c35; --rg-border: #d9c4aa; color-scheme: light; }
+.rg-map-dialog:not([open]) { display: none; }
+.rg-map-coordinate-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.rg-map-coordinate-fields label { display: grid; gap: 6px; min-width: 0; color: #344a28; font-size: 14px; font-weight: 700; }
+.rg-map-coordinate-fields input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #c5b78d; border-radius: 12px; background: #fffdf5; color: #263e26; font-size: 16px; }
+@media (max-width: 420px) { .rg-checklist-options, .rg-summary-features, .rg-map-coordinate-fields { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) { .rg-summary-illustration > .rg-garden-photo, .rg-summary-illustration .rg-garden-photo > img { min-height: 0; } }
+
+.garden-terrain-view .rg-form-panels { align-items: start; gap: 18px; }
+.garden-terrain-view .rg-characteristics { container-type: inline-size; }
+.garden-terrain-view .rg-panel { padding: 18px; }
+.garden-terrain-view .rg-panel-heading { gap: 10px; margin-bottom: 13px; }
+.garden-terrain-view .rg-panel-heading > div { min-width: 0; }
+.garden-terrain-view .rg-panel-heading h2 { font-size: clamp(24px, 2vw, 30px); overflow-wrap: anywhere; }
+.garden-terrain-view .rg-panel-heading p { font-size: 14px; line-height: 1.4; }
+.garden-terrain-view .rg-field > label, .garden-terrain-view .rg-location .field { font-size: 14px; }
+.garden-terrain-view .rg-essential-fields { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; }
+.garden-terrain-view .rg-type-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.garden-terrain-view .rg-type-card > img { height: 85px; }
+.garden-terrain-view .rg-type-copy { flex-wrap: wrap; gap: 4px; padding: 7px 2px; }
+.garden-terrain-view .rg-type-copy strong { font-size: 14px; }
+.garden-terrain-view .rg-location .map-visual { min-height: 220px; }
+.garden-terrain-view .rg-location .map-visual svg { max-width: 100%; height: 250px; }
+.garden-terrain-view .rg-location-actions { gap: 10px; margin-block: 14px; }
+.garden-terrain-view .rg-location-community { margin-block: 12px; }
+.garden-terrain-view .rg-inherited-location dt { font-size: 13px; }
+.garden-terrain-view .rg-more-characteristics > summary { min-height: 56px; padding-block: 10px; font-size: 16px; }
+.garden-terrain-view .rg-more-characteristics summary small { font-size: 14px; line-height: 1.4; }
+.garden-terrain-view .rg-form-footer { gap: 10px; padding-top: 16px; }
+.garden-terrain-view .rg-form-footer > p { font-size: 13px; }
+.garden-terrain-view .rg-form-footer > div { width: 100%; }
+.garden-terrain-view #rg-photo .rg-garden-photo { display: grid; grid-template-columns: minmax(105px, 34%) minmax(0, 1fr); grid-template-rows: auto 1fr; margin-block: 14px; }
+.garden-terrain-view #rg-photo .rg-garden-photo > :is(img, .rg-garden-photo-empty) { grid-column: 1; grid-row: 1 / span 2; width: 100%; height: 145px; min-height: 145px; }
+.garden-terrain-view #rg-photo .rg-garden-photo-empty { padding: 12px; font-size: 14px; line-height: 1.4; }
+.garden-terrain-view #rg-photo .rg-garden-photo > figcaption { grid-column: 2; padding: 12px 12px 4px; background: transparent; font-size: 14px; font-weight: 700; }
+.garden-terrain-view #rg-photo .rg-garden-photo-actions { grid-column: 2; flex-direction: column; align-items: flex-start; justify-content: center; gap: 6px; padding: 8px 12px 12px; min-width: 0; }
+.garden-terrain-view #rg-photo .rg-garden-photo-actions > label { max-width: 100%; padding-inline: 12px; font-size: 14px; text-align: center; overflow-wrap: anywhere; }
+.garden-terrain-view #rg-photo .rg-garden-photo-actions > button, .garden-terrain-view .rg-more-characteristics > .rg-hint { font-size: 14px; }
+.garden-terrain-view #rg-photo .rg-garden-photo > .rg-error { grid-column: 1 / -1; }
+@container (max-width: 380px) { .garden-terrain-view .rg-essential-fields { grid-template-columns: minmax(0, 1fr); } .garden-terrain-view .rg-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .garden-terrain-view .rg-panel { padding: 16px 12px; } .garden-terrain-view .rg-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .garden-terrain-view .rg-essential-fields { grid-template-columns: minmax(0, 1fr); } }

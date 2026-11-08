@@ -15,6 +15,9 @@ export type PlantRegistration = {
   species: typeof PLANT_SPECIES[number]
   plot: number
   plantedOn?: string
+  requestId?: string
+  recordSowing?: boolean
+  responsible?: string
 }
 
 export type PlantRegistrationResult = { ok: true } | { ok: false; error: string }

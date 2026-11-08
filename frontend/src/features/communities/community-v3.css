@@ -1,0 +1,157 @@
+/* Comunidad V3: presentación sobre los formularios y el mapa existentes. */
+.community-dialog.community-wizard.game-v3 { display: flex; flex-direction: column; padding: 14px 30px 12px; color: #fff6db; font-family: 'Trebuchet MS', system-ui, sans-serif; }
+.community-wizard.game-v3 .cw-world { background-position: center; background-size: cover; }
+.community-wizard.game-v3 .cw-world::before { background: linear-gradient(180deg, #0b331b03, #0e391b0a 70%, #12331538); }
+.community-wizard.game-v3 .community-dialog-header { position: absolute; z-index: 8; inset: 12px 16px auto auto; min-height: 0; margin: 0; }
+.community-wizard.game-v3 .community-kicker { display: none; }
+.community-wizard.game-v3 .community-close { width: 48px; height: 48px; min-height: 48px; border: 3px solid #ffd57b; outline: 2px solid #7a4315; background: radial-gradient(circle at 40% 25%, #a86a30, #623211); color: #fff9d9; box-shadow: inset 0 0 0 2px #9a5b27, 0 4px 4px #1b321b70; }
+.community-wizard.game-v3 .community-close .garden-icon { width: 30px; height: 30px; stroke-width: 3; }
+.community-wizard.game-v3 > .game-title { display: inline-flex; align-self: center; flex-shrink: 0; width: fit-content; max-width: calc(100% - 100px); min-height: 92px; margin: 0 0 12px; padding: 18px 52px; border: 0; border-radius: 0; background: none; box-shadow: none; font: 900 clamp(28px, 3vw, 48px)/1.12 'Trebuchet MS', system-ui, sans-serif; }
+.community-wizard.game-v3 > .game-title::before, .community-wizard.game-v3 > .game-title::after { display: none; }
+.community-wizard.game-v3 > .community-dialog-description, .cw-step-label { position: absolute; width: 1px; height: 1px; overflow: hidden; padding: 0; margin: -1px; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.community-wizard.game-v3 .cw-form { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 0; gap: 0; }
+.community-wizard.game-v3 .cw-stage { display: grid; grid-template-columns: minmax(160px, 23%) minmax(0, 1fr); align-items: center; gap: 22px; flex: 1 0 auto; min-height: 0; }
+.community-wizard.game-v3 .cw-stage--1 { grid-template-columns: minmax(150px, 21%) minmax(0, 1fr) minmax(270px, 30%); gap: 16px; }
+.community-wizard.game-v3 .cw-stage--2 { align-items: start; }
+.community-wizard.game-v3 .cw-stage > .kg-guide { display: flex; flex-direction: column-reverse; justify-content: flex-end; align-items: center; align-self: end; height: auto; max-height: none; min-width: 0; margin-bottom: 0; }
+.community-wizard.game-v3 .kg-guide__portrait { width: 100%; max-width: 100%; height: auto; max-height: calc(100dvh - 270px); margin: 0; object-fit: contain; object-position: bottom; }
+.community-wizard.game-v3 .kg-guide__speech { align-self: center; max-width: 100%; margin: 0 0 -8px; padding: 22px 17px; font: 800 clamp(17px, 1.6vw, 25px)/1.25 'Trebuchet MS', system-ui, sans-serif; }
+.community-wizard.game-v3 .cw-type-adventure { min-width: 0; }
+.community-wizard.game-v3 .cw-illustrated-types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; padding: 5px 3px 10px; }
+.community-wizard.game-v3 .kg-choice.cw-illustrated-choice { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; min-height: clamp(175px, 25vh, 265px); padding: 18px 18px 15px; border: 5px solid #e3a84c; outline: 2px solid #fff1b0; border-radius: 38px; background: radial-gradient(ellipse at 40% 20%, #fffef0, #ffe4a1); color: #ffecaa; box-shadow: inset 0 0 0 3px #fff8da, inset 0 0 24px #e7ba6c, 0 6px 0 #9f5b22, 0 10px 15px #14330e55; transform: none; animation: none; }
+.community-wizard.game-v3 .cw-type-medallion { position: relative; display: grid; place-items: center; width: clamp(90px, 9vw, 145px); height: clamp(90px, 9vw, 145px); border: 4px solid #f5c969; outline: 2px solid #965019; border-radius: 50%; background: repeating-linear-gradient(4deg, #36160600 0 6px, #36160625 7px 9px), radial-gradient(circle at 40% 25%, #b86b20, #6d310d); box-shadow: inset 0 0 0 3px #8a4010, 0 4px 3px #77430d70; }
+.community-wizard.game-v3 .cw-type-medallion::after { content: '❧'; position: absolute; inset: auto -17px -24px; color: #58a415; text-shadow: 0 2px #376c0b, 0 -1px #e1ed78; font-size: 50px; line-height: .8; transform: scaleX(1.5); }
+.community-wizard.game-v3 .cw-type-emblem { width: 80%; height: 80%; filter: drop-shadow(0 3px 0 #784014); }
+.community-wizard.game-v3 .cw-type-ribbon { width: 100%; min-height: 44px; margin: 9px 0 0; padding: 7px 8px; border: 2px solid #d49a39; border-radius: 19px; background: linear-gradient(#a66224, #6e2d08); box-shadow: inset 0 2px #ebba72, 0 3px 0 #7b410f; }
+.community-wizard.game-v3 .cw-type-ribbon strong { color: #fff9dd; font: 900 clamp(20px, 2.1vw, 33px)/1.1 'Trebuchet MS', system-ui, sans-serif; text-shadow: 0 2px 0 #4c260b; }
+.community-wizard.game-v3 .cw-type-ribbon small { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+.community-wizard.game-v3 .cw-selection-seal { top: 9px; right: 10px; width: 27px; height: 27px; border-width: 2px; font-size: 17px; opacity: 0; }
+.community-wizard.game-v3 .cw-illustrated-choice[aria-pressed=true] { border-color: #fff7ba; outline-color: #d9a63f; box-shadow: inset 0 0 0 3px #f4d47d, 0 0 18px #fff49e99, 0 6px 0 #8d511a, 0 10px 15px #14330e55; }
+.community-wizard.game-v3 .cw-illustrated-choice[aria-pressed=true] .cw-type-ribbon { background: linear-gradient(#87c619, #347302); box-shadow: inset 0 2px #d6ed80, 0 3px 0 #3f6208; }
+.community-wizard.game-v3 .cw-illustrated-choice[aria-pressed=true] .cw-selection-seal { opacity: 1; }
+.community-wizard.game-v3 .cw-illustrated-choice:hover { transform: translateY(-3px); filter: brightness(1.04); }
+.community-wizard.game-v3 .kg-panel { border: 5px solid #d89b42; border-radius: 29px; background: radial-gradient(ellipse at top left, #fffcec, #ffe8b0); color: #2d401e; box-shadow: inset 0 0 0 3px #fff8d5, inset 0 0 25px #d7aa6360, 0 5px 0 #97551e, 0 10px 17px #19381560; }
+.community-wizard.game-v3 .kg-panel::after { display: none; }
+.community-wizard.game-v3 .cw-map-area { position: relative; min-width: 0; }
+.community-wizard.game-v3 .cw-map-heading { position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px; clip-path: inset(50%); }
+.community-wizard.game-v3 .ecuador-game-map .map-visual { padding: 0; border: 0; border-radius: 28px; background: radial-gradient(ellipse, #125b4e65, #003d4520); box-shadow: none; overflow: visible; }
+.community-wizard.game-v3 .ecuador-game-map .map-visual svg { display: block; height: min(46vh, 435px); max-height: none; width: 100%; }
+.community-wizard.game-v3 .map-region-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; padding: 9px 0 0; }
+.community-wizard.game-v3 .map-region-legend span { display: flex; flex-direction: column; justify-content: flex-end; min-height: 57px; gap: 0; padding: 5px 2px; border: 2px solid #e3b465; border-radius: 13px; background-position: center; background-size: cover; color: #fffbd9; font-size: 10px; text-shadow: 0 1px 2px #142f11, 0 0 4px #142f11; }
+.community-wizard.game-v3 .map-region-legend i { width: 8px; height: 8px; margin-bottom: 3px; }
+.community-wizard.game-v3 .map-region-legend [data-region=costa] { background-image: linear-gradient(transparent, #123a21e0), url('../../shared/assets/comunidad-v3/fondos/fondo_comunidad_costa_v3.png'); }
+.community-wizard.game-v3 .map-region-legend [data-region=sierra] { background-image: linear-gradient(transparent, #123a21e0), url('../../shared/assets/comunidad-v3/fondos/fondo_comunidad_sierra_v3.png'); }
+.community-wizard.game-v3 .map-region-legend [data-region=oriente] { background-image: linear-gradient(transparent, #123a21e0), url('../../shared/assets/comunidad-v3/fondos/fondo_comunidad_oriente_v3.png'); }
+.community-wizard.game-v3 .map-region-legend [data-region=galapagos] { background-image: linear-gradient(transparent, #123a21e0), url('../../shared/assets/comunidad-v3/fondos/fondo_comunidad_galapagos_v3.png'); }
+.community-wizard.game-v3 .ecuador-game-map .tiny { margin: 6px 0 0 !important; padding: 4px 5px; border-radius: 8px; color: #fffbdc !important; background: #123e2bd9; font-size: 9px !important; line-height: 1.3 !important; }
+.community-wizard.game-v3 .cw-territory-picker { position: relative; display: block; padding: 11px; overflow: visible; }
+.community-wizard.game-v3 .cw-territory-flowers { position: absolute; z-index: 2; right: -7px; top: -17px; width: 91px; height: 75px; }
+.community-wizard.game-v3 .cw-territory-landscape { min-height: 115px; padding: 22px 12px 10px; margin: 0 0 12px; border: 2px solid #fff2b7; border-radius: 20px 20px 8px 8px; color: white; }
+.community-wizard.game-v3 .cw-territory-landscape::after { background: linear-gradient(transparent, #123d24b8); }
+.community-wizard.game-v3 .cw-territory-landscape > span { display: none; }
+.community-wizard.game-v3 .cw-territory-landscape h3 { margin: 0 0 9px; font: 900 clamp(23px, 2.8vw, 38px)/1.1 'Trebuchet MS', system-ui, sans-serif; color: #fff9e3; text-shadow: 0 2px #15381d, 0 0 7px #15381d; }
+.community-wizard.game-v3 .cw-territory-picker .kg-region-chip { padding: 4px 9px; font-size: 11px; color: #27421b; background: #fff29c; border: 1px solid #c19b43; text-shadow: none; }
+.community-wizard.game-v3 .cw-territory-controls { display: grid; gap: 9px; }
+.community-wizard.game-v3 .cw-province-field, .community-wizard.game-v3 .cw-sector-field, .community-wizard.game-v3 .cw-territory-controls .rg-field { display: grid; gap: 4px; margin: 0; color: #344621; font-size: 12px; font-weight: 800; }
+.community-wizard.game-v3 .cw-province-field select, .community-wizard.game-v3 .cw-territory-controls input { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid #bca778; border-radius: 12px; color: #2d3b21; background: #fffdf3; font: 600 13px 'Trebuchet MS', system-ui, sans-serif; box-shadow: inset 0 1px 3px #8e794e20; }
+.community-wizard.game-v3 .cw-territory-controls .rg-field label { color: #344621; }
+.community-wizard.game-v3 .cw-territory-controls .rg-error, .community-wizard.game-v3 .cw-field-error { color: #a12516; font-size: 11px; }
+.community-wizard.game-v3 .cw-builder { min-width: 0; align-self: center; }
+.community-wizard.game-v3 .cw-builder-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.community-wizard.game-v3 .cw-story-card { display: flex; flex-direction: column; min-width: 0; padding: 0; overflow: hidden; border: 4px solid #e1a245; border-radius: 27px; background: linear-gradient(#7a431c, #4d280d); box-shadow: inset 0 0 0 2px #fff1bb, 0 5px 0 #6d3c12, 0 8px 13px #16341160; transform: none; }
+.community-wizard.game-v3 .cw-story-card[data-open=true] { border-color: #fff3a6; box-shadow: 0 0 0 2px #bba34a, 0 0 12px #f6eb89a0, 0 5px 0 #6d3c12; transform: none; }
+.community-wizard.game-v3 .cw-story-card > button:first-child { display: flex; flex: 1; flex-direction: column; min-width: 0; width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.community-wizard.game-v3 .cw-story-painting { position: relative; display: block; width: 100%; height: clamp(95px, 14vh, 165px); overflow: hidden; border: 0; border-radius: 18px 18px 0 0; }
+.community-wizard.game-v3 .cw-story-painting img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 38%; }
+.community-wizard.game-v3 .cw-story-guide { background: #d9efb4; }
+.community-wizard.game-v3 .cw-story-guide img { object-fit: cover; object-position: center 13%; }
+.community-wizard.game-v3 .cw-story-title { position: relative; display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; min-height: 44px; margin: 0; padding: 7px 7px 7px 35px; border-block: 2px solid #e0a84b; background: repeating-linear-gradient(2deg, #f9deb508 0 3px, transparent 3px 7px), linear-gradient(#9c5d26, #6a320d); color: #fff8dd; font: 900 clamp(13px, 1.5vw, 22px)/1.15 'Trebuchet MS', system-ui, sans-serif; text-shadow: 0 2px #412508; }
+.community-wizard.game-v3 .cw-card-medallion { position: absolute; left: 5px; display: grid; place-items: center; width: 36px; height: 36px; border: 2px solid #f8d775; border-radius: 50%; background: radial-gradient(#bc7c22, #744111); color: #ffefac; box-shadow: 0 2px #57350d; }
+.community-wizard.game-v3 .cw-card-medallion .garden-icon { width: 25px; height: 25px; }
+.community-wizard.game-v3 .cw-story-summary { display: block; width: 100%; min-height: 34px; padding: 8px; color: #fff8d9; font: italic 12px/1.35 'Trebuchet MS', system-ui, sans-serif; overflow-wrap: anywhere; }
+.community-wizard.game-v3 .cw-story-summary strong { font: inherit; color: inherit; }
+.community-wizard.game-v3 .cw-quick-add { position: relative; width: calc(100% - 14px); min-height: 44px; margin: 0 7px 7px; padding: 6px; border: 1px solid #e2c575; border-radius: 12px; background: #426e13; color: #fff7cc; font-size: 11px; }
+.community-wizard.game-v3 .cw-card-editor { margin: 18px 0 0; padding: 16px 20px 12px; border: 4px solid #dfa74d; border-radius: 25px; background: radial-gradient(ellipse at top left, #fffbe5, #ffe8ac); box-shadow: inset 0 0 0 2px #fff4cd, 0 5px 0 #8b4e17; color: #344421; }
+.community-wizard.game-v3 .cw-card-editor > header { margin-bottom: 12px; padding-bottom: 8px; border-color: #c6ac70; color: #3a4a27; font: 800 15px 'Trebuchet MS', system-ui, sans-serif; }
+.community-wizard.game-v3 .cw-card-editor > header small { color: #57643a; font: 11px 'Trebuchet MS', system-ui, sans-serif; }
+.community-wizard.game-v3 .cw-fields { gap: 12px; }
+.community-wizard.game-v3 .cw-fields label { color: #314622; font-size: 12px; }
+.community-wizard.game-v3 .cw-fields input, .community-wizard.game-v3 .cw-fields textarea, .community-wizard.game-v3 .cw-fields select { min-height: 44px; padding: 9px 11px; border: 1px solid #ad9d73; border-radius: 13px; background: #fffdf5; color: #263a20; font-size: 14px; }
+.community-wizard.game-v3 .cw-fields small, .community-wizard.game-v3 .cw-team-heading p { color: #4e603b; font-size: 11px; }
+.community-wizard.game-v3 .cw-selected-type { display: none; }
+.community-wizard.game-v3 .cw-editor-actions { margin-top: 8px; }
+.community-wizard.game-v3 .cw-text-button { min-height: 44px; color: #355521; }
+.community-wizard.game-v3 .cw-location-readonly { margin-top: 17px; padding: 11px 14px; border: 2px solid #d8c37c; border-radius: 16px; background: #164926ed; color: #fff7d7; }
+.community-wizard.game-v3 .cw-location-readonly > div > div > strong { display: none; }
+.community-wizard.game-v3 .cw-location-readonly .cw-territory-summary { gap: 8px 12px; }
+.community-wizard.game-v3 .cw-location-readonly .cw-territory-summary dt { color: #e8e49d; font-size: 10px; }
+.community-wizard.game-v3 .cw-location-readonly .cw-territory-summary dd { color: #fff9de; font-size: 11px; }
+.community-wizard.game-v3 .cw-location-readonly button { min-height: 44px; color: #fff7bf; }
+.community-wizard.game-v3 .cw-confirm { align-self: center; padding: 9px 9px 18px; overflow: hidden; }
+.community-wizard.game-v3 .cw-summary-banner { min-height: clamp(145px, 23vh, 235px); margin: 0 0 15px; padding: 14px 20px; border: 2px solid #fff0b8; border-radius: 23px 23px 5px 5px; background-position: center; background-size: cover; }
+.community-wizard.game-v3 .cw-summary-banner > .garden-icon { width: 52px; height: 52px; padding: 8px; border: 3px solid #d5d05b; border-radius: 50%; background: linear-gradient(#6a9c11, #315c00); color: #fff8c0; }
+.community-wizard.game-v3 .cw-summary-banner strong { font: 900 clamp(26px, 3vw, 43px)/1.15 'Trebuchet MS', system-ui, sans-serif; color: #fff9df; }
+.community-wizard.game-v3 .cw-summary-banner span { font-size: 12px; color: #fff6c7; }
+.community-wizard.game-v3 .cw-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0 8px; }
+.community-wizard.game-v3 .cw-summary > div { display: flex; flex-direction: column; gap: 8px; padding: 7px 12px; min-width: 0; border: 0; border-right: 1px solid #be9f55; border-radius: 0; background: none; }
+.community-wizard.game-v3 .cw-summary > div:last-child { border: 0; }
+.community-wizard.game-v3 .cw-summary dt { color: #69702b; font-size: 12px; }
+.community-wizard.game-v3 .cw-summary dd { color: #23421c; font: 800 15px/1.35 'Trebuchet MS', system-ui, sans-serif; overflow-wrap: anywhere; }
+.community-wizard.game-v3 .cw-summary .cw-confirm-territory { font-size: 11px; }
+.community-wizard.game-v3 .cw-summary button { min-height: 44px; margin-top: auto; padding: 5px 0; color: #486521; font-size: 11px; text-align: left; }
+.community-wizard.game-v3 .cw-confirm-description { margin: 13px 17px; color: #334925; font-size: 13px; }
+.community-wizard.game-v3 .cw-soft-note { margin: 15px 18px 0; padding: 12px 18px; border: 2px solid #d2d382; border-radius: 16px; background: linear-gradient(#f2f3c2, #e5e8a1); color: #3b501e; font: 800 16px 'Trebuchet MS', system-ui, sans-serif; text-align: center; }
+.community-wizard.game-v3 .cw-validation { margin: 9px 0; padding: 10px 15px; border: 2px solid #e7aa71; border-radius: 13px; background: #fff4db; color: #a72b1d; }
+.community-wizard.game-v3 .cw-footer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; flex-shrink: 0; gap: 16px; margin: 12px 0 0; padding: 12px 6px 6px; min-height: 76px; border: 0; }
+.community-wizard.game-v3 .cw-footer .kg-btn { min-width: 150px; font-size: 20px; padding-inline: 30px; }
+.community-wizard.game-v3 .cw-footer-meta { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0 15px; }
+.community-wizard.game-v3 .cw-footer p { margin: 0; padding: 5px 8px; border-radius: 8px; background: #123b22d9; color: #fff7dc; font-size: 9px; text-align: center; }
+.community-wizard.game-v3 .cw-footer .cw-cancel { display: block; min-height: 44px; margin: 0; padding: 5px; color: #fff7de; font-size: 11px; text-shadow: 0 1px 3px #17451f; }
+@media (min-width: 1500px) { .community-wizard.game-v3 .cw-footer .kg-btn { min-height: 62px; min-width: 230px; padding: 13px 35px; font-size: 28px; } }
+@media (max-width: 1200px) { .community-dialog.community-wizard.game-v3 { padding-inline: 20px; } .community-wizard.game-v3 .cw-stage { gap: 16px; } .community-wizard.game-v3 .cw-stage--1 { gap: 12px; grid-template-columns: minmax(135px, 19%) minmax(0, 1fr) 265px; } .community-wizard.game-v3 .cw-illustrated-types { gap: 17px; } .community-wizard.game-v3 .cw-story-title { font-size: 14px; } }
+@media (max-width: 1100px) { .community-wizard.game-v3 > .game-title { min-height: 78px; font-size: 30px; } .community-wizard.game-v3 .cw-stage--1 { grid-template-columns: minmax(0, 1fr) 270px; } .community-wizard.game-v3 .cw-stage--1 > .kg-guide { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 10px; align-items: center; max-height: 100px; } .community-wizard.game-v3 .cw-stage--1 .kg-guide__portrait { width: 100px; height: 100px; margin: 0; } .community-wizard.game-v3 .cw-stage--1 .kg-guide__speech { width: auto; max-width: 360px; margin: 0; padding: 13px 20px; border-radius: 20px; font-size: 17px; } .community-wizard.game-v3 .cw-stage--1 .kg-guide__speech::after { display: none; } .community-wizard.game-v3 .cw-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .community-wizard.game-v3 .cw-summary > div:nth-child(2) { border-right: 0; } }
+@media (max-width: 700px) { .community-dialog.community-wizard.game-v3 { padding: 12px 13px 0; } .community-wizard.game-v3 > .game-title { min-height: 83px; max-width: calc(100% - 44px); margin: 0 auto 13px 0; padding: 14px 21px; gap: 7px; font-size: 23px; } .community-wizard.game-v3 .game-title-text { min-width: 0; } .community-wizard.game-v3 .game-title-medallion { width: 37px; height: 37px; margin-left: 0; } .community-wizard.game-v3 .game-title-medallion .garden-icon { width: 27px; height: 27px; } .community-wizard.game-v3 .community-dialog-header { right: 10px; top: 13px; } .community-wizard.game-v3 .community-close { width: 44px; height: 44px; min-height: 44px; } .community-wizard.game-v3 .community-close .garden-icon { width: 24px; height: 24px; } .community-wizard.game-v3 .cw-form { flex: none; min-height: calc(100dvh - 108px); } .community-wizard.game-v3 .cw-stage, .community-wizard.game-v3 .cw-stage--1 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 15px; } .community-wizard.game-v3 .cw-stage > .kg-guide { flex-direction: row; justify-content: center; align-items: center; align-self: auto; gap: 8px; height: auto; max-height: 128px; grid-column: auto; } .community-wizard.game-v3 .cw-stage .kg-guide__portrait { width: 100px; height: 128px; max-height: 128px; margin: 0; object-fit: contain; } .community-wizard.game-v3 .cw-stage .kg-guide__speech { width: auto; max-width: calc(100% - 110px); margin: 0; padding: 15px 13px; border-radius: 24px; font-size: 16px; } .community-wizard.game-v3 .kg-guide__speech::after { display: none; } .community-wizard.game-v3 .cw-illustrated-types { gap: 14px; padding: 3px; } .community-wizard.game-v3 .kg-choice.cw-illustrated-choice { min-height: 145px; padding: 13px 9px 10px; gap: 4px; border-width: 4px; border-radius: 24px; } .community-wizard.game-v3 .cw-type-medallion { width: 76px; height: 76px; border-width: 3px; } .community-wizard.game-v3 .cw-type-medallion::after { font-size: 34px; inset-block-end: -15px; } .community-wizard.game-v3 .cw-type-ribbon { min-height: 36px; padding: 6px 2px; margin-top: 7px; border-radius: 12px; } .community-wizard.game-v3 .cw-type-ribbon strong { font-size: 18px; } .community-wizard.game-v3 .cw-selection-seal { width: 22px; height: 22px; top: 5px; right: 5px; font-size: 14px; } .community-wizard.game-v3 .ecuador-game-map .map-visual svg { height: auto; max-height: 365px; } .community-wizard.game-v3 .cw-territory-landscape { min-height: 115px; } .community-wizard.game-v3 .cw-territory-controls { gap: 11px; } .community-wizard.game-v3 .cw-builder-cards { gap: 8px; } .community-wizard.game-v3 .cw-story-card { border-width: 2px; border-radius: 16px; } .community-wizard.game-v3 .cw-story-painting { height: 78px; border-radius: 14px 14px 0 0; } .community-wizard.game-v3 .cw-story-title { padding: 6px 2px; min-height: 44px; font-size: 12px; } .community-wizard.game-v3 .cw-card-medallion { display: none; } .community-wizard.game-v3 .cw-story-summary { padding: 6px 4px; font-size: 10px; } .community-wizard.game-v3 .cw-quick-add { width: calc(100% - 4px); margin: 0 2px 4px; font-size: 10px; } .community-wizard.game-v3 .cw-card-editor { padding: 14px 12px; } .community-wizard.game-v3 .cw-fields { grid-template-columns: minmax(0, 1fr); } .community-wizard.game-v3 .cw-location-readonly { display: block; padding: 10px; } .community-wizard.game-v3 .cw-location-readonly button { margin-top: 7px; } .community-wizard.game-v3 .cw-confirm { padding: 6px 6px 14px; } .community-wizard.game-v3 .cw-summary-banner { min-height: 145px; padding: 12px; } .community-wizard.game-v3 .cw-summary-banner strong { font-size: 26px; } .community-wizard.game-v3 .cw-summary { margin: 0; } .community-wizard.game-v3 .cw-summary > div { padding: 8px; } .community-wizard.game-v3 .cw-summary dd { font-size: 13px; } .community-wizard.game-v3 .cw-soft-note { margin: 12px 5px 0; padding: 12px; font-size: 14px; } .community-wizard.game-v3 .cw-footer { position: sticky; z-index: 5; bottom: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 16px; padding: 15px 5px 5px; background: linear-gradient(#164a2490, #164a24f7 30%); border-radius: 16px 16px 0 0; } .community-wizard.game-v3 .cw-footer .kg-btn { min-width: 0; padding-inline: 10px; font-size: 16px; } .community-wizard.game-v3 .cw-footer-meta { grid-column: 1 / -1; grid-row: 2; gap: 8px; } .community-wizard.game-v3 .cw-footer-meta p { padding: 3px 5px; font-size: 8px; } .community-wizard.game-v3 .cw-footer .cw-cancel { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .community-wizard.game-v3 .cw-illustrated-choice, .community-wizard.game-v3 .cw-illustrated-choice:hover { animation: none; transform: none; transition: none; } }
+
+/* Contenido de datos y resumen legible sin duplicar instrucciones. */
+.community-wizard.game-v3 .cw-story-card { position: relative; min-height: 0; }
+.community-wizard.game-v3 .cw-quick-add { position: absolute; top: 8px; right: 8px; left: auto; bottom: auto; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 2px solid #e5d486; border-radius: 50%; font-size: 0; box-shadow: 0 2px #48621a; }
+.community-wizard.game-v3 .cw-quick-add::before { content: '+'; color: #fffbcf; font: 800 30px/1 'Trebuchet MS', system-ui, sans-serif; }
+.community-wizard.game-v3 .cw-fields label { font-size: 15px; }
+.community-wizard.game-v3 .cw-fields input, .community-wizard.game-v3 .cw-fields textarea, .community-wizard.game-v3 .cw-fields select { font-size: 17px; min-height: 48px; }
+.community-wizard.game-v3 .cw-summary dt { font-size: 15px; }
+.community-wizard.game-v3 .cw-summary dd { font-size: 17px; }
+.community-wizard.game-v3 .cw-summary .cw-confirm-territory { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.community-wizard.game-v3 .cw-summary button { font-size: 12px; }
+@media (max-width: 700px) { .community-wizard.game-v3 .cw-fields label { font-size: 13px; } .community-wizard.game-v3 .cw-fields input, .community-wizard.game-v3 .cw-fields textarea, .community-wizard.game-v3 .cw-fields select { font-size: 16px; } .community-wizard.game-v3 .cw-summary dt { font-size: 13px; } .community-wizard.game-v3 .cw-summary dd { font-size: 15px; } .community-wizard.game-v3 .cw-summary .cw-confirm-territory { font-size: 12px; } .community-wizard.game-v3 .cw-quick-add { top: 4px; right: 4px; width: 44px; height: 44px; margin: 0; font-size: 0; } }
+
+.community-wizard.game-v3 > .game-title { margin-inline: auto; text-align: center; }
+.community-wizard.game-v3 .ecuador-game-map .map-visual { padding: 12px; border: 2px solid #e8c979; background: radial-gradient(ellipse at center, #23665c, #0b3c45); box-shadow: inset 0 0 0 2px #123a38, 0 5px 12px #102c2866; }
+.community-wizard.game-v3 .ecuador-game-map .game-province { stroke: #fff7d9; stroke-width: 2; paint-order: fill stroke; }
+.community-wizard.game-v3 .ecuador-game-map .game-province[aria-pressed=true] { fill: #ffe26b; stroke: #fffbe2; stroke-width: 3; filter: drop-shadow(0 0 5px #ffe878); }
+.community-wizard.game-v3 .ecuador-game-map .map-island-label, .community-wizard.game-v3 .ecuador-game-map .map-sea-label { fill: #fff9de; }
+.community-wizard.game-v3 .cw-summary-banner { display: grid; grid-template-columns: minmax(150px, 30%) minmax(0, 1fr); align-items: center; gap: 18px; }
+.community-wizard.game-v3 .cw-summary-banner > .community-cover-photo { height: 200px; border: 3px solid #ffe9ad; box-shadow: 0 3px 8px #102c2870; }
+.community-wizard.game-v3 .cw-summary-identity { display: grid; justify-items: center; gap: 10px; min-width: 0; padding: 14px; border: 1px solid #c3d49480; border-radius: 20px; background: #123824e8; }
+.community-wizard.game-v3 .cw-summary-identity > .garden-icon { width: 42px; height: 42px; color: #d9f58c; }
+.community-wizard.game-v3 .cw-summary-identity > span { padding: 7px 14px; border-radius: 22px; background: #fff1c7; color: #263e1b; font-size: 15px; font-weight: 800; }
+.community-wizard.game-v3 .cw-summary-banner .community-cover-controls label, .community-wizard.game-v3 .cw-summary-banner .community-cover-controls button { color: #fff9dc; font-size: 13px; }
+.community-wizard.game-v3 .cw-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 14px; margin: 0 8px; }
+.community-wizard.game-v3 .cw-summary > div { align-items: flex-start; padding: 16px 18px; border: 1px solid #c9a263; border-radius: 18px; background: #fff4d9; gap: 9px; }
+.community-wizard.game-v3 .cw-summary > div:first-child { background: #edf0bb; }
+.community-wizard.game-v3 .cw-summary > div:last-child { border: 1px solid #c9a263; }
+.community-wizard.game-v3 .cw-summary dt { color: #315120; font-size: 16px; font-weight: 800; }
+.community-wizard.game-v3 .cw-summary dd { color: #223719; font-size: 18px; line-height: 1.5; }
+.community-wizard.game-v3 .cw-summary .cw-confirm-territory { font-size: 16px; line-height: 1.5; gap: 5px; }
+.community-wizard.game-v3 .cw-summary button { min-height: 44px; padding: 8px 15px; border: 1px solid #ba9254; border-radius: 22px; background: #fff9e8; color: #3a501e; font-size: 14px; font-weight: 700; text-decoration: none; }
+@media (max-width: 700px) { .community-wizard.game-v3 > .game-title { max-width: calc(100% - 88px); padding-inline: 13px; } .community-wizard.game-v3 .cw-summary-banner { grid-template-columns: minmax(0, 1fr); gap: 12px; } .community-wizard.game-v3 .cw-summary-banner > .community-cover-photo { width: min(100%, 320px); height: 185px; } .community-wizard.game-v3 .cw-summary { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-inline: 4px; } .community-wizard.game-v3 .cw-summary > div { padding: 14px; } .community-wizard.game-v3 .cw-summary .cw-confirm-territory { font-size: 16px; } }
+
+.community-wizard.game-v3 > .game-title { min-width: 0; min-height: 118px; padding: 28px clamp(35px, 6vw, 85px) 24px; gap: 12px; font-size: clamp(32px, 3.25vw, 52px); line-height: 1.15; text-align: center; }
+.community-wizard.game-v3 > .game-title .game-title-medallion { margin: 0; width: 52px; height: 52px; }
+.community-wizard.game-v3 .cw-summary > .cw-confirm-card { position: relative; isolation: isolate; padding-bottom: 24px; overflow: hidden; }
+.community-wizard.game-v3 .cw-confirm-card dt { display: flex; align-items: center; gap: 10px; }
+.community-wizard.game-v3 .cw-confirm-card dt .garden-icon { width: 34px; height: 34px; padding: 5px; border: 1px solid #e0bb68; border-radius: 50%; background: #f4df9b; color: #507123; }
+.community-wizard.game-v3 .cw-confirm-card::after { content: ''; position: absolute; z-index: -1; width: 60px; height: 20px; right: 10px; bottom: 12px; border: 2px solid #91a54e; border-radius: 0 100% 0 100%; transform: rotate(-20deg); opacity: .2; pointer-events: none; }
+.community-wizard.game-v3 .cw-confirm-card--territory::after { width: 80px; height: 40px; border-radius: 3px; clip-path: polygon(0 100%, 30% 15%, 48% 55%, 65% 0, 100% 100%); background: #b88b36; border: 0; transform: none; }
+.community-wizard.game-v3 .cw-confirm-card--members { background: linear-gradient(135deg, #fff6dc, #f3e5b4); }
+@media (max-width: 700px) { .community-wizard.game-v3 > .game-title { max-width: calc(100% - 76px); padding: 26px 25px 24px; gap: 6px; font-size: clamp(21px, 4.8vw, 26px); } .community-wizard.game-v3 > .game-title .game-title-medallion { width: 30px; height: 30px; border-width: 2px; } .community-wizard.game-v3 > .game-title .game-title-medallion .garden-icon { width: 22px; height: 22px; } }

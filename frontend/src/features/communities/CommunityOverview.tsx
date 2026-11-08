@@ -1,7 +1,9 @@
 import GardenIcon from '../my-garden/GardenIcon'
 import CommunityIcon from './CommunityIcon'
-import communityImage from './assets/comunidad-v2.jpg'
+import { gameRegionAssets } from '../../shared/ui/game-ui/game-region-assets'
+import { regionForProvince } from '../real-gardens/garden-region'
 import type { Community } from './communities'
+import CommunityCoverPhoto from './CommunityCoverPhoto'
 
 export default function CommunityOverview({ community, garden, onEdit, onGarden }: {
   community: Community
@@ -10,17 +12,17 @@ export default function CommunityOverview({ community, garden, onEdit, onGarden 
   onGarden: () => void
 }) {
   return <section className="community-panel community-overview" aria-label="Mi comunidad registrada">
-    <div className="community-overview-cover" aria-hidden="true"><img src={communityImage} alt="" width="1536" height="1024" decoding="async"/><span>Ilustración decorativa</span></div>
+    <div className="community-overview-cover"><CommunityCoverPhoto photo={community.coverPhoto} fallback={gameRegionAssets[regionForProvince(community.province ?? '')].background}/></div>
     <div className="community-overview-body">
       <div className="community-overview-heading">
-        <div><span className="community-kicker">MI COMUNIDAD · REGISTRO TEMPORAL</span><h2>{community.name}</h2></div>
+        <div><span className="community-kicker">MI COMUNIDAD</span><h2>{community.name}</h2></div>
         <button className="community-secondary-button" type="button" onClick={onEdit}><CommunityIcon name="edit"/> Editar comunidad</button>
       </div>
       <div className="community-overview-grid">
-        <div className="community-overview-information"><p>{community.description || 'Aún no has añadido una descripción.'}</p></div>
+        {community.description && <div className="community-overview-information"><p>{community.description}</p></div>}
         <dl className="community-overview-location"><div><dt><GardenIcon name="map"/> Localidad</dt><dd>{community.location || 'Sin especificar'}</dd></div><div><dt>Responsable</dt><dd>{community.responsible || 'Sin especificar'}</dd></div></dl>
-        <div className="community-overview-members"><h3><GardenIcon name="community"/> Integrantes</h3><p>Aún no hay integrantes registrados.</p></div>
-        <div className="community-overview-garden"><h3><GardenIcon name="seed"/>{garden || 'Huerto compartido'}</h3><button className="community-text-button" type="button" onClick={onGarden}>{garden ? 'Ir al huerto compartido' : 'Registrar huerto compartido'}<GardenIcon name="arrow"/></button></div>
+        <div className="community-overview-members"><h3><GardenIcon name="community"/> Integrantes</h3><p>{(community.members?.length ?? 0) + 1} {(community.members?.length ?? 0) > 0 ? 'personas' : 'persona'}</p></div>
+        <div className="community-overview-garden"><h3><GardenIcon name="seed"/>{garden || 'Huerto compartido'}</h3><button className="community-text-button" type="button" onClick={onGarden}>{garden ? 'Ver mi terreno' : 'Registrar mi terreno'}<GardenIcon name="arrow"/></button></div>
       </div>
     </div>
   </section>

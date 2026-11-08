@@ -5,7 +5,8 @@ export type AuthErrors = Partial<Record<AuthFieldName, string>>
 export type AuthSubmission =
   | { mode: 'register'; name: string; email: string; password: string }
   | { mode: 'login'; email: string; password: string }
-export type AuthSubmitHandler = (submission: AuthSubmission) => Promise<{ message: string }>
+/** El adaptador solo confirma authenticated tras verificar una sesión real. */
+export type AuthSubmitHandler = (submission: AuthSubmission) => Promise<{ message: string; authenticated?: boolean }>
 
 export const AUTH_FIELDS: Record<AuthMode, AuthFieldName[]> = {
   register: ['name', 'email', 'password', 'confirmPassword'],

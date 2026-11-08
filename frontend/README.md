@@ -1,76 +1,63 @@
-# Kawsapacha — Frontend V1
+# Kawsapacha — Mi Jardín Vivo
 
-Primer prototipo funcional de interfaces de **Kawsapacha: Mi Huerto Vivo**.
+Implementación React + TypeScript + Phaser 3.90.0. La entrada principal (`/`) y el laboratorio (`/garden-lab.html`) comparten el renderizador Phaser y la lógica del jardín. **No comparten registros locales si se abren en puertos distintos**: IndexedDB se separa por origen (protocolo, host y puerto). No se precargan comunidades, plantas ni actividades de ejemplo.
 
-## Ejecutar localmente
+## Ejecutar
 
-Requisitos: Node.js 20.19+ (o 22.12+) y npm.
+Node 20.19+ o 22.12+ y npm. Desde la raíz:
 
-```bash
+```powershell
 cd frontend
-npm install
-npm run dev
+npm.cmd install
+npm.cmd run dev -- --configLoader runner --host 127.0.0.1
 ```
 
-Abrir la URL indicada por Vite (habitualmente http://localhost:5173).
+Abre la URL indicada por Vite (normalmente `http://127.0.0.1:5173`). Pulsa **Descubrir Kawsapacha**, registra una comunidad, después **Mi terreno** y vuelve a **Mi Jardín**. Una comunidad personal es válida. El laboratorio usa `npm.cmd run dev:garden-poc` y `http://127.0.0.1:5176/garden-lab.html`; añade `?renderer=canvas` para forzar Canvas.
 
-Para comprobar tipos y generar artefacto de producción:
+## Comportamiento implementado
 
-```bash
-npm run typecheck
-npm run build
+- Escenario de piezas independientes: horizonte regional original, prado continuo, senderos texturados, relieves, recipientes, soportes, sombras y profundidad. Las pantallas maestras orientan la composición; ninguna se pega como escenario.
+- Sierra, Costa, Amazonía y Galápagos se resuelven desde la provincia registrada. Las modalidades En tierra, Macetas, Vertical y Colgante conservan seis identificadores de espacio. Las combinaciones de surcos, camas, camellones y terrazas muestran las selecciones del terreno.
+- Suelo, cercas, fuentes de agua, riego y abono proceden de los tipos y validaciones de Mi terreno. Lluvia no añade un tanque; compost no añade una compostera. Las posiciones son ilustrativas, sin afirmar dimensiones ni capacidad física exactas.
+- Arrastre, rueda, controles de zoom y teclado; selección por ratón o toque. Los seis controles HTML equivalentes sirven a lectores de pantalla y teclado. Inicio/Fin y flechas cambian de espacio. Hay una alternativa HTML si el motor no inicia.
+- Registro con galería o cámara, especie, fecha opcional, ficha editable, foto real en el jardín, estado documentado, observaciones, altura medida y evidencias en el Pasaporte Vivo. Archivar libera el espacio sin borrar la ficha; restaurar comprueba ocupación.
+- Nueve actividades: preparación, limpieza/deshierbe, siembra, riego, abonado, aporque, replante, seguimiento y cosecha. Fecha, responsable, destino, notas, foto y datos específicos. La siembra se registra explícitamente; añadir una ficha no demuestra por sí solo que se haya sembrado.
+- Preparación y abonado dejan señales derivadas de registros. El riego anima temporalmente después de guardar. Seguimiento actualiza estado/foto/medida documentados. Replante cambia de espacio; cosecha completa puede liberar el espacio. Anular conserva evento y evidencia y reconstruye sus efectos; se rechazan conflictos de ocupación.
+- Mis plantas, Mi historia y Mi camino verde son pantallas funcionales. Las acciones no conducen a demostraciones estáticas. Las recompensas locales se recalculan desde registros válidos, excluyen anulaciones y evitan duplicados.
+
+## Persistencia y límites
+
+`IndexedDbGardenRepository` implementa `GardenRepository`, separada de la lógica agrícola y de Phaser. IndexedDB `kawsapacha-living-garden-v1`, versión 1, guarda metadatos y fotografías Blob en transacciones. Las fotos tienen identificadores inmutables y se reconstruyen sus URL al abrir. No se guardan URL Blob efímeras como fotografías persistentes. Los registros sobreviven a la recarga; varias pestañas del mismo origen comparten revisiones mediante BroadcastChannel y transacciones. Una operación fallida conserva el registro anterior.
+
+El alcance local es **un huerto y una comunidad por origen/perfil de navegador**, sin cuentas ni aislamiento entre usuarios del mismo perfil. Cambiar host/puerto/perfil cambia el almacenamiento. Borrar datos del sitio, modo privado, cuotas o desalojo del navegador pueden eliminarlo. No hay copia remota ni sincronización multiusuario. Los borradores todavía no confirmados se conservan al navegar durante la visita, no al recargar. Las fotos de plantas y actividades aceptan JPG/PNG/WebP de hasta 3 MB.
+
+El repositorio no contiene un backend funcional ni contratos de autenticación configurados. `App` conserva el adaptador opcional `onAuthenticate: AuthSubmitHandler`: solo `authenticated: true` inicia la sesión de interfaz. Un mensaje, una validación de formulario o una respuesta tardía tras salir no autentican. Sin adaptador, los formularios explican que no se inició sesión; no se inventan endpoints, credenciales ni sesiones. La unión remota, el directorio de comunidades y las publicaciones siguen pendientes del servicio correspondiente. Las fixtures de autenticación son exclusivas de pruebas.
+
+## Gamificación local V1
+
+La lógica está en `journal/progress.ts`, independiente de Phaser. Preparación 10; limpieza 8; siembra 20; riego 5; abonado 8; aporque 8; replante 10; seguimiento 12; cosecha 20. Niveles: Aprendiz desde 0, Oficial desde 100, Maestro desde 300.
+
+Un identificador o contenido repetido no cuenta dos veces. Como máximo se recompensa una actividad por tipo, fecha, destino y responsable normalizado; registros adicionales del mismo grupo pueden conservarse con 0 puntos. Las anulaciones dejan de sumar. Insignias por siembra con foto, riego en tres fechas, seguimiento fotográfico en tres fechas y cosecha con foto. El progreso individual usa el responsable registrado; el agregado comunitario muestra únicamente los registros de este navegador. Son declaraciones locales, sin validación de acciones físicas ni protección del servidor contra manipulación.
+
+## Arquitectura y verificación
+
+- `src/App.tsx`: navegación e integración de formularios, repositorio y paneles.
+- `src/features/my-garden/journal/`: comandos agrícolas puros, proyección de plantas, actividades, repositorio, medios y recompensas.
+- `src/features/my-garden/phaser-poc/`: adaptador visual, geometría, recursos, composición y puente por instancia. `MyGardenPage` lo usa en producción con carga diferida.
+- `features/communities/`, `features/real-gardens/`, `features/auth/`: formularios y contratos existentes reutilizados.
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run build -- --configLoader runner
+npm.cmd run build:garden-poc
+npm.cmd run test:garden-poc
+npm.cmd run test:unit
+npm.cmd run test:e2e
+npm.cmd run test:production
 ```
 
-## Estado y limitaciones (26/10/2026)
+Playwright usa Chrome instalado y abre/cierra Vite mediante su API, sin tocar servidores del usuario. La suite `test:production` ejecuta los recorridos de escritorio y móvil contra `vite preview` del build principal en 5179 (`KAWSAPACHA_PREVIEW_PORT`). La suite principal usa 5174 (`KAWSAPACHA_E2E_PORT`); la del jardín 5177 (`KAWSAPACHA_POC_PORT`). Las pruebas de mapa sustituyen las teselas externas; las de cámara usan un dispositivo de vídeo simulado. El hardware físico y la sincronización remota no se validan con estas pruebas.
 
-**Este frontend es un prototipo de interacción, no un sistema operativo de producción**:
-- Está preparada la navegación entre Inicio, Usuarios, Comunidades, Huertos, Catálogo y Huerto Virtual.
-- Permite crear comunidad y huerto **únicamente en memoria**, seleccionar provincias y visualizar plantas con fotografía durante la sesión.
-- No existen todavía autenticación real, permisos de backend, persistencia en base de datos, carga de archivos al servidor ni historias botánicas verificadas.
-- No afirmar que el prototipo cumple las historias de usuario hasta conectarlo al backend y ejecutar pruebas.
-- La elección del stack frontend (React, TypeScript y Vite) se debe ratificar con Ronny en ARQ-001 antes de integrar backend.
+Vite avisa del tamaño de Phaser; el motor está en un módulo asíncrono. Las ilustraciones originales de alta resolución requieren una conexión y memoria acordes. La equivalencia visual final con las referencias necesita revisión del propietario del producto; no hay una métrica automática que certifique calidad artística de videojuego.
 
-## Comunidad V1
-
-El módulo vive en `src/features/communities/` y se abre desde la navegación Comunidad, tanto en bienvenida como en Mi Jardín. Usa `src/assets/fondo-comunidad-v1.png` y sigue la composición de la referencia «Comunidad — Historias de la Tierra».
-
-La actualización visual sigue `docs/diseno/referencia-comunidad-v2.png`: cuatro tarjetas para publicar experiencias, conversar en el foro, aprender y consultar eventos, junto a «Lo más reciente». La comunidad creada conserva sus datos y acciones en una franja con portada decorativa. La barra inferior mantiene sus medallones SVG. Las cinco ilustraciones independientes, su procedencia y los prompts están en [`src/features/communities/assets/README.md`](src/features/communities/assets/README.md).
-
-- El botón «Crear mi comunidad» abre un diálogo accesible para crear y editar nombre, responsable, localidad y descripción. El nombre es obligatorio; los demás datos son opcionales.
-- Los datos permanecen en memoria al navegar y se pierden al recargar. La comunidad se comparte con los flujos existentes de huerto y registro de plantas.
-- Tras crearla, se muestran sus datos, el estado vacío de integrantes y el acceso al registro del huerto compartido o al jardín si ya existe.
-- Saberes, experiencias, prácticas, conversaciones, novedades y actividades muestran estados de demostración. No incluyen publicaciones, videos, integrantes ni actividades ficticias. Publicar, unirse y sincronizar datos requieren una futura conexión con el backend.
-- Publicar experiencias y conversar abren estados pendientes distintos: aún no existen carga de fotografías, publicaciones, temas ni respuestas. Aprendizaje y eventos muestran sus estados vacíos, sin contenido ni fechas inventadas.
-- Los diálogos admiten teclado, Escape, gestión nativa del foco y validación del nombre. La distribución se adapta a escritorio, tableta y móvil.
-
-## Mi Huerto V3
-
-El módulo `src/features/real-gardens/` sigue `docs/diseno/referencia-mi-huerto-v3.png` y `docs/diseno/referencia-huerto-registrado-v1.png`, con paneles crema translúcidos, acentos terracota y verde natural. Conserva la barra lateral. Las 24 provincias determinan automáticamente uno de los cuatro fondos originales de `src/assets/regiones/` (Sierra, Costa, Amazonía y Galápagos), con transición suave y alternativa sin movimiento. No hay selector de región. Se abre desde «Mi Huerto», la acción «Mi huerto real» de Mi Jardín o el acceso al huerto de Comunidad.
-
-- Nombre (3–100 caracteres), provincia, tipo, superficie mínima de 0,01 m² y disponibilidad de riego son obligatorios. El suelo se solicita para «En tierra»; en los demás tipos se guarda como `null`. Riego y suelo permiten indicar «Por determinar».
-- Cantón y parroquia son selectores opcionales con búsqueda y filtrado jerárquico. Usan el catálogo oficial INEC DPA 2026 empaquetado localmente, con códigos oficiales y sin APIs inventadas. La dirección sigue siendo texto opcional. [Fuente e importación reproducible](src/features/real-gardens/data/README.md).
-- «Marcar mi huerto en el mapa» abre React Leaflet con OpenStreetMap y atribución visible. El punto se coloca con clic/toque, se corrige arrastrando o se elige con teclado desde el centro del mapa. Se guarda opcionalmente en `RealGarden.location.coordinates`, con latitud y longitud. No se solicita ubicación del dispositivo ni se presenta como verificada. Cancelar conserva el punto previo; cambiar la localidad limpia el marcador.
-- «Más características» agrupa riego y suelo y se abre al detectar errores. El botón del marcador usa verde lima y foco visible. Se retiran instrucciones redundantes del formulario.
-- Después de guardar, el formulario y los mapas se ocultan por completo y aparece una ficha amplia con ilustración identificada, nombre, ubicación y tarjetas de características. Solo se muestran los datos opcionales registrados. «Editar mi huerto» vuelve al formulario con los datos guardados; guardar o cancelar regresa a la ficha. «Conectar con Mi Jardín» navega al módulo existente.
-- `RealGarden` contiene `location`, `kind`, `areaM2`, `irrigationAvailability`, `soilType` y `communityName`. App mantiene el registro durante la visita y actualiza el vínculo cuando se crea o renombra la comunidad. Mi Jardín recibe este objeto sin cambios en sus seis parcelas, fotografías ni Pasaporte Vivo.
-- App conserva en memoria tanto el borrador como el huerto guardado al navegar. No hay API, almacenamiento persistente, subida de datos ni conexión remota simulada. Al recargar se pierden los registros temporales. El mapa detallado sí usa teselas externas y necesita conexión.
-- Los fondos regionales se conservan con sus nombres originales. La ficha reutiliza una de las cuatro ilustraciones de tipos, sin presentarla como fotografía real ni añadir galerías o datos no registrados. Las ilustraciones y sus prompts están en [`src/features/real-gardens/assets/README.md`](src/features/real-gardens/assets/README.md).
-
-Ver decisiones, clasificación de regiones y comprobaciones en [Mi Huerto V3](../docs/diseno/mi-huerto-v3.md) y la procedencia territorial y cartográfica en [Mi Huerto V2](../docs/diseno/mi-huerto-v2.md). `npm run test:e2e` ejecuta Playwright con Chrome instalado; las teselas se interceptan en las pruebas para evitar peticiones automatizadas al proveedor comunitario. `KAWSAPACHA_E2E_PORT` permite cambiar el puerto de pruebas si 5174 está ocupado.
-
-## Mapa interactivo
-
-`src/EcuadorMap.tsx` reutiliza una copia local de los datos GeoJSON provinciales de:
-https://github.com/pabl-o-ce/Ecuador-geoJSON
-
-**Autor:** Pablo Carrera Estrada · **Licencia:** MIT.
-Su licencia original: https://github.com/pabl-o-ce/Ecuador-geoJSON/blob/master/LICENSE
-
-Los archivos `src/assets/ecuador-provincias.geojson` y `src/assets/ecuador-provincias.LICENSE.txt` se incluyen en el build. Así el mapa no depende de GitHub en tiempo de ejecución. Se conserva la atribución y un selector alternativo por si falla la carga del recurso. Este conjunto de terceros no se presenta como un catálogo oficial actualizado de cantones o parroquias.
-
-## Siguientes tareas
-
-- **Leonel:** comprobar instalación, ajustar interfaz con Figma de Dylan, sustituir estados temporales por servicios API.
-- **Ronny:** definir con Leonel contratos de API, autenticación, entidades y almacenamiento de fotos.
-- **Leonardo:** documentar historias, tecnologías realmente aprobadas y alcance.
-- **Santiago:** definir y ejecutar casos verificables a medida que se integren los servicios.
+El [informe de implementación](../docs/mi-jardin-vivo-implementacion.md) registra los estados por fase, resultados y evidencias. Se conservan las referencias y la documentación histórica de los recursos.

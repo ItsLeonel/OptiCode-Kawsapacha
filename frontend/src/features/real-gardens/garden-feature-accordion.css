@@ -1,0 +1,30 @@
+.rg-feature-accordion { min-width: 0; padding-bottom: 12px; }
+.rg-feature-progress { margin: 0 0 10px; color: #4c6234; font-size: 14px; }
+.rg-feature-accordion > ol { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.rg-feature-accordion li { min-width: 0; border: 1px solid #d1b47c; border-radius: 14px; background: #fff8e6; }
+.rg-feature-accordion li[data-expanded=true] { border-color: #8b9d49; box-shadow: 0 2px 5px #6671331c; }
+.rg-feature-accordion li[data-error=true] { border-color: #ac542e; }
+.rg-feature-accordion h3 { margin: 0; font: inherit; letter-spacing: 0; }
+.rg-feature-accordion h3 > button { display: grid; grid-template-columns: 28px 23px minmax(0, 1fr) 16px; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 8px 10px; border: 0; border-radius: 13px; background: transparent; color: #334f23; text-align: left; }
+.rg-feature-accordion h3 > button > .garden-icon { width: 23px; height: 23px; color: #698638; }
+.rg-feature-number { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #c9a55e; border-radius: 50%; background: #f4e0ac; color: #65481e; font-size: 14px; font-weight: 800; }
+.rg-feature-accordion li[data-complete=true] .rg-feature-number { border-color: #7d993b; background: #e4edb6; color: #426626; }
+.rg-feature-heading-copy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 3px 10px; min-width: 0; }
+.rg-feature-title { min-width: 0; font-size: 15px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
+.rg-feature-status { font-size: 13px; font-weight: 600; line-height: 1.3; color: #716448; }
+.rg-feature-accordion li[data-complete=true] .rg-feature-status { color: #456d25; }
+.rg-feature-accordion li[data-error=true] .rg-feature-status { color: #a14929; }
+.rg-feature-chevron { font-size: 22px; line-height: 1; }
+.rg-feature-accordion li[data-expanded=true] .rg-feature-chevron { rotate: 180deg; }
+.rg-feature-panel { min-width: 0; padding: 0 10px 10px; }
+.rg-feature-panel[hidden] { display: none; }
+.rg-feature-panel .rg-checklist { padding: 8px 0 0; border: 0; border-top: 1px solid #dfcda5; border-radius: 0; background: transparent; }
+.rg-feature-panel .rg-checklist legend { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
+.rg-feature-panel .rg-checklist > p { margin-bottom: 8px; font-size: 14px; }
+.rg-feature-panel .rg-checklist-options > label { min-height: 44px; padding: 8px; font-size: 14px; line-height: 1.35; }
+.rg-feature-panel .rg-checklist-mark { width: 23px; height: 23px; }
+.rg-feature-advance { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.rg-feature-advance > span { color: #596744; font-size: 13px; }
+.garden-terrain-view .rg-feature-advance > button { min-height: 44px; padding: 8px 14px; font-size: 14px; }
+.garden-terrain-view .rg-feature-advance > button:disabled { opacity: .6; cursor: not-allowed; }
+@media (max-width: 420px) { .rg-feature-accordion h3 > button { grid-template-columns: 28px 20px minmax(0, 1fr) 14px; gap: 6px; } .rg-feature-advance > button { width: 100%; } }

@@ -61,6 +61,20 @@ npm run build
 
 Más detalles en [frontend/README.md](frontend/README.md).
 
+## 👤 Cuentas y Credenciales Sugeridas para Pruebas
+
+> ℹ️ **Nota para el evaluador o revisor:** La base de datos local SQLite se inicia limpia. Para probar el flujo completo de punta a punta, la persona que realice las pruebas debe **crear las cuentas desde la pestaña "Crear cuenta"** en la pantalla de bienvenida. Se sugieren las siguientes cuentas para validar los diferentes roles y escenarios:
+
+| Nombre | Correo Sugerido | Contraseña Sugerida | Rol Comunitario | Escenario de Prueba |
+|---|---|---|---|---|
+| **Ronny Veloz** | `ronny@kawsapacha.ec` | `Password123` | **RESPONSABLE** | Crear la primera comunidad y registrar el huerto real. Cuenta con permisos para invitar miembros, cambiar roles y administrar el huerto. |
+| **María Quispe** | `maria@mail.com` | `Password123` | **PARTICIPANTE** | Unirse a la comunidad invitada (puede sembrar, cuidar y cosechar) y probar el botón para crear una comunidad propia (selector multi-comunidad). |
+| **Carlos Sanchez** | `carlos@kawsapacha.ec` | `Password123` | **PARTICIPANTE** | Recibir invitación a la comunidad y probar la campana de notificaciones (aceptar/rechazar). |
+| **Juan Lopez** | `juan@mail.com` | `Password123` | **PARTICIPANTE** | Usuario independiente con estado inicial limpio (0 comunidades y 0 huertos) para verificar aislamiento de datos. |
+
+
+
+
 ## ✅ Reglas para trabajar desde hoy
 
 1. Entrar a [Issues](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues), abrir las tareas asignadas y revisar sus **criterios de aceptación**.

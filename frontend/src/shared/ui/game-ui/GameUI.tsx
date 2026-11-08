@@ -45,4 +45,3 @@ export function GameGuide({ region, message, className = '' }: { region: GameReg
     {message && <p className="kg-guide__speech">{message}</p>}
   </aside>
 }
-

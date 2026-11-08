@@ -67,8 +67,8 @@ export default function AuthForm({ mode, onProgress, onSubmit, onAuthenticated }
       if (!active.current) return
       setMessage(result.message)
       if (result.authenticated === true) onAuthenticated?.()
-    } catch {
-      if (active.current) setMessage('No pudimos completar la solicitud. Inténtalo de nuevo más tarde.')
+    } catch (err: unknown) {
+      if (active.current) setMessage(err instanceof Error ? err.message : 'No pudimos completar la solicitud. Inténtalo de nuevo más tarde.')
     } finally {
       sending.current = false
       if (active.current) setBusy(false)
@@ -111,6 +111,6 @@ export default function AuthForm({ mode, onProgress, onSubmit, onAuthenticated }
       <AuthIcon name="arrow"/>
     </button>
     <div className={`auth-submit-message ${message ? 'is-visible' : ''}`} role="status" aria-live="polite" aria-atomic="true">{message}</div>
-    <p className="auth-connection-note"><AuthIcon name="lock"/> Conexión con el servidor pendiente.</p>
+    <p className="auth-connection-note"><AuthIcon name="lock"/> Kawsapacha · Sistema de Cultivo Vivo y Saberes</p>
   </form>
 }

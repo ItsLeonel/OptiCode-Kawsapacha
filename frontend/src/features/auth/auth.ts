@@ -39,7 +39,7 @@ export function validateAuth(values: AuthValues, mode: AuthMode): AuthErrors {
 }
 
 export function toAuthSubmission(values: AuthValues, mode: AuthMode): AuthSubmission {
-  const credentials = { email: values.email.trim(), password: values.password }
+  const credentials = { email: values.email.trim().toLowerCase(), password: values.password }
   return mode === 'register'
     ? { mode, name: values.name.trim(), ...credentials }
     : { mode, ...credentials }

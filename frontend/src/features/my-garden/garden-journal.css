@@ -1,0 +1,66 @@
+.garden-journal-dialog { width:min(760px,calc(100% - 24px)); max-height:calc(100dvh - 28px); overflow:auto; border:2px solid #b4945c; border-radius:22px; padding:0; color:#294732; background:#fff9e7; box-shadow:0 20px 70px #142d3680; }
+.garden-journal-dialog::backdrop { background:#112a3ab0; backdrop-filter:blur(3px); }
+.garden-journal-dialog > header { display:flex; align-items:center; justify-content:space-between; padding:19px 24px; background:linear-gradient(110deg,#345839,#213f2c); color:#fff2c7; }
+.garden-journal-dialog h2 { margin:3px 0; font-size:25px; }
+.garden-journal-dialog small { letter-spacing:.07em; font-size:11px; }
+.garden-journal-dialog form { padding:22px; }
+.garden-journal-dialog button,.journal-heading button,.journal-tabs button,.journal-plant-card,.journal-history button { min-height:44px; border:1px solid #9d8a52; border-radius:12px; padding:10px 16px; font:inherit; cursor:pointer; color:#28462d; background:#f4e7bf; }
+.garden-journal-dialog > header button { width:44px; height:44px; padding:0; color:inherit; border-color:#d9c38c; background:#ffffff10; font-size:28px; }
+.garden-journal-dialog button:disabled { opacity:.55; cursor:wait; }
+.journal-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.journal-fields label { display:flex; flex-direction:column; gap:7px; min-width:0; font-size:13px; font-weight:700; }
+.journal-fields :is(input,select,textarea),.journal-filter { min-width:0; width:100%; min-height:44px; border:1px solid #b2b99b; border-radius:10px; padding:10px 12px; font:inherit; color:#294732; background:#fffef9; }
+.journal-fields textarea { min-height:88px; resize:vertical; }
+.journal-wide { grid-column:1/-1; }
+.journal-note { font-size:12px; color:#69775d; line-height:1.6; }
+.journal-error { padding:10px 14px; border-radius:10px; background:#f8e2d6; color:#7b3d26; }
+.journal-activity-list { display:grid; gap:12px; margin-top:16px; }
+.journal-activity { border:1px solid #c9c49b; border-radius:14px; overflow:hidden; background:#fffdf3; }
+.journal-activity summary { cursor:pointer; min-height:54px; padding:14px 18px; }
+.journal-activity summary span { display:block; font-size:12px; margin-top:6px; }
+.journal-activity-body { padding:0 18px 18px; }
+.journal-activity img { width:min(100%,420px); max-height:300px; object-fit:contain; display:block; border-radius:12px; margin:10px 0; }
+.journal-activity dl div { display:flex; gap:10px; margin:8px 0; font-size:13px; }
+.journal-activity dd { margin:0; }
+.journal-activity[data-voided=true] { background:#eeeadb; }
+.journal-observations { white-space:pre-wrap; overflow-wrap:anywhere; }
+.journal-void-form { border-top:1px solid #d5cfb0; padding-top:12px; display:flex; gap:9px; flex-wrap:wrap; align-items:end; }
+.journal-void-form label { display:grid; gap:6px; font-size:12px; }
+.journal-void-form input { border:1px solid #aaa889; border-radius:8px; padding:9px; font:inherit; min-height:44px; }
+.journal-check { flex-direction:row!important; align-items:center; }
+.journal-check input { width:20px!important; min-height:20px!important; }
+.garden-quick-actions { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); }
+.garden-journal-dialog footer { display:flex; gap:10px; justify-content:flex-end; padding-top:16px; border-top:1px solid #d9dbc2; }
+.garden-journal-dialog footer button:last-child { background:linear-gradient(#6d9543,#375a2c); color:#fff5d6; border-color:#486334; }
+.journal-heading { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.journal-plants,.journal-history,.journal-progress { padding:24px; background:#fff9e8; border:1px solid #d3bd86; border-radius:22px; color:#2f4c35; }
+.journal-tabs { display:flex; gap:8px; margin:15px 0; }
+.journal-tabs [aria-pressed=true] { background:#3e6039; color:#fff4cf; }
+.journal-plant-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:18px; }
+.journal-plant-card { display:flex; flex-direction:column; text-align:left; gap:7px; background:#fffdf4; }
+.journal-plant-card img { width:100%; height:150px; object-fit:cover; border-radius:10px; }
+.journal-plant-card em,.journal-plant-card span { font-size:12px; }
+.journal-evidences { display:grid; gap:12px; padding:0; list-style:none; }
+.journal-evidences li { border-top:1px solid #d9d5b6; padding-top:12px; }
+.journal-evidences img { width:100%; max-height:220px; object-fit:contain; border-radius:10px; background:#eee8d4; }
+.journal-evidences p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.journal-passport-actions { display:flex; gap:8px; flex-wrap:wrap; margin-block:16px; }
+.journal-passport-actions button { min-height:44px; padding:9px 13px; border:1px solid #b5aa76; background:#f2e9c8; color:#29472e; border-radius:12px; cursor:pointer; }
+.garden-storage-status { position:fixed; z-index:50; left:50%; bottom:12px; transform:translateX(-50%); padding:9px 16px; border:1px solid #d0bc84; border-radius:14px; color:#f9f2d2; background:#294b38ed; font-size:12px; box-shadow:0 5px 15px #162d3460; max-width:calc(100% - 20px); }
+.garden-storage-status[data-state=error] { background:#784832; }
+.journal-loading { padding:40px; min-height:100vh; background:#f9f2dc; color:#294b34; }
+.journal-progress-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin:22px 0; }
+.journal-progress-cards > div { display:grid; gap:12px; padding:18px; background:linear-gradient(#fff6d3,#efe6bb); border:1px solid #c2ad72; border-radius:18px; }
+.journal-progress-cards :is(output,strong) { display:block; font-size:32px; font-weight:800; }
+.journal-progress-cards small { font-size:12px; color:#657354; }
+.journal-progress progress { width:100%; height:12px; accent-color:#6a943e; }
+.journal-badges { padding:0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; list-style:none; }
+.journal-badges li { display:flex; flex-direction:column; gap:9px; border:1px solid #d3d0b7; background:#eeedde; padding:16px; border-radius:16px; }
+.journal-badges li > span:first-child { font-size:30px; }
+.journal-badges [data-earned=true] { background:#f7e8b3; border-color:#b79845; }
+.journal-badges small { line-height:1.5; }
+.journal-community-progress { border-block:1px solid #ccc69b; padding-block:16px; margin-block:20px; }
+.journal-community-progress output { font-size:24px; font-weight:800; }
+@media(max-width:700px) { .journal-progress-cards { grid-template-columns:1fr; gap:10px; } .journal-badges { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .journal-fields { grid-template-columns:1fr; } .garden-journal-dialog form { padding:16px; } .garden-journal-dialog footer { flex-wrap:wrap; } .journal-plants,.journal-history,.journal-progress { padding:16px; } }
+.garden-storage-status { pointer-events: none; }

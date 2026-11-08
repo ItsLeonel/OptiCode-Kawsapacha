@@ -11,6 +11,7 @@ export type Community = {
   sector?: string
   contact?: { phone: string; email: string }
   members?: CommunityMember[]
+  coverPhoto?: File
 }
 
 export type CommunityType = 'personal' | 'familiar' | 'condominio' | 'barrial'
@@ -35,7 +36,7 @@ export const COMMUNITY_SPACES: Record<CommunitySpace, { title: string; descripti
   practice: { title: 'Prácticas de cultivo', description: 'Un lugar para compartir el cuidado de las plantas y los aprendizajes del huerto.', empty: 'Aún no hay prácticas de cultivo publicadas.' },
   conversations: { title: 'Foro comunitario', description: 'Un lugar para conversar, hacer preguntas e intercambiar aprendizajes entre integrantes.', empty: 'El foro y las conversaciones están pendientes.', pending: 'El foro de preguntas y conversaciones aún no está implementado. Todavía no es posible crear temas, responder ni conversar con integrantes.' },
   news: { title: 'Novedades de la comunidad', description: 'Aquí encontrarás las nuevas historias y los anuncios de tu comunidad.', empty: 'Aún no hay novedades publicadas.' },
-  communities: { title: 'Nuestras comunidades', description: 'Personas que se encuentran para cuidar la tierra y aprender juntas.', empty: 'Aún no has creado una comunidad en esta visita.' },
+  communities: { title: 'Nuestras comunidades', description: 'Personas que se encuentran para cuidar la tierra y aprender juntas.', empty: 'Aún no has registrado una comunidad en este navegador.' },
   garden: { title: 'Huertos compartidos', description: 'Un espacio para cultivar y aprender en comunidad.', empty: 'Tu comunidad aún no tiene un huerto registrado.' },
   activities: { title: 'Actividades de la comunidad', description: 'Talleres, mingas y encuentros para crecer juntos.', empty: 'Aún no hay actividades programadas.' },
 }

@@ -7,16 +7,13 @@ export default defineConfig({
   timeout: 30_000,
   workers: 1,
   reporter: 'list',
+  outputDir: 'test-results/application',
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     channel: 'chrome',
     viewport: { width: 1440, height: 1000 },
     screenshot: 'only-on-failure',
-    trace: 'retain-on-failure',
+    trace: { mode: 'retain-on-failure', screenshots: false, snapshots: true, sources: true },
   },
-  webServer: {
-    command: `node node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${port} --strictPort`,
-    url: `http://127.0.0.1:${port}`,
-    reuseExistingServer: false,
-  },
+  globalSetup: './tests/app-server.ts',
 })

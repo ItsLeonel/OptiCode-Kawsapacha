@@ -93,8 +93,8 @@ test('Guayas no acepta Quito como cantón y el hover no cambia el territorio ele
   await expect(page.locator('.map-province-tooltip')).toHaveText('Explorando: Pichincha')
   await expect(page.getByRole('button',{name:'Seleccionar Guayas',exact:true})).toHaveAttribute('aria-pressed','true')
   await expect(page.getByLabel('Provincia de la comunidad')).toHaveValue('Guayas')
-  await expect(page.getByLabel('Resumen territorial')).toContainText('Guayaquil')
-  await expect(page.getByLabel('Resumen territorial')).not.toContainText('Quito')
+  await expect(page.getByRole('combobox',{name:'Cantón'})).toHaveValue('Guayaquil')
+  await expect(page.getByRole('combobox',{name:'Cantón'})).not.toHaveValue('Quito')
   const errors=await page.evaluate(async()=>{
     const url='/src/features/communities/community-territory.ts'
     const {validateCommunityTerritory}=await import(url)

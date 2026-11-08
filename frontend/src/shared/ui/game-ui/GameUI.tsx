@@ -1,24 +1,9 @@
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
 import './game-ui.css'
-
-import fondoCosta from '../../assets/regional-backgrounds/fondo_comunidad_costa.webp'
-import fondoSierra from '../../assets/regional-backgrounds/fondo_comunidad_sierra.webp'
-import fondoOriente from '../../assets/regional-backgrounds/fondo_comunidad_oriente.webp'
-import fondoGalapagos from '../../assets/regional-backgrounds/fondo_comunidad_galapagos.webp'
-import guiaCosta from '../../../assets/kawsapacha-comunidad/personajes/personaje_costa.png'
-import guiaSierra from '../../../assets/kawsapacha-comunidad/personajes/personaje_sierra.png'
-import guiaOriente from '../../../assets/kawsapacha-comunidad/personajes/personaje_oriente.png'
-import guiaGalapagos from '../../../assets/kawsapacha-comunidad/personajes/personaje_galapagos.png'
-
-export type GameRegion = 'costa' | 'sierra' | 'oriente' | 'galapagos'
-const REGIONS = {
-  costa: { label: 'Costa', background: fondoCosta, guide: guiaCosta },
-  sierra: { label: 'Sierra', background: fondoSierra, guide: guiaSierra },
-  oriente: { label: 'Amazonía', background: fondoOriente, guide: guiaOriente },
-  galapagos: { label: 'Galápagos', background: fondoGalapagos, guide: guiaGalapagos },
-} as const
-
-export const gameRegionAssets = REGIONS
+import './game-v3.css'
+import { gameRegionAssets as REGIONS, type GameRegion } from './game-region-assets'
+export { gameRegionAssets } from './game-region-assets'
+export type { GameRegion } from './game-region-assets'
 
 /** Solo presentacional. Para seleccionar provincias, reutilizar EcuadorMap y regionForProvince. */
 export function GameWorld({ region, children, className = '' }: {
@@ -53,22 +38,11 @@ export function GameChoice({ selected, children, className = '', ...props }:
     aria-pressed={selected} className={`kg-choice ${className}`}>{children}</button>
 }
 
-export function GameSteps({ labels, activeIndex, onSelect }: { labels: string[]; activeIndex: number; onSelect?: (index: number) => void }) {
-  return <nav className="kg-step-track" aria-label="Pasos de registro">
-    {labels.map((label, i) => <button type="button" key={label} className="kg-step" onClick={() => onSelect?.(i)}
-      data-state={i < activeIndex ? 'done' : i === activeIndex ? 'active' : 'todo'}
-      aria-current={i === activeIndex ? 'step' : undefined}>
-      <span className="kg-step__number">{i < activeIndex ? '✓' : i + 1}</span>
-      {label}
-    </button>)}
-  </nav>
-}
-
-export function GameGuide({ region, message }: { region: GameRegion; message: string }) {
-  return <aside className="kg-guide" aria-label={`Guía de la ${REGIONS[region].label}`}>
+export function GameGuide({ region, message, className = '' }: { region: GameRegion; message?: string; className?: string }) {
+  return <aside className={`kg-guide ${className}`} aria-label={`Guía de la ${REGIONS[region].label}`}>
     <img className="kg-guide__portrait" src={REGIONS[region].guide}
       alt={`Personaje ilustrado de la ${REGIONS[region].label}`} />
-    <p className="kg-guide__speech">{message}</p>
+    {message && <p className="kg-guide__speech">{message}</p>}
   </aside>
 }
 

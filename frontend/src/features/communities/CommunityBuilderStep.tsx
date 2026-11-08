@@ -4,9 +4,11 @@ import { COMMUNITY_TYPES, communityTypeArt } from './community-art'
 import { CommunityTerritorySummary } from './CommunityTerritoryStep'
 import type { CommunityTerritory } from './community-territory'
 import type { Community, CommunityMember, CommunityType } from './communities'
+import GardenIcon from '../my-garden/GardenIcon'
+import CommunityCoverPhoto from './CommunityCoverPhoto'
 
 export type CommunityEditor = 'identity' | 'responsible' | 'members' | null
-type BuilderValues = Pick<Community, 'name' | 'responsible' | 'description' | 'location'> & CommunityTerritory & {
+type BuilderValues = Pick<Community, 'name' | 'responsible' | 'description' | 'location' | 'coverPhoto'> & CommunityTerritory & {
   type: CommunityType; contact: { phone: string; email: string }; members: CommunityMember[]
 }
 
@@ -28,39 +30,37 @@ export default function CommunityBuilderStep({ values, errors, editor, editingMe
     if (editor !== next) requestAnimationFrame(() => document.getElementById(next === 'identity' ? 'community-name' : next === 'responsible' ? 'community-responsible' : 'cw-add-member')?.focus())
   }
   return <section className="cw-builder" aria-labelledby="cw-builder-title">
-    <div className="cw-adventure-heading"><span>03 · PERSONAS QUE CULTIVAN</span><h3 id="cw-builder-title" data-step-heading tabIndex={-1}>Construye tu comunidad</h3><p>Abre cada tarjeta y dale vida a esta historia.</p></div>
+    <h3 id="cw-builder-title" data-step-heading tabIndex={-1} className="cw-step-label">Construye tu comunidad</h3>
     <div className="cw-builder-cards">
       <article className="cw-story-card" data-open={editor === 'identity'}>
         <button type="button" id="cw-identity-card" aria-label="Editar identidad" aria-expanded={editor === 'identity'} aria-controls={editor === 'identity' ? 'cw-community-editor' : undefined} onClick={() => openEditor('identity')}>
-          <span className="cw-story-painting"><img src={communityTypeArt.personal} alt="" width="800" height="600"/></span>
-          <span className="cw-story-title"><small>A</small> Identidad de la comunidad</span>
-          <span className="cw-story-summary"><strong>{values.name.trim() || 'El nombre de nuestras raíces'}</strong><span>{type.label} · {values.name.trim().length >= 3 ? 'Identidad preparada' : 'Dale un nombre y un propósito'}</span></span>
-          <span className="cw-story-action">{editor === 'identity' ? 'Cerrar tarjeta ↑' : 'Escribir nuestra historia →'}</span>
+          <div className="cw-story-painting"><CommunityCoverPhoto photo={values.coverPhoto} fallback={guide.background}/></div>
+          <span className="cw-story-title"><span className="cw-card-medallion"><GardenIcon name="leaf"/></span> Identidad de la comunidad</span>
+          <span className="cw-story-summary"><strong>{values.name.trim() || 'El nombre de nuestras raíces'}</strong></span>
         </button>
       </article>
       <article className="cw-story-card" data-open={editor === 'responsible'}>
         <button type="button" id="cw-responsible-card" aria-label="Editar responsable" aria-expanded={editor === 'responsible'} aria-controls={editor === 'responsible' ? 'cw-community-editor' : undefined} onClick={() => openEditor('responsible')}>
           <span className="cw-story-painting cw-story-guide"><img src={guide.guide} alt=""/></span>
-          <span className="cw-story-title"><small>B</small> Responsable</span>
-          <span className="cw-story-summary"><strong>{values.responsible.trim() || '¿Quién acompaña estas raíces?'}</strong><span>{values.responsible.trim().length >= 2 ? 'Responsable indicado' : 'Una persona para acompañarnos'}</span></span>
-          <span className="cw-story-action">{editor === 'responsible' ? 'Cerrar tarjeta ↑' : 'Presentar al responsable →'}</span>
+          <span className="cw-story-title"><span className="cw-card-medallion"><GardenIcon name="community"/></span> Responsable</span>
+          <span className="cw-story-summary"><strong>{values.responsible.trim() || '¿Quién acompaña estas raíces?'}</strong></span>
         </button>
       </article>
       <article className="cw-story-card" data-open={editor === 'members'}>
         <button type="button" id="cw-members-card" aria-label="Gestionar integrantes" aria-expanded={editor === 'members'} aria-controls={editor === 'members' ? 'cw-community-editor' : undefined} onClick={() => openEditor('members')}>
           <span className="cw-story-painting"><img src={values.type === 'barrial' ? communityTypeArt.barrial : communityTypeArt.familiar} alt="" width="800" height="600"/></span>
-          <span className="cw-story-title"><small>C</small> Integrantes</span>
-          <span className="cw-story-summary"><strong>{values.members.length + 1} {values.members.length ? 'personas para cultivar' : 'persona para comenzar'}</strong><span>{values.members.length ? `${values.members.length} integrante(s) adicional(es) · Datos privados` : 'Tú eres suficiente para comenzar'}</span></span>
-          {editor === 'members' && <span className="cw-story-action">Cerrar tarjeta ↑</span>}
+          <span className="cw-story-title"><span className="cw-card-medallion"><GardenIcon name="community"/></span> Integrantes</span>
+          <span className="cw-story-summary"><strong>{values.members.length + 1} {values.members.length ? 'personas' : 'persona'}</strong></span>
         </button>
-        {editor !== 'members' && <button className="cw-quick-add" type="button" id="cw-add-member" onClick={onMemberAdd}>+ Añadir integrante</button>}
+        {editor !== 'members' && <button className="cw-quick-add" type="button" id="cw-add-member" aria-label="+ Añadir integrante" title="Añadir integrante" onClick={onMemberAdd}>+ Añadir integrante</button>}
       </article>
     </div>
     {editor && <section className="cw-card-editor" id="cw-community-editor" aria-labelledby={`cw-${editor}-card`}>
-      <header><span>{editor === 'identity' ? 'Una historia con nombre propio' : editor === 'responsible' ? 'La persona que nos acompaña' : 'Personas que comparten estas raíces'}</span><small>Privado · Solo esta visita</small></header>
+      <header><span>{editor === 'identity' ? 'Identidad' : editor === 'responsible' ? 'Responsable' : 'Integrantes'}</span><small>Privado</small></header>
       {editor === 'identity' && <div className="cw-fields cw-identity-fields">
         <label>Nombre de la comunidad *<input id="community-name" required minLength={3} maxLength={80} value={values.name} onChange={event => onChange('name', event.target.value)} placeholder="Ej. Raíces de mi tierra" {...invalid('community-name')}/>{fieldError('community-name')}<small className="cw-selected-type">Comunidad {type.label.toLocaleLowerCase('es-EC')}</small></label>
         <label>Acerca de la comunidad (opcional)<textarea id="community-description" rows={2} maxLength={500} value={values.description} onChange={event => onChange('description', event.target.value)} placeholder="¿Qué les une y qué quieren cultivar?" {...invalid('community-description')}/><small>{values.description.length} de 500 caracteres</small>{fieldError('community-description')}</label>
+        <CommunityCoverPhoto photo={values.coverPhoto} fallback={guide.background} onChange={photo => onChange('coverPhoto', photo)}/>
       </div>}
       {editor === 'responsible' && <div className="cw-fields cw-responsible-fields">
         <label>Persona responsable *<input id="community-responsible" required maxLength={80} autoComplete="name" value={values.responsible} onChange={event => onChange('responsible', event.target.value)} placeholder="Su nombre" {...invalid('community-responsible')}/>{fieldError('community-responsible')}</label>

@@ -39,5 +39,5 @@ export async function createCommunity(page: Page, name = 'Comunidad de prueba', 
 export async function ensureGardenCommunity(page: Page) {
   // Preserve the garden draft in App while satisfying the new V1 requirement.
   await createCommunity(page)
-  await mainNavigation(page).getByRole('button', { name: 'Mi Huerto', exact: true }).click()
+  await mainNavigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
 }

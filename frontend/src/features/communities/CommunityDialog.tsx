@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import GardenIcon from '../my-garden/GardenIcon'
+import GameTitle from '../../shared/ui/game-ui/GameTitle'
 
 export default function CommunityDialog({ title, description, onClose, children, className = '', artwork }: {
   title: string
@@ -48,7 +49,7 @@ export default function CommunityDialog({ title, description, onClose, children,
       <span className="community-kicker"><GardenIcon name="leaf"/> COMUNIDAD · KAWSAPACHA</span>
       <button className="community-close" type="button" aria-label="Cerrar ventana" onClick={onClose}><GardenIcon name="close"/></button>
     </div>
-    <h2 id={titleId}>{title}</h2>
+    {className.includes('game-v3') ? <GameTitle as="h2" id={titleId} icon={<GardenIcon name="community"/>}>{title}</GameTitle> : <h2 id={titleId}>{title}</h2>}
     <p id={descriptionId} className="community-dialog-description">{description}</p>
     {children}
   </dialog>

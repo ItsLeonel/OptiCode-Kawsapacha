@@ -7,7 +7,7 @@ import GardenPergola from './GardenPergola'
 import GardenVerticalStructure from './GardenVerticalStructure'
 import { HANGING_POINTS, potArtwork, REGIONAL_SURFACES, VERTICAL_POINTS } from './scene-art'
 import { PLOT_COUNT, type GardenPlant } from './garden'
-import type { GardenKind } from '../real-gardens/real-garden'
+import { formatGardenArea, type GardenKind } from '../real-gardens/real-garden'
 import type { GardenRegion } from '../real-gardens/garden-region'
 
 const SCENES = {
@@ -17,8 +17,9 @@ const SCENES = {
   hanging: { title: 'Tu jardín colgante', unit: 'Macetero', empty: 'Macetero colgante vacío', icon: 'hanging' },
 } as const
 
-export default function GardenScene({ kind, region, plants, selectedPlot, onRegister, onSelect }: {
+export default function GardenScene({ kind, areaM2, region, plants, selectedPlot, onRegister, onSelect }: {
   kind: GardenKind
+  areaM2: number
   region: GardenRegion
   plants: GardenPlant[]
   selectedPlot: number | null
@@ -28,6 +29,16 @@ export default function GardenScene({ kind, region, plants, selectedPlot, onRegi
   const plotRefs = useRef<(HTMLButtonElement | null)[]>([])
   const gridRef = useRef<HTMLOListElement>(null)
   const scene = SCENES[kind]
+  // Square-root sizing suggests area; bounds keep every existing control usable.
+  const extent = Math.sqrt(areaM2 / (areaM2 + 25))
+  const compact = areaM2 < 10
+  const layout = {
+    '--scene-footprint': .62 + .38 * extent,
+    '--scene-depth': .8 + .2 * extent,
+    '--scene-gap': `${8 + 20 * extent}px`,
+    '--scene-columns': compact ? 2 : 3,
+    '--scene-ground-ratio': compact ? 1.5 : 2.15,
+  } as CSSProperties
 
   function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const columns = gridRef.current ? getComputedStyle(gridRef.current).gridTemplateColumns.split(' ').length : 3
@@ -41,8 +52,8 @@ export default function GardenScene({ kind, region, plants, selectedPlot, onRegi
     plotRefs.current[next]?.focus()
   }
 
-  return <section className="garden-scene" aria-label={scene.title} data-garden-kind={kind}>
-    <div className="garden-scene-caption"><GardenIcon name={scene.icon}/><span>{scene.title}</span></div>
+  return <section className="garden-scene garden-scene--sized" aria-label={scene.title} data-garden-kind={kind} data-layout={compact ? 'compact' : 'spread'} style={layout}>
+    <div className="garden-scene-caption"><GardenIcon name={scene.icon}/><span>{scene.title} · {formatGardenArea(areaM2)}</span></div>
     <p className="garden-sr-only" id="garden-keyboard-hint">Usa Tab o las flechas para recorrer los seis espacios. Inicio y Fin van al primero y al último. Enter o Espacio abren el registro o el Pasaporte Vivo.</p>
     <div className="garden-stage" data-kind={kind} data-surface={REGIONAL_SURFACES[region]}>
       <GardenRegionalScenery region={region}/>
@@ -68,6 +79,6 @@ export default function GardenScene({ kind, region, plants, selectedPlot, onRegi
         })}
       </ol>
     </div>
-    <p className="garden-scene-note">Escenario ilustrado{plants.length ? ' · Fotografías registradas durante esta visita' : ''}</p>
+    <p className="garden-scene-note">Tamaño y distribución orientativos según tu superficie y tipo de huerto. No indica medidas exactas, forma ni capacidad real.{plants.length ? ' Fotografías registradas.' : ''}</p>
   </section>
 }

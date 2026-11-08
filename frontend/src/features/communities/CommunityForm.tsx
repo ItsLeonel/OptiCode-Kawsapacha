@@ -1,20 +1,22 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { provinces } from '../../EcuadorMap'
-import { GameButton, GameGuide, GamePanel, GameSteps, GameWorld, gameRegionAssets } from '../../shared/ui/game-ui/GameUI'
+import { GameButton, GameGuide, GamePanel, GameWorld, gameRegionAssets } from '../../shared/ui/game-ui/GameUI'
 import { regionForProvince } from '../real-gardens/garden-region'
 import { provinceForName } from '../real-gardens/territory'
 import GardenIcon from '../my-garden/GardenIcon'
 import CommunityDialog from './CommunityDialog'
+import CommunityIcon from './CommunityIcon'
 import { type Community, type CommunityMember, type CommunitySave, type CommunityType } from './communities'
 import './community-wizard.css'
 import './community-experience-v2.css'
+import './community-v3.css'
 import CommunityTypeStep from './CommunityTypeStep'
 import CommunityTerritoryStep from './CommunityTerritoryStep'
 import CommunityBuilderStep, { type CommunityEditor } from './CommunityBuilderStep'
+import CommunityCoverPhoto from './CommunityCoverPhoto'
 import { COMMUNITY_TYPES as TYPES } from './community-art'
 import { communityLocation, communityTerritoryLabels, validateCommunityTerritory, type CommunityTerritory } from './community-territory'
 
-const STEPS = ['Tipo de comunidad', 'Ubicación en Ecuador', 'Datos de la comunidad', 'Confirmación']
 type Values = Community & CommunityTerritory & { type: CommunityType; contact: { phone: string; email: string }; members: CommunityMember[] }
 type Errors = Record<string, string>
 const today = () => {
@@ -129,23 +131,26 @@ export default function CommunityForm({ community, onSave, onClose }: {
     }
   }
 
-  return <CommunityDialog className="community-wizard" title={community ? 'Editar tu Comunidad' : 'Crear tu Comunidad'} description="Un lugar para echar raíces y cultivar juntos." onClose={() => { if (!saving) onClose() }} artwork={<GameWorld region={region} className="cw-world">{null}</GameWorld>}>
-    <GameSteps labels={STEPS} activeIndex={step} onSelect={navigate}/>
+  return <CommunityDialog className="community-wizard game-v3" title={step === 2 ? 'Datos de tu Comunidad' : step === 3 ? 'Confirma tu Comunidad' : community ? 'Editar tu Comunidad' : 'Crear tu Comunidad'} description="Un lugar para echar raíces y cultivar juntos." onClose={() => { if (!saving) onClose() }} artwork={<GameWorld region={region} className="cw-world">{null}</GameWorld>}>
     <form ref={formRef} onSubmit={submit} noValidate className="cw-form" aria-label={community ? 'Editar comunidad' : 'Crear comunidad'} aria-describedby="cw-temporary" aria-busy={saving}>
       <div className={`cw-stage cw-stage--${step}`}>
-        <GameGuide region={region} message={step === 0 ? 'Elige tu comunidad. ¡Cada historia empieza con una semilla!' : step === 1 ? 'Primero tu provincia. Después, el cantón y la parroquia donde echarán raíces.' : step === 2 ? 'Tres tarjetas, una historia compartida. ¡Vamos a construir tu comunidad!' : '¡Tus raíces están listas! Revisa los datos antes de crear tu comunidad.'}/>
+        <GameGuide region={region} message={step === 0 ? '¿Qué comunidad quieres crear?' : step === 1 ? '¡Ubica tu comunidad y elige su provincia!' : step === 2 ? 'Tres tarjetas, una historia compartida.' : '¡Revisa las raíces de tu comunidad!'}/>
         {step === 0 && <CommunityTypeStep value={values.type} onChange={value => update('type', value)}/>}
         {step === 1 && <CommunityTerritoryStep values={values} errors={errors} onChange={update}/>}
         {step === 2 && <CommunityBuilderStep values={values} errors={errors} editor={editor} editingMember={editingMember} birthdayMax={today()} onEditorChange={setEditor} onMemberEdit={id => { setEditor('members'); setEditingMember(id) }} onMemberAdd={addMember} onMemberRemove={removeMember} onMemberChange={updateMember} onChange={update} onTerritory={() => navigate(1)}/>}
-        {step === 3 && <GamePanel className="cw-confirm"><p className="cw-eyebrow">PASO 4 · LISTOS PARA CULTIVAR</p><h3 data-step-heading tabIndex={-1}>Así comienzan tus raíces</h3><div className="cw-summary-banner" style={{ backgroundImage: `linear-gradient(0deg,#092e24ed,transparent),url("${regional.background}")` }}><GardenIcon name="community"/><strong>{values.name}</strong><span>{values.province} · {regional.label}</span></div>
-          <dl className="cw-summary"><div><dt>Comunidad</dt><dd>{TYPES.find(type => type.value === values.type)?.label}</dd><button type="button" onClick={() => navigate(0)}>Editar tipo</button></div><div><dt>Territorio</dt><dd className="cw-confirm-territory"><span>Provincia: {territorial.province}</span><span>Cantón: {territorial.canton}</span><span>Parroquia: {territorial.parish}</span><span>Sector: {territorial.sector || 'Sin especificar'}</span><span>Región: {territorial.region}</span></dd><button type="button" onClick={() => navigate(1)}>Editar ubicación</button></div><div><dt>Responsable</dt><dd>{values.responsible}</dd><button type="button" onClick={() => { setEditor('responsible'); navigate(2) }}>Editar datos</button></div><div><dt>Integrantes</dt><dd>{values.members.length + 1} {values.members.length ? 'personas' : 'persona'} · {values.members.length ? `${values.members.length} adicional(es)` : 'Sin integrantes adicionales'} · Datos privados</dd></div></dl>
-          {values.description && <p className="cw-confirm-description">{values.description}</p>}<p className="cw-soft-note">Al confirmar se guarda solo durante esta visita. No se envía al servidor y se pierde al recargar.</p>
+        {step === 3 && <GamePanel className="cw-confirm"><h3 className="cw-step-label" data-step-heading tabIndex={-1}>Así comienzan tus raíces</h3><div className="cw-summary-banner" style={{ backgroundImage: `linear-gradient(0deg,#092e24ed,#092e2470),url("${regional.background}")` }}><CommunityCoverPhoto photo={values.coverPhoto} fallback={regional.background} onChange={photo => update('coverPhoto', photo)}/><div className="cw-summary-identity"><GardenIcon name="community"/><strong>{values.name}</strong><span>{values.province} · {regional.label}</span></div></div>
+          <dl className="cw-summary">
+            <div className="cw-confirm-card cw-confirm-card--community"><dt><GardenIcon name="community"/>Comunidad</dt><dd>{TYPES.find(type => type.value === values.type)?.label}</dd><button type="button" onClick={() => navigate(0)}>Editar tipo</button></div>
+            <div className="cw-confirm-card cw-confirm-card--territory"><dt><GardenIcon name="map"/>Territorio</dt><dd className="cw-confirm-territory"><span>Provincia: {territorial.province}</span><span>Cantón: {territorial.canton}</span><span>Parroquia: {territorial.parish}</span><span>Sector: {territorial.sector || 'Sin especificar'}</span><span>Región: {territorial.region}</span></dd><button type="button" onClick={() => navigate(1)}>Editar ubicación</button></div>
+            <div className="cw-confirm-card cw-confirm-card--responsible"><dt><CommunityIcon name="person"/>Responsable</dt><dd>{values.responsible}</dd><button type="button" onClick={() => { setEditor('responsible'); navigate(2) }}>Editar datos</button></div>
+            <div className="cw-confirm-card cw-confirm-card--members"><dt><GardenIcon name="community"/>Integrantes</dt><dd>{values.members.length + 1} {values.members.length ? 'personas' : 'persona'} · {values.members.length ? `${values.members.length} adicional(es)` : 'Sin integrantes adicionales'} · Datos privados</dd></div>
+          </dl>
+          {values.description && <p className="cw-confirm-description">{values.description}</p>}<p className="cw-soft-note">Tu comunidad, lista para echar raíces.</p>
         </GamePanel>}
       </div>
       {Object.keys(errors).length > 0 && <p className="cw-validation" role="alert">{Object.values(errors)[0]}</p>}
       {saveError && <p className="cw-validation" role="alert">{saveError}</p>}
-      <footer className="cw-footer"><GameButton variant="secondary" type="button" disabled={saving} onClick={() => step ? navigate(step - 1) : onClose()}>{step ? '← Atrás' : 'Cancelar'}</GameButton><p id="cw-temporary">Modo visitante · Registro temporal<br/><span>Contacto e integrantes: provisionales, solo en memoria.</span></p><GameButton type="submit" disabled={saving}>{saving ? 'Guardando…' : step === 3 ? community ? 'Guardar cambios' : 'Crear comunidad' : 'Continuar →'}</GameButton></footer>
-      {step > 0 && <button className="cw-cancel" type="button" onClick={onClose} disabled={saving}>Cancelar</button>}
+      <footer className="cw-footer"><GameButton variant="secondary" type="button" disabled={saving} onClick={() => step ? navigate(step - 1) : onClose()}>{step ? '← Atrás' : 'Cancelar'}</GameButton><div className="cw-footer-meta"><p id="cw-temporary">Guardado local · Sin sincronización</p>{step > 0 && <button className="cw-cancel" type="button" onClick={onClose} disabled={saving}>Cancelar</button>}</div><GameButton type="submit" disabled={saving}>{saving ? 'Guardando…' : step === 3 ? community ? 'Guardar cambios' : 'Crear comunidad' : 'Continuar →'}</GameButton></footer>
     </form>
   </CommunityDialog>
 }

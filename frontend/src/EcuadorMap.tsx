@@ -82,8 +82,8 @@ const MAP_REGIONS = {
 }
 export const provinces = PROVINCIAS
 
-export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'Provincia seleccionada', disabled = false, required = false, invalid = false, describedBy, compact = false, showAttribution = true, variant = 'classic' }: {
-  value: string; onChange: (value: string) => void; selectId?: string; selectLabel?: string; disabled?: boolean; required?: boolean; invalid?: boolean; describedBy?: string; compact?: boolean; showAttribution?: boolean; variant?: 'classic' | 'game'
+export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'Provincia seleccionada', disabled = false, required = false, invalid = false, describedBy, compact = false, showAttribution = true, showProvinceSelect = true, variant = 'classic' }: {
+  value: string; onChange: (value: string) => void; selectId?: string; selectLabel?: string; disabled?: boolean; required?: boolean; invalid?: boolean; describedBy?: string; compact?: boolean; showAttribution?: boolean; showProvinceSelect?: boolean; variant?: 'classic' | 'game'
 }) {
   const game = variant === 'game'
   const id = useId().replace(/[^a-zA-Z0-9]/g, '')
@@ -151,12 +151,12 @@ export default function EcuadorMap({ value, onChange, selectId, selectLabel = 'P
       {(highlighted || value) && <span className="map-province-tooltip" data-kind={game && highlighted && highlighted !== value ? 'preview' : 'selected'} aria-live="polite">{game && highlighted && highlighted !== value ? `Explorando: ${highlighted}` : highlighted || value}{!highlighted && value ? ' ✓' : ''}</span>}
     </div>
     {game && <div className="map-region-legend" aria-label="Regiones del Ecuador">{Object.entries(MAP_REGIONS).map(([key, palette]) => <span key={key} data-region={key}><i style={{background:palette.colors[1]}} aria-hidden="true"/>{palette.label}</span>)}</div>}
-    <label className="field"><span>{selectLabel}{required && <span aria-hidden="true"> *</span>}</span>
+    {showProvinceSelect && <label className="field"><span>{selectLabel}{required && <span aria-hidden="true"> *</span>}</span>
       <select id={selectId} value={value} onChange={e=>onChange(e.target.value)} disabled={disabled} required={required} aria-invalid={invalid || undefined} aria-describedby={describedBy}>
         <option value="">Selecciona una provincia</option>
         {PROVINCIAS.map(name=><option key={name} value={name}>{name}</option>)}
       </select>
-    </label>
+    </label>}
     {showAttribution && <p className="tiny">Datos geográficos: <a href="https://github.com/pabl-o-ce/Ecuador-geoJSON" target="_blank" rel="noreferrer">Ecuador-geoJSON</a> (Pablo Carrera Estrada, <a href={LICENSE} target="_blank" rel="noreferrer">licencia MIT</a>). Recurso local; selector alternativo disponible.</p>}
   </div>
 }

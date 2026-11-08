@@ -1,0 +1,22 @@
+.game-v3 { --game-cream: #fff0c7; --game-ink: #243b19; --game-gold: #e8b450; --game-wood: #71370f; --game-light-wood: #b67530; }
+.game-decoration { display: block; overflow: hidden; pointer-events: none; user-select: none; }
+.game-title { position: relative; isolation: isolate; display: inline-flex; justify-content: center; align-items: center; gap: 15px; width: fit-content; max-width: 100%; min-height: 90px; margin: 0; padding: 22px 52px; color: #fff8da; font: 900 clamp(26px, 3.1vw, 48px)/1.12 'Trebuchet MS', system-ui, sans-serif; text-shadow: 0 3px 0 #452008, 1px 0 #452008, -1px 0 #452008; text-align: center; }
+.game-title-art { position: absolute; z-index: -1; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 5px 2px #3e210b70); }
+.game-title-medallion { display: grid; place-items: center; width: 66px; height: 66px; flex-shrink: 0; margin: -12px 0 -12px -18px; border: 4px solid #f8d77d; outline: 2px solid #77420d; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #b66c22, #5b2c0e); box-shadow: inset 0 0 0 3px #8e4c18, 0 3px 6px #321a0b80; color: #ffedab; }
+.game-title-medallion .garden-icon { width: 43px; height: 43px; stroke-width: 2.1; }
+.game-title-copy { display: grid; justify-items: center; gap: 6px; min-width: 0; max-width: 100%; text-align: center; }
+.game-title-text { display: block; min-width: 0; max-width: 100%; overflow-wrap: anywhere; text-wrap: balance; }
+.game-title-subtitle { display: block; max-width: 100%; font: 700 clamp(16px, 1.6vw, 23px)/1.3 'Trebuchet MS', system-ui, sans-serif; letter-spacing: 0; color: #ffedb7; overflow-wrap: anywhere; text-wrap: balance; }
+.game-v3 .kg-btn { min-height: 48px; padding: 11px 25px; border: 3px solid #d4af53; border-radius: 999px; outline: 1px solid #6a410e; color: #fffbdc; background: linear-gradient(#8bce22, #367b03 55%, #235700); box-shadow: inset 0 3px 0 #edffb3, inset 0 -4px 0 #204600, 0 4px 0 #613710, 0 0 0 3px #fff0b8, 0 7px 10px #10280e70; font: 800 17px/1.2 'Trebuchet MS', system-ui, sans-serif; text-shadow: 0 2px 1px #153500; }
+.game-v3 .kg-btn--secondary { color: #3c2914; background: linear-gradient(#fff9e2, #ffdda1); box-shadow: inset 0 3px 0 #fff, inset 0 -3px 0 #e3b367, 0 4px 0 #613710, 0 0 0 3px #fff0b8, 0 7px 10px #10280e60; text-shadow: none; }
+.game-v3 .kg-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); }
+.game-v3 .kg-btn:disabled { cursor: not-allowed; opacity: .6; }
+.game-v3 button:focus-visible, .game-v3 input:focus-visible, .game-v3 textarea:focus-visible, .game-v3 select:focus-visible { outline: 3px solid #2b6c16; outline-offset: 4px; }
+.game-v3 .kg-world::before { background: linear-gradient(180deg, #163a1d05, #1d41151a 85%, #18311250); }
+.game-v3 .kg-guide { position: relative; display: flex; flex-direction: column-reverse; align-items: center; min-height: 0; max-width: 100%; grid-column: auto; }
+.game-v3 .kg-guide__portrait { display: block; width: 100%; max-width: 100%; height: auto; max-height: none; object-fit: contain; object-position: bottom; filter: drop-shadow(0 6px 4px #18360f60); }
+.game-v3 .kg-guide__speech { position: relative; z-index: 1; width: 100%; max-width: 280px; margin: 0 0 -15px; padding: 22px 18px; border: 3px solid #dda14c; border-radius: 42% 34% 38% 32% / 28% 30% 34% 24%; background: radial-gradient(ellipse at top, #fffdf0, #ffe7ad); box-shadow: inset 0 0 14px #e7c282, 0 4px 0 #8d521e66; color: #253518; font: 800 clamp(16px, 1.6vw, 24px)/1.3 'Trebuchet MS', system-ui, sans-serif; text-align: center; }
+.game-v3 .kg-guide__speech::before { display: none; }
+.game-v3 .kg-guide__speech::after { content: ''; position: absolute; bottom: -13px; left: 55%; width: 24px; height: 24px; border-right: 3px solid #dda14c; border-bottom: 3px solid #dda14c; background: #ffe7ad; transform: skewY(-25deg); }
+@media (max-width: 700px) { .game-title { min-height: 70px; gap: 10px; padding: 18px 30px; font-size: clamp(22px, 5vw, 30px); } .game-title-medallion { width: 44px; height: 44px; margin-left: -8px; border-width: 3px; } .game-title-medallion .garden-icon { width: 30px; height: 30px; } .game-v3 .kg-btn { min-height: 48px; padding: 11px 18px; font-size: 15px; } }
+@media (prefers-reduced-motion: reduce) { .game-v3 .kg-btn, .game-v3 .kg-choice { animation: none; transition: none; } .game-v3 .kg-btn:hover, .game-v3 .kg-choice:hover { transform: none; } }

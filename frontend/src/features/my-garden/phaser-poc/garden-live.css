@@ -5,7 +5,7 @@
 .garden-poc-guide img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(2px 8px 5px #18342065); }
 .garden-poc-guide > span { position:absolute; left:80px; bottom:32px; width:165px; padding:10px 13px; color:#3c4f28; background:#fff1cdeb; border:1px solid #c6a45d; border-radius:15px 15px 15px 2px; box-shadow:0 3px 8px #1c351b40; font-size:12px; font-weight:700; text-align:left; }
 .garden-poc-guide small { display:block; font-size:11px; font-weight:400; margin-top:4px; }
-.garden-poc-record-count { left:270px; bottom:28px; font-size:12px; max-width:calc(100% - 540px); }
+.garden-poc-record-count { left:clamp(225px,24vw,340px); bottom:94px; max-width:min(440px,calc(100% - 530px)); padding:7px 10px; font-size:12px; line-height:1.35; background:#1d492bcf; border:1px solid #cfcb8d80; border-radius:12px; text-shadow:0 1px 3px #15351a; }
 .garden-poc-guide:focus-visible { outline:3px solid #fff3ad!important; outline-offset:-3px!important; }
 .garden-poc-progress { position:absolute; z-index:2; top:22px; left:50%; transform:translateX(-25%); display:flex; align-items:center; gap:9px; padding:9px 14px; border:1px solid #e8d18a; border-radius:18px; color:#fff5d5; background:#264e35e8; box-shadow:0 3px 8px #244a3a50; }
 .garden-poc-progress .garden-icon { width:26px; height:26px; color:#bcd86f; }
@@ -25,4 +25,92 @@
   .garden-poc-guide > span { display:none; }
   .garden-poc-record-count { left:14px; bottom:83px; max-width:calc(100% - 25px); }
   .garden-poc-stage { min-height:460px; }
+}
+
+/* Immersive layout is activated only for the registered interactive garden. */
+.garden-shell--immersive {
+  position: fixed; z-index: 10; inset: 0; display: block; width: 100vw; height: 100dvh; min-height: 0;
+  overflow: hidden; background: #28462c; overscroll-behavior: none;
+}
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] {
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0;
+  overflow: hidden; background: #28462c;
+}
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] > :is(.garden-visitor-notice, .garden-welcome, .garden-view-navigation, .garden-world-footer) { display: none; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-world-content {
+  position: absolute; z-index: 1; inset: 0; display: block; width: 100%; height: 100%; min-height: 0; margin: 0; padding: 0;
+}
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; margin: 0; overflow: hidden; pointer-events: none;
+}
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc > * { pointer-events: auto; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; overflow: hidden; box-shadow: none;
+}
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world::after { display: none; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-stage {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; background: #28462c;
+}
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-stage canvas { width: 100% !important; height: 100% !important; max-width: none; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading { left: 18px; top: 16px; max-width: min(36vw, 410px); }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-modality { top: 18px; right: 18px; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress { top: 18px; left: 50%; transform: translateX(-50%); }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world-actions { top: 104px; right: 18px; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-toolbar { right: 18px; bottom: 82px; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide { left: 12px; bottom: 75px; width: 128px; height: 184px; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide > span { left: 68px; bottom: 24px; width: 150px; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count { left: 170px; bottom: 90px; max-width: 220px; font-size: 12px; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions {
+  position: absolute; z-index: 8; left: 50%; bottom: max(10px, env(safe-area-inset-bottom));
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; width: min(940px, calc(100% - 350px));
+  margin: 0; padding: 6px; transform: translateX(-50%); border: 1px solid #d5b76c; border-radius: 20px;
+  background: #294b32d9; box-shadow: 0 5px 16px #10291c7a; backdrop-filter: blur(9px);
+}
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button {
+  min-width: 0; min-height: 50px; padding: 6px 5px; gap: 6px; border-radius: 13px; font-size: 11px; line-height: 1.1; text-align: center;
+}
+.garden-shell--immersive .garden-storage-status { bottom: 78px; }
+
+@media (max-width: 900px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading { max-width: min(56vw, 390px); }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress { top: 103px; left: 18px; transform: none; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions { width: min(700px, calc(100% - 270px)); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading { left: 10px; top: 10px; max-width: calc(100% - 130px); padding: 8px 12px 8px 8px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading h1 { font-size: 19px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading p { font-size: 10px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading small { font-size: 9px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-crest { flex-basis: 34px; width: 34px; height: 34px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-crest .garden-icon { width: 23px; height: 23px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-modality { top: 96px; left: 10px; right: auto; max-width: calc(100% - 20px); }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world-actions { top: 96px; right: 10px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world-actions button { min-width: 40px; min-height: 40px; padding: 7px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress { display: flex; top: 146px; left: 10px; gap: 6px; padding: 6px 9px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress .garden-icon { width: 20px; height: 20px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress strong { font-size: 18px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress span { font-size: 9px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress small { font-size: 8px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions {
+    left: 66px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); width: auto; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px;
+    padding: 4px; border-radius: 15px; transform: none;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button { min-height: 42px; padding: 4px 2px; gap: 3px; font-size: 9px; border-radius: 10px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button > span { width: 23px; height: 23px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions .garden-icon { width: 18px; height: 18px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide { left: 7px; bottom: max(10px, env(safe-area-inset-bottom)); width: 52px; height: 58px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide img { height: 110px; width: 74px; object-fit: cover; object-position: top; transform: translate(-9px, 0); }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide > span { display: none; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count { left: 10px; right: auto; bottom: 218px; max-width: 190px; font-size: 10px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count small { font-size: 9px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-toolbar { right: 10px; bottom: 113px; gap: 3px; padding: 3px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-toolbar button { min-width: 38px; min-height: 38px; padding: 4px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-toolbar output { min-width: 36px; padding: 3px; font-size: 10px; }
+  .garden-shell--immersive .garden-storage-status { top: auto; bottom: calc(112px + env(safe-area-inset-bottom)); max-width: calc(100% - 30px); font-size: 10px; }
+}
+@media (max-width: 380px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading { max-width: calc(100% - 110px); }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading h1 { font-size: 16px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading p { max-width: 140px; }
+  .garden-sidebar-tab { width: 26px; min-width: 26px; }
 }

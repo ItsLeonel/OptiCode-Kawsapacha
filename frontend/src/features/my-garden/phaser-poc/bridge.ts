@@ -17,6 +17,7 @@ export type SceneEvent =
   | { type: 'camera'; camera: CameraState }
   | { type: 'ready'; renderer: 'WebGL' | 'Canvas' }
   | { type: 'asset-error'; asset: string }
+  | { type: 'render-error'; stage: string; message: string }
   | { type: 'rendered'; components: string[] }
 
 /** One bus per mounted garden; nothing is shared globally between React roots. */

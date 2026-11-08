@@ -18,6 +18,21 @@ export const POTS_ART = new URL('../illustrations/macetas-v3.png', import.meta.u
 export const TROUGH_ART = new URL('../illustrations/jardinera-vertical-profunda-v4.png', import.meta.url).href
 export const BED_ART = new URL('../../../assets/cama-cultivo-v2.png', import.meta.url).href
 export const BORDER_ART = new URL('../illustrations/bordes-regionales-v3.png', import.meta.url).href
+export const COSTA_PLOT_ART = [
+  new URL('./art/costa-v1/parcela-plana-costa-a.png', import.meta.url).href,
+  new URL('./art/costa-v1/parcela-plana-costa-b.png', import.meta.url).href,
+  new URL('./art/costa-v1/parcela-plana-costa-c.png', import.meta.url).href,
+  new URL('./art/costa-v1/parcela-plana-costa-d.png', import.meta.url).href,
+  new URL('./art/costa-v1/parcela-plana-costa-e.png', import.meta.url).href,
+  new URL('./art/costa-v1/parcela-plana-costa-f.png', import.meta.url).href,
+] as const
+export const COSTA_MARSH_PLOT_ART = new URL('./art/costa-v1/parcela-pantanosa-costa.png', import.meta.url).href
+export const COSTA_FENCE_ART = {
+  segment: new URL('./art/costa-v1/cerca-malla-costa-tramo.png', import.meta.url).href,
+  foliage: new URL('./art/costa-v1/cerca-malla-costa-tramo-flora.png', import.meta.url).href,
+  corner: new URL('./art/costa-v1/cerca-malla-costa-esquina.png', import.meta.url).href,
+  gate: new URL('./art/costa-v1/cerca-malla-costa-puerta.png', import.meta.url).href,
+} as const
 export const WORLD = { width: 1920, height: 1500, centerX: 1030, centerY: 875 } as const
 export const SCENE_LAYERS = ['landscape', 'ground', 'structures', 'parcels', 'plants', 'effects', 'feedback'] as const
 

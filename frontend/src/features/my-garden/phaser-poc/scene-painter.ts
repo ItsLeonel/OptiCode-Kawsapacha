@@ -4,7 +4,7 @@ import { PROP_FRAMES, SCENE_LAYERS, photoTextureKey, WORLD } from './assets'
 import { REGION_STYLES } from './visual-config'
 import { makeMaterials, paintFence, paintMeadow, paintPlot, paintStone, paintSupport, tintEarth, type Materials } from './paint-materials'
 import type { GardenVisualModel, SlotId, VisualSlot } from './model'
-import { POT_GEOMETRY, VERTICAL_GROUPS, HANGING_GROUPS, hangingGeometry } from './layouts'
+import { POT_GEOMETRY, VERTICAL_GROUPS, HANGING_GROUPS, COASTAL_HANGING_GROUPS, hangingGeometry } from './layouts'
 import { paintCourtyard } from './courtyard'
 import type { ActivityType } from '../journal/activities'
 
@@ -18,7 +18,10 @@ export class GardenScenePainter {
   private generated = new Set<string>()
   private used = new Set<string>()
   private materials: Materials = {}
+  private isCoast = false
   components = new Set<string>()
+  /** Last painter phase, retained so a thrown Phaser draw can be diagnosed. */
+  lastRenderStage = 'idle'
   constructor(private scene: Phaser.Scene) {}
 
   private add<T extends Node>(layer: Layer, node: T, depth = 0): T {
@@ -29,6 +32,11 @@ export class GardenScenePainter {
   }
   private graphics(layer: Layer, depth = 0) { return this.add(layer, this.scene.add.graphics(), depth) }
   private clear(layer: Layer) { this.nodes[layer].forEach(node => { this.scene.tweens.killTweensOf(node); node.destroy() }); this.nodes[layer].clear() }
+  private optional(name: string, render: () => void) {
+    this.lastRenderStage = `optional:${name}`
+    try { render() }
+    catch (error) { console.error(`[Kawsapacha][Phaser] optional render failed at ${this.lastRenderStage}`, error) }
+  }
   private clearScene() { SCENE_LAYERS.forEach(layer => this.clear(layer)); this.masks.forEach(mask => mask.destroy()); this.masks.clear(); this.horizon = null }
   destroy() {
     this.clearScene()
@@ -42,8 +50,14 @@ export class GardenScenePainter {
     if (!this.scene.textures.exists(name)) {
       const texture = this.scene.textures.createCanvas(name, width, height)
       if (!texture) return null
-      paint(texture.context)
-      texture.refresh()
+      try {
+        paint(texture.context)
+        texture.refresh()
+      } catch (error) {
+        // Never leave a partially painted CanvasTexture under a reusable key.
+        this.scene.textures.remove(name)
+        throw error
+      }
       this.generated.add(name)
     }
     return this.add(layer, this.scene.add.image(x, y, name).setOrigin(0), depth)
@@ -60,7 +74,10 @@ export class GardenScenePainter {
     const scale = Math.max(width * 1.12 / image.width, height * 1.08 / image.height)
     const displayWidth = image.width * scale
     const displayHeight = image.height * scale
-    this.horizon.setPosition(origin.x - (displayWidth - width) / 2 + camera.scrollX * .015, origin.y - height * .025)
+    // Costa uses more of the source seascape: the previous viewport-covering
+    // placement hid almost all of the ocean behind the lawn.
+    const horizonTop = this.isCoast ? origin.y - height * .22 : origin.y - height * .025
+    this.horizon.setPosition(origin.x - (displayWidth - width) / 2, horizonTop)
       .setDisplaySize(displayWidth, displayHeight)
   }
 
@@ -94,24 +111,36 @@ export class GardenScenePainter {
   }
 
   draw(model: GardenVisualModel) {
+    this.lastRenderStage = 'clear-scene'
     this.clearScene()
     this.used.clear()
     this.components.clear()
+    this.lastRenderStage = 'material-atlas'
     if (!this.materials.grass && this.scene.textures.exists('ground-materials')) this.materials = makeMaterials(this.scene.textures.get('ground-materials').getSourceImage() as HTMLImageElement)
     this.registerFrames()
+    this.lastRenderStage = `environment:${model.region}`
+    this.isCoast = model.region === 'costa'
     this.environment(model)
+    this.lastRenderStage = `floor:${model.region}`
     this.floor(model)
-    this.supports(model)
-    this.fences(model)
-    this.water(model)
-    this.irrigation(model)
-    this.fertilizers(model)
-    model.slots.forEach(slot => this.slot(model, slot))
+    for (const slot of model.slots) {
+      this.lastRenderStage = `slot:${slot.id}`
+      this.slot(model, slot)
+    }
+    // Optional props cannot block the core lawn or any of the six crop slots.
+    this.optional('regional-decoration', () => this.regionalDecoration(model))
+    this.optional(`supports:${model.kind}`, () => this.supports(model))
+    this.optional('fences', () => this.fences(model))
+    this.optional('water', () => this.water(model))
+    this.optional('irrigation', () => this.irrigation(model))
+    this.optional('fertilizers', () => this.fertilizers(model))
+    this.lastRenderStage = 'texture-cleanup'
     // Keep only the current art configuration, including after province/kind changes.
     for (const key of this.generated) if (!this.used.has(key)) { this.scene.textures.remove(key); this.generated.delete(key) }
     this.components.add('art:phase-1')
     this.components.add('perspective:oblique')
     this.components.add('light:upper-left')
+    this.lastRenderStage = 'complete'
   }
 
 
@@ -139,14 +168,40 @@ export class GardenScenePainter {
     } else this.painted('landscape', 'meadow-' + model.region, WORLD.width, WORLD.height, ctx => paintMeadow(ctx, model, this.materials), 0, 0, -1)
     this.components.add('region:' + model.region)
     this.components.add('environment:' + model.region)
-    if (this.scene.textures.exists('regional-borders')) {
-      const frame = 'border-' + { sierra: 0, costa: 1, oriente: 2, galapagos: 3 }[model.region]
-      for (const [x, y, width, flip] of [[105, 1440, 435, 0], [1790, 1450, 475, 1], [100, 1060, 290, 0], [1800, 1010, 270, 1]]) this.add('structures', this.scene.add.image(x, y, 'regional-borders', frame).setOrigin(.5, .9).setDisplaySize(width, width * 2 / 3).setFlipX(Boolean(flip)), y * 10)
+  }
+
+  private regionalDecoration(model: GardenVisualModel) {
+    if (model.region === 'costa') {
+      // No generic adobe house in Costa: the atlas house is Andean in style.
+      // Coastal houses remain visible in the regional landscape itself. A
+      // dedicated coastal sprite can be added later without changing the garden.
+      if (this.scene.textures.exists('regional-borders')) {
+        for (const [x, y, width, flip] of [[90, 1120, 300, 0], [1825, 1080, 315, 1]] as const) {
+          this.add('structures', this.scene.add.image(x, y, 'regional-borders', 'border-1').setOrigin(.5, .9).setDisplaySize(width, width * 2 / 3).setFlipX(Boolean(flip)), y * 10)
+        }
+      }
+      return
+    }
+    if (!this.scene.textures.exists('regional-borders')) return
+    const frame = 'border-' + { sierra: 0, costa: 1, oriente: 2, galapagos: 3 }[model.region]
+    for (const [x, y, width, flip] of [[105, 1440, 435, 0], [1790, 1450, 475, 1], [100, 1060, 290, 0], [1800, 1010, 270, 1]]) {
+      this.add('structures', this.scene.add.image(x, y, 'regional-borders', frame).setOrigin(.5, .9).setDisplaySize(width, width * 2 / 3).setFlipX(Boolean(flip)), y * 10)
     }
   }
 
   private floor(model: GardenVisualModel) {
-    this.painted('ground', 'courtyard-' + model.region, WORLD.width, WORLD.height, ctx => paintCourtyard(ctx, model, this.materials))
+    // This key is versioned for the corrected opaque coastal lawn, but cache
+    // versioning is not the fix: paintCoastalGround now restores alpha itself.
+    const floorKey = model.region === 'costa' ? 'courtyard-costa-integrated-v6' : 'courtyard-' + model.region
+    try {
+      const surface = this.painted('ground', floorKey, WORLD.width, WORLD.height, ctx => paintCourtyard(ctx, model, this.materials))
+      if (!surface) throw new Error(`Phaser no pudo crear la CanvasTexture del terreno (${floorKey}).`)
+    } catch (error) {
+      console.error(`[Kawsapacha][Phaser] floor texture failed at floor:${model.region}`, error)
+      if (model.region !== 'costa') throw error
+      // Canvas failure still leaves a visible, flat coastal surface beneath plots.
+      this.graphics('ground').fillStyle(0x8fb94b).fillRect(0, 700, WORLD.width, WORLD.height - 700)
+    }
     this.components.add('surface:continuous')
     this.components.add('path:natural-stone')
   }
@@ -154,7 +209,7 @@ export class GardenScenePainter {
   private supports(model: GardenVisualModel) {
     if (model.kind !== 'vertical' && model.kind !== 'hanging') return
     const key = model.kind === 'vertical' ? 'garden-trellis' : 'garden-pergola'
-    const groups = model.kind === 'vertical' ? VERTICAL_GROUPS : HANGING_GROUPS
+    const groups = model.kind === 'vertical' ? VERTICAL_GROUPS : model.region === 'costa' ? COASTAL_HANGING_GROUPS : HANGING_GROUPS
     for (const group of groups) {
       if (this.scene.textures.exists(key)) {
         const source = this.scene.textures.get(key).getSourceImage() as HTMLImageElement
@@ -169,6 +224,10 @@ export class GardenScenePainter {
   private fences(model: GardenVisualModel) {
     const kinds = model.characteristics.fences
     if (!kinds.length) return
+    if (model.region === 'costa') {
+      this.coastalFences(model, kinds)
+      return
+    }
     const locations: [number, number][] = []
     for (let index = 0; index < 6; index++) locations.push([495 + index * 200, 798 - index * 23])
     // An open entrance aligns with the access path. Rails meet at shared posts.
@@ -185,16 +244,62 @@ export class GardenScenePainter {
     })
   }
 
+  private coastalFences(model: GardenVisualModel, kinds: GardenVisualModel['characteristics']['fences']) {
+    let index = 0
+    const meshTypes = kinds.filter(kind => kind === 'metal' || kind === 'conventional')
+    const part = (x: number, y: number, width: number, rotation = 0) => {
+      const kind = kinds[index++ % kinds.length]
+      const key = kind === 'living' ? 'costa-fence-flora' : kind === 'metal' || kind === 'conventional' ? 'costa-fence-segment' : null
+      if (key && this.scene.textures.exists(key)) {
+        const source = this.scene.textures.get(key).getSourceImage() as HTMLImageElement
+        const height = width * source.height / source.width
+        this.add('structures', this.scene.add.image(x, y, key).setOrigin(.5).setDisplaySize(width, height * (y < 900 ? .69 : .92)).setRotation(rotation).setAlpha(y < 900 ? .93 : 1), y * 10)
+        this.components.add(`fence:${kind}:costa-png`)
+      } else if (kind === 'natural' && this.scene.textures.exists('modular-props')) {
+        this.prop('fence', x, y, Math.min(width, 350), undefined, y * 10)?.setFlipX(x > WORLD.centerX)
+        this.components.add(`fence:${kind}`)
+      } else if (kind !== 'natural' && this.scene.textures.exists('garden-infrastructure')) {
+        const frame = { living: 0, recycled: 1, metal: 2, conventional: 3 }[kind]
+        this.add('structures', this.scene.add.image(x, y, 'garden-infrastructure', 'item-' + frame).setOrigin(.5, .9).setDisplaySize(Math.min(width, 240), 240), y * 10)
+        this.components.add(`fence:${kind}`)
+      } else {
+        this.painted('structures', `fence-${kind}-costa-${index}`, 255, 190, ctx => paintFence(ctx, kind, index), x - width / 2, y - 155, y * 10)
+        this.components.add(`fence:${kind}:fallback`)
+      }
+    }
+
+    // Keep the recorded enclosure, but place the rear line immediately at the
+    // grass boundary. A low fence no longer creates a wall across the sea.
+    for (const x of [200, 580, 960, 1340, 1720]) part(x, 700, 345)
+    // Only the outer foreground segments frame the entrance. The central lawn,
+    // all six plots and the floating action bar remain unobstructed.
+    part(365, 1192, 330)
+    part(1555, 1192, 330)
+    // The registered fence remains present on the rear and foreground edges;
+    // no decorative or unregistered replacement type is introduced.
+    if (meshTypes.length) {
+      const gateKey = 'costa-fence-gate'
+      if (this.scene.textures.exists(gateKey)) {
+        const source = this.scene.textures.get(gateKey).getSourceImage() as HTMLImageElement
+        const width = 315
+        this.add('structures', this.scene.add.image(WORLD.width / 2, 1228, gateKey).setOrigin(.5, 1).setDisplaySize(width, width * source.height / source.width), 12282)
+        this.components.add(`fence:${meshTypes[0]}:costa-gate`)
+      }
+    }
+    this.components.add(`fence:perimeter:${model.region}`)
+  }
+
   private water(model: GardenVisualModel) {
     // Muted hardware for a declared lack of water; no fill level or flow is inferred.
     const tint = model.irrigationAvailability === 'unavailable' ? 0xaeb5b0 : model.irrigationAvailability === 'seasonal' ? 0xe6d9bf : 0xffffff
     this.components.add(`availability:${model.irrigationAvailability}`)
     model.characteristics.waterSources.forEach((source, index) => {
-      const x = 1700 + index % 2 * 125
-      const y = 800 + Math.floor(index / 2) * 190
+      const coastal = model.region === 'costa'
+      const x = (coastal ? 1735 : 1700) + index % 2 * (coastal ? 100 : 125)
+      const y = (coastal ? 870 : 800) + Math.floor(index / 2) * (coastal ? 155 : 190)
       const g = this.graphics('structures', y * 10)
       // Rain records a natural source; it does not register a storage installation.
-      if (source === 'stored') this.prop('tank', x, y, 195)?.setTint(tint)
+      if (source === 'stored') this.prop('tank', x, y, coastal ? 165 : 195)?.setTint(tint)
       if ((source === 'mains' || source === 'well') && this.scene.textures.exists('garden-infrastructure')) {
         this.add('structures', this.scene.add.image(x, y, 'garden-infrastructure', source === 'well' ? 'item-4' : 'item-5').setOrigin(.5, .88).setDisplaySize(190, 190).setTint(tint), y * 10)
       } else if (source === 'mains') {
@@ -274,8 +379,27 @@ export class GardenScenePainter {
 
   private groundSlot(model: GardenVisualModel, slot: VisualSlot) {
     const s = model.footprintScale
+    if (model.region === 'costa') {
+      const key = model.soilType === 'marsh' ? 'costa-plot-marsh' : `costa-plot-${slot.plot}`
+      if (this.scene.textures.exists(key)) {
+        const source = this.scene.textures.get(key).getSourceImage() as HTMLImageElement
+        // Mild perspective: the front row is visibly larger while preserving
+        // its actual hit target and the stored garden-slot identifiers.
+        const width = (slot.plot < 3 ? 354 : 382) * s
+        const height = width * source.height / source.width
+        this.add('parcels', this.scene.add.image(slot.anchor.x, slot.anchor.y, key).setOrigin(.5).setDisplaySize(width, height), slot.depth * 10)
+        this.coastalDesign(model, slot, width, height)
+        this.components.add(`parcel:costa-${model.soilType === 'marsh' ? 'marsh' : 'flat'}`)
+      } else {
+        // Keep the existing soil designs visible if a new coastal texture fails to load.
+        this.coastalFallback(model, slot, s)
+      }
+      if (slot.design) this.components.add('design:' + slot.design)
+      return
+    }
     if (slot.design === 'beds' && this.scene.textures.exists('empty-bed')) {
-      this.add('parcels', this.scene.add.image(slot.anchor.x, slot.anchor.y, 'empty-bed').setOrigin(.5, .46).setScale(335 * s / 1536), slot.depth * 10)
+      const bedWidth = 335
+      this.add('parcels', this.scene.add.image(slot.anchor.x, slot.anchor.y, 'empty-bed').setOrigin(.5, .46).setScale(bedWidth * s / 1536), slot.depth * 10)
     } else if (this.scene.textures.exists('organic-soil')) {
       const frame = slot.design ? { furrows: 1, beds: 2, raisedBeds: 3, terraces: 4 }[slot.design] : 0
       const source = this.scene.textures.get('organic-soil').getSourceImage() as HTMLImageElement
@@ -285,6 +409,52 @@ export class GardenScenePainter {
       }, slot.anchor.x - 256 * s * .72, slot.anchor.y - 256 * s * .72, slot.depth * 10)?.setScale(s * .72)
     } else this.painted('parcels', `plot-${slot.design}-${model.soilType}-${model.region === 'galapagos'}`, 440, 330, ctx => paintPlot(ctx, model, slot.design, this.materials), slot.anchor.x - 220 * s, slot.anchor.y - 150 * s, slot.depth * 10)?.setScale(s)
     if (slot.design) this.components.add('design:' + slot.design)
+  }
+
+  private coastalFallback(model: GardenVisualModel, slot: VisualSlot, scale: number) {
+    let fallback: Phaser.GameObjects.Image | null = null
+    if (this.scene.textures.exists('organic-soil')) {
+      const frame = slot.design ? { furrows: 1, beds: 2, raisedBeds: 3, terraces: 4 }[slot.design] : 0
+      const source = this.scene.textures.get('organic-soil').getSourceImage() as HTMLImageElement
+      fallback = this.painted('parcels', `costa-fallback-${slot.design}-${model.soilType}`, 512, 512, ctx => {
+        ctx.drawImage(source, frame % 3 * 512, Math.floor(frame / 3) * 512, 512, 512, 0, 0, 512, 512)
+        tintEarth(ctx, model)
+      }, slot.anchor.x - 155 * scale, slot.anchor.y - 60 * scale, slot.depth * 10)?.setScale(scale * .6) ?? null
+    } else {
+      fallback = this.painted('parcels', `costa-procedural-${slot.plot}-${slot.design}-${model.soilType}`, 440, 330,
+        ctx => paintPlot(ctx, model, slot.design, this.materials),
+        slot.anchor.x - 220 * scale, slot.anchor.y - 165 * scale, slot.depth * 10)?.setScale(scale) ?? null
+    }
+    if (!fallback) {
+      const patch = this.graphics('parcels', slot.depth * 10)
+      patch.fillStyle(model.soilStyle.earth, .96).fillEllipse(slot.anchor.x, slot.anchor.y, 310 * scale, 118 * scale)
+      patch.lineStyle(4, model.soilStyle.light, .85).strokeEllipse(slot.anchor.x, slot.anchor.y, 310 * scale, 118 * scale)
+      this.components.add(`parcel:costa:graphics-fallback:${slot.plot}`)
+    }
+  }
+
+  /** Recorded earth layouts remain legible over the new coastal bed art. */
+  private coastalDesign(model: GardenVisualModel, slot: VisualSlot, width: number, height: number) {
+    if (!slot.design) return
+    const { x, y } = slot.anchor
+    const g = this.graphics('parcels', slot.depth * 10 + .5)
+    const left = x - width * .34, right = x + width * .34
+    const offsets = slot.design === 'terraces' ? [-.22, .18] : [-.2, 0, .2]
+    const tone = model.soilType === 'marsh' ? 0x786c51 : model.soilStyle.earth
+    offsets.forEach((offset, index) => {
+      const rowY = y + height * offset
+      if (slot.design === 'furrows') {
+        g.lineStyle(5, 0x402b1b, .48).lineBetween(left, rowY + 3, right, rowY - 3)
+        g.lineStyle(2, 0xe1b77a, .42).lineBetween(left, rowY - 1, right, rowY - 7)
+      } else if (slot.design === 'terraces') {
+        g.lineStyle(8, 0x72583a, .8).lineBetween(left, rowY + 5, right, rowY - 5)
+        g.lineStyle(2, 0xd5b581, .8).lineBetween(left, rowY, right, rowY - 10)
+      } else if (slot.design === 'raisedBeds') {
+        g.fillStyle(tone, .2).fillEllipse(x, rowY, width * .62, height * .18)
+        g.lineStyle(2, 0xe7c18b, .48).strokeEllipse(x, rowY - 2, width * .62, height * .15)
+      }
+      this.components.add(`coastal-layout:${slot.design}:${index}`)
+    })
   }
 
   private container(model: GardenVisualModel, slot: VisualSlot) {
@@ -299,7 +469,7 @@ export class GardenScenePainter {
       else this.graphics('parcels', slot.depth * 10).fillStyle(0x9a6b37).fillRoundedRect(x - 130, y - 20, 260, 95, 9)
     } else {
       const variant = hanging ? 1 : potArtwork(model.region, slot.plot).variant
-      const width = (hanging ? hangingGeometry(slot.plot).width : slot.plot < 3 ? 213 : 245) * s
+      const width = (hanging ? hangingGeometry(slot.plot, model.region).width : slot.plot < 3 ? 213 : 245) * s
       this.painted('ground', 'soft-contact', 512, 128, ctx => {
         ctx.scale(1, .25)
         const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 250)
@@ -309,7 +479,7 @@ export class GardenScenePainter {
       if (hanging) {
         const ropes = this.graphics('structures', slot.depth * 10 - 2)
         // Both rows hang from load-bearing crossbeams, with matched endpoints.
-        const hookY = hangingGeometry(slot.plot).hookY
+        const hookY = hangingGeometry(slot.plot, model.region).hookY
         for (const endX of [x - width * .37, x + width * .37]) {
           ropes.lineStyle(5, 0x73582d).lineBetween(x, hookY + 8, endX, y + 9)
           ropes.lineStyle(2, 0xe9cf8a).lineBetween(x - 1, hookY + 8, endX - 1, y + 9)
@@ -368,8 +538,9 @@ export class GardenScenePainter {
       if (slot.id !== selected && slot.id !== hovered) continue
       const { x, y } = slot.anchor
       const g = this.graphics('effects')
-      const width = model.kind === 'ground' ? 295 : 250
-      const height = model.kind === 'ground' ? 185 : 108
+      const coastalGround = model.region === 'costa' && model.kind === 'ground'
+      const width = model.kind === 'ground' ? (coastalGround ? (slot.plot < 3 ? 340 : 368) : 295) : 250
+      const height = model.kind === 'ground' ? (coastalGround ? (slot.plot < 3 ? 132 : 145) : 185) : 108
       g.fillStyle(0xffe7a0, .08).fillEllipse(x, y, width, height)
       g.lineStyle(15, 0xffe5a0, .12).strokeEllipse(x, y, width + 12, height + 12)
       g.lineStyle(3, 0xfff2b0, .95).strokeEllipse(x, y, width, height)

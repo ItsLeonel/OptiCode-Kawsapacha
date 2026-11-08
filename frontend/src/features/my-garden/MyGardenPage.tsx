@@ -25,7 +25,7 @@ const ACTIONS = [
 ] as const
 const PhaserGarden = lazy(() => import('./phaser-poc/PhaserGardenPoc'))
 
-export default function MyGardenPage({ plants, community, realGarden, selectedPlot, onCreateCommunity, onJoinCommunity, onSelect, onRegister, onAction, onNavigate, terrainView, terrainProvince, renderGardenScene, activities, feedback, progress, interactionBlocked = false, demo = true }: {
+export default function MyGardenPage({ plants, community, realGarden, selectedPlot, onCreateCommunity, onJoinCommunity, onSelect, onRegister, onAction, onNavigate, terrainView, terrainProvince, renderGardenScene, activities, feedback, progress, interactionBlocked = false, demo = true, fullScreenGarden = false }: {
   plants: GardenPlant[]
   community: Community | null
   realGarden: RealGarden | null
@@ -37,6 +37,7 @@ export default function MyGardenPage({ plants, community, realGarden, selectedPl
   feedback?: GardenSceneRendererProps['feedback']
   progress?: GardenSceneRendererProps['progress']
   interactionBlocked?: boolean
+  fullScreenGarden?: boolean
   onCreateCommunity: () => void
   onJoinCommunity: () => void
   demo?: boolean
@@ -47,7 +48,7 @@ export default function MyGardenPage({ plants, community, realGarden, selectedPl
 }) {
   const territory = (terrainView ? terrainProvince : realGarden?.location.province) || community?.province || ''
   const region = regionForProvince(territory)
-  return <main className="my-garden-page game-v3" data-view={terrainView ? 'terrain' : 'garden'} data-region={region} data-garden-kind={realGarden?.kind ?? 'unregistered'} data-onboarding={realGarden ? 'complete' : community ? 'real-garden' : 'community'}>
+  return <main className="my-garden-page game-v3" data-view={terrainView ? 'terrain' : 'garden'} data-fullscreen-garden={fullScreenGarden && !terrainView ? 'true' : undefined} data-region={region} data-garden-kind={realGarden?.kind ?? 'unregistered'} data-onboarding={realGarden ? 'complete' : community ? 'real-garden' : 'community'}>
     <GardenRegionalBackground region={region} variant={realGarden && !terrainView ? 'garden' : 'welcome'}/>
     <div className="garden-visitor-notice"><span className="garden-visitor-dot"/> {demo ? 'Demostración pública · Visitante sin sesión' : 'Sesión confirmada · Guardado local'}</div>
     <header className="garden-welcome">

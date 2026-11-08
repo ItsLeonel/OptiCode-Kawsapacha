@@ -46,6 +46,27 @@
 .garden-sidebar.game-v3 .garden-sidebar-footer button:hover { filter: brightness(1.14); }
 .garden-sidebar.game-v3 .garden-sidebar-footer .garden-icon { width: 16px; height: 16px; }
 
+/* In the live garden the existing navigation floats over Phaser. */
+.garden-sidebar.game-v3.garden-sidebar--overlay {
+  position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(280px, calc(100vw - 32px)); height: 100dvh; min-height: 0;
+  padding: 18px 12px 14px; border-right: 3px solid #b17a35; border-bottom: 0; border-radius: 0 18px 18px 0;
+  box-shadow: 8px 0 26px #10271966; transition: transform .24s ease, visibility .24s ease;
+}
+.garden-sidebar.game-v3.garden-sidebar--overlay:not(.is-open) { transform: translateX(calc(-100% - 3px)); visibility: hidden; pointer-events: none; }
+.garden-sidebar.game-v3.garden-sidebar--overlay.is-open { transform: translateX(0); visibility: visible; pointer-events: auto; }
+.garden-sidebar.game-v3.garden-sidebar--overlay .garden-nav { display: flex; flex-direction: column; gap: 9px; }
+.garden-sidebar-tab {
+  position: fixed; z-index: 41; top: 48%; left: 0; display: grid; place-items: center; gap: 1px; width: 30px; min-width: 30px; min-height: 58px;
+  padding: 5px 3px; border: 1px solid #efcf82; border-left: 0; border-radius: 0 12px 12px 0; color: #fff5cf;
+  background: linear-gradient(145deg, #785026, #3d2c1b); box-shadow: 2px 3px 8px #142c1d70; cursor: pointer;
+  transition: left .24s ease, filter .18s ease; transform: translateY(-50%);
+}
+.garden-sidebar-tab:hover { filter: brightness(1.14); }
+.garden-sidebar-tab > span { font: 700 20px/1 system-ui, sans-serif; }
+.garden-sidebar-tab small { font: 700 8px/1 system-ui, sans-serif; writing-mode: vertical-rl; }
+.garden-sidebar-tab.is-open { left: min(280px, calc(100vw - 32px)); }
+.garden-sidebar-tab:focus-visible { outline: 3px solid #d6f28c; outline-offset: 2px; }
+
 @media (max-height: 850px) and (min-width: 901px) {
   .garden-sidebar.game-v3 { gap: 12px; padding-top: 12px; }
   .garden-sidebar.game-v3 .garden-brand { min-height: 68px; }
@@ -74,6 +95,10 @@
   .garden-sidebar.game-v3 .garden-sidebar-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
   .garden-sidebar.game-v3 .garden-sidebar-footer > span { display: block; }
   .garden-sidebar.game-v3 .garden-sidebar-footer button { min-height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .garden-sidebar.game-v3.garden-sidebar--overlay, .garden-sidebar-tab { transition-duration: .01ms; }
 }
 @media (max-width: 380px) {
   .garden-sidebar.game-v3 { padding-inline: 8px; }

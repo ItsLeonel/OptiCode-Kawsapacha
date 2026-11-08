@@ -2,7 +2,7 @@
 
 `entorno-modular-v1.png`: atlas transparente 1536 × 1024 creado con la herramienta integrada **imagegen**, sin CLI. Contiene casa decorativa, depósito cerrado, compostera vacía, cerca, panel de adobe y pérgola vacía. No contiene plantas registradas, actividades ni interfaz.
 
-Las referencias `01-base-en-tierra.png`, `02-base-macetas.png`, `03-base-vertical.png`, `04-base-colgante.png` y `05-interfaz-mi-jardin.png` de `referencias/huerto` se inspeccionaron como guía de estilo y composición. Ninguna captura se usa como fondo o textura de la interfaz.
+Las referencias de diseño históricas y las pantallas maestras locales se utilizaron como guía visual. **No son dependencias de ejecución** ni se usan como fondos interactivos; las ilustraciones requeridas por Phaser están incorporadas bajo `frontend/src/`.
 
 Las piezas se recortan en ejecución mediante marcos Phaser definidos en `../assets.ts`; el atlas conserva el canal alfa original. El entorno es ilustrativo: las estructuras funcionales solo se muestran a partir de las características registradas. La casa es escenografía externa al área de cultivo.
 

@@ -1,6 +1,6 @@
 # Kawsapacha — Mi Jardín Vivo
 
-Implementación React + TypeScript + Phaser 3.90.0. La entrada principal (`/`) y el laboratorio (`/garden-lab.html`) utilizan el mismo jardín interactivo y los mismos registros locales. No se precargan comunidades, plantas ni actividades de ejemplo.
+Implementación React + TypeScript + Phaser 3.90.0. La entrada principal (`/`) y el laboratorio (`/garden-lab.html`) comparten el renderizador Phaser y la lógica del jardín. **No comparten registros locales si se abren en puertos distintos**: IndexedDB se separa por origen (protocolo, host y puerto). No se precargan comunidades, plantas ni actividades de ejemplo.
 
 ## Ejecutar
 

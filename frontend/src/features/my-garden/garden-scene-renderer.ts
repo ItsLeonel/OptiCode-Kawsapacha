@@ -3,7 +3,7 @@ import type { RealGarden } from '../real-gardens/real-garden'
 import type { GardenPlant } from './garden'
 import type { GardenActivity, ActivityType } from './journal/activities'
 
-/** Optional presentation seam. The normal application keeps GardenScene. */
+/** Optional presentation seam for tests; the normal application loads PhaserGardenPoc lazily. */
 export type GardenSceneRendererProps = {
   realGarden: RealGarden
   plants: GardenPlant[]

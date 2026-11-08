@@ -7,7 +7,7 @@ import { GARDEN_FEATURE_OPTIONS, toGardenFeatures, type GardenFeatures } from '.
 import { GARDEN_KINDS, IRRIGATION_OPTIONS, SOIL_OPTIONS, formatGardenArea, type RealGarden } from './real-garden'
 
 export default function RealGardenSummary({ garden, onEdit, onConnect, onCommunity }: {
-  garden: RealGarden; onEdit: () => void; onConnect: () => void; onCommunity: () => void
+  garden: RealGarden; onEdit?: () => void; onConnect: () => void; onCommunity: () => void
 }) {
   const { location } = garden
   const hasDetails = Boolean(location.reference || location.coordinates || garden.communityName)
@@ -39,8 +39,10 @@ export default function RealGardenSummary({ garden, onEdit, onConnect, onCommuni
           {garden.communityName && <div className="rg-summary-community"><dt>Comunidad</dt><dd><button type="button" className="rg-text-button" onClick={onCommunity}>{garden.communityName}<GardenIcon name="arrow"/></button></dd></div>}
         </dl>}
         <div className="rg-summary-actions">
-          <button className="rg-outline-button rg-edit" type="button" onClick={onEdit}><RealGardenIcon name="edit"/>Editar información</button>
-          <button className="rg-primary-button" type="button" onClick={onConnect}><RealGardenIcon name="link"/>Volver a Mi Jardín<GardenIcon name="arrow"/></button>
+          {onEdit && (
+            <button className="rg-outline-button rg-edit" type="button" onClick={onEdit}><RealGardenIcon name="edit"/>Editar mi huerto</button>
+          )}
+          <button className="rg-primary-button" type="button" onClick={onConnect}><RealGardenIcon name="link"/>Conectar con Mi Jardín<GardenIcon name="arrow"/></button>
         </div>
       </div>
     </div>

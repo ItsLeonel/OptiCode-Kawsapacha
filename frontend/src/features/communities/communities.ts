@@ -1,4 +1,5 @@
 export type Community = {
+  id?: string
   name: string
   responsible: string
   location: string
@@ -18,10 +19,14 @@ export type CommunityType = 'personal' | 'familiar' | 'condominio' | 'barrial'
 export type CommunityMember = {
   id: string
   name: string
-  birthDate: string
-  gender: string
-  certifiedTalents: string
+  email?: string
+  role?: 'RESPONSABLE' | 'PARTICIPANTE'
+  birthDate?: string
+  gender?: string
+  certifiedTalents?: string
   experience: 'Aprendiz' | 'Oficial' | 'Maestro'
+  inviteStatus?: 'idle' | 'checking' | 'not_found' | 'verified' | 'ready_to_send' | 'sent' | 'pending' | 'already_member'
+  lookupMessage?: string
 }
 
 /** Únicos campos aceptados por el backend actual. No enviar extensiones de UI. */

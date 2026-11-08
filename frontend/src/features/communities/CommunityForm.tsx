@@ -19,15 +19,12 @@ import { communityLocation, communityTerritoryLabels, validateCommunityTerritory
 
 type Values = Community & CommunityTerritory & { type: CommunityType; contact: { phone: string; email: string }; members: CommunityMember[] }
 type Errors = Record<string, string>
-const today = () => {
-  const date = new Date()
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
 
-export default function CommunityForm({ community, onSave, onClose }: {
-  community: Community | null; onSave: CommunitySave; onClose: () => void
+export default function CommunityForm({ community, acceptedMembersCount, onSave, onClose }: {
+  community: Community | null; acceptedMembersCount?: number; onSave: CommunitySave; onClose: () => void
 }) {
   const [values, setValues] = useState<Values>(() => ({
+    id: community?.id,
     name: '', responsible: '', description: '', ...community,
     // A province-only payload is not an additional locality. Keep it derived on edit.
     location: community?.location === community?.province ? '' : community?.location ?? '',
@@ -55,14 +52,38 @@ export default function CommunityForm({ community, onSave, onClose }: {
     }))
     setErrors({}); setSaveError('')
   }
-  function updateMember(id: string, field: keyof CommunityMember, value: string) {
-    update('members', values.members.map(member => member.id === id ? { ...member, [field]: value } : member))
+  function updateMember(id: string, fieldOrUpdates: keyof CommunityMember | Partial<CommunityMember>, value?: any) {
+    setValues(current => ({
+      ...current,
+      members: current.members.map(member => {
+        if (member.id !== id) return member
+        if (typeof fieldOrUpdates === 'string') {
+          return { ...member, [fieldOrUpdates]: value }
+        }
+        return { ...member, ...fieldOrUpdates }
+      }),
+    }))
+    setErrors({})
+    setSaveError('')
   }
   function addMember() {
     const id = `local-${Date.now()}-${++nextMember.current}`
-    update('members', [...values.members, { id, name: '', birthDate: '', gender: '', certifiedTalents: '', experience: 'Aprendiz' }])
+    update('members', [
+      ...values.members,
+      {
+        id,
+        name: '',
+        email: '',
+        role: 'PARTICIPANTE',
+        birthDate: '',
+        gender: '',
+        certifiedTalents: '',
+        experience: 'Aprendiz',
+        inviteStatus: 'idle',
+      },
+    ])
     setEditor('members'); setEditingMember(id)
-    requestAnimationFrame(() => document.getElementById(`member-${id}-name`)?.focus())
+    requestAnimationFrame(() => document.getElementById(`member-${id}-email`)?.focus())
   }
   function removeMember(id: string) {
     update('members', values.members.filter(member => member.id !== id))
@@ -79,8 +100,23 @@ export default function CommunityForm({ community, onSave, onClose }: {
       if (values.contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.contact.email.trim())) result['community-email'] = 'Escribe un correo electrónico válido.'
       if (values.description.length > 500) result['community-description'] = 'Usa hasta 500 caracteres para la descripción.'
       values.members.forEach(member => {
-        if (member.name.trim().length < 2 || member.name.trim().length > 80) result[`member-${member.id}-name`] = 'Escribe el nombre del integrante (entre 2 y 80 caracteres).'
-        if (member.birthDate && (!/^\d{4}-\d{2}-\d{2}$/.test(member.birthDate) || member.birthDate < '1900-01-01' || member.birthDate > today() || Number.isNaN(Date.parse(member.birthDate)) || new Date(member.birthDate).toISOString().slice(0,10) !== member.birthDate)) result[`member-${member.id}-birthDate`] = 'Indica una fecha válida entre 1900 y hoy.'
+        const email = (member.email || '').trim().toLowerCase()
+        if (!email) {
+          result[`member-${member.id}-email`] = `Ingresa el correo para invitar a ${member.name.trim() || 'este integrante'}, o quítalo de la lista.`
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          result[`member-${member.id}-email`] = 'Escribe un correo electrónico válido.'
+        } else if (member.inviteStatus === 'not_found') {
+          result[`member-${member.id}-email`] = `No existe una cuenta registrada con el correo "${email}". Debe registrarse en Kawsapacha primero o quita al integrante de la lista.`
+        } else if (member.inviteStatus === 'already_member') {
+          result[`member-${member.id}-email`] = `"${member.name || email}" ya es miembro registrado en esta comunidad. Quítalo de la lista con el botón "Quitar este integrante" para continuar.`
+        } else if (member.inviteStatus === 'pending') {
+          result[`member-${member.id}-email`] = `"${member.name || email}" ya tiene una invitación pendiente en esta comunidad. Quítalo de la lista con el botón "Quitar este integrante" para continuar.`
+        } else if (!['sent', 'ready_to_send'].includes(member.inviteStatus || '')) {
+          result[`member-${member.id}-email`] = `Debes consultar el correo y presionar "Mandar solicitud" para ${email} antes de continuar, o quita al integrante de la lista.`
+        }
+        if (member.name && member.name.trim().length > 80) {
+          result[`member-${member.id}-name`] = 'El nombre del integrante no debe superar los 80 caracteres.'
+        }
       })
     }
     return result
@@ -123,7 +159,15 @@ export default function CommunityForm({ community, onSave, onClose }: {
       await onSave({ ...values, name: values.name.trim(), responsible: values.responsible.trim(),
         location: communityLocation(values), sector: values.sector.trim(), description: values.description.trim(),
         contact: { phone: values.contact.phone.trim(), email: values.contact.email.trim() },
-        members: values.members.map(member => ({ ...member, name: member.name.trim() })),
+        members: values.members
+          .filter(member => ['sent', 'ready_to_send'].includes(member.inviteStatus || ''))
+          .map(member => ({
+            ...member,
+            name: member.name.trim() || member.email?.trim().toLowerCase() || 'Integrante',
+            email: member.email?.trim().toLowerCase() || undefined,
+            role: member.role || 'PARTICIPANTE',
+            inviteStatus: member.inviteStatus,
+          })),
       })
     } catch {
       setSaveError('No se pudo guardar la comunidad. Tus datos siguen aquí; vuelve a intentarlo.')
@@ -137,13 +181,34 @@ export default function CommunityForm({ community, onSave, onClose }: {
         <GameGuide region={region} message={step === 0 ? '¿Qué comunidad quieres crear?' : step === 1 ? '¡Ubica tu comunidad y elige su provincia!' : step === 2 ? 'Tres tarjetas, una historia compartida.' : '¡Revisa las raíces de tu comunidad!'}/>
         {step === 0 && <CommunityTypeStep value={values.type} onChange={value => update('type', value)}/>}
         {step === 1 && <CommunityTerritoryStep values={values} errors={errors} onChange={update}/>}
-        {step === 2 && <CommunityBuilderStep values={values} errors={errors} editor={editor} editingMember={editingMember} birthdayMax={today()} onEditorChange={setEditor} onMemberEdit={id => { setEditor('members'); setEditingMember(id) }} onMemberAdd={addMember} onMemberRemove={removeMember} onMemberChange={updateMember} onChange={update} onTerritory={() => navigate(1)}/>}
+        {step === 2 && <CommunityBuilderStep values={values} errors={errors} editor={editor} editingMember={editingMember} onEditorChange={setEditor} onMemberEdit={id => { setEditor('members'); setEditingMember(id) }} onMemberAdd={addMember} onMemberRemove={removeMember} onMemberChange={updateMember} onChange={update} onTerritory={() => navigate(1)}/>}
         {step === 3 && <GamePanel className="cw-confirm"><h3 className="cw-step-label" data-step-heading tabIndex={-1}>Así comienzan tus raíces</h3><div className="cw-summary-banner" style={{ backgroundImage: `linear-gradient(0deg,#092e24ed,#092e2470),url("${regional.background}")` }}><CommunityCoverPhoto photo={values.coverPhoto} fallback={regional.background} onChange={photo => update('coverPhoto', photo)}/><div className="cw-summary-identity"><GardenIcon name="community"/><strong>{values.name}</strong><span>{values.province} · {regional.label}</span></div></div>
           <dl className="cw-summary">
             <div className="cw-confirm-card cw-confirm-card--community"><dt><GardenIcon name="community"/>Comunidad</dt><dd>{TYPES.find(type => type.value === values.type)?.label}</dd><button type="button" onClick={() => navigate(0)}>Editar tipo</button></div>
             <div className="cw-confirm-card cw-confirm-card--territory"><dt><GardenIcon name="map"/>Territorio</dt><dd className="cw-confirm-territory"><span>Provincia: {territorial.province}</span><span>Cantón: {territorial.canton}</span><span>Parroquia: {territorial.parish}</span><span>Sector: {territorial.sector || 'Sin especificar'}</span><span>Región: {territorial.region}</span></dd><button type="button" onClick={() => navigate(1)}>Editar ubicación</button></div>
             <div className="cw-confirm-card cw-confirm-card--responsible"><dt><CommunityIcon name="person"/>Responsable</dt><dd>{values.responsible}</dd><button type="button" onClick={() => { setEditor('responsible'); navigate(2) }}>Editar datos</button></div>
-            <div className="cw-confirm-card cw-confirm-card--members"><dt><GardenIcon name="community"/>Integrantes</dt><dd>{values.members.length + 1} {values.members.length ? 'personas' : 'persona'} · {values.members.length ? `${values.members.length} adicional(es)` : 'Sin integrantes adicionales'} · Datos privados</dd></div>
+            <div className="cw-confirm-card cw-confirm-card--members">
+              <dt><GardenIcon name="community"/>Integrantes</dt>
+              <dd>
+                {(() => {
+                  const newInvitations = values.members.filter(m =>
+                    ['sent', 'ready_to_send'].includes(m.inviteStatus || '')
+                  )
+                  const baseCount = acceptedMembersCount ?? 1
+                  const totalCount = baseCount + newInvitations.length
+                  return (
+                    <>
+                      {totalCount} {totalCount === 1 ? 'persona (Responsable)' : 'personas'} · {newInvitations.length ? `${newInvitations.length} nueva(s) invitación(es)` : 'Sin nuevas invitaciones'} · Datos privados
+                      {newInvitations.length > 0 && (
+                        <span style={{ display: 'block', fontSize: '11px', marginTop: '4px', opacity: 0.9 }}>
+                          {newInvitations.map(m => `${m.name || 'Integrante'}${m.email ? ` (${m.email})` : ''} [${m.role === 'RESPONSABLE' ? 'Responsable 👑' : 'Participante 🌱'}]`).join(', ')}
+                        </span>
+                      )}
+                    </>
+                  )
+                })()}
+              </dd>
+            </div>
           </dl>
           {values.description && <p className="cw-confirm-description">{values.description}</p>}<p className="cw-soft-note">Tu comunidad, lista para echar raíces.</p>
         </GamePanel>}

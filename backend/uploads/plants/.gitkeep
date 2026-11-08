@@ -1,0 +1,4 @@
+# Esta carpeta almacena las fotografías reales de plantas cultivadas.
+# Los archivos de imagen (.jpg, .png, .webp) están en .gitignore.
+# El servidor las sirve en /uploads/plants/<filename>
+

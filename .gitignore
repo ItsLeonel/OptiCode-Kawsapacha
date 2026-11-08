@@ -13,6 +13,14 @@ playwright-report/
 !.env.example
 !.env.*.example
 
+# Local SQLite databases and uploads
+*.db
+*.db-journal
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/uploads/plants/*
+!backend/uploads/plants/.gitkeep
+
 # Editor / operating system
 .DS_Store
 Thumbs.db

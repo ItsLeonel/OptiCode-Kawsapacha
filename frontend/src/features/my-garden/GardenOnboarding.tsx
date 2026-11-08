@@ -5,13 +5,24 @@ import GardenIcon from './GardenIcon'
 import './garden-onboarding.css'
 import GameDecoration from '../../shared/ui/game-ui/GameDecoration'
 
-export default function GardenOnboarding({ community, region, onCreateCommunity, onJoinCommunity, onCommunity, onRegisterGarden }: {
+export default function GardenOnboarding({
+  community,
+  region,
+  onCreateCommunity,
+  onJoinCommunity,
+  onCommunity,
+  onRegisterGarden,
+  onOpenNotifications,
+  pendingInvitationsCount = 0,
+}: {
   community: Community | null
   region: GardenRegion
   onCreateCommunity: () => void
   onJoinCommunity: () => void
   onCommunity: () => void
   onRegisterGarden: () => void
+  onOpenNotifications?: () => void
+  pendingInvitationsCount?: number
 }) {
   return <section className="garden-onboarding" aria-labelledby="garden-onboarding-title">
     <GameGuide region={region}/>
@@ -27,6 +38,13 @@ export default function GardenOnboarding({ community, region, onCreateCommunity,
         </> : <div className="garden-onboarding-actions">
           <GameButton onClick={onCreateCommunity}><GardenIcon name="community"/>Crear mi comunidad<GardenIcon name="arrow"/></GameButton>
           <GameButton variant="secondary" onClick={onJoinCommunity}><GardenIcon name="community"/>Unirme a una comunidad<GardenIcon name="arrow"/></GameButton>
+          {onOpenNotifications && (
+            <GameButton variant="secondary" onClick={onOpenNotifications}>
+              <span aria-hidden="true">🔔</span>
+              {pendingInvitationsCount > 0 ? `Bandeja de Notificaciones (${pendingInvitationsCount})` : 'Bandeja de Notificaciones'}
+              <GardenIcon name="arrow"/>
+            </GameButton>
+          )}
         </div>}
       </div>
       <GameDecoration kind="flowers" className="garden-onboarding-foliage"/>

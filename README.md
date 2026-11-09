@@ -14,7 +14,7 @@ Kawsapacha es una aplicación web educativa para que comunidades del Ecuador reg
 
 **Flujo de la demostración:** crear cuenta → iniciar sesión → crear comunidad → registrar huerto y provincia → elegir especie → subir foto real → colocar planta en una parcela → abrir su ficha → comprobar que los datos persisten.
 
-> **Estado al 8/11/2026:** el frontend incluye el flujo local de comunidades, registro de terrenos y Mi Jardín Vivo con Phaser, plantas, fotografías, actividades, Pasaporte Vivo y progreso. Los datos se guardan en IndexedDB por navegador/origen. **Todavía NO hay autenticación real, backend, base de datos central ni sincronización multiusuario.** No presentar la V1 como completamente integrada. Véase [informe técnico](docs/mi-jardin-vivo-implementacion.md).
+> **Estado al 8/11/2026 (PR #30, #31):** frontend y backend están integrados en `main`. Con sesión iniciada, cuentas, comunidades, integrantes, huertos, plantas, fotos, cuidados, cosechas y bodega se guardan en el servidor (API REST + SQLite). En **modo visitante** los datos se conservan solo en el navegador (IndexedDB). Puntos, niveles e insignias se calculan en el navegador. El estado de cada función está en las [historias de usuario](docs/historias-usuario/historias-usuario-v1.md); los resultados de prueba los publica QA en [docs/casos-prueba/](docs/casos-prueba/).
 
 ## 👥 Equipo: empiecen por estas tareas
 
@@ -32,34 +32,46 @@ Todos los **16 Issues ya tienen responsables asignados**. Cada persona debe revi
 
 ### 🛠️ Herramientas y arquitectura
 
-- **Frontend ya iniciado:** React 19 + TypeScript + Vite 7.
-- **Backend propuesto (pendiente de confirmar en #4):** Node.js + Express + TypeScript.
-- **Base de datos propuesta:** PostgreSQL + Prisma ORM.
-- **Intercambio:** API REST con JSON. Leonel y Ronny deben acordar rutas, formatos, validaciones y errores antes de integrar.
-- **Diseño:** Figma; para mapa y huerto virtual, SVG/GeoJSON y componentes React.
-- **Gestión y pruebas:** GitHub Issues/Projects/PR, Postman o equivalente y casos de prueba documentados.
+- **Frontend:** React 19 + TypeScript 5.9 + Vite 7; Phaser 3.90 para el huerto virtual; Leaflet 1.9 / React Leaflet 5 para el mapa detallado.
+- **Backend:** Node.js 22 + Express 4 + TypeScript 5.6; JWT y bcrypt para autenticación; Multer para fotos. Ver [arquitectura del backend](docs/arquitectura/backend.md).
+- **Base de datos:** **SQLite** con Prisma ORM 5.22 (archivo local, sin servidor externo).
+- **Intercambio:** API REST con JSON. Contratos en [docs/arquitectura/contratos-api.md](docs/arquitectura/contratos-api.md).
+- **Diseño:** Figma; mapa provincial con GeoJSON y catálogo territorial INEC DPA 2026.
+- **Gestión y pruebas:** GitHub Issues/PR; Playwright para pruebas automatizadas del frontend; casos de prueba documentados con la plantilla docente.
 
 **Mejoras opcionales, no bloqueantes de V1:** historial de fotos en el Pasaporte Vivo, sugerencias de especies según región e identificación asistida por Pl@ntNet. Solo se incorporan cuando el flujo principal funcione y quede tiempo para probarlas. Una identificación automática siempre requiere confirmación del usuario y no constituye consejo médico.
 
-### ▶️ Ejecutar el frontend actual
+### ▶️ Ejecutar la aplicación
 
-Requiere Node.js compatible con Vite 7 y npm.
+Requiere Node.js 20.19+ o 22 LTS y npm. Se usan **dos terminales**: primero el backend y luego el frontend.
+
+**1. Backend** (API en `http://localhost:3000`):
 
 ```bash
 git clone https://github.com/ItsLeonel/OptiCode-Kawsapacha.git
+cd OptiCode-Kawsapacha/backend
+cp .env.example .env          # PowerShell: Copy-Item .env.example .env
+npm install
+npx prisma migrate dev        # crea la base SQLite
+npm run prisma:seed           # carga las 8 especies del catálogo
+npm run dev
+```
+
+Comprobar: `http://localhost:3000/api/health` debe responder `"status": "ok"`.
+
+**2. Frontend** (en otra terminal):
+
+```bash
 cd OptiCode-Kawsapacha/frontend
 npm install
 npm run dev
 ```
 
-Abrir la URL local que indique Vite. Para comprobar tipos y compilación:
+Abrir `http://localhost:5173`. Vite redirige las llamadas `/api` al backend en el puerto 3000. Si el backend no está encendido, la aplicación lo indica y solo funciona el modo visitante.
 
-```bash
-npm run typecheck
-npm run build
-```
+Para comprobar tipos y compilación, en cada carpeta: `npm run typecheck` y `npm run build`. Más detalles en [backend/README.md](backend/README.md) y [frontend/README.md](frontend/README.md).
 
-Más detalles en [frontend/README.md](frontend/README.md).
+> El `JWT_SECRET` de `.env.example` es solo para desarrollo local.
 
 ## 👤 Cuentas y Credenciales Sugeridas para Pruebas
 
@@ -97,6 +109,10 @@ Más detalles en [frontend/README.md](frontend/README.md).
 ## 📁 Documentación y entregables
 
 - [Alcance de V1](docs/analisis/alcance-v1.md)
+- [Historias de usuario V1](docs/historias-usuario/historias-usuario-v1.md)
+- [Arquitectura del backend](docs/arquitectura/backend.md) y [contratos de API](docs/arquitectura/contratos-api.md)
+- [Lineamientos MSP aplicados](docs/analisis/lineamientos-msp-aplicados.md) · [Preguntas al cliente](docs/analisis/preguntas-al-cliente.md) · [Dudas y decisiones](docs/analisis/dudas-y-decisiones-pendientes.md)
+- [Esquema del informe final](docs/informe/esquema-informe-v1.md)
 - [Organización de documentos](docs/README.md)
 - [Reglas de trabajo](docs/organizacion/REGLAS-DE-TRABAJO.md)
 - [Distribución de responsabilidades](docs/organizacion/REPARTO-DE-TAREAS-V1.md)

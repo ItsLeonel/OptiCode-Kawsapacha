@@ -18,6 +18,40 @@ export type PlantRegistrationDraft = {
   responsible?: string
 }
 
+async function optimizeImage(file: File | Blob): Promise<File | Blob> {
+  const url = URL.createObjectURL(file)
+  try {
+    const image = new Image()
+    image.src = url
+    await image.decode()
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error('Empty image')
+
+    const maxDim = 1920
+    const w = image.naturalWidth
+    const h = image.naturalHeight
+
+    if (file.size <= 3 * 1024 * 1024 && Math.max(w, h) <= maxDim && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      return file
+    }
+
+    const scale = Math.min(1, maxDim / Math.max(w, h))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(w * scale)
+    canvas.height = Math.round(h * scale)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas 2D unavailable')
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85))
+    if (!blob) throw new Error('Compression failed')
+
+    const originalName = file instanceof File ? file.name.replace(/\.[^/.]+$/, '') : 'foto-planta'
+    return new File([blob], `${originalName}.jpg`, { type: 'image/jpeg' })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialResponsible = '', initialRequestId }: {
   plants: GardenPlant[]
   initialPlot: number | null
@@ -49,6 +83,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   const dialogRef = useRef<HTMLDialogElement>(null)
   const openerRef = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const selection = useRef(0)
   const saving = useRef(false)
   const camera = usePlantCamera()
@@ -83,25 +118,27 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     camera.stop()
     setMode('gallery')
     setError('')
-    setReading(false)
-    setPhoto(null)
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || !file.size || file.size > 3 * 1024 * 1024) {
-      setError('Usa JPG, PNG o WebP de hasta 3 MB.')
-      return
-    }
     setReading(true)
-    const url = URL.createObjectURL(file)
+    setPhoto(null)
+
     try {
-      const image = new Image()
-      image.src = url
-      await image.decode()
-      if (!image.naturalWidth || !image.naturalHeight) throw new Error('Empty image')
-      if (request === selection.current) setPhoto(file)
+      const optimized = await optimizeImage(file)
+      if (optimized.size > 3 * 1024 * 1024) {
+        if (request === selection.current) {
+          setError('La fotografía excede los 3 MB incluso tras optimizar. Elige otra imagen.')
+          setReading(false)
+        }
+        return
+      }
+      if (request === selection.current) {
+        setPhoto(optimized)
+        setReading(false)
+      }
     } catch {
-      if (request === selection.current) setError('No se puede leer esta imagen. Selecciona otra fotografía.')
-    } finally {
-      URL.revokeObjectURL(url)
-      if (request === selection.current) setReading(false)
+      if (request === selection.current) {
+        setError('No se puede leer o procesar esta imagen. Selecciona otra fotografía.')
+        setReading(false)
+      }
     }
   }
 
@@ -117,8 +154,19 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   async function openCamera() {
     selection.current++
     setReading(false)
-    setMode('camera')
     setError('')
+
+    // En móviles sobre HTTP LAN no hay contexto seguro (window.isSecureContext === false)
+    // o navigator.mediaDevices?.getUserMedia está bloqueado. En ese caso usamos la app de cámara nativa.
+    const canUseStream = typeof window !== 'undefined' && window.isSecureContext && Boolean(navigator.mediaDevices?.getUserMedia)
+    if (!canUseStream) {
+      camera.stop()
+      setMode('gallery')
+      cameraInputRef.current?.click()
+      return
+    }
+
+    setMode('camera')
     await camera.start()
   }
 
@@ -174,7 +222,8 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
             <button type="button" aria-pressed={mode === 'camera'} onClick={openCamera} disabled={camera.state === 'requesting' || camera.state === 'capturing'}><GardenIcon name="camera"/>Cámara</button>
             <button type="button" aria-pressed={mode === 'gallery'} onClick={openGallery}><GardenIcon name="gallery"/>Galería</button>
             <label className="plant-sr-only" htmlFor="plant-photo">Fotografía de tu planta (JPG, PNG o WebP, hasta 3 MB)</label>
-            <input ref={fileRef} id="plant-photo" type="file" accept="image/jpeg,image/png,image/webp" tabIndex={-1} className="plant-sr-only" onChange={choosePhoto}/>
+            <input ref={fileRef} id="plant-photo" type="file" accept="image/jpeg,image/png,image/webp,image/*" tabIndex={-1} className="plant-sr-only" onChange={choosePhoto}/>
+            <input ref={cameraInputRef} id="plant-camera-native" type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="environment" tabIndex={-1} className="plant-sr-only" onChange={choosePhoto}/>
           </div>
           <div className="plant-photo-workspace" aria-busy={reading || camera.state === 'requesting' || camera.state === 'capturing'}>
             <div className="plant-viewfinder">
@@ -199,7 +248,20 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
           {notice && <p className="plant-registration-notice">{notice}</p>}
           {!available.length && <p className="plant-registration-notice" role="status">Los seis espacios están ocupados. Consulta sus Pasaportes Vivos en el jardín.</p>}
           {!ready && <div className="plant-registration-setup"><p>Primero registra tu terreno en Mi Jardín. Debe estar vinculado a una comunidad. Una comunidad personal es válida.</p><button type="button" disabled={reading || cameraActive} onClick={() => onSetup({ plot, species: speciesName, photo, plantedOn, notice, requestId: requestId.current, recordSowing, responsible })}>Ir a Mi terreno <GardenIcon name="arrow"/></button></div>}
-          {(error || (mode === 'camera' && camera.error)) && <p className="plant-registration-error" role="alert">{error || camera.error}</p>}
+          {(error || (mode === 'camera' && camera.error)) && (
+            <div className="plant-registration-error" role="alert">
+              <p>{error || camera.error}</p>
+              {mode === 'camera' && camera.error && (
+                <button
+                  type="button"
+                  style={{ marginTop: '6px', fontSize: '12px', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', background: '#276749', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  onClick={() => cameraInputRef.current?.click()}
+                >
+                  <GardenIcon name="camera" /> Abrir cámara del celular
+                </button>
+              )}
+            </div>
+          )}
           <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" disabled={busy} onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={busy || !ready || !available.length || !photo || reading || cameraActive}><GardenIcon name="seed"/>{busy ? 'Guardando…' : 'Añadir a mi huerto'}</button></div>
           <small className="plant-registration-temporary">Se guardan la ficha y la fotografía en este navegador.</small>
         </section>

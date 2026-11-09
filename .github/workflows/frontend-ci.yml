@@ -27,3 +27,7 @@ jobs:
         run: npm run build
       - name: Pruebas unitarias de dominio
         run: npm run test:unit
+      - name: Instalar navegador para pruebas del jardín
+        run: npx playwright install --with-deps chrome
+      - name: Prueba de render regional y características
+        run: npx playwright test --config playwright.garden-poc.config.ts tests/garden-poc-regions-render.spec.ts tests/garden-poc-art.spec.ts

@@ -28,7 +28,7 @@ test('Costa water, irrigation, fences and natural fertilizers: visual captures a
   ` })
 
   for (const [profile, token] of cases) {
-    await page.getByLabel('CaracterÃ­sticas', { exact: true }).selectOption(profile)
+    await page.getByLabel('Características', { exact: true }).selectOption(profile)
     await expect.poll(() => stage.getAttribute('data-components'), { timeout: 15_000 }).toContain(token)
     await page.waitForTimeout(250)
     for (const [width, height] of viewports) {
@@ -52,7 +52,7 @@ test('Costa water, irrigation, fences and natural fertilizers: visual captures a
 
   for (const area of ['10', '50', '100']) {
     await page.getByLabel('Superficie', { exact: true }).selectOption(area)
-    await page.getByLabel('CaracterÃ­sticas', { exact: true }).selectOption('combination')
+    await page.getByLabel('Características', { exact: true }).selectOption('combination')
     await expect.poll(() => stage.getAttribute('data-components'), { timeout: 15_000 }).toContain('water:channel:visible-surface')
     for (const [width, height] of viewports) {
       await page.setViewportSize({ width, height })

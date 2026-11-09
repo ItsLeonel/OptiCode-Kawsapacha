@@ -1,7 +1,7 @@
 import { test, expect, type Page } from './e2e'
 import { registerGround, expectReady, canvasSlot, slots } from './garden-helpers'
+import { navigateModule } from './community-helpers'
 
-const navigation = (page: Page) => page.getByRole('navigation', { name: 'Navegación principal' })
 test.beforeEach(async ({ page }) => { await page.emulateMedia({ reducedMotion: 'reduce' }); await page.route('https://tile.openstreetmap.org/**', route => route.abort()) })
 
 test('production: persistent garden, region and kind editing, real progress without duplicate rewards', async ({ page }) => {
@@ -27,17 +27,18 @@ test('production: persistent garden, region and kind editing, real progress with
     await expect(form).toHaveCount(0)
   }
   await water()
-  await navigation(page).getByRole('button', { name: 'Mi camino verde', exact: true }).click()
+  await navigateModule(page, 'Mi camino verde')
   await expect(page.getByRole('status', { name: 'Semillas de vida individuales' })).toHaveText('5')
   await page.screenshot({ path: test.info().outputPath('documented-local-progress.png'), fullPage: true })
   await page.reload()
   await expect(page.getByRole('status', { name: 'Semillas de vida individuales' })).toHaveText('5')
-  await navigation(page).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
   await water()
-  await navigation(page).getByRole('button', { name: 'Mi camino verde', exact: true }).click()
+  await navigateModule(page, 'Mi camino verde')
   await expect(page.getByRole('status', { name: 'Semillas de vida individuales' })).toHaveText('5')
-  await navigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto Vivo')
+  await page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button', { name: 'Editar terreno', exact: true }).click()
   await page.getByRole('button', { name: 'Editar información', exact: true }).click()
   await page.getByRole('button', { name: 'Cambiar ubicación del terreno', exact: true }).click()
   await page.locator('#rg-province').selectOption('Napo')

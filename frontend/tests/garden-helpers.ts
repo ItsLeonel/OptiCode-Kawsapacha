@@ -1,5 +1,5 @@
 import { expect, type Page } from './e2e'
-import { createCommunity, mainNavigation } from './community-helpers'
+import { createCommunity, navigateModule } from './community-helpers'
 import type { GardenKind } from '../src/features/real-gardens/real-garden'
 
 export const scene = (page: Page) => page.locator('.garden-poc-stage')
@@ -9,7 +9,7 @@ export async function registerGround(page: Page, entry = '/garden-lab.html', pro
   await page.goto(entry)
   await page.getByRole('button', { name: 'Descubrir Kawsapacha' }).click()
   await createCommunity(page, 'Comunidad de prueba automatizada', province)
-  await mainNavigation(page).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto Vivo')
   await page.getByRole('button', { name: 'Registrar mi terreno', exact: true }).click()
   await page.locator(`.rg-type-option:has(input[value="${kind}"])`).click()
   await page.locator('#rg-irrigationAvailability label:has(input[value="unknown"])').click()
@@ -35,7 +35,7 @@ export async function registerGround(page: Page, entry = '/garden-lab.html', pro
   await confirmation.getByLabel('Nombre del huerto').fill('Terreno de prueba automatizada')
   await confirmation.getByLabel('Superficie aproximada').fill('25')
   await confirmation.getByRole('button', { name: 'Guardar mi terreno', exact: true }).click()
-  await page.getByRole('button', { name: 'Volver a Mi Jardín', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Vistas de Mi Jardín' }).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
 }
 
 export async function expectReady(page: Page) {

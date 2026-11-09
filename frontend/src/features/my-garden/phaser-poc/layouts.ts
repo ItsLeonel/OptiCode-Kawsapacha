@@ -1,3 +1,4 @@
+import { coastalFootprintRatio } from './coastal-terrain'
 import type { GardenKind } from '../../real-gardens/real-garden'
 import type { GardenRegion } from '../../real-gardens/garden-region'
 import { potArtwork } from '../pot-artwork'
@@ -52,9 +53,19 @@ export function layoutSlot(kind: GardenKind, plot: number, scale: number, region
   // The coastal scene follows the open, level 3×2 composition of its reference.
   // These are presentation anchors only; plot ids and stored garden data stay stable.
   const coastBase = region === 'costa'
-    ? { x: (row === 0 ? 640 : 602) + column * (row === 0 ? 390 : 428), y: row === 0 ? 814 : 1002 }
+    ? kind === 'ground'
+      ? { x: 660 + column * 370, y: row === 0 ? 890 : 1090 }
+      : { x: (row === 0 ? 640 : 602) + column * (row === 0 ? 390 : 428), y: row === 0 ? 814 : 1002 }
     : null
-  const base = coastBase ?? projectGround(column, row, scale)
+  const regionalGround = kind === 'ground' ? { x: 660 + column * 370, y: row === 0 ? 890 : 1090 } : null
+  // Costa ground stays on a centered 3×2 grid at every registered footprint.
+  const base = coastBase && kind === 'ground'
+    ? { x: 1030 + (coastBase.x - 1030) * coastalFootprintRatio(scale),
+        y: 990 + (coastBase.y - 990) * coastalFootprintRatio(scale) }
+    : coastBase ?? (regionalGround
+      ? { x: 1030 + (regionalGround.x - 1030) * Math.max(.9, Math.min(1, scale)),
+          y: 990 + (regionalGround.y - 990) * Math.max(.9, Math.min(1, scale)) }
+      : projectGround(column, row, scale))
   if (kind === 'vertical') {
     const group = VERTICAL_GROUPS[column]
     const anchor = { x: group.x, y: group.y - group.width * (row ? .18 : .53) }

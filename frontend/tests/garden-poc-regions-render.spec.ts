@@ -3,12 +3,12 @@ import { test, expect } from './e2e'
 test('all four regions render four recorded reliefs in six interactive ground slots', async ({ page }) => {
   const regions = [
     ['Imbabura', 'sierra'],
-    ['Manabi', 'costa'],
+    ['Manabí', 'costa'],
     ['Napo', 'oriente'],
-    ['Galapagos', 'galapagos'],
+    ['Galápagos', 'galapagos'],
   ] as const
   for (const [province, region] of regions) {
-    await page.goto(`/tests/fixtures/garden-art.html?renderer=canvas&province=${province}`)
+    await page.goto(`/tests/fixtures/garden-art.html?renderer=canvas&province=${encodeURIComponent(province)}`)
     const garden = page.locator('.garden-poc')
     const stage = page.locator('.garden-poc-stage')
     await expect(stage).toHaveAttribute('data-ready', 'true', { timeout: 45_000 })

@@ -35,10 +35,10 @@ function ArtFixture() {
   return <div style={{ maxWidth: 1400, margin: '0 auto' }}>
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: 8, color: 'white' }}>
       <label>Modalidad <select aria-label="Modalidad" value={kind} onChange={event => setKind(event.target.value as GardenKind)}>{['ground', 'pots', 'vertical', 'hanging'].map(value => <option key={value}>{value}</option>)}</select></label>
-      <label>Provincia <select aria-label="Provincia" value={province} onChange={event => setProvince(event.target.value)}>{['Imbabura', 'ManabÃ­', 'Napo', 'GalÃ¡pagos'].map(value => <option key={value}>{value}</option>)}</select></label>
+      <label>Provincia <select aria-label="Provincia" value={province} onChange={event => setProvince(event.target.value)}>{['Imbabura', 'Manabí', 'Napo', 'Galápagos'].map(value => <option key={value}>{value}</option>)}</select></label>
       <label>Suelo <select aria-label="Suelo" value={soil} onChange={event => setSoil(event.target.value as SoilType)}>{['loam', 'clay', 'sand', 'silt', 'marl', 'heavyClay', 'marsh', 'other', 'unknown'].map(value => <option key={value}>{value}</option>)}</select></label>
       <label>Superficie <select aria-label="Superficie" value={area} onChange={event => setArea(event.target.value)}>{['10', '25', '50', '100'].map(value => <option key={value}>{value}</option>)}</select></label>
-      <label>CaracterÃ­sticas <select aria-label="CaracterÃ­sticas" value={features} onChange={event => setFeatures(event.target.value)}>{['common', 'all', 'none', ...Object.keys(presets)].map(value => <option key={value}>{value}</option>)}</select></label>
+      <label>Características <select aria-label="Características" value={features} onChange={event => setFeatures(event.target.value)}>{['common', 'all', 'none', ...Object.keys(presets)].map(value => <option key={value}>{value}</option>)}</select></label>
       <output aria-label="Zona activada">{activated}</output>
     </div>
     <PhaserGardenPoc realGarden={garden} plants={[]} selectedPlot={null} interactionBlocked={false} renderer={params.get('renderer') === 'canvas' ? 'canvas' : 'auto'} onRegister={setActivated} onSelect={() => {}}/>

@@ -337,6 +337,10 @@ export default function PlantPassport({
               </span>
             </div>
 
+            <small style={{ display: 'block', fontSize: '0.72rem', color: '#718096', marginTop: '6px', fontStyle: 'italic' }}>
+              ℹ️ Estimación orientativa agroecológica según bitácora y fecha de siembra. La evidencia documental válida del huerto real corresponde a las fotografías y registros aportados por el usuario.
+            </small>
+
             {logs.length > 0 && (
               <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px dashed #c6f6d5', fontSize: '0.78rem', color: '#276749' }}>
                 <strong>Historial reciente:</strong>{' '}

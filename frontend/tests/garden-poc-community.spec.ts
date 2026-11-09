@@ -5,7 +5,7 @@ test('existing community territory edits retain the form and save once', async (
   await page.goto('/')
   await page.getByRole('button', { name: 'Descubrir Kawsapacha' }).click()
   await createCommunity(page, 'Comunidad que cambia', 'Pichincha')
-  await page.getByRole('button', { name: 'Editar comunidad', exact: true }).click()
+  await page.locator('.community-overview').getByRole('button', { name: 'Editar comunidad', exact: true }).click()
   await nextCommunityStep(page)
   await page.getByLabel('Provincia de la comunidad').selectOption('Guayas')
   await nextCommunityStep(page)

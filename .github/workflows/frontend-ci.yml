@@ -32,7 +32,7 @@ jobs:
       - name: Prueba de render regional y características
         run: npx playwright test --config playwright.garden-poc.config.ts tests/garden-poc-regions-render.spec.ts tests/garden-poc-art.spec.ts
       - name: Suite completa del jardín (Playwright)
-        run: npm run test:garden-poc -- --reporter=line --max-failures=4
+        run: KAWSAPACHA_E2E_OFFLINE_CATALOG=1 npm run test:garden-poc -- --reporter=line --max-failures=4
       - name: Guardar evidencias Playwright si fallan las pruebas
         if: failure()
         uses: actions/upload-artifact@v4

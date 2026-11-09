@@ -79,3 +79,17 @@ Los nombres anteriores son **propuesta de archivos por crear**, no entregables e
 - [ ] Revisión/aceptación del PM documentada; si hay pendientes, anotarlos en vez de declarar completado.
 
 > Santiago es responsable de las **pruebas con resultados**; Dylan proporciona especificaciones y material visual. El PDF final lo consolida Leonardo y lo entrega Leonel. Cualquier modificación del alcance se acuerda con PM.
+
+## Avance de UI-002 — revisión inicial del 08/11/2026
+
+Revisión realizada sobre `main` en el commit `de1c6c904503604a3e3ad7d8b4aaede0863fd4f1`, con frontend (`localhost:5173`) y API (`localhost:3000`) locales. La navegación de visitante se usó con datos ficticios en un contexto aislado; no se crearon cuentas ni se modificó la base SQLite.
+
+- [x] Inventario inicial de las siete áreas descritas en [UI-002 #32](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/32): bienvenida/acceso, comunidad, terreno, catálogo, jardín, planta/Pasaporte/Bitácora y Mi camino verde.
+- [x] Capturas auténticas de bienvenida, Comunidad, terreno, Costa, registro de planta y Pasaporte en [evidencias-diseno/](./evidencias-diseno/).
+- [x] Archivo Figma de revisión con las seis capturas reales y acceso de lectura: [Kawsapacha V1 - UI-002 | Diseño y evidencias](https://www.figma.com/design/zlJVwU3qcyiiaRujNz8VwY/Kawsapacha-V1---UI-002-%7C-Dise%C3%B1o-y-evidencias). Es un tablero de capturas del producto; no contiene mockups ni prototipo interactivo.
+- [x] Primera revisión móvil a 390 × 844 px para bienvenida, inicio visitante y Comunidad: sin desbordamiento horizontal en las pantallas revisadas.
+- [x] Borradores iniciales de [inventario y evidencias](./entrega-ui-ux-v1.md), [guía visual](./guia-visual-v1.md) y [propuesta de jardín](./propuesta-jardin-v1.md).
+- [ ] Confirmar con Leonel el texto contradictorio de persistencia en modo visitante y decidir si requiere ajuste antes de la demo.
+- [ ] Revisar con Leonel el solapamiento entre guía regional y estado del HUD en Costa, y confirmar la continuidad del terreno en el borde derecho fuera de la captura de escritorio; revisar en móvil el área táctil de los botones inferiores. Consultar con Santiago la fecha «Registrada» del Pasaporte.
+- [ ] Revisar Mi Jardín en móvil; el flujo aún no se ha verificado en ese viewport.
+- [ ] Entregar el material a Leonardo y obtener la revisión de Leonel.

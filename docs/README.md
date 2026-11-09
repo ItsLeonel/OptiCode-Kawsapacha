@@ -6,7 +6,7 @@
 - `analisis/`: [alcance V1](analisis/alcance-v1.md), [dudas y decisiones](analisis/dudas-y-decisiones-pendientes.md), [lineamientos MSP aplicados](analisis/lineamientos-msp-aplicados.md) y [preguntas al cliente](analisis/preguntas-al-cliente.md).
 - `historias-usuario/`: [historias de usuario V1](historias-usuario/historias-usuario-v1.md) según plantilla docente.
 - `arquitectura/`: arquitectura, DER, contratos API y tecnologías entregados por Ronny.
-- `diseno/`: prototipos, capturas y guía UI/UX de Dylan.
+- `diseno/`: [inventario y evidencias UI/UX V1](diseno/entrega-ui-ux-v1.md), [guía visual](diseno/guia-visual-v1.md), [propuesta del jardín](diseno/propuesta-jardin-v1.md), prototipos y recursos de Dylan.
 - `casos-prueba/`: plan, casos, resultados y capturas de Santiago.
 - `informe/`: [esquema](informe/esquema-informe-v1.md) y borrador del informe final (`Proyecto-Version1-OptiCode.pdf`).
 - `PLAN_*.md` (raíz de `docs/`): planes de implementación de cambios puntuales del equipo; registro del proceso de desarrollo.

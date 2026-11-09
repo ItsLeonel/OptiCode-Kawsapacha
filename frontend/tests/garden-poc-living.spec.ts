@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './e2e'
 import { registerGround, expectReady, canvasSlot, slots, scene } from './garden-helpers'
+import { navigateModule } from './community-helpers'
 
 async function photoDigest(page: Page) {
   return page.locator('.garden-passport-photo').evaluate(async element => {
@@ -48,7 +49,7 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await recordActivity(page, 'watering', { plant: 'Romero · Espacio 1' })
   await expect(scene(page)).toHaveAttribute('data-feedback', 'watering')
   await canvasSlot(page, 0)
-  await expect(passport).toContainText('Sin estado documentado')
+  await expect(passport).toContainText('La evidencia documental válida del huerto real')
   expect(await photoDigest(page)).toBe(original)
   await expect(passport.locator('.journal-evidences li')).toHaveCount(1)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
@@ -72,7 +73,7 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
   await recordActivity(page, 'harvest', { plant: 'Romero · Espacio 2', complete: true })
   await expect(slots(page).nth(1)).toContainText('Registrar una planta')
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi historia', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button', { name: 'Bitácora', exact: true }).click()
   await expect(page.locator('.journal-activity')).toHaveCount(9)
   await page.getByLabel('Filtrar actividades', { exact: true }).selectOption('harvest')
   const harvest = page.locator('.journal-activity')
@@ -81,7 +82,7 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await harvest.getByRole('button', { name: 'Anular registro conservando evidencia' }).click()
   await expect(harvest).toHaveAttribute('data-voided', 'true')
   await page.reload()
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
   await canvasSlot(page, 1)
   await expect(passport).toContainText('Estado observado')
@@ -117,16 +118,17 @@ test('digital mirror: edit a real photo and observations, move, archive and rest
   await expect(slots(page).nth(4)).toContainText('Romero del patio')
   await expect(slots(page).nth(2)).toContainText('Registrar una planta')
   await canvasSlot(page, 4)
-  await page.getByRole('button', { name: 'Archivar ficha y liberar espacio', exact: true }).click()
+  await page.getByRole('button', { name: /Archivar planta y liberar parcela/ }).click()
+  await page.getByRole('button', { name: /Sí, archivar y liberar/ }).click()
   await expect(slots(page).nth(4)).toContainText('Registrar una planta')
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mis plantas', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button', { name: 'Mis plantas', exact: true }).click()
   await page.getByRole('button', { name: 'Archivadas', exact: true }).click()
   await page.locator('.journal-plant-card').click()
   await expect(passport).toContainText('Ficha archivada')
   await page.getByRole('button', { name: 'Restaurar al espacio', exact: true }).click()
   await expect(passport).not.toContainText('Ficha archivada')
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo', exact: true }).click()
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
   await canvasSlot(page, 4)
   await expect(passport).toContainText('Altura medida con regla')

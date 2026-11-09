@@ -6,6 +6,15 @@ export const test = base.extend({
   page: async ({ page }, use) => {
     await page.route('https://fonts.googleapis.com/**', route => route.fulfill({ contentType: 'text/css', body: '' }))
     await page.route('https://fonts.gstatic.com/**', route => route.abort())
+    // Isolated guest E2E intentionally has no backend; fail catalog calls fast
+    // rather than waiting for the Vite proxy. Never fake a successful API.
+    if (process.env.KAWSAPACHA_E2E_OFFLINE_CATALOG === '1') {
+      await page.route('**/api/catalog**', route => route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Catálogo no disponible en prueba aislada' }),
+      }))
+    }
     await use(page)
   },
 })

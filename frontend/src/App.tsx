@@ -13,7 +13,7 @@ import { PLANT_SPECIES as SPECIES, type PlantRegistration, type PlantRegistratio
 import CommunitiesPage, { type CommunityEntryAction } from './features/communities/CommunitiesPage'
 import type { Community } from './features/communities/communities'
 import RealGardenPage from './features/real-gardens/RealGardenPage'
-import { toGardenDraft, type RealGarden, type RealGardenDraft } from './features/real-gardens/real-garden'
+import { parseRealGarden, toGardenDraft, type RealGarden, type RealGardenDraft } from './features/real-gardens/real-garden'
 import { PLOT_COUNT, type GardenAction, type GardenDestination, type GardenPlant } from './features/my-garden/garden'
 import type { AuthSubmission } from './features/auth/auth'
 import {
@@ -445,21 +445,15 @@ export default function App({
         setUserCommunities(list || [])
 
         // Si se editó la comunidad y hay huerto real asociado, sincronizar ubicación si cambió
-        if (isEditing && activeGardenId && backendGarden) {
+        if (isEditing && activeGardenId && backendGarden && matchesCommunityLocation(toGardenDraft(backendGarden), communityRecord) &&
+          (next.province !== communityRecord?.province || next.cantonCode !== communityRecord?.cantonCode || next.parishCode !== communityRecord?.parishCode)) {
           try {
-            const loc = {
-              ...backendGarden.location,
-              province: next.province || backendGarden.location?.province || '',
-              canton: next.cantonCode || backendGarden.location?.canton || '',
-              parish: next.parishCode || backendGarden.location?.parish || '',
-              reference: next.sector || backendGarden.location?.reference || '',
+            const parsed = parseRealGarden(withCommunityLocation(toGardenDraft(backendGarden), savedCommunity), savedCommunity.name)
+            if (parsed.ok) {
+              const updatedGarden = await gardenApi.update(activeGardenId, parsed.garden, savedCommunity.id)
+              setBackendGarden(updatedGarden)
+              setRealGardenDraft(toGardenDraft(updatedGarden))
             }
-            const updatedGarden = await gardenApi.update(activeGardenId, {
-              ...backendGarden,
-              location: loc,
-            }, savedCommunity.id)
-            setBackendGarden(updatedGarden)
-            setRealGardenDraft(toGardenDraft(updatedGarden))
           } catch {}
         }
 
@@ -497,6 +491,7 @@ export default function App({
         if (communityEntry === 'create') goto('Inicio')
       } catch (err: unknown) {
         setNotice(err instanceof Error ? err.message : 'Error al guardar la comunidad')
+        throw err
       }
     } else {
       const saved = await journal.commit({ id: recordId('community-save'), type: 'community', community: next })
@@ -527,13 +522,16 @@ export default function App({
           await loadGardenForCommunity(activeCommunityId)
         }
         setNotice('¡Huerto real guardado y sincronizado con la comunidad!')
+        return saved
       } catch (err: unknown) {
         setNotice(err instanceof Error ? err.message : 'Error al guardar el huerto')
+        throw err
       }
     } else {
       const saved = await journal.commit({ id: recordId('terrain-save'), type: 'terrain', terrain: next })
       setRealGardenDraft(toGardenDraft(saved.terrain))
       setNotice('Terreno guardado en este navegador.')
+      return saved.terrain ?? undefined
     }
   }
 

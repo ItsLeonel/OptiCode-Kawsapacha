@@ -1,9 +1,11 @@
 import { useEffect, useId, useState } from 'react'
 import GardenIcon from '../my-garden/GardenIcon'
 import './community-cover-photo.css'
+import { PHOTO_ACCEPT, validatePhoto } from '../../shared/photo-validation'
 
-export default function CommunityCoverPhoto({ photo, fallback, onChange }: {
+export default function CommunityCoverPhoto({ photo, photoUrl, fallback, onChange }: {
   photo?: File
+  photoUrl?: string | null
   fallback: string
   onChange?: (photo: File | undefined) => void
 }) {
@@ -19,18 +21,18 @@ export default function CommunityCoverPhoto({ photo, fallback, onChange }: {
   }, [photo])
 
   return <div className="community-cover-photo">
-    <img src={preview || fallback} alt={photo ? 'Vista previa de la fotografía de portada de tu comunidad' : ''}/>
+    <img src={preview || photoUrl || fallback} alt={photo || photoUrl ? 'Fotografía de portada de tu comunidad' : ''}/>
     {onChange && <div className="community-cover-controls">
-      <label htmlFor={inputId}><GardenIcon name="camera"/>{photo ? 'Cambiar foto' : 'Añadir portada (opcional)'}</label>
-      <input id={inputId} type="file" accept="image/*" aria-label="Fotografía de portada opcional" aria-invalid={Boolean(error)} aria-describedby={error ? `${inputId}-error` : undefined} onChange={event => {
+      <label htmlFor={inputId}><GardenIcon name="camera"/>{photo || photoUrl ? 'Cambiar foto' : 'Añadir portada (opcional)'}</label>
+      <input id={inputId} type="file" accept={PHOTO_ACCEPT} aria-label="Fotografía de portada opcional" aria-invalid={Boolean(error)} aria-describedby={error ? `${inputId}-error` : undefined} onChange={event => {
         const file = event.target.files?.[0]
         if (file) {
-          if (!file.type.startsWith('image/')) setError('Selecciona un archivo de imagen.')
+          if (validatePhoto(file)) setError(validatePhoto(file))
           else { setError(''); onChange(file) }
         }
         event.target.value = ''
       }}/>
-      {photo && <button type="button" onClick={() => { setError(''); onChange(undefined) }}>Quitar foto</button>}
+      {(photo || photoUrl) && <button type="button" onClick={() => { setError(''); onChange(undefined) }}>Quitar foto</button>}
     </div>}
     {error && <p id={`${inputId}-error`} role="alert" className="community-cover-error">{error}</p>}
   </div>

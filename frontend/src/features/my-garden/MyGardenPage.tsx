@@ -4,6 +4,9 @@ import GardenOnboarding from './GardenOnboarding'
 import type { Community } from '../communities/communities'
 import { GardenRegionalBackground } from './GardenRegionalScenery'
 import { regionForProvince } from '../real-gardens/garden-region'
+import { provinceForName } from '../real-gardens/territory'
+import { communityProvince } from '../communities/community-territory'
+import { regionalLandscapes } from '../../shared/regional-landscapes'
 import GameTitle from '../../shared/ui/game-ui/GameTitle'
 import GameDecoration from '../../shared/ui/game-ui/GameDecoration'
 import type { GardenAction, GardenDestination, GardenPlant } from './garden'
@@ -78,8 +81,10 @@ export default function MyGardenPage({
   pendingInvitationsCount?: number
   onOpenNotifications?: () => void
 }) {
-  const territory = (terrainView ? terrainProvince : realGarden?.location?.province) || community?.province || province || ''
-  const region = regionForProvince(territory)
+  const territory = terrainView
+    ? (provinceForName(terrainProvince ?? '') ? terrainProvince : communityProvince(community) || realGarden?.communityProvince || '')
+    : realGarden?.location?.province || community?.province || province || ''
+  const region = regionForProvince(territory ?? '')
 
   return (
     <main
@@ -90,7 +95,7 @@ export default function MyGardenPage({
       data-garden-kind={realGarden?.kind ?? 'unregistered'}
       data-onboarding={community && realGarden ? 'complete' : community ? 'real-garden' : 'community'}
     >
-      <GardenRegionalBackground region={region} variant={realGarden && !terrainView ? 'garden' : 'welcome'} />
+      <GardenRegionalBackground region={region} variant={realGarden && !terrainView ? 'garden' : 'welcome'} background={terrainView ? regionalLandscapes[region] : undefined} />
       {user ? (
         <div className="garden-visitor-notice" style={{ background: 'rgba(56, 161, 105, 0.15)', color: '#276749' }}>
           <span className="garden-visitor-dot" style={{ background: '#38a169' }} />

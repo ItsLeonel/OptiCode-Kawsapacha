@@ -2,11 +2,11 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import path from 'path'
 import { env } from './config/env'
 import { prisma } from './config/prisma'
 import routes from './routes'
 import { errorMiddleware } from './middlewares/error.middleware'
+import { uploadsRoot } from './services/entity-photo.service'
 
 const app = express()
 
@@ -34,7 +34,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // ─── Archivos estáticos (fotos de plantas) ───────────────────────────────────
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')))
+app.use('/uploads', express.static(uploadsRoot))
 
 // ─── Healthcheck ─────────────────────────────────────────────────────────────
 app.get('/api/health', async (_req, res) => {
@@ -58,7 +58,7 @@ app.use((_req, res) => {
 app.use(errorMiddleware)
 
 // ─── Inicio del servidor ──────────────────────────────────────────────────────
-app.listen(env.port, () => {
+if (require.main === module) app.listen(env.port, () => {
   console.log(`\n🌱 Kawsapacha Backend corriendo en http://localhost:${env.port}`)
   console.log(`   Healthcheck: http://localhost:${env.port}/api/health\n`)
 })

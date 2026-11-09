@@ -5,6 +5,8 @@ import type { AuthSubmission } from '../features/auth/auth'
 import type { Community } from '../features/communities/communities'
 import type { RealGarden } from '../features/real-gardens/real-garden'
 import { toGardenFeatures, type GardenFeatures } from '../features/real-gardens/garden-characteristics'
+import { communityProvince } from '../features/communities/community-territory'
+import { validatePhoto } from '../shared/photo-validation'
 
 const BASE_URL = '' // Utiliza el proxy de Vite configurado hacia http://localhost:3000
 
@@ -171,31 +173,53 @@ export const userApi = {
 
 // ─── Módulo de Comunidades ───────────────────────────────────────────────────
 
+function photoBody(payload: Record<string, unknown>, file?: File, removePhoto?: boolean): string | FormData {
+  const fields = { ...payload, ...(removePhoto ? { removePhoto: true } : {}) }
+  if (!file) return JSON.stringify(fields)
+  const error = validatePhoto(file)
+  if (error) throw new Error(error)
+  const body = new FormData()
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) body.append(key, value === null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value))
+  }
+  body.append('picture', file)
+  return body
+}
+
+function communityBody(community: Partial<Community>) {
+  const { name, responsible, location, description, type, province, cantonCode, parishCode, sector } = community
+  return photoBody({ name, responsible, location, description, type, province, cantonCode, parishCode, sector }, community.coverPhoto, community.removePhoto)
+}
+
+function normalizeCommunity<T extends Community>(community: T): T {
+  return { ...community, province: communityProvince(community) }
+}
+
 export const communityApi = {
   async list(): Promise<Community[]> {
     const data = await request<{ communities: Community[] }>('/api/communities')
-    return data.communities
+    return data.communities.map(normalizeCommunity)
   },
 
   async create(community: Community): Promise<Community & { id: string }> {
     const data = await request<{ community: Community & { id: string } }>('/api/communities', {
       method: 'POST',
-      body: JSON.stringify(community),
+      body: communityBody(community),
     })
-    return data.community
+    return normalizeCommunity(data.community)
   },
 
   async getById(id: string): Promise<Community> {
     const data = await request<{ community: Community }>(`/api/communities/${id}`)
-    return data.community
+    return normalizeCommunity(data.community)
   },
 
   async update(id: string, community: Partial<Community>): Promise<Community & { id: string }> {
     const data = await request<{ community: Community & { id: string } }>(`/api/communities/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(community),
+      body: communityBody(community),
     })
-    return data.community
+    return normalizeCommunity(data.community)
   },
 }
 
@@ -298,7 +322,8 @@ interface RawBackendGarden {
   soilType?: string | null
   characteristics?: string | GardenFeatures | null
   communityId?: string | null
-  community?: { id: string; name: string } | null
+  community?: { id: string; name: string; province?: string; location?: string } | null
+  photoUrl?: string | null
   location?: RealGarden['location']
   communityName?: string | null
   createdById?: string
@@ -340,13 +365,15 @@ function normalizeGarden(raw: RawBackendGarden): RealGarden & { id: string } {
       parish: raw.parish || '',
       parishCode: raw.parishCode || null,
       reference: raw.reference || '',
-      coordinates: raw.latitude && raw.longitude ? { latitude: raw.latitude, longitude: raw.longitude } : null,
+      coordinates: raw.latitude != null && raw.longitude != null ? { latitude: raw.latitude, longitude: raw.longitude } : null,
     },
     irrigationAvailability: (raw.irrigationAvailability as RealGarden['irrigationAvailability']) || 'available',
     soilType: (raw.soilType as RealGarden['soilType']) || null,
     characteristics,
     communityName: raw.community?.name ?? raw.communityName ?? null,
     createdById: raw.createdById,
+    photoUrl: raw.photoUrl,
+    communityProvince: raw.community ? communityProvince({ province: raw.community.province, location: raw.community.location ?? '' }) : undefined,
   }
 }
 
@@ -378,7 +405,7 @@ export const gardenApi = {
 
     const data = await request<{ garden: RawBackendGarden }>('/api/gardens', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: photoBody(payload, garden.photo, garden.removePhoto),
     })
     return normalizeGarden(data.garden)
   },
@@ -404,7 +431,7 @@ export const gardenApi = {
 
     const data = await request<{ garden: RawBackendGarden }>(`/api/gardens/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(payload),
+      body: photoBody(payload, garden.photo, garden.removePhoto),
     })
     return normalizeGarden(data.garden)
   },

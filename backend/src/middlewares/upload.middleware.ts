@@ -1,12 +1,13 @@
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
+import { uploadsRoot } from '../services/entity-photo.service'
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_SIZE_BYTES = 3 * 1024 * 1024 // 3 MB
 
 // Garantizar que la carpeta de uploads existe
-const uploadDir = path.resolve(__dirname, '../../uploads/plants')
+const uploadDir = path.join(uploadsRoot, 'plants')
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
 
 const storage = multer.diskStorage({

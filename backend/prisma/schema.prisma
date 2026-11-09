@@ -41,6 +41,11 @@ model Community {
   location    String
   description String
   type        String  @default("personal")
+  province    String?
+  cantonCode  String?
+  parishCode  String?
+  sector      String?
+  photoUrl    String?
 
   creatorId String
   creator   User   @relation("CommunityCreator", fields: [creatorId], references: [id])
@@ -111,6 +116,7 @@ model RealGarden {
   irrigationAvailability String  @default("unknown")
   soilType               String?
   characteristics        String? @default("{}")
+  photoUrl               String?
 
   communityId String?
   community   Community? @relation(fields: [communityId], references: [id])

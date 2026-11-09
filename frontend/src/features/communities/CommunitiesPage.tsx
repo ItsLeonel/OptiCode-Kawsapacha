@@ -18,6 +18,8 @@ import GameTitle from '../../shared/ui/game-ui/GameTitle'
 import GameDecoration from '../../shared/ui/game-ui/GameDecoration'
 import { GameWorld } from '../../shared/ui/game-ui/GameUI'
 import { regionForProvince } from '../real-gardens/garden-region'
+import { communityProvince } from './community-territory'
+import { regionalLandscapes } from '../../shared/regional-landscapes'
 
 const UPDATES = [
   { space: 'wisdom', title: 'Saberes por compartir', subtitle: 'Aún no hay relatos publicados.', icon: 'history' },
@@ -97,9 +99,9 @@ export default function CommunitiesPage({
     )
   }
 
-  const region = regionForProvince(community?.province ?? '')
+  const region = regionForProvince(communityProvince(community))
   return <main className="communities-page game-v3" data-region={region}>
-    <GameWorld region={region} className="community-world-background">{null}</GameWorld>
+    <GameWorld region={region} background={regionalLandscapes[region]} className="community-world-background">{null}</GameWorld>
     <div className="community-page-content">
       <header className="community-topbar">
         <nav className="community-breadcrumbs" aria-label="Ruta de navegación">

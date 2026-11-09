@@ -1,8 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { provinces } from '../../EcuadorMap'
 import { GameButton, GameGuide, GamePanel, GameWorld, gameRegionAssets } from '../../shared/ui/game-ui/GameUI'
 import { regionForProvince } from '../real-gardens/garden-region'
-import { provinceForName } from '../real-gardens/territory'
 import GardenIcon from '../my-garden/GardenIcon'
 import CommunityDialog from './CommunityDialog'
 import CommunityIcon from './CommunityIcon'
@@ -15,7 +13,8 @@ import CommunityTerritoryStep from './CommunityTerritoryStep'
 import CommunityBuilderStep, { type CommunityEditor } from './CommunityBuilderStep'
 import CommunityCoverPhoto from './CommunityCoverPhoto'
 import { COMMUNITY_TYPES as TYPES } from './community-art'
-import { communityLocation, communityTerritoryLabels, validateCommunityTerritory, type CommunityTerritory } from './community-territory'
+import { communityLocation, communityProvince, communityTerritoryLabels, validateCommunityTerritory, type CommunityTerritory } from './community-territory'
+import { regionalLandscapes } from '../../shared/regional-landscapes'
 
 type Values = Community & CommunityTerritory & { type: CommunityType; contact: { phone: string; email: string }; members: CommunityMember[] }
 type Errors = Record<string, string>
@@ -29,7 +28,7 @@ export default function CommunityForm({ community, acceptedMembersCount, onSave,
     // A province-only payload is not an additional locality. Keep it derived on edit.
     location: community?.location === community?.province ? '' : community?.location ?? '',
     type: community?.type ?? 'personal',
-    province: community?.province ?? provinces.find(name => provinceForName(community?.location ?? '')?.code === provinceForName(name)?.code) ?? '',
+    province: communityProvince(community),
     cantonCode: community?.cantonCode ?? '', parishCode: community?.parishCode ?? '', sector: community?.sector ?? '',
     contact: community?.contact ?? { phone: '', email: '' }, members: community?.members ?? [],
   }))
@@ -42,13 +41,14 @@ export default function CommunityForm({ community, acceptedMembersCount, onSave,
   const formRef = useRef<HTMLFormElement>(null)
   const nextMember = useRef(0)
   const region = regionForProvince(values.province)
-  const regional = gameRegionAssets[region]
+  const regional = { ...gameRegionAssets[region], background: regionalLandscapes[region] }
   const territorial = communityTerritoryLabels(values)
 
   function update<K extends keyof Values>(field: K, value: Values[K]) {
     setValues(current => ({ ...current, [field]: value,
       ...(field === 'province' && value !== current.province ? { cantonCode: '', parishCode: '', sector: '', location: '' } : {}),
       ...(field === 'cantonCode' && value !== current.cantonCode ? { parishCode: '' } : {}),
+      ...(field === 'coverPhoto' ? { removePhoto: !value } : {}),
     }))
     setErrors({}); setSaveError('')
   }
@@ -175,14 +175,14 @@ export default function CommunityForm({ community, acceptedMembersCount, onSave,
     }
   }
 
-  return <CommunityDialog className="community-wizard game-v3" title={step === 2 ? 'Datos de tu Comunidad' : step === 3 ? 'Confirma tu Comunidad' : community ? 'Editar tu Comunidad' : 'Crear tu Comunidad'} description="Un lugar para echar raíces y cultivar juntos." onClose={() => { if (!saving) onClose() }} artwork={<GameWorld region={region} className="cw-world">{null}</GameWorld>}>
+  return <CommunityDialog className="community-wizard game-v3" title={step === 2 ? 'Datos de tu Comunidad' : step === 3 ? 'Confirma tu Comunidad' : community ? 'Editar tu Comunidad' : 'Crear tu Comunidad'} description="Un lugar para echar raíces y cultivar juntos." onClose={() => { if (!saving) onClose() }} artwork={<GameWorld region={region} background={regional.background} className="cw-world">{null}</GameWorld>}>
     <form ref={formRef} onSubmit={submit} noValidate className="cw-form" aria-label={community ? 'Editar comunidad' : 'Crear comunidad'} aria-describedby="cw-temporary" aria-busy={saving}>
       <div className={`cw-stage cw-stage--${step}`}>
         <GameGuide region={region} message={step === 0 ? '¿Qué comunidad quieres crear?' : step === 1 ? '¡Ubica tu comunidad y elige su provincia!' : step === 2 ? 'Tres tarjetas, una historia compartida.' : '¡Revisa las raíces de tu comunidad!'}/>
         {step === 0 && <CommunityTypeStep value={values.type} onChange={value => update('type', value)}/>}
         {step === 1 && <CommunityTerritoryStep values={values} errors={errors} onChange={update}/>}
         {step === 2 && <CommunityBuilderStep values={values} errors={errors} editor={editor} editingMember={editingMember} onEditorChange={setEditor} onMemberEdit={id => { setEditor('members'); setEditingMember(id) }} onMemberAdd={addMember} onMemberRemove={removeMember} onMemberChange={updateMember} onChange={update} onTerritory={() => navigate(1)}/>}
-        {step === 3 && <GamePanel className="cw-confirm"><h3 className="cw-step-label" data-step-heading tabIndex={-1}>Así comienzan tus raíces</h3><div className="cw-summary-banner" style={{ backgroundImage: `linear-gradient(0deg,#092e24ed,#092e2470),url("${regional.background}")` }}><CommunityCoverPhoto photo={values.coverPhoto} fallback={regional.background} onChange={photo => update('coverPhoto', photo)}/><div className="cw-summary-identity"><GardenIcon name="community"/><strong>{values.name}</strong><span>{values.province} · {regional.label}</span></div></div>
+        {step === 3 && <GamePanel className="cw-confirm"><h3 className="cw-step-label" data-step-heading tabIndex={-1}>Así comienzan tus raíces</h3><div className="cw-summary-banner" style={{ backgroundImage: `linear-gradient(0deg,#092e24ed,#092e2470),url("${regional.background}")` }}><CommunityCoverPhoto photo={values.coverPhoto} photoUrl={values.removePhoto ? undefined : values.photoUrl} fallback={regional.background} onChange={photo => update('coverPhoto', photo)}/><div className="cw-summary-identity"><GardenIcon name="community"/><strong>{values.name}</strong><span>{values.province} · {regional.label}</span></div></div>
           <dl className="cw-summary">
             <div className="cw-confirm-card cw-confirm-card--community"><dt><GardenIcon name="community"/>Comunidad</dt><dd>{TYPES.find(type => type.value === values.type)?.label}</dd><button type="button" onClick={() => navigate(0)}>Editar tipo</button></div>
             <div className="cw-confirm-card cw-confirm-card--territory"><dt><GardenIcon name="map"/>Territorio</dt><dd className="cw-confirm-territory"><span>Provincia: {territorial.province}</span><span>Cantón: {territorial.canton}</span><span>Parroquia: {territorial.parish}</span><span>Sector: {territorial.sector || 'Sin especificar'}</span><span>Región: {territorial.region}</span></dd><button type="button" onClick={() => navigate(1)}>Editar ubicación</button></div>

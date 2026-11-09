@@ -10,7 +10,7 @@ import CommunityCoverPhoto from './CommunityCoverPhoto'
 import { userApi, memberApi } from '../../services/api'
 
 export type CommunityEditor = 'identity' | 'responsible' | 'members' | null
-type BuilderValues = Pick<Community, 'id' | 'name' | 'responsible' | 'description' | 'location' | 'coverPhoto'> & CommunityTerritory & {
+type BuilderValues = Pick<Community, 'id' | 'name' | 'responsible' | 'description' | 'location' | 'coverPhoto' | 'photoUrl' | 'removePhoto'> & CommunityTerritory & {
   type: CommunityType; contact: { phone: string; email: string }; members: CommunityMember[]
 }
 
@@ -104,7 +104,7 @@ export default function CommunityBuilderStep({ values, errors, editor, editingMe
     <div className="cw-builder-cards">
       <article className="cw-story-card" data-open={editor === 'identity'}>
         <button type="button" id="cw-identity-card" aria-label="Editar identidad" aria-expanded={editor === 'identity'} aria-controls={editor === 'identity' ? 'cw-community-editor' : undefined} onClick={() => openEditor('identity')}>
-          <div className="cw-story-painting"><CommunityCoverPhoto photo={values.coverPhoto} fallback={guide.background}/></div>
+          <div className="cw-story-painting"><CommunityCoverPhoto photo={values.coverPhoto} photoUrl={values.removePhoto ? undefined : values.photoUrl} fallback={guide.background}/></div>
           <span className="cw-story-title"><span className="cw-card-medallion"><GardenIcon name="leaf"/></span> Identidad de la comunidad</span>
           <span className="cw-story-summary"><strong>{values.name.trim() || 'El nombre de nuestras raíces'}</strong></span>
         </button>
@@ -130,7 +130,7 @@ export default function CommunityBuilderStep({ values, errors, editor, editingMe
       {editor === 'identity' && <div className="cw-fields cw-identity-fields">
         <label>Nombre de la comunidad *<input id="community-name" required minLength={3} maxLength={80} value={values.name} onChange={event => onChange('name', event.target.value)} placeholder="Ej. Raíces de mi tierra" {...invalid('community-name')}/>{fieldError('community-name')}<small className="cw-selected-type">Comunidad {type.label.toLocaleLowerCase('es-EC')}</small></label>
         <label>Acerca de la comunidad (opcional)<textarea id="community-description" rows={2} maxLength={500} value={values.description} onChange={event => onChange('description', event.target.value)} placeholder="¿Qué les une y qué quieren cultivar?" {...invalid('community-description')}/><small>{values.description.length} de 500 caracteres</small>{fieldError('community-description')}</label>
-        <CommunityCoverPhoto photo={values.coverPhoto} fallback={guide.background} onChange={photo => onChange('coverPhoto', photo)}/>
+        <CommunityCoverPhoto photo={values.coverPhoto} photoUrl={values.removePhoto ? undefined : values.photoUrl} fallback={guide.background} onChange={photo => onChange('coverPhoto', photo)}/>
       </div>}
       {editor === 'responsible' && <div className="cw-fields cw-responsible-fields">
         <label>Persona responsable *<input id="community-responsible" required maxLength={80} autoComplete="name" value={values.responsible} onChange={event => onChange('responsible', event.target.value)} placeholder="Su nombre" {...invalid('community-responsible')}/>{fieldError('community-responsible')}</label>

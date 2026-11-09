@@ -20,6 +20,8 @@ backend/prisma/*.db
 backend/prisma/*.db-journal
 backend/uploads/plants/*
 !backend/uploads/plants/.gitkeep
+backend/uploads/communities/
+backend/uploads/gardens/
 
 # Editor / operating system
 .DS_Store

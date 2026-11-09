@@ -137,7 +137,9 @@ Ronny organizó el backend en capas con responsabilidades separadas: las rutas y
 
 ### 5.3 Modelo de datos
 
-**[Insertar en el Word el diagrama entidad-relación de [backend.md](../arquitectura/backend.md), sección 3, actualizado con las entidades de `backend/prisma/schema.prisma`.]**
+![Diagrama entidad-relación de Kawsapacha V1](der-v1.png)
+
+*Figura 1. Modelo entidad-relación de la base de datos (fuente: `backend/prisma/schema.prisma`; código del diagrama en [der-v1.mmd](der-v1.mmd)).*
 
 | Entidad | Representa |
 |---|---|

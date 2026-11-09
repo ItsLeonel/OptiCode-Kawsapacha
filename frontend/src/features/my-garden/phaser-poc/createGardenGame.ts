@@ -1,3 +1,5 @@
+import { coastalFootprintRatio } from './coastal-terrain'
+import { COASTAL_RELIEF_ART, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import Phaser from 'phaser'
 import { GardenSceneBridge, type SceneCommand } from './bridge'
 import { BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
@@ -124,9 +126,15 @@ class ModularGardenScene extends Phaser.Scene {
       ['ground-materials', MATERIAL_ART],
       ['organic-soil', ORGANIC_SOIL_ART],
     ]
-    if (model.region === 'costa' && model.kind === 'ground') {
-      if (model.soilType === 'marsh') needed.push(['costa-plot-marsh', COSTA_MARSH_PLOT_ART])
-      else COSTA_PLOT_ART.forEach((url, plot) => needed.push([`costa-plot-${plot}`, url]))
+    if (model.kind === 'ground') {
+      if (model.region === 'costa') {
+        if (model.soilType === 'marsh') needed.push(['costa-plot-marsh', COSTA_MARSH_PLOT_ART])
+        else COSTA_PLOT_ART.forEach((url, plot) => needed.push([`costa-plot-${plot}`, url]))
+      }
+      // Load only the registered relief artwork; beds keep their approved PNGs.
+      for (const design of new Set(model.slots.map(slot => slot.design))) {
+        if (isCoastalRelief(design)) needed.push([COASTAL_RELIEF_KEY[design], COASTAL_RELIEF_ART[design]])
+      }
     }
     if (model.region === 'costa' && model.characteristics.fences.some(kind => kind === 'living')) needed.push(['costa-fence-flora', COSTA_FENCE_ART.foliage])
     if (model.region === 'costa' && model.characteristics.fences.some(kind => kind === 'metal' || kind === 'conventional')) {
@@ -213,9 +221,14 @@ class ModularGardenScene extends Phaser.Scene {
     const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
     const profile = LAYOUT_PROFILES[this.bridge.snapshot.model.kind]
     // Keep direct canvas targets at least 44 CSS pixels even on narrow screens.
-    const coastalGround = this.bridge.snapshot.model.region === 'costa' && this.bridge.snapshot.model.kind === 'ground'
-    const hitX = Math.max(coastalGround ? 178 : profile.hitX, 22 / this.cameras.main.zoom)
-    const hitY = Math.max(coastalGround ? 78 : profile.hitY, 22 / this.cameras.main.zoom)
+    const ground = this.bridge.snapshot.model.kind === 'ground'
+    const footprintRatio = ground
+      ? this.bridge.snapshot.model.region === 'costa'
+        ? coastalFootprintRatio(this.bridge.snapshot.model.footprintScale)
+        : Math.max(.9, Math.min(1, this.bridge.snapshot.model.footprintScale))
+      : 1
+    const hitX = Math.max(ground ? 160 * footprintRatio : profile.hitX, 22 / this.cameras.main.zoom)
+    const hitY = Math.max(ground ? 74 * footprintRatio : profile.hitY, 22 / this.cameras.main.zoom)
     return this.bridge.snapshot.model.slots
       .map(slot => ({ slot, distance: Math.hypot((point.x - slot.anchor.x) / hitX, (point.y - slot.anchor.y) / hitY) }))
       .filter(item => item.distance <= 1)
@@ -232,18 +245,18 @@ class ModularGardenScene extends Phaser.Scene {
     if (!this.ready) return
     this.viewportSize = `${this.scale.width}:${this.scale.height}`
     this.drag = null
-    const coast = this.bridge.snapshot.model.region === 'costa'
-    // Coast shows the complete flat cultivation area without hiding the horizon
-    // or the front supports behind the React action bar.
-    // Other regions preserve the existing initial framing until their art is adapted.
-    const zoom = coast
-      ? Math.min(this.scale.width / WORLD.width, this.scale.height / 1030)
+    const ground = this.bridge.snapshot.model.kind === 'ground'
+    // Flat garden regions share a fit-to-width frame that keeps all six plots and the entry in view.
+    const zoom = ground
+      // Fit Costa to the viewport width. Height fitting can expose world X
+      // beyond 0..WORLD.width on short windows, where the lawn ends abruptly.
+      ? this.scale.width / WORLD.width
       : Math.max(
           Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2),
           Math.min(this.scale.width / 1750, this.scale.height / 1100, 1.3),
         )
-    const centerX = coast ? WORLD.width / 2 : WORLD.centerX
-    const centerY = coast ? 800 : WORLD.centerY
+    const centerX = ground ? WORLD.width / 2 : WORLD.centerX
+    const centerY = ground ? 800 : WORLD.centerY
     this.cameras.main.setZoom(zoom).centerOn(centerX, centerY)
   }
 

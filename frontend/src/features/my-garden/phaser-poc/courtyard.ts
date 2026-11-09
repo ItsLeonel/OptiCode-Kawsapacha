@@ -1,3 +1,4 @@
+import { coastalFootprintRatio } from './coastal-terrain'
 import type { GardenVisualModel } from './model'
 import { hex, noise, paintStone, type Materials } from './paint-materials'
 import { REGION_STYLES } from './visual-config'
@@ -6,10 +7,14 @@ import { WORLD } from './assets'
 /** A ground plane, independent of the horizon and every cultivable object. */
 export function paintCourtyard(ctx: CanvasRenderingContext2D, model: GardenVisualModel, materials: Materials) {
   if (model.region === 'costa') {
-    paintCoastalGround(ctx, materials)
+    paintCoastalGround(ctx, materials, model.kind === 'ground' ? coastalFootprintRatio(model.footprintScale) : 1)
     return
   }
   const palette = REGION_STYLES[model.region]
+  if (model.kind === 'ground') {
+    paintRegionalGround(ctx, model, materials)
+    return
+  }
   const color = ctx.createLinearGradient(0, 630, 0, 1500)
   color.addColorStop(0, hex(palette.grassLight)); color.addColorStop(.35, hex(palette.grass)); color.addColorStop(1, hex(palette.grassDark))
   ctx.fillStyle = color; ctx.fillRect(0, 0, WORLD.width, WORLD.height)
@@ -73,8 +78,58 @@ export function paintCourtyard(ctx: CanvasRenderingContext2D, model: GardenVisua
   }
 }
 
+/** Level, continuous playfield shared by the three non-coastal regions.
+ * Regional palettes and edge materials distinguish the landscape while the
+ * crop-ready center remains clear and consistent with the six-slot layout.
+ */
+function paintRegionalGround(ctx: CanvasRenderingContext2D, model: GardenVisualModel, materials: Materials) {
+  const palette = REGION_STYLES[model.region]
+  const edge = new Path2D('M 0 738 C 230 708 430 729 680 720 C 980 707 1210 731 1480 715 C 1670 705 1790 730 1920 713 L 1920 1500 L 0 1500 Z')
+  ctx.save()
+  ctx.fillStyle = '#172e24'; ctx.globalAlpha = .2; ctx.fill(edge); ctx.globalAlpha = 1
+  const lawn = ctx.createLinearGradient(0, 720, 0, 1500)
+  lawn.addColorStop(0, hex(palette.grassLight)); lawn.addColorStop(.36, hex(palette.grass)); lawn.addColorStop(1, hex(palette.grassDark))
+  ctx.fillStyle = lawn; ctx.fill(edge); ctx.clip(edge)
+  if (materials.grass) { ctx.globalAlpha = .2; ctx.fillStyle = materials.grass; ctx.fillRect(0, 710, WORLD.width, 800); ctx.globalAlpha = 1 }
+
+  // Narrow access paths are aligned with the shared 3 × 2 plot lanes.
+  const paths = [
+    new Path2D('M 845 790 C 835 870 855 1080 845 1200'),
+    new Path2D('M 1215 790 C 1205 870 1225 1080 1215 1200'),
+    new Path2D('M 420 990 C 660 971 840 1008 1030 990 S 1420 972 1640 990'),
+  ]
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'
+  for (const path of paths) {
+    ctx.strokeStyle = '#263b2a45'; ctx.lineWidth = 20; ctx.stroke(path)
+    ctx.strokeStyle = hex(palette.path); ctx.globalAlpha = .64; ctx.lineWidth = 13; ctx.stroke(path)
+    ctx.strokeStyle = '#f0dfb65c'; ctx.globalAlpha = .48; ctx.lineWidth = 5; ctx.stroke(path)
+    ctx.globalAlpha = 1
+  }
+  for (let i = 0; i < 1800; i++) {
+    const x = noise(i, 2040) * WORLD.width, y = 755 + noise(i, 2041) * 690
+    if (i % 4 === 0) continue
+    ctx.fillStyle = i % 3 ? '#e7edb52b' : '#183b2930'
+    ctx.beginPath(); ctx.ellipse(x, y, 2 + noise(i, 2042) * 3, 1 + noise(i, 2043), -.2, 0, Math.PI * 2); ctx.fill()
+  }
+  // Regional stone accents stay on the perimeter, away from the six crop anchors.
+  const volcanic = model.region === 'galapagos'
+  const stones = model.region === 'sierra'
+    ? [[260, 1190], [320, 1260], [1640, 1170], [1710, 1230], [520, 1390], [1480, 1375]]
+    : model.region === 'oriente'
+      ? [[250, 1210], [310, 1290], [1650, 1190], [1720, 1260], [510, 1400], [1490, 1390]]
+      : [[265, 1190], [325, 1270], [1645, 1175], [1710, 1245], [500, 1400], [1510, 1380]]
+  stones.forEach(([x, y], i) => paintStone(ctx, x, y, volcanic ? 50 : 43, volcanic ? 29 : 24, 260 + i, volcanic))
+  ctx.restore()
+
+  // Feather the lawn only where it meets the regional landscape image.
+  ctx.save(); ctx.globalCompositeOperation = 'destination-out'
+  const blend = ctx.createLinearGradient(0, 713, 0, 786)
+  blend.addColorStop(0, 'rgba(0,0,0,.96)'); blend.addColorStop(.55, 'rgba(0,0,0,.35)'); blend.addColorStop(1, 'rgba(0,0,0,0)')
+  ctx.fillStyle = blend; ctx.fillRect(0, 710, WORLD.width, 80); ctx.restore()
+}
+
 /** Broad, level coastal lawn: the sea remains a separate background layer. */
-function paintCoastalGround(ctx: CanvasRenderingContext2D, materials: Materials) {
+function paintCoastalGround(ctx: CanvasRenderingContext2D, materials: Materials, footprintScale = 1) {
   // The level garden begins behind the rear fence. The irregular shoreline
   // lets the illustrated sea remain the backdrop rather than a solid color bar.
   const edge = new Path2D(
@@ -117,24 +172,28 @@ function paintCoastalGround(ctx: CanvasRenderingContext2D, materials: Materials)
   // Narrow curved paths follow the free space between plots. Their translucent
   // grain blends into the lawn; none of the strokes passes through a parcel.
   const paths = [
-    new Path2D('M 826 760 C 842 846 805 1002 810 1186'),
-    new Path2D('M 1232 763 C 1217 860 1254 1010 1244 1191'),
-    // The cross aisle is broken into short, irregular connections: no rigid grid.
-    new Path2D('M 450 913 Q 588 895 754 916'),
-    new Path2D('M 846 908 Q 1020 921 1165 905'),
-    new Path2D('M 1288 914 Q 1433 897 1620 923'),
-    new Path2D('M 960 1128 Q 945 1198 969 1285'),
+    new Path2D('M 845 790 C 835 870 855 1080 845 1200'),
+    new Path2D('M 1215 790 C 1205 870 1225 1080 1215 1200'),
+    // The cross aisle now sits in the measured gap between the two rows.
+    new Path2D('M 420 990 C 660 971 840 1008 1030 990 S 1420 972 1640 990'),
   ]
+  // Paths follow the scaled cultivated footprint; the sea, coastline,
+  // foreground décor and outer perimeter remain at the original world scale.
+  ctx.save()
+  ctx.translate(1030, 990)
+  ctx.scale(footprintScale, footprintScale)
+  ctx.translate(-1030, -990)
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
   for (const path of paths) {
-    ctx.strokeStyle = '#486c3520'; ctx.lineWidth = 40; ctx.stroke(path)
-    ctx.strokeStyle = '#a58d6250'; ctx.lineWidth = 24; ctx.stroke(path)
-    ctx.strokeStyle = '#d4bd8b4d'; ctx.lineWidth = 14; ctx.stroke(path)
+    ctx.strokeStyle = '#486c3520'; ctx.lineWidth = 18; ctx.stroke(path)
+    ctx.strokeStyle = '#a58d6250'; ctx.lineWidth = 13; ctx.stroke(path)
+    ctx.strokeStyle = '#d4bd8b4d'; ctx.lineWidth = 8; ctx.stroke(path)
   }
+  ctx.restore()
   // Sparse stepping stones along the perimeter; the center remains clear.
   ;([[282, 1108, 39, 19], [312, 1139, 34, 18],
-     [1615, 1109, 39, 19], [1642, 1151, 34, 18]] as const)
+     [1640, 1109, 39, 19], [1670, 1151, 34, 18]] as const)
     .forEach(([x, y, width, height], index) => {
       paintStone(ctx, x, y, width, height, 210 + index)
     })

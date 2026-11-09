@@ -5,6 +5,7 @@ import { PLOT_COUNT, type GardenPlant } from '../garden'
 import { layoutSlot, type WorldPoint } from './layouts'
 import { SOIL_STYLES, type SoilStyle } from './visual-config'
 import { activityAffectsPlot, type GardenActivity } from '../journal/activities'
+import { coastalFootprintScale } from './coastal-bed'
 
 export { LAYOUT_PROFILES, projectGround } from './layouts'
 export type { WorldPoint } from './layouts'
@@ -39,7 +40,10 @@ export type GardenVisualModel = Readonly<{
 
 /** No inferred sowing, watering, growth or harvest. No mutation of visit records. */
 export function buildGardenVisualModel(garden: RealGarden, plants: readonly GardenPlant[], region: GardenRegion, activities?: readonly GardenActivity[]): GardenVisualModel {
-  const footprintScale = .9 + .1 * Math.sqrt(garden.areaM2 / (garden.areaM2 + 25))
+  // Every ground region reflects registered area; Costa keeps the exact same scale curve.
+  const footprintScale = garden.kind === 'ground'
+    ? coastalFootprintScale(garden.areaM2)
+    : .9 + .1 * Math.sqrt(garden.areaM2 / (garden.areaM2 + 25))
   const characteristics = toGardenFeatures(garden.characteristics)
   return {
     kind: garden.kind,

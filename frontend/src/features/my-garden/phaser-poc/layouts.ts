@@ -57,15 +57,12 @@ export function layoutSlot(kind: GardenKind, plot: number, scale: number, region
       ? { x: 660 + column * 370, y: row === 0 ? 890 : 1090 }
       : { x: (row === 0 ? 640 : 602) + column * (row === 0 ? 390 : 428), y: row === 0 ? 814 : 1002 }
     : null
-  const regionalGround = kind === 'ground' ? { x: 660 + column * 370, y: row === 0 ? 890 : 1090 } : null
-  // Costa ground stays on a centered 3×2 grid at every registered footprint.
-  const base = coastBase && kind === 'ground'
-    ? { x: 1030 + (coastBase.x - 1030) * coastalFootprintRatio(scale),
-        y: 990 + (coastBase.y - 990) * coastalFootprintRatio(scale) }
-    : coastBase ?? (regionalGround
-      ? { x: 1030 + (regionalGround.x - 1030) * Math.max(.9, Math.min(1, scale)),
-          y: 990 + (regionalGround.y - 990) * Math.max(.9, Math.min(1, scale)) }
-      : projectGround(column, row, scale))
+  // All ground regions reuse Costa's approved anchors and area scale. Paths,
+  // relief artwork and pointer targets must follow this same footprint.
+  const base = kind === 'ground'
+    ? { x: 1030 + (660 + column * 370 - 1030) * coastalFootprintRatio(scale),
+        y: 990 + ((row === 0 ? 890 : 1090) - 990) * coastalFootprintRatio(scale) }
+    : coastBase ?? projectGround(column, row, scale)
   if (kind === 'vertical') {
     const group = VERTICAL_GROUPS[column]
     const anchor = { x: group.x, y: group.y - group.width * (row ? .18 : .53) }

@@ -118,10 +118,11 @@ test.describe('touch input', () => {
 })
 
 test('missing decorative assets retain accessible registration and real data', async ({ page }) => {
-  await page.route('**/paisaje-sierra-v1.png*', route => route.abort())
-  await page.route('**/terreno-continuo-v3.png*', route => route.abort())
+  let blockedScene = false
+  await page.route('**/sierra-integrado*.webp*', route => { blockedScene = true; return route.abort() })
   await registerGround(page, '/garden-lab.html?renderer=canvas')
   await expectReady(page)
+  expect(blockedScene).toBe(true)
   await expect(page.locator('.garden-poc')).toContainText('No se pudo cargar')
   await slots(page).first().focus()
   await slots(page).first().press('Enter')

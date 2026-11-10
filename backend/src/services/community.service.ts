@@ -1,6 +1,7 @@
 // backend/src/services/community.service.ts
 import { prisma } from '../config/prisma'
 import { isCommunityResponsable } from './member.service'
+import { withEntityPhoto } from './entity-photo.service'
 
 export interface CreateCommunityInput {
   name: string
@@ -8,6 +9,12 @@ export interface CreateCommunityInput {
   location: string
   description: string
   type?: string
+  province?: string
+  cantonCode?: string
+  parishCode?: string
+  sector?: string
+  file?: Express.Multer.File
+  removePhoto?: boolean
   creatorId: string
 }
 
@@ -22,13 +29,18 @@ export async function createCommunity(input: CreateCommunityInput) {
     throw error
   }
 
-  const community = await prisma.community.create({
+  const community = await withEntityPhoto('communities', input.file, false, null, photoUrl => prisma.community.create({
     data: {
       name: input.name,
       responsible: input.responsible,
       location: input.location,
       description: input.description,
       type: input.type || 'personal',
+      province: input.province,
+      cantonCode: input.cantonCode,
+      parishCode: input.parishCode,
+      sector: input.sector,
+      photoUrl,
       creatorId: input.creatorId,
       members: {
         create: { userId: input.creatorId, roleInCommunity: 'RESPONSABLE', status: 'ACCEPTED' },
@@ -43,7 +55,7 @@ export async function createCommunity(input: CreateCommunityInput) {
         },
       },
     },
-  })
+  }))
   return community
 }
 
@@ -95,9 +107,11 @@ export async function updateCommunity(id: string, userId: string, data: Partial<
     ;(error as any).code = 'FORBIDDEN'
     throw error
   }
-  return prisma.community.update({
+  const previous = await prisma.community.findUniqueOrThrow({ where: { id }, select: { photoUrl: true } })
+  const { file, removePhoto, ...fields } = data
+  return withEntityPhoto('communities', file, removePhoto, previous.photoUrl, photoUrl => prisma.community.update({
     where: { id },
-    data,
+    data: { ...fields, photoUrl },
     include: {
       _count: {
         select: {
@@ -106,5 +120,5 @@ export async function updateCommunity(id: string, userId: string, data: Partial<
         },
       },
     },
-  })
+  }))
 }

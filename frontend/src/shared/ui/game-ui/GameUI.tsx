@@ -6,10 +6,9 @@ export { gameRegionAssets } from './game-region-assets'
 export type { GameRegion } from './game-region-assets'
 
 /** Solo presentacional. Para seleccionar provincias, reutilizar EcuadorMap y regionForProvince. */
-export function GameWorld({ region, children, className = '' }: {
-  region: GameRegion; children: ReactNode; className?: string
+export function GameWorld({ region, children, className = '', background = REGIONS[region].background }: {
+  region: GameRegion; children: ReactNode; className?: string; background?: string
 }) {
-  const background = REGIONS[region].background
   return <div className={`kg-world ${className}`} data-region={region}
     style={{ backgroundImage: `url("${background}")` } as CSSProperties}>
     {children}

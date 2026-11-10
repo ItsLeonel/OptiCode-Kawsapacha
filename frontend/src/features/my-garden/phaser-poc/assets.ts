@@ -2,10 +2,10 @@ import type { GardenRegion } from '../../real-gardens/garden-region'
 
 /** Existing independent art; no screen capture is used as a texture. */
 export const LANDSCAPES: Record<GardenRegion, string> = {
-  sierra: new URL('./art/paisaje-sierra-v1.png', import.meta.url).href,
+  sierra: new URL('./art/region-scenes/sierra-integrado.webp', import.meta.url).href,
   costa: new URL('./art/paisaje-costa-v1.png', import.meta.url).href,
-  oriente: new URL('./art/paisaje-amazonia-v1.png', import.meta.url).href,
-  galapagos: new URL('./art/paisaje-galapagos-v1.png', import.meta.url).href,
+  oriente: new URL('./art/region-scenes/oriente-integrado.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-scenes/galapagos-integrado.webp', import.meta.url).href,
 }
 export const TRELLIS_ART = new URL('./art/bastidor-natural-v3.png', import.meta.url).href
 export const PERGOLA_ART = new URL('./art/pergola-natural-v3.png', import.meta.url).href

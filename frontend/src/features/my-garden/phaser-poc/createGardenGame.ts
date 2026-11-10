@@ -127,7 +127,7 @@ class ModularGardenScene extends Phaser.Scene {
       ['organic-soil', ORGANIC_SOIL_ART],
     ]
     if (model.kind === 'ground') {
-      if (model.region === 'costa') {
+      if (model.region === 'costa' || model.slots.some(slot => slot.design === null)) {
         if (model.soilType === 'marsh') needed.push(['costa-plot-marsh', COSTA_MARSH_PLOT_ART])
         else COSTA_PLOT_ART.forEach((url, plot) => needed.push([`costa-plot-${plot}`, url]))
       }
@@ -222,11 +222,7 @@ class ModularGardenScene extends Phaser.Scene {
     const profile = LAYOUT_PROFILES[this.bridge.snapshot.model.kind]
     // Keep direct canvas targets at least 44 CSS pixels even on narrow screens.
     const ground = this.bridge.snapshot.model.kind === 'ground'
-    const footprintRatio = ground
-      ? this.bridge.snapshot.model.region === 'costa'
-        ? coastalFootprintRatio(this.bridge.snapshot.model.footprintScale)
-        : Math.max(.9, Math.min(1, this.bridge.snapshot.model.footprintScale))
-      : 1
+    const footprintRatio = ground ? coastalFootprintRatio(this.bridge.snapshot.model.footprintScale) : 1
     const hitX = Math.max(ground ? 160 * footprintRatio : profile.hitX, 22 / this.cameras.main.zoom)
     const hitY = Math.max(ground ? 74 * footprintRatio : profile.hitY, 22 / this.cameras.main.zoom)
     return this.bridge.snapshot.model.slots

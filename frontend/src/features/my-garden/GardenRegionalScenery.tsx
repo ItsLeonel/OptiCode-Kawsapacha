@@ -10,8 +10,8 @@ const GARDEN_BACKGROUNDS: Record<GardenRegion, string> = {
   galapagos: new URL('../../shared/assets/regional-backgrounds/fondo_comunidad_galapagos.webp', import.meta.url).href,
 }
 
-export function GardenRegionalBackground({ region, variant = 'garden' }: { region: GardenRegion; variant?: 'garden' | 'welcome' }) {
-  const background = variant === 'welcome' ? gameRegionAssets[region].background : GARDEN_BACKGROUNDS[region]
+export function GardenRegionalBackground({ region, variant = 'garden', background: override }: { region: GardenRegion; variant?: 'garden' | 'welcome'; background?: string }) {
+  const background = override ?? (variant === 'welcome' ? gameRegionAssets[region].background : GARDEN_BACKGROUNDS[region])
   const floorId = `${useId().replace(/:/g, '')}-regional-floor`
   // Mirror only the prepared foreground at its native scale. Long mobile pages
   // extend the ground without magnifying its stones or repeating the horizon.

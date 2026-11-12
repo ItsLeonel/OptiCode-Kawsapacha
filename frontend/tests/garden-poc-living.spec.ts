@@ -67,7 +67,7 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await expect(passport.locator('.journal-evidences li')).toHaveCount(1)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
   await recordActivity(page, 'watering', { plant: 'Romero · Espacio 1' })
-  await expect(page.getByRole('status', { name: 'Estado de guardado' })).toContainText('único registro')
+  await expect(page.getByRole('status', { name: 'Estado de guardado' })).toContainText('Esta actividad ya estaba guardada.')
   await recordActivity(page, 'weeding')
   await recordActivity(page, 'fertilizing', { plant: 'Romero · Espacio 1' })
   await expect(scene(page)).toHaveAttribute('data-components', /activity:fertilized/)

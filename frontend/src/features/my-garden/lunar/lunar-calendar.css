@@ -237,7 +237,8 @@
   .lunar-modal-heading h2 { font-size: 28px; }
 }
 @media (max-width: 650px) {
-  .lunar-garden-widget { top: 149px; right: 9px; width: min(310px, calc(100vw - 18px)); }
+  /* Dejar libre la franja de interacción de las seis parcelas en móvil. */
+  .lunar-garden-widget { top: clamp(270px, 36dvh, 360px); right: 9px; width: min(310px, calc(100vw - 18px)); }
   .lunar-widget-toggle { min-height: 36px; padding: 6px 10px; font-size: 11px; }
   .lunar-today-panel { max-height: calc(100dvh - 220px); }
   .lunar-modal-backdrop { padding: 0; }

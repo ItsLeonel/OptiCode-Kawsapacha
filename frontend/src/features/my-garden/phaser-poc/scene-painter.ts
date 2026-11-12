@@ -426,21 +426,7 @@ export class GardenScenePainter {
         stage.lineStyle(4, 0xe3c98d, .75).lineBetween(x + width * dx, y - width * .02, x + width * dx, y + width * .07)
       }
     }
-    if (model.region === 'oriente') {
-      for (const [dx, dy, rx, ry] of [[-.24, .02, 24, 10], [.24, 0, 20, 9], [0, -.01, 16, 8]] as const) {
-        stage.fillStyle(0x507648, .74).fillEllipse(x + width * dx, y + width * dy, rx, ry)
-      }
-    }
-    if (model.region === 'galapagos') {
-      for (const dx of [-.28, -.08, .12, .3]) {
-        stage.fillStyle(0x77756f, .85).fillEllipse(x + width * dx, y + 4 + Math.abs(dx) * 10, 24, 11)
-      }
-    }
-    if (model.region === 'sierra') {
-      for (const dx of [-.3, -.1, .12, .28]) {
-        stage.lineStyle(2, 0x8c8475, .55).lineBetween(x + width * dx - 12, y + 2, x + width * dx + 12, y + 10)
-      }
-    }
+    // Las otras regiones ya retornan al comienzo del método; esta sección solo dibuja Costa.
   }
 
   private water(model: GardenVisualModel) {

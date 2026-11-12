@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
 async function optimizeJournalPhoto(file: File | Blob): Promise<File | Blob> {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Unsupported image type')
+  if (file.size === 0) throw new Error('Empty image file')
+  // Las fotos que ya caben en el límite se pueden adjuntar sin recodificarlas.
+  // Evita bloquear el formulario esperando Image.decode() con imágenes válidas.
+  if (file.size <= 3 * 1024 * 1024) return file
   const url = URL.createObjectURL(file)
   try {
     const image = new Image()

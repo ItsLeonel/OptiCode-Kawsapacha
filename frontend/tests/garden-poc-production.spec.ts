@@ -23,8 +23,8 @@ test('production: persistent garden, region and kind editing, real progress with
     await form.locator('.activity-garden-card[title="Riego"]').click()
     await form.getByRole('button', { name: 'Elegir ubicación' }).click()
     await form.getByLabel('Ubicación de la actividad', { exact: true }).selectOption({ label: 'Romero · Espacio 1' })
-    await form.getByLabel('Responsable', { exact: true }).fill('Ana')
-    await form.getByLabel('Observaciones', { exact: true }).fill('Riego manual documentado en producción.')
+    await form.locator('.activity-garden-field-person input').fill('Ana')
+    await form.locator('.activity-garden-observations textarea').fill('Riego manual documentado en producción.')
     await form.getByRole('button', { name: 'Registrar actividad', exact: true }).click()
     await expect(form).toHaveCount(0)
   }

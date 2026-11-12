@@ -265,9 +265,16 @@ class ModularGardenScene extends Phaser.Scene {
           Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2),
           Math.min(this.scale.width / 1750, this.scale.height / 1100, 1.3),
         )
-    const centerX = ground ? WORLD.width / 2 : WORLD.centerX
+    // En móvil, encuadrar los seis centros táctiles; no dejar fuera la última maceta.
+    const anchors = this.bridge.snapshot.model.slots.map(slot => slot.anchor.x)
+    const minSlotX = Math.min(...anchors)
+    const maxSlotX = Math.max(...anchors)
+    const slotWidth = Math.max(1, maxSlotX - minSlotX)
+    const touchPadding = Math.min(44, this.scale.width * .12)
+    const fittedZoom = ground ? zoom : Math.min(zoom, (this.scale.width - touchPadding) / slotWidth)
+    const centerX = ground ? WORLD.width / 2 : (minSlotX + maxSlotX) / 2
     const centerY = ground ? 800 : WORLD.centerY
-    this.cameras.main.setZoom(zoom).centerOn(centerX, centerY)
+    this.cameras.main.setZoom(fittedZoom).centerOn(centerX, centerY)
   }
 
   private publishCamera() {

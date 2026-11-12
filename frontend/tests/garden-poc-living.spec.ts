@@ -27,8 +27,8 @@ async function recordActivity(page: Page, type: string, options: { plant?: strin
     await dialog.getByRole('button', { name: /Cambiar planta|Elegir ubicación/ }).click()
     await dialog.getByLabel('Ubicación de la actividad', { exact: true }).selectOption({ label: options.plant })
   }
-  await dialog.getByLabel('Responsable', { exact: true }).fill('Ana')
-  await dialog.getByLabel('Observaciones', { exact: true }).fill(options.notes ?? `Actividad ${type} realizada en el huerto real de prueba.`)
+  await dialog.locator('.activity-garden-field-person input').fill('Ana')
+  await dialog.locator('.activity-garden-observations textarea').fill(options.notes ?? `Actividad ${type} realizada en el huerto real de prueba.`)
   if (type === 'watering') { await dialog.getByLabel('Cantidad', { exact: false }).fill('2'); await dialog.getByLabel('Unidad', { exact: true }).selectOption('L') }
   if (type === 'fertilizing') await dialog.getByLabel('Abono utilizado', { exact: false }).fill('Compost maduro')
   if (type === 'observation') { await dialog.getByLabel('Estado observado', { exact: true }).selectOption('observed'); await dialog.getByLabel('Altura', { exact: false }).fill('22.7') }

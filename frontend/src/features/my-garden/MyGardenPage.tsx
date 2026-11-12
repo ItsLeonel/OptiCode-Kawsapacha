@@ -14,6 +14,7 @@ import type { GardenSceneRenderer } from './garden-scene-renderer'
 import type { GardenSceneRendererProps } from './garden-scene-renderer'
 import { GARDEN_KINDS, formatGardenArea, type RealGarden } from '../real-gardens/real-garden'
 import GreenChallenges from './GreenChallenges'
+import LunarCalendarWidget from './lunar/LunarCalendarWidget'
 import type { UserSession } from '../../services/api'
 import './my-garden.css'
 import './my-garden-v2.css'
@@ -201,6 +202,9 @@ export default function MyGardenPage({
           ))}
         {!terrainView && <GreenChallenges onNavigate={onNavigate} onAction={onAction} />}
       </div>
+
+      {/* Módulo lunar de React: se superpone a Phaser sin modificar fondos, cámara ni parcelas. */}
+      {!terrainView && <LunarCalendarWidget region={region} onActivity={() => onAction('activity')} />}
 
       <nav className="garden-quick-actions" aria-label="Acciones de tu jardín">
         {ACTIONS.map(item => (

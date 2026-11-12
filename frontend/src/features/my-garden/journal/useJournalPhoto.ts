@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
 async function optimizeJournalPhoto(file: File | Blob): Promise<File | Blob> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Unsupported image type')
   const url = URL.createObjectURL(file)
   try {
     const image = new Image()
@@ -12,14 +13,12 @@ async function optimizeJournalPhoto(file: File | Blob): Promise<File | Blob> {
     const w = image.naturalWidth
     const h = image.naturalHeight
 
-    if (file.size <= 3 * 1024 * 1024 && Math.max(w, h) <= maxDim && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      return file
-    }
+    if (file.size <= 3 * 1024 * 1024 && Math.max(w, h) <= maxDim) return file
 
     const scale = Math.min(1, maxDim / Math.max(w, h))
     const canvas = document.createElement('canvas')
-    canvas.width = Math.round(w * scale)
-    canvas.height = Math.round(h * scale)
+    canvas.width = Math.max(1, Math.round(w * scale))
+    canvas.height = Math.max(1, Math.round(h * scale))
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Canvas 2D unavailable')
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
@@ -42,14 +41,24 @@ export function useJournalPhoto() {
 
   useEffect(() => () => { selection.current++ }, [])
 
-  async function choose(event: ChangeEvent<HTMLInputElement>) {
+  function clear() {
+    selection.current++
+    setPhoto(undefined)
+    setError('')
+    setReading(false)
+  }
+
+  async function chooseFile(file: File | null | undefined) {
     const token = ++selection.current
-    const file = event.target.files?.[0]
     setPhoto(undefined)
     setError('')
     setReading(false)
     if (!file) return
 
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setError('Selecciona una imagen JPG, PNG o WebP.')
+      return
+    }
     setReading(true)
     try {
       const optimized = await optimizeJournalPhoto(file)
@@ -65,5 +74,11 @@ export function useJournalPhoto() {
     }
   }
 
-  return { photo, reading, error, choose }
+  function choose(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0]
+    event.currentTarget.value = ''
+    void chooseFile(file)
+  }
+
+  return { photo, reading, error, choose, chooseFile, clear }
 }

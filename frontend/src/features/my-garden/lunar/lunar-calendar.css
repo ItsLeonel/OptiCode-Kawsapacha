@@ -1,0 +1,260 @@
+/* Kawsapacha · Calendario lunar: React superpuesto; Phaser y escenas regionales intactas. */
+.lunar-garden-widget,
+.lunar-modal-backdrop { font-family: 'Trebuchet MS', system-ui, sans-serif; box-sizing: border-box; }
+.lunar-garden-widget *,
+.lunar-modal-backdrop * { box-sizing: border-box; }
+
+/* Acceso compacto bajo Mi terreno en el jardín inmersivo. */
+.lunar-garden-widget {
+  position: absolute; z-index: 35; top: 158px; right: 19px;
+  display: flex; flex-direction: column; align-items: flex-end;
+  width: min(348px, calc(100vw - 34px)); pointer-events: none;
+}
+.lunar-garden-widget > * { pointer-events: auto; }
+.lunar-widget-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: max-content; min-height: 40px; padding: 7px 15px;
+  border: 2px solid #edc66b; border-radius: 15px;
+  color: #fff5c9; background: linear-gradient(#496c18,#234b18 62%,#153c18);
+  box-shadow: inset 0 1px #fff49b80, 0 3px #875322, 0 0 11px #e8c35979;
+  font: 800 13px/1.2 'Trebuchet MS', system-ui, sans-serif;
+  text-shadow: 0 1px 2px #173614; cursor: pointer;
+}
+.lunar-button-moon { color: #ffe9a3; font-size: 25px; line-height: .7; }
+.lunar-widget-toggle:hover { filter: brightness(1.12); }
+.lunar-widget-toggle:focus-visible,
+.lunar-modal button:focus-visible,
+.lunar-today-panel button:focus-visible { outline: 3px solid #f9fbb8; outline-offset: 3px; }
+
+/* Tarjeta flotante: versión de actividades algo más pequeña que la referencia. */
+.lunar-today-panel {
+  width: 100%; max-height: min(545px, calc(100dvh - 277px)); margin-top: 13px;
+  overflow-y: auto; overscroll-behavior: contain;
+  border: 4px solid #a96d2d; border-radius: 23px;
+  color: #304420; background: #fff2d2;
+  box-shadow: 0 4px 0 #603917, inset 0 0 0 2px #fae2a7, 0 12px 25px #112c1a9a;
+  scrollbar-color: #ba954b #f8e6b8;
+}
+.lunar-wood-header {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 9px;
+  padding: 9px 11px; min-height: 46px;
+  border-bottom: 3px solid #d3a15a;
+  color: #fff3d2;
+  background: repeating-linear-gradient(0deg, transparent 0 19px,#b9864350 20px 21px),
+    linear-gradient(95deg,#6f3c1e,#a6682e 50%,#703c20);
+  text-shadow: 0 2px #4e2c13;
+}
+.lunar-wood-header > span { font-size: 25px; line-height: .8; color: #ffe69c; }
+.lunar-wood-header h2 { flex: 1; margin: 0; font: 900 20px/1.1 'Trebuchet MS', sans-serif; }
+.lunar-close {
+  width: 31px; height: 31px; flex-shrink: 0; padding: 0;
+  border: 2px solid #ffdf9c; border-radius: 50%;
+  color: #ffedc0; background: #673813; font-size: 24px; line-height: 1; cursor: pointer;
+}
+.lunar-today-body { padding: 10px 12px 13px; background: linear-gradient(#fff8e6,#f7e3af); }
+.lunar-date-ribbon {
+  margin: 0 0 8px; padding: 6px 9px; border-radius: 9px;
+  color: #f8ebbe; background: linear-gradient(90deg,#314c30,#263728);
+  text-align: center; font-size: 11px; font-weight: 700;
+}
+.lunar-selected-phase {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; border: 1px solid #d4b879; border-radius: 13px;
+  background: radial-gradient(circle at 17% 40%,#5b7997,#253752 53%,#152438);
+  color: #fff0c7;
+}
+.lunar-moon-hero { flex: 0 0 auto; display: grid; place-items: center; }
+.lunar-phase-copy { flex: 1; min-width: 0; }
+.lunar-phase-copy strong {
+  display: block; width: fit-content; margin-bottom: 4px;
+  color: #fff6cb; font-size: 16px; line-height: 1.15; font-weight: 900;
+}
+.lunar-ancestral { display: block; margin-bottom: 5px; color: #cfebac; font-size: 10px; font-weight: 700; }
+.lunar-phase-copy p { margin: 0; color: #fff3d7; font-size: 10px; line-height: 1.35; }
+.lunar-estimate-note {
+  margin: 6px 1px 4px; padding: 5px 7px; background: #fbeac1;
+  border-left: 3px solid #a88027; color: #665229; font-size: 9px; line-height: 1.3;
+}
+.lunar-mini-section-title {
+  margin: 10px 0 6px; padding: 6px 10px; border-radius: 11px;
+  color: #fff4d2; background: linear-gradient(#42652d,#2a4b28);
+  box-shadow: inset 0 1px #abc27750; font-size: 13px; font-weight: 900;
+}
+.lunar-recommendations { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lunar-recommendations li {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 47px; padding: 7px 10px;
+  border: 1px solid #e6c788; border-radius: 10px;
+  color: #374b25; background: linear-gradient(#fff8e7,#f7e4bd);
+  box-shadow: inset 0 1px #fff;
+}
+.lunar-activity-icon { flex: 0 0 31px; width: 31px; text-align: center; font-size: 20px; }
+.lunar-recommendation-copy { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.lunar-recommendation-copy strong { font-size: 12px; line-height: 1.2; }
+.lunar-recommendation-copy small { color: #657352; font-size: 10px; line-height: 1.3; }
+.lunar-recommendation-check { color: #47732a; font-weight: 900; font-size: 14px; }
+.lunar-recommendations.is-compact { gap: 4px; }
+.lunar-recommendations.is-compact li { min-height: 33px; padding: 4px 8px; border-radius: 9px; }
+.lunar-recommendations.is-compact .lunar-activity-icon { width: 22px; flex-basis: 22px; font-size: 15px; }
+.lunar-recommendations.is-compact .lunar-recommendation-copy strong { font-size: 11px; }
+.lunar-heritage-note { margin: 8px 1px; color: #75613b; font-size: 9px; line-height: 1.35; }
+.lunar-today-actions { display: grid; gap: 6px; margin-top: 7px; }
+.lunar-action-main {
+  display: inline-flex; justify-content: center; align-items: center; gap: 10px;
+  min-height: 38px; padding: 8px 12px; border: 2px solid #f1db91;
+  border-radius: 999px; color: #fff9dc;
+  background: linear-gradient(#619b22,#397719 56%,#245814);
+  box-shadow: 0 3px #795022, inset 0 1px #faffc380;
+  font: 800 12px/1.2 'Trebuchet MS', sans-serif; cursor: pointer;
+}
+.lunar-action-main:hover { filter: brightness(1.12); }
+.lunar-action-main span { margin-left: 2px; font-size: 21px; line-height: .6; }
+.lunar-action-secondary {
+  min-height: 32px; padding: 6px 10px;
+  border: 1px solid #cca55a; border-radius: 11px; color: #3e571b;
+  background: linear-gradient(#fff4d3,#f4d595);
+  font: 800 11px 'Trebuchet MS',sans-serif; cursor: pointer;
+}
+.lunar-empty { margin: 0; padding: 12px; font-size: 12px; color: #536047; }
+
+/* Vista mensual completa: dos paneles pergamino sobre el paisaje regional. */
+.lunar-modal-backdrop {
+  position: fixed; z-index: 2147482000; inset: 0;
+  display: grid; place-items: center; padding: 10px;
+  background: #061b13d9; backdrop-filter: blur(6px);
+}
+.lunar-modal {
+  width: min(1560px, 100%); height: min(900px, calc(100dvh - 20px));
+  overflow: auto; padding: 15px clamp(13px,2vw,28px) 22px;
+  border: 3px solid #d7b663; border-radius: 19px;
+  background-color: #2f6042; background-size: cover; background-position: center;
+  box-shadow: inset 0 0 0 2px #fff3bf6b, 0 20px 60px #00170dab;
+  color: #2c451d;
+}
+.lunar-modal-topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.lunar-back-button {
+  min-height: 37px; padding: 7px 17px; border: 2px solid #f3ce7c;
+  border-radius: 999px; color: #fff3ce;
+  background: linear-gradient(#457022,#23561c);
+  box-shadow: 0 3px #694219, inset 0 1px #f8ffca87;
+  font: 800 13px 'Trebuchet MS',sans-serif; cursor: pointer;
+}
+.lunar-back-button span { font-size: 19px; margin-right: 5px; }
+.lunar-modal-source { color: #fff3c0; font-size: 12px; font-weight: 800; text-shadow: 0 2px #183421; }
+.lunar-modal-heading { width: fit-content; margin: 0 auto 16px; text-align: center; }
+.lunar-modal-heading h2 {
+  margin: 0; padding: 7px 40px 10px;
+  border: 3px solid #e6b864; border-radius: 20px 20px 8px 8px;
+  color: #fff0c6; background: repeating-linear-gradient(0deg,transparent 0 16px,#e6b76628 17px 18px),
+    linear-gradient(90deg,#72421e,#b57632 48%,#6b3a1c);
+  box-shadow: inset 0 2px #fff0aa65,0 5px #573613,0 8px 17px #122a1f9e;
+  font: 900 clamp(25px,3.6vw,43px)/1.15 'Trebuchet MS',sans-serif;
+  text-shadow: 0 2px #5d361b;
+}
+.lunar-modal-heading p {
+  width: max-content; max-width: 100%; margin: 7px auto 0; padding: 7px 18px;
+  border: 2px solid #cca65e; border-radius: 100px;
+  color: #4d3516; background: linear-gradient(#fff7dc,#f6dca5);
+  box-shadow: 0 2px 6px #17372430;
+  font-size: 12px; font-weight: 700;
+}
+.lunar-modal-columns {
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(335px, .85fr);
+  align-items: start; gap: 15px; margin: 0 auto; max-width: 1460px;
+}
+.lunar-parchment {
+  min-width: 0; padding: 16px;
+  border: 4px solid #d9a451; border-radius: 24px;
+  background: repeating-linear-gradient(45deg,#e6bd7130 0 2px,transparent 2px 19px),
+    linear-gradient(135deg,#fff9e8,#f7e4ba 55%,#f4d9a0);
+  box-shadow: inset 0 0 0 2px #fff5d6,0 4px #91622b,0 10px 20px #1e38268a;
+}
+.lunar-month-toolbar { display: flex; align-items: center; justify-content: center; gap: clamp(8px,1.4vw,22px); margin: 0 auto 14px; }
+.lunar-month-toolbar button {
+  flex: 0 0 44px; width: 44px; height: 44px;
+  border: 2px solid #fad58a; border-radius: 13px;
+  color: #fff8d9; background: linear-gradient(#629a17,#2a610b);
+  box-shadow: inset 0 1px #edffb0,0 3px #765020;
+  font-size: 34px; line-height: .7; cursor: pointer;
+}
+.lunar-month-toolbar h3 {
+  min-width: 0; flex: 0 1 270px; margin: 0; padding: 10px 14px;
+  border: 2px solid #e2b965; border-radius: 100px;
+  color: #294415; background: linear-gradient(#fff4d5,#f4d38d);
+  text-align: center; font: 900 clamp(17px,1.8vw,24px)/1.2 'Trebuchet MS',sans-serif;
+  text-transform: capitalize;
+}
+.lunar-month-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 3px; }
+.lunar-weekday {
+  display: grid; place-items: center; min-height: 30px;
+  border-radius: 6px; color: #fff4c4; background: #365b27;
+  font-size: 12px; font-weight: 900;
+}
+.lunar-weekday[data-weekend=true] { color: #f8dc81; }
+.lunar-day-cell,.lunar-day-empty {
+  display: grid; align-items: center; justify-items: center;
+  min-width: 0; min-height: 66px; padding: 4px 2px;
+  border: 1px solid #e6c78c; border-radius: 10px;
+  background: linear-gradient(#fff9eb,#f8e7c1);
+}
+.lunar-day-cell { color: #2f4c24; cursor: pointer; transition: transform .13s,border-color .13s; }
+.lunar-day-cell:hover { transform: translateY(-2px); border-color: #86a13d; }
+.lunar-day-cell .lunar-day-number { justify-self: start; padding-left: 6px; font-size: 11px; font-weight: 900; }
+.lunar-day-cell[aria-pressed=true] {
+  border: 2px solid #fbec8a; background: linear-gradient(#5e9a20,#2f711b);
+  color: #fff8cd; box-shadow: 0 0 0 2px #74a832,0 0 12px #9dc13a;
+}
+.lunar-day-cell[data-today=true] .lunar-day-number::after { content:' •'; color:#ca983b; }
+.lunar-day-cell[aria-pressed=true] .lunar-day-number::after { color:#fff0a3; }
+.lunar-day-empty { background: #f3dfa84d; border-color:#e8d5a97a; }
+.lunar-legend { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 7px; margin-top: 12px; padding: 7px 8px;
+  border: 2px solid #d8ae62; border-radius: 13px; background: #fff1cdbd; }
+.lunar-legend span { display: flex; gap: 4px; align-items: center; color: #455232; font-size: 10px; font-weight: 800; }
+.lunar-day-detail { padding: 14px; }
+.lunar-detail-date {
+  margin: 0 0 12px; padding: 10px; border-radius: 12px;
+  color: #fff6d8; background: linear-gradient(#3b642c,#234d25);
+  text-align: center; font: 900 clamp(14px,1.5vw,18px)/1.25 'Trebuchet MS',sans-serif;
+  text-transform: capitalize;
+}
+.lunar-day-detail .lunar-selected-phase { margin-bottom: 8px; padding: 12px; background: #faf0ceab; color: #3d4e29; border-color: #d9b779; }
+.lunar-day-detail .lunar-phase-copy strong { color: #35521c; font-size: 21px; }
+.lunar-day-detail .lunar-phase-copy p { color: #536047; font-size: 12px; line-height: 1.4; }
+.lunar-day-detail .lunar-ancestral { color: #60833b; font-size: 11px; }
+.lunar-day-detail .lunar-mini-section-title { margin-top: 12px; font-size: 16px; }
+.lunar-day-detail .lunar-recommendations li { min-height: 44px; padding: 6px 10px; }
+.lunar-garden-advice { margin-top: 12px; padding: 10px 12px; border: 1px solid #e1be76; border-radius: 13px; background: #fff9e9; }
+.lunar-garden-advice h4 { margin: 0 0 4px; font-size: 13px; color: #456622; }
+.lunar-garden-advice p { margin: 0; font-size: 11px; line-height: 1.4; color: #627050; }
+.lunar-modal-register { display: flex; width: min(290px,100%); min-height: 43px; margin: 13px auto 0; font-size: 15px; }
+.lunar-document-note { display: block; margin-top: 11px; color: #756242; font-size: 9px; line-height: 1.35; text-align: center; }
+
+@media (max-width: 1000px) {
+  .lunar-modal { height: calc(100dvh - 18px); }
+  .lunar-modal-columns { grid-template-columns: minmax(0,1fr); max-width: 750px; }
+  .lunar-month-card { order: 1; }
+  .lunar-day-detail { order: 2; }
+  .lunar-modal-heading h2 { font-size: 28px; }
+}
+@media (max-width: 650px) {
+  .lunar-garden-widget { top: 149px; right: 9px; width: min(310px, calc(100vw - 18px)); }
+  .lunar-widget-toggle { min-height: 36px; padding: 6px 10px; font-size: 11px; }
+  .lunar-today-panel { max-height: calc(100dvh - 220px); }
+  .lunar-modal-backdrop { padding: 0; }
+  .lunar-modal { height: 100dvh; width: 100%; border: 0; border-radius: 0; padding: 12px 10px 18px; }
+  .lunar-modal-source { display:none; }
+  .lunar-modal-heading { margin: 10px auto 12px; }
+  .lunar-modal-heading h2 { padding: 9px 15px; font-size: 24px; }
+  .lunar-modal-heading p { font-size: 10px; white-space: normal; }
+  .lunar-parchment { padding: 10px; border-width: 3px; border-radius: 15px; }
+  .lunar-month-toolbar button { flex-basis: 35px; width: 35px; height: 35px; font-size: 29px; }
+  .lunar-month-toolbar h3 { padding: 8px 9px; font-size: 15px; }
+  .lunar-weekday { min-height: 25px; font-size: 10px; }
+  .lunar-day-cell,.lunar-day-empty { min-height: 54px; border-radius: 7px; }
+  .lunar-day-cell svg { width: 29px; height: 29px; }
+  .lunar-legend span { font-size: 9px; }
+  .lunar-day-detail .lunar-selected-phase svg { width: 65px; height: 65px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lunar-day-cell { transition: none; }
+}

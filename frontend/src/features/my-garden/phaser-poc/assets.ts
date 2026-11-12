@@ -7,6 +7,36 @@ export const LANDSCAPES: Record<GardenRegion, string> = {
   oriente: new URL('./art/region-scenes/oriente-integrado.webp', import.meta.url).href,
   galapagos: new URL('./art/region-scenes/galapagos-integrado.webp', import.meta.url).href,
 }
+/** Regional empty-container assets: the six crop openings are still separate interactive slots. */
+export const REGIONAL_POTS_ART: Partial<Record<GardenRegion, string>> = {
+  costa: new URL('./art/region-design/costa-pots.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-pots.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-pots.webp', import.meta.url).href,
+}
+export const REGIONAL_PAD_ART: Record<GardenRegion, string> = {
+  costa: new URL('./art/region-design/costa-pad.webp', import.meta.url).href,
+  sierra: new URL('./art/region-design/sierra-pad.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-pad.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-pad.webp', import.meta.url).href,
+}
+export const REGIONAL_BASKETS_ART: Record<GardenRegion, string> = {
+  costa: new URL('./art/region-design/costa-baskets.webp', import.meta.url).href,
+  sierra: new URL('./art/region-design/sierra-baskets.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-baskets.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-baskets.webp', import.meta.url).href,
+}
+export const REGIONAL_TROUGHS_ART: Record<GardenRegion, string> = {
+  costa: new URL('./art/region-design/costa-trough.webp', import.meta.url).href,
+  sierra: new URL('./art/region-design/sierra-trough.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-trough.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-trough.webp', import.meta.url).href,
+}
+export const REGIONAL_SUPPORTS_ART: Record<GardenRegion, { vertical: string; hanging: string }> = {
+  costa: { vertical: new URL('./art/region-design/costa-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/costa-hanging.webp', import.meta.url).href },
+  sierra: { vertical: new URL('./art/region-design/sierra-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/sierra-hanging.webp', import.meta.url).href },
+  oriente: { vertical: new URL('./art/region-design/oriente-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/oriente-hanging.webp', import.meta.url).href },
+  galapagos: { vertical: new URL('./art/region-design/galapagos-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/galapagos-hanging.webp', import.meta.url).href },
+}
 export const TRELLIS_ART = new URL('./art/bastidor-natural-v3.png', import.meta.url).href
 export const PERGOLA_ART = new URL('./art/pergola-natural-v3.png', import.meta.url).href
 export const SUPPLIES_ART = new URL('./art/materiales-huerto-v3.png', import.meta.url).href

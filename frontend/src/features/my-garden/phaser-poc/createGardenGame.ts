@@ -2,7 +2,7 @@ import { coastalFootprintRatio } from './coastal-terrain'
 import { COASTAL_RELIEF_ART, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import Phaser from 'phaser'
 import { GardenSceneBridge, type SceneCommand } from './bridge'
-import { BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
+import { REGIONAL_POTS_ART, REGIONAL_PAD_ART, REGIONAL_BASKETS_ART, REGIONAL_TROUGHS_ART, REGIONAL_SUPPORTS_ART, BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
 import { LAYOUT_PROFILES } from './layouts'
 import { GardenScenePainter } from './scene-painter'
 import type { SlotId } from './model'
@@ -141,9 +141,23 @@ class ModularGardenScene extends Phaser.Scene {
       needed.push(['costa-fence-segment', COSTA_FENCE_ART.segment], ['costa-fence-corner', COSTA_FENCE_ART.corner], ['costa-fence-gate', COSTA_FENCE_ART.gate])
     }
     if (model.kind === 'ground' && model.region !== 'costa' && model.characteristics.groundDesigns.includes('beds')) needed.push(['empty-bed', BED_ART])
-    if (model.kind === 'pots' || model.kind === 'hanging') needed.push(['empty-pots', POTS_ART])
-    if (model.kind === 'vertical') needed.push(['empty-trough', TROUGH_ART], ['garden-trellis', TRELLIS_ART])
-    if (model.kind === 'hanging') needed.push(['garden-pergola', PERGOLA_ART])
+    if (model.kind === 'pots') {
+      needed.push([`regional-pad-${model.region}`, REGIONAL_PAD_ART[model.region]])
+      // Sierra retains its approved ceramic atlas, other regions use local materials.
+      needed.push(['empty-pots', POTS_ART])
+      const art = REGIONAL_POTS_ART[model.region]
+      if (art) needed.push([`regional-pots-${model.region}`, art])
+    }
+    if (model.kind === 'hanging') {
+      needed.push(['empty-pots', POTS_ART], ['garden-pergola', PERGOLA_ART])
+      needed.push([`regional-baskets-${model.region}`, REGIONAL_BASKETS_ART[model.region]])
+      needed.push([`regional-hanging-${model.region}`, REGIONAL_SUPPORTS_ART[model.region].hanging])
+    }
+    if (model.kind === 'vertical') {
+      needed.push(['empty-trough', TROUGH_ART], ['garden-trellis', TRELLIS_ART])
+      needed.push([`regional-trough-${model.region}`, REGIONAL_TROUGHS_ART[model.region]])
+      needed.push([`regional-vertical-${model.region}`, REGIONAL_SUPPORTS_ART[model.region].vertical])
+    }
     if (model.characteristics.naturalFertilizers.some(value => value !== 'fallow') || model.characteristics.irrigationMethods.some(value => value === 'manual' || value === 'hose' || value === 'sprinkler')) needed.push(['garden-supplies', SUPPLIES_ART])
     if (model.characteristics.fences.some(value => value !== 'natural') || model.characteristics.waterSources.some(value => value === 'well' || value === 'mains')) needed.push(['garden-infrastructure', INFRASTRUCTURE_ART])
     model.slots.forEach(slot => {

@@ -110,6 +110,17 @@ export class GardenScenePainter {
       const texture = this.scene.textures.get('empty-pots')
       for (let index = 0; index < 6; index++) if (!texture.has(`pot-${index}`)) texture.add(`pot-${index}`, 0, index % 3 * 512, Math.floor(index / 3) * 512, 512, 512)
     }
+    for (const region of ['sierra', 'costa', 'oriente', 'galapagos'] as const) {
+      for (const kind of ['pots', 'baskets'] as const) {
+        const key = `regional-${kind}-${region}`
+        if (!this.scene.textures.exists(key)) continue
+        const texture = this.scene.textures.get(key)
+        for (let index = 0; index < 6; index++) {
+          const frame = `item-${index}`
+          if (!texture.has(frame)) texture.add(frame, 0, (index % 3) * 512, Math.floor(index / 3) * 512, 512, 512)
+        }
+      }
+    }
     if (this.scene.textures.exists('regional-borders')) {
       const texture = this.scene.textures.get('regional-borders')
       for (let index = 0; index < 4; index++) if (!texture.has(`border-${index}`)) texture.add(`border-${index}`, 0, index % 2 * 768, Math.floor(index / 2) * 512, 768, 512)
@@ -214,6 +225,18 @@ export class GardenScenePainter {
 
   private supports(model: GardenVisualModel) {
     if (model.kind !== 'vertical' && model.kind !== 'hanging') return
+    const regional = `regional-${model.kind}-${model.region}`
+    if (this.scene.textures.exists(regional)) {
+      // Each modality uses one coherent, anchored regional structure behind six slots.
+      const shadow = this.graphics('ground', 850)
+      shadow.fillStyle(0x152619, .14).fillEllipse(1030, 1228, 1110, 88)
+      this.add('structures', this.scene.add.image(330, 400, regional)
+        .setOrigin(0).setDisplaySize(1400, 900), 5800)
+      this.components.add(`support:regional:${model.region}:${model.kind}`)
+      this.components.add(model.kind === 'vertical' ? 'support:anchored-frame' : 'support:grounded-pergola')
+      return
+    }
+    // The original game atlas remains a safe fallback if a regional image fails.
     const key = model.kind === 'vertical' ? 'garden-trellis' : 'garden-pergola'
     const groups = model.kind === 'vertical' ? VERTICAL_GROUPS : model.region === 'costa' ? COASTAL_HANGING_GROUPS : HANGING_GROUPS
     for (const group of groups) {
@@ -238,35 +261,48 @@ export class GardenScenePainter {
   }
 
   private regionalFences(model: GardenVisualModel, kinds: GardenVisualModel['characteristics']['fences']) {
-    // A recorded fence remains visible, but it no longer creates five rigid
-    // horizontal hedge stripes across the painted hillside. Position low
-    // regional fragments to either side of the cultivated clearing.
+    // Each regional painting has different clearings, houses and coastlines.
+    // Fence accents therefore follow calibrated per-region placements instead
+    // of reusing a single generic position for every background.
+    const placements = gardenFeaturePlacements(model.region, model.kind)
+    const segments = placements?.fences?.length
+      ? placements.fences
+      : (model.kind === 'ground'
+        ? [{ x: 395, y: 798, length: 176, thickness: 68 }, { x: 1515, y: 793, length: 176, thickness: 68 }]
+        : [{ x: 400, y: 812, length: 176, thickness: 64 }, { x: 1510, y: 807, length: 176, thickness: 64 }])
     const selected = [...new Set(kinds)]
-    const positions = model.kind === 'ground'
-      ? [{ x: 395, y: 798 }, { x: 1515, y: 793 }]
-      : [{ x: 400, y: 812 }, { x: 1510, y: 807 }]
-    selected.forEach((kind, index) => {
-      const point = positions[index % positions.length]
-      const side = index % 2 ? -1 : 1
+    if (!selected.length) return
+    const total = segments.length
+    segments.forEach((segment, index) => {
+      const kind = selected[Math.min(selected.length - 1, Math.floor(index * selected.length / total))]
+      const point = { x: segment.x, y: segment.y }
+      // Keep the regional fence arrangement, but give each section the
+      // presence of a practical garden boundary rather than a tiny prop.
+      const fenceWidth = Math.round(segment.length * 1.28)
+      const fenceHeight = Math.round(segment.thickness * 1.18)
+      const side = point.x < WORLD.centerX ? 1 : -1
       if (kind === 'living') {
         const hedge = this.graphics('structures', point.y * 10)
-        for (let j = 0; j < 11; j++) {
-          const dx = j * 15 * side
+        const count = Math.max(8, Math.round(fenceWidth / 16))
+        const startX = point.x - fenceWidth / 2 + 12
+        for (let j = 0; j < count; j++) {
+          const px = startX + j * ((fenceWidth - 24) / Math.max(1, count - 1))
           const fluctuation = Math.sin((j + 2) * 1.7) * 5
           hedge.fillStyle(model.region === 'galapagos' ? 0x657145 : model.region === 'oriente' ? 0x3c7239 : 0x64853c, .84)
-          hedge.fillEllipse(point.x + dx, point.y - 4 + fluctuation, 24 + (j % 3) * 6, 11 + (j % 4) * 3)
+          hedge.fillEllipse(px, point.y - 4 + fluctuation, 24 + (j % 3) * 6, 11 + (j % 4) * 3)
           hedge.fillStyle(0xc3ca73, .32)
-          hedge.fillEllipse(point.x + dx - 3, point.y - 11 + fluctuation, 13, 5)
+          hedge.fillEllipse(px - 3, point.y - 11 + fluctuation, 13, 5)
         }
       } else if (kind === 'natural' && this.scene.textures.exists('modular-props')) {
-        this.prop('fence', point.x + side * 55, point.y + 10, 180, undefined, point.y * 10)
+        const prop = this.prop('fence', point.x + side * 8, point.y + 10, Math.max(160, fenceWidth), undefined, point.y * 10)
+        prop?.setFlipX(point.x > WORLD.centerX)
       } else if (this.scene.textures.exists('garden-infrastructure')) {
         const frame = ({ recycled: 1, metal: 2, conventional: 3, natural: 1 } as const)[kind]
-        this.add('structures', this.scene.add.image(point.x + side * 45, point.y + 10,
-          'garden-infrastructure', 'item-' + frame).setOrigin(.5, .86).setDisplaySize(140, 130), point.y * 10)
+        this.add('structures', this.scene.add.image(point.x, point.y + 10,
+          'garden-infrastructure', 'item-' + frame).setOrigin(.5, .86).setDisplaySize(Math.max(150, fenceWidth * .9), Math.max(145, fenceHeight * 1.9)), point.y * 10)
       } else {
         this.painted('structures', `fence-regional-${model.region}-${kind}-${index}`, 255, 190,
-          ctx => paintFence(ctx, kind, index), point.x - 90, point.y - 128, point.y * 10)?.setDisplaySize(170, 128)
+          ctx => paintFence(ctx, kind, index), point.x - 90, point.y - 128, point.y * 10)?.setDisplaySize(Math.max(185, fenceWidth), Math.max(145, fenceHeight * 1.8))
       }
       this.components.add(`fence:${kind}`)
     })
@@ -358,6 +394,55 @@ export class GardenScenePainter {
     this.components.add(`fence:perimeter:${model.region}`)
   }
 
+  private regionalServiceBase(model: GardenVisualModel, x: number, y: number, width: number) {
+    if (model.region !== 'costa') {
+      // A shallow earth-coloured contact shadow, NOT a stone pedestal.
+      // The previous broad grey rings were visibly detached from the props.
+      const earth = {
+        sierra: 0x786e50,
+        oriente: 0x3e4d2f,
+        galapagos: 0x594b40,
+      }[model.region]
+      const contact = this.graphics('ground', y)
+      contact.fillStyle(0x111c14, .19).fillEllipse(x + 3, y + 4, width * .72, width * .14)
+      contact.fillStyle(earth, .15).fillEllipse(x, y + 2, width * .88, width * .12)
+      return
+    }
+    if (model.kind === 'ground') return // Costa ground keeps its approved appearance.
+    const material = {
+      sierra: { base: 0xb7b09a, edge: 0x6d6457, highlight: 0xe0d5bc },
+      costa: { base: 0xcaa56f, edge: 0x7a5934, highlight: 0xebcf94 },
+      oriente: { base: 0x8b7d5c, edge: 0x4c5639, highlight: 0xcabf93 },
+      galapagos: { base: 0x908b84, edge: 0x4c4a49, highlight: 0xcbbca5 },
+    }[model.region]
+    const stage = this.graphics('ground', y)
+    // Low-profile service patch seated on the terrain; avoids the old floating pedestal look.
+    stage.fillStyle(0x16261a, .14).fillEllipse(x + 8, y + 18, width * 1.04, width * .18)
+    stage.fillStyle(material.edge, .78).fillEllipse(x, y + 10, width * .94, width * .16)
+    stage.fillStyle(material.base, .94).fillEllipse(x, y + 6, width * .88, width * .12)
+    stage.lineStyle(2, material.highlight, .75).strokeEllipse(x, y + 4, width * .82, width * .10)
+    if (model.region === 'costa') {
+      for (const dx of [-.26, 0, .26]) {
+        stage.lineStyle(4, 0xe3c98d, .75).lineBetween(x + width * dx, y - width * .02, x + width * dx, y + width * .07)
+      }
+    }
+    if (model.region === 'oriente') {
+      for (const [dx, dy, rx, ry] of [[-.24, .02, 24, 10], [.24, 0, 20, 9], [0, -.01, 16, 8]] as const) {
+        stage.fillStyle(0x507648, .74).fillEllipse(x + width * dx, y + width * dy, rx, ry)
+      }
+    }
+    if (model.region === 'galapagos') {
+      for (const dx of [-.28, -.08, .12, .3]) {
+        stage.fillStyle(0x77756f, .85).fillEllipse(x + width * dx, y + 4 + Math.abs(dx) * 10, 24, 11)
+      }
+    }
+    if (model.region === 'sierra') {
+      for (const dx of [-.3, -.1, .12, .28]) {
+        stage.lineStyle(2, 0x8c8475, .55).lineBetween(x + width * dx - 12, y + 2, x + width * dx + 12, y + 10)
+      }
+    }
+  }
+
   private water(model: GardenVisualModel) {
     const placements = gardenFeaturePlacements(model.region, model.kind)
     if (placements) {
@@ -397,13 +482,21 @@ export class GardenScenePainter {
           this.add('structures', this.scene.add.text(x - 22, y - 38, 'Fuente declarada', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '10px', color: '#52634a' }).setOrigin(0, .5), y * 10 + 1)
           this.components.add('water:rain:declared-indicator')
         } else if (point && source === 'stored') {
-          this.prop('tank', point.x, point.y, 140)?.setTint(tint)
+          this.regionalServiceBase(model, point.x, point.y, 236)
+          this.prop('tank', point.x, point.y, model.kind === 'ground' ? 170 : 260)?.setTint(tint)
           this.components.add('water:stored')
         } else if (point && (source === 'mains' || source === 'well') && this.scene.textures.exists('garden-infrastructure')) {
+          this.regionalServiceBase(model, point.x, point.y, 245)
           const frame = source === 'well' ? 'item-4' : 'item-5'
-          this.add('structures', this.scene.add.image(point.x, point.y, 'garden-infrastructure', frame).setOrigin(.5, .88).setDisplaySize(132, 132).setTint(tint), point.y * 10)
+          this.add('structures', this.scene.add.image(point.x, point.y, 'garden-infrastructure', frame)
+            // Native atlas artwork ends at y≈416/512 (well) or 459/512 (tap).
+            // Anchor the visible bottom to the actual ground contact point.
+            .setOrigin(.5, model.region === 'costa' ? .88 : source === 'well' ? .813 : .897)
+            .setDisplaySize(model.kind === 'ground' ? 178 : 260, model.kind === 'ground' ? 178 : 260)
+            .setTint(tint), point.y * 10)
           this.components.add(`water:${source}`)
         } else if (point && (source === 'well' || source === 'mains')) {
+          this.regionalServiceBase(model, point.x, point.y, 245)
           const g = this.graphics('structures', point.y * 10)
           if (source === 'well') {
             g.fillStyle(0x575a48).fillEllipse(point.x, point.y - 54, 132, 62)
@@ -463,9 +556,17 @@ export class GardenScenePainter {
     })
   }
 
-  private supply(frame: number, x: number, y: number, width: number, depth = y * 10) {
+  private supply(frame: number, x: number, y: number, width: number, depth = y * 10, grounded = false) {
     if (!this.scene.textures.exists('garden-supplies')) return false
-    this.add('structures', this.scene.add.image(x, y, 'garden-supplies', 'item-' + frame).setOrigin(.5, frame < 3 ? .76 : .86).setDisplaySize(width, width), depth)
+    const contact = this.graphics('ground', y)
+    contact.fillStyle(0x1f2a1d, grounded ? .23 : .18)
+      .fillEllipse(x + 3, y + (grounded ? 3 : 8), width * (grounded ? .66 : .55), width * .12)
+    // Calibrated to the visible bottom of each 512px atlas frame. In particular
+    // the hose ends at 415px: using .86 left a large gap above its ground shadow.
+    const visibleBottom = [.748, .768, .777, .832, .811, .844] as const
+    this.add('structures', this.scene.add.image(x, y, 'garden-supplies', 'item-' + frame)
+      .setOrigin(.5, grounded ? visibleBottom[frame] ?? .8 : frame < 3 ? .76 : .86)
+      .setDisplaySize(width, width), depth)
     return true
   }
 
@@ -493,7 +594,12 @@ export class GardenScenePainter {
             kit.lineStyle(4, 0x9da88a).lineBetween(point.x + 43, point.y - 16, point.x + 43, point.y - 6)
             kit.fillStyle(0x8eb6a2).fillTriangle(point.x + 40, point.y + 5, point.x + 48, point.y + 5, point.x + 44, point.y + 14)
             this.components.add('irrigation:drip:side-kit')
-          } else for (const slot of model.slots) {
+          } else {
+            if (point && model.kind !== 'ground') {
+              this.regionalServiceBase(model, point.x, point.y, 160)
+              this.supply(4, point.x, point.y, 198, point.y * 10 + 1500, model.region !== 'costa')
+            }
+            for (const slot of model.slots) {
             const pipe = this.graphics('parcels', slot.depth * 10 + 3)
             if (model.kind === 'ground') {
               // Scale the laterals with the new coastal footprint so they stay
@@ -511,12 +617,14 @@ export class GardenScenePainter {
               pipe.lineStyle(1, 0xa4b394, .65).lineBetween(slot.anchor.x - half, slot.anchor.y + 1, slot.anchor.x + half, slot.anchor.y + 1)
               pipe.fillStyle(0x6b9970).fillCircle(slot.anchor.x, slot.anchor.y + 3, 3)
             }
+            }
           }
         } else {
           const point = placements.irrigation[method]
           if (point && (method === 'manual' || method === 'hose' || method === 'sprinkler')) {
             const frame = ({ manual: 3, hose: 4, sprinkler: 5 } as const)[method]
-            if (!this.supply(frame, point.x, point.y, 104, point.y * 10 + 1500)) {
+            this.regionalServiceBase(model, point.x, point.y, 158)
+            if (!this.supply(frame, point.x, point.y, model.kind === 'ground' ? 142 : 216, point.y * 10 + 1500, model.region !== 'costa')) {
               const fallback = this.graphics('structures', point.y * 10)
               fallback.fillStyle(0x6f8f66).fillEllipse(point.x, point.y - 20, 68, 36)
             }
@@ -554,6 +662,14 @@ export class GardenScenePainter {
   private fertilizers(model: GardenVisualModel) {
     const placements = gardenFeaturePlacements(model.region, model.kind)
     if (placements) {
+      // Whichever fertilizer was actually registered receives the most visible
+      // side-of-garden position; unregistered materials do not occupy space.
+      const regionalMaterials = model.characteristics.naturalFertilizers.filter(value => value !== 'fallow')
+      const materialPositions = [
+        placements.fertilizers.compost,
+        placements.fertilizers.plantRemains,
+        placements.fertilizers.leaves,
+      ]
       model.characteristics.naturalFertilizers.forEach(fertilizer => {
         if (fertilizer === 'fallow') {
           const { x, y } = placements.fertilizers.fallow ?? { x: 0, y: 0 }
@@ -564,12 +680,27 @@ export class GardenScenePainter {
           sign.lineStyle(1.5, 0xc59b55).strokeRoundedRect(x - 83, y - 48, 166, 29, 5)
           this.add('structures', this.scene.add.text(x, y - 34, 'Barbecho declarado', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#4b5a36' }).setOrigin(.5), y * 10 + 1)
         } else {
-          const point = placements.fertilizers[fertilizer]
+          const point = model.region === 'costa'
+            ? placements.fertilizers[fertilizer]
+            : (materialPositions[regionalMaterials.indexOf(fertilizer)] ?? placements.fertilizers[fertilizer])
           if (point) {
             const frame = ({ leaves: 0, plantRemains: 1, compost: 2 } as const)[fertilizer]
-            if (!this.supply(frame, point.x, point.y, 76, point.y * 10 + 1500)) {
+            // The non-coastal service materials occupy a clear side lane,
+            // rather than vanishing below the garden toolbar. Keep the
+            // previously approved Costa sizes and locations unchanged.
+            const regional = model.region !== 'costa'
+            const width = regional
+              ? fertilizer === 'compost' ? 234 : fertilizer === 'plantRemains' ? 210 : 204
+              : model.kind === 'ground' ? 112 : 220
+            if (regional && model.kind === 'ground') {
+              const color = model.region === 'galapagos' ? 0x65584b : model.region === 'oriente' ? 0x4f6537 : 0x79653f
+              const patch = this.graphics('ground', point.y)
+              patch.fillStyle(0x17271a, .18).fillEllipse(point.x + 6, point.y + 14, width * .82, width * .21)
+              patch.fillStyle(color, .26).fillEllipse(point.x, point.y + 9, width * .76, width * .16)
+            } else this.regionalServiceBase(model, point.x, point.y, regional ? width * .83 : 148)
+            if (!this.supply(frame, point.x, point.y, width, point.y * 10 + 1500, regional)) {
               const pile = this.graphics('structures', point.y * 10)
-              pile.fillStyle(fertilizer === 'compost' ? 0x54402c : 0x9b8545).fillEllipse(point.x, point.y - 8, 70, 28)
+              pile.fillStyle(fertilizer === 'compost' ? 0x54402c : 0x9b8545).fillEllipse(point.x, point.y - 8, width * .62, width * .23)
             }
           }
         }
@@ -760,38 +891,83 @@ export class GardenScenePainter {
     }
   }
 
+  private potPlatform(model: GardenVisualModel, slot: VisualSlot) {
+    const { x, y } = slot.base
+    const palette = {
+      sierra: { stone: 0xa8a18a, rim: 0x605a4d, light: 0xdcd0ae },
+      costa: { stone: 0xc5a77a, rim: 0x8a6847, light: 0xf2d59f },
+      oriente: { stone: 0x786b4f, rim: 0x3f4d32, light: 0xb9b08a },
+      galapagos: { stone: 0x8b8b81, rim: 0x4a4a48, light: 0xc4bca8 },
+    }[model.region]
+    const padKey = `regional-pad-${model.region}`
+    if (this.scene.textures.exists(padKey)) {
+      this.add('ground', this.scene.add.image(x, y + 5, padKey).setOrigin(.5, .58)
+        .setDisplaySize(330, 122), y)
+      return
+    }
+    const g = this.graphics('ground', y)
+    // A low elliptical flagstone ring physically seats each container in its yard.
+    g.fillStyle(0x17261b, .21).fillEllipse(x + 9, y + 22, 275, 64)
+    g.fillStyle(palette.rim, .97).fillEllipse(x, y + 12, 280, 79)
+    g.fillStyle(palette.stone, .99).fillEllipse(x, y + 5, 271, 66)
+    g.lineStyle(4, palette.light, .82).strokeEllipse(x, y + 1, 264, 59)
+    for (let index = 0; index < 9; index++) {
+      const a = index * Math.PI * 2 / 9
+      const sx = x + Math.cos(a) * 113
+      const sy = y + 4 + Math.sin(a) * 24
+      g.lineStyle(2, palette.rim, .55).lineBetween(sx, sy - 7, sx + Math.cos(a) * 13, sy + 7)
+    }
+  }
+
   private container(model: GardenVisualModel, slot: VisualSlot) {
     const { x, y } = slot.anchor
     const s = model.footprintScale
-    const hanging = model.kind === 'hanging'
     if (model.kind === 'vertical') {
-      // Mounting brackets touch the actual slats; opening and focus share an anchor.
-      const brackets = this.graphics('structures', slot.depth * 10 - 2)
-      brackets.lineStyle(7, 0x524e35).lineBetween(x - 100 * s, y + 35, x - 100 * s, y + 86).lineBetween(x + 100 * s, y + 35, x + 100 * s, y + 86)
-      if (this.scene.textures.exists('empty-trough')) this.add('parcels', this.scene.add.image(x, y, 'empty-trough', 'tray').setOrigin(.5, .25).setDisplaySize(240 * s, 102 * s).setRotation(-.115), slot.depth * 10)
-      else this.graphics('parcels', slot.depth * 10).fillStyle(0x9a6b37).fillRoundedRect(x - 130, y - 20, 260, 95, 9)
-    } else {
-      const variant = hanging ? 1 : potArtwork(model.region, slot.plot).variant
-      const width = (hanging ? hangingGeometry(slot.plot, model.region).width : slot.plot < 3 ? 213 : 245) * s
-      this.painted('ground', 'soft-contact', 512, 128, ctx => {
-        ctx.scale(1, .25)
-        const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 250)
-        gradient.addColorStop(0, '#182f2390'); gradient.addColorStop(.4, '#182f2340'); gradient.addColorStop(1, '#182f2300')
-        ctx.fillStyle = gradient; ctx.fillRect(0, 0, 512, 512)
-      }, x - width * .45 + 4, slot.base.y - width * .1, slot.base.y)?.setDisplaySize(width * .9, width * .225).setAlpha(hanging ? .4 : 1)
-      if (hanging) {
-        const ropes = this.graphics('structures', slot.depth * 10 - 2)
-        // Both rows hang from load-bearing crossbeams, with matched endpoints.
-        const hookY = hangingGeometry(slot.plot, model.region).hookY
-        for (const endX of [x - width * .37, x + width * .37]) {
-          ropes.lineStyle(5, 0x73582d).lineBetween(x, hookY + 8, endX, y + 9)
-          ropes.lineStyle(2, 0xe9cf8a).lineBetween(x - 1, hookY + 8, endX - 1, y + 9)
-        }
-        ropes.lineStyle(4, 0x524b32).strokeEllipse(x, hookY + 8, 13, 19)
-      }
-      if (this.scene.textures.exists('empty-pots')) this.add('parcels', this.scene.add.image(x, y, 'empty-pots', `pot-${variant}`).setOrigin(.5, POT_GEOMETRY[variant].mouth / 512).setDisplaySize(width, width), slot.depth * 10)
-      else this.graphics('parcels', slot.depth * 10).fillStyle(0xb57b45).fillEllipse(x, y + 50, width, 130)
+      const texture = `regional-trough-${model.region}`
+      // The soil opening is the interactive anchor. Three shelves per bay are
+      // attached to the same shared structural frame, not floating meshes.
+      if (this.scene.textures.exists(texture)) {
+        const troughWidth = 355 * s
+        this.add('parcels', this.scene.add.image(x, y, texture)
+          .setOrigin(.5, 69 / 240).setDisplaySize(troughWidth, troughWidth * 240 / 512), slot.depth * 10)
+        this.components.add(`container:trough:${model.region}`)
+      } else if (this.scene.textures.exists('empty-trough')) {
+        this.add('parcels', this.scene.add.image(x, y, 'empty-trough', 'tray')
+          .setOrigin(.5, .25).setDisplaySize(310 * s, 142 * s), slot.depth * 10)
+      } else this.graphics('parcels', slot.depth * 10).fillStyle(0x9a6b37).fillRoundedRect(x - 155, y - 18, 310, 104, 9)
+      return
     }
+
+    const hanging = model.kind === 'hanging'
+    const geometry = hanging ? hangingGeometry(slot.plot, model.region) : null
+    const width = (hanging ? geometry!.width : slot.plot < 3 ? 278 : 294) * s
+    if (!hanging) this.potPlatform(model, slot)
+    else {
+      const shadow = this.graphics('ground', slot.base.y)
+      shadow.fillStyle(0x19301d, .10).fillEllipse(x + 10, slot.base.y + 4, 190, 32)
+      // Each basket has its own two suspension strands from a real shared beam.
+      const ropes = this.graphics('structures', slot.depth * 10 - 3)
+      const hookY = geometry!.hookY
+      const braid = model.region === 'galapagos' ? 0xccc09d : model.region === 'sierra' ? 0xc49b61 : 0xe0c386
+      for (const endX of [x - width * .31, x + width * .31]) {
+        ropes.lineStyle(7, 0x6b5435, .95).lineBetween(x, hookY + 9, endX, y + 12)
+        ropes.lineStyle(3, braid, .9).lineBetween(x - 1, hookY + 9, endX - 1, y + 12)
+      }
+      ropes.lineStyle(5, 0x60533b).strokeEllipse(x, hookY + 8, 13, 19)
+    }
+
+    const newKey = hanging ? `regional-baskets-${model.region}` : `regional-pots-${model.region}`
+    if (this.scene.textures.exists(newKey)) {
+      const mouth = 173
+      const frame = `item-${slot.plot}`
+      this.add('parcels', this.scene.add.image(x, y, newKey, frame)
+        .setOrigin(.5, mouth / 512).setDisplaySize(width, width), slot.depth * 10)
+      this.components.add(`container:${hanging ? 'basket' : 'pot'}:${model.region}`)
+    } else if (this.scene.textures.exists('empty-pots')) {
+      const variant = hanging ? 1 : potArtwork(model.region, slot.plot).variant
+      this.add('parcels', this.scene.add.image(x, y, 'empty-pots', `pot-${variant}`)
+        .setOrigin(.5, POT_GEOMETRY[variant].mouth / 512).setDisplaySize(width, width), slot.depth * 10)
+    } else this.graphics('parcels', slot.depth * 10).fillStyle(0xb57b45).fillEllipse(x, y + 50, width, 130)
   }
 
   private slot(model: GardenVisualModel, slot: VisualSlot) {
@@ -846,8 +1022,8 @@ export class GardenScenePainter {
         ? coastalReliefGeometry(slot.plot, slot.design, model.footprintScale) : null
       const regionalRelief = model.kind === 'ground' && !coastalGround && isCoastalRelief(slot.design)
         ? coastalReliefGeometry(slot.plot, slot.design, model.footprintScale) : null
-      const width = model.kind === 'ground' ? (coastalRelief || regionalRelief ? (coastalRelief ?? regionalRelief)!.width * .87 : coastalGround ? (slot.plot < 3 ? 340 : 368) : 295) : 250
-      const height = model.kind === 'ground' ? (coastalRelief || regionalRelief ? (coastalRelief ?? regionalRelief)!.height * .88 : coastalGround ? (slot.plot < 3 ? 132 : 145) : 185) : 108
+      const width = model.kind === 'ground' ? (coastalRelief || regionalRelief ? (coastalRelief ?? regionalRelief)!.width * .87 : coastalGround ? (slot.plot < 3 ? 340 : 368) : 295) : model.kind === 'vertical' ? 300 : model.kind === 'pots' ? 210 : 190
+      const height = model.kind === 'ground' ? (coastalRelief || regionalRelief ? (coastalRelief ?? regionalRelief)!.height * .88 : coastalGround ? (slot.plot < 3 ? 132 : 145) : 185) : model.kind === 'vertical' ? 83 : model.kind === 'pots' ? 75 : 75
       g.fillStyle(0xffe7a0, .08).fillEllipse(x, y, width, height)
       g.lineStyle(15, 0xffe5a0, .12).strokeEllipse(x, y, width + 12, height + 12)
       g.lineStyle(3, 0xfff2b0, .95).strokeEllipse(x, y, width, height)

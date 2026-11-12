@@ -44,6 +44,8 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('agricultural journal: all nine activities, real photos after reload, no inferred growth and reversible harvest', async ({ page }) => {
+  // Recorrido E2E completo: 9 actividades, evidencias y recarga; supera el tiempo global de 120 s en CI.
+  test.setTimeout(300_000)
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
   await registerGround(page)
   await expectReady(page)

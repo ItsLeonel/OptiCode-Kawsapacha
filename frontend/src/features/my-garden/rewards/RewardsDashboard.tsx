@@ -79,7 +79,7 @@ export default function RewardsDashboard({ journal, region, authenticated, offic
             : 'Modo visitante · vista previa local. Los puntos mostrados no son oficiales ni se comparten entre dispositivos.'}
       </p>
       <section className="rv-surface rv-summary" aria-label="Tu progreso">
-        <div className="rv-summary-seeds"><Art name="seed-cacao" className="rv-summary-seed-img"/><div><h2>Semillas de vida</h2><output aria-label="Semillas de vida">{seeds ?? '—'}</output></div></div>
+        <div className="rv-summary-seeds"><Art name="seed-cacao" className="rv-summary-seed-img"/><div><h2>Semillas de vida</h2><output aria-label={isVisitor ? 'Semillas de vida individuales' : 'Semillas de vida'}>{seeds ?? '—'}</output></div></div>
         <div className="rv-summary-medallion"><Art name="level-shield" /></div>
         <div className="rv-summary-level"><h2>Mi nivel actual</h2><strong className="rv-level-tag">{level ?? 'Sin sincronizar'}</strong></div>
         <div className="rv-summary-next"><strong>{next ? `Siguiente: ${next}` : level === 'Maestro' ? 'Nivel Maestro' : 'Siguiente nivel pendiente'}</strong><progress aria-label="Progreso al siguiente nivel" value={percent ?? 0} max={100} /><small>{remaining !== undefined ? (next ? `${remaining} semillas para ${next}` : 'Nivel máximo documentado') : 'Sin datos oficiales'}</small></div>

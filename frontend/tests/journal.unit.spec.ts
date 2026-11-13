@@ -74,5 +74,5 @@ test('a new photo with the same observation keeps both evidences with one daily 
   expect(state.activities).toHaveLength(2)
   expect(projectPlants(state)[0].evidences).toHaveLength(2)
   expect(projectPlants(state)[0].photoId).toBe('observation-b')
-  expect(calculateProgress(state).points).toBe(12)
+  expect(calculateProgress(state).points).toBe(16)
 })

@@ -106,9 +106,9 @@ export default function ActivityModal({
       })
       .catch(() => {
         if (active) {
-          const isMature = plant.state === 'mature'
+          const isMature = plant.state === 'observed'
           setGrowthData({
-            percentage: isMature ? 90 : 45,
+            percentage: isMature ? 80 : 45,
             daysUntilHarvest: isMature ? 0 : 15,
             stage: isMature ? 'Madura' : 'En crecimiento',
           })

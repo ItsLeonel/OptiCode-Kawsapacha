@@ -6,6 +6,7 @@ import {
   catalogApi,
   harvestApi,
   activityApi,
+  resolveMediaUrl,
   type CareLog,
   type GrowthData,
   type HealthStatus,
@@ -272,7 +273,7 @@ export default function PlantPassport({
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', margin: '16px 0' }}>
             <img
               className="garden-passport-photo"
-              src={plant.photo}
+              src={resolveMediaUrl(plant.photo)}
               alt={`Fotografía registrada de ${plant.name}`}
               style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '12px', border: '2px solid #cbd5e0' }}
             />
@@ -655,7 +656,7 @@ export default function PlantPassport({
             <GardenIcon name="book" /> Ver Bitácora general de cultivo
           </button>
           {/* Evidencias de main */}
-          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={evidence.photo} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
+          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={resolveMediaUrl(evidence.photo)} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
         </div>
       )}
     </dialog>

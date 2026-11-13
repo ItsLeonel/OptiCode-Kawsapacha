@@ -16,15 +16,15 @@ export type ActivityType =
   | 'harvest'
 
 export const BASE_POINTS: Record<ActivityType, number> = {
-  preparation: 10,
-  weeding: 8,
-  sowing: 20,
-  watering: 5,
-  fertilizing: 8,
-  hilling: 8,
-  replanting: 10,
-  observation: 12,
-  harvest: 20,
+  preparation: 0,
+  weeding: 15,
+  sowing: 0,
+  watering: 10,
+  fertilizing: 15,
+  hilling: 15,
+  replanting: 0,
+  observation: 16,
+  harvest: 30,
 }
 
 export const USER_LEVELS = [

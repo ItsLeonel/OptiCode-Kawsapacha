@@ -150,9 +150,9 @@ export async function createGardenActivity(input: CreateActivityInput) {
   let linkedHarvestRecordId: string | null = null
 
   if (targetKind === 'plant' && plantId) {
-    // Si es riego o abonado, registrar CareLog para que se actualice la salud y alertas del huerto
-    if (type === 'watering' || type === 'fertilizing') {
-      const actionType = type === 'watering' ? 'WATERING' : 'FERTILIZER'
+    // Si es riego, abonado o limpieza/mantenimiento, registrar CareLog para que se actualice la salud y alertas del huerto
+    if (type === 'watering' || type === 'fertilizing' || type === 'weeding') {
+      const actionType = type === 'watering' ? 'WATERING' : type === 'fertilizing' ? 'FERTILIZER' : 'PRUNING'
 
       // Validar sobrecuidado antes de registrar el cuidado
       const plantForCare = await prisma.cultivatedPlant.findUnique({
@@ -180,6 +180,24 @@ export async function createGardenActivity(input: CreateActivityInput) {
         },
       })
       linkedCareLogId = careLog.id
+    } else if (type === 'hilling') {
+      // Validar que no se repita aporque en los últimos 7 días
+      const recentHilling = await prisma.gardenActivity.findFirst({
+        where: {
+          plantId,
+          type: 'hilling',
+          voidedAt: null,
+          performedDate: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+          },
+        },
+      })
+      if (recentHilling) {
+        throw Object.assign(
+          new Error('La planta ya cuenta con aporque reciente en su base. El exceso de aporque puede compactar la tierra o cubrir tallos tiernos.'),
+          { code: 'CARE_OVERUSE' }
+        )
+      }
     }
 
     // Si es cosecha, invocar la lógica existente de cosecha (bodega + estado de planta)

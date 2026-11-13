@@ -28,6 +28,7 @@ import {
   invitationApi,
   memberApi,
   getUser,
+  resolveMediaUrl,
   type UserSession,
   type CommunityInvitationItem,
   type BackendActivity,
@@ -135,7 +136,8 @@ export default function App({
 
   const detail = plants.find(plant => plant.id === detailId) ?? null
   const editingPlant = plants.find(plant => plant.id === editingId)
-  const progress = useMemo(() => calculateProgress(effectiveJournal, communityRecord?.responsible), [effectiveJournal, communityRecord?.responsible])
+  const activeUser = user?.name || communityRecord?.responsible
+  const progress = useMemo(() => calculateProgress(effectiveJournal, activeUser), [effectiveJournal, activeUser])
 
   // Cargar catálogo de especies
   useEffect(() => {
@@ -277,7 +279,7 @@ export default function App({
         ? { kind: 'plot', plot: b.plotIndex ?? 0 }
         : { kind: 'garden' }
 
-    const photoUrls = b.evidences?.map(e => (e.fileUrl.startsWith('http') ? e.fileUrl : `http://localhost:3000${e.fileUrl}`)) || []
+    const photoUrls = b.evidences?.map(e => resolveMediaUrl(e.fileUrl)) || []
 
     return {
       id: b.id,
@@ -325,7 +327,7 @@ export default function App({
               id: p.id,
               name: p.customName || p.species?.name || p.speciesId,
               latin: p.species?.latinName || '',
-              photo: p.photoUrl ? (p.photoUrl.startsWith('http') ? p.photoUrl : `http://localhost:3000${p.photoUrl}`) : '',
+              photo: resolveMediaUrl(p.photoUrl),
               date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
               plot: p.plotIndex ?? -1,
               createdAt: (p as any).createdAt || new Date(p.plantingDate).toISOString(),
@@ -633,7 +635,7 @@ export default function App({
           id: apiPlant.id,
           name: apiPlant.species?.name || input.species.name,
           latin: apiPlant.species?.latinName || input.species.latin,
-          photo: apiPlant.photoUrl,
+          photo: resolveMediaUrl(apiPlant.photoUrl),
           date: new Date(apiPlant.plantingDate).toLocaleDateString('es-EC'),
           plot: apiPlant.plotIndex ?? 0,
           plantedOn: input.plantedOn,
@@ -743,9 +745,7 @@ export default function App({
         setBackendPlants(prev =>
           prev.map(p => {
             if (p.id === editingPlant.id) {
-              const fullPhoto = updated.photoUrl
-                ? (updated.photoUrl.startsWith('http') ? updated.photoUrl : `http://localhost:3000${updated.photoUrl}`)
-                : p.photo
+              const fullPhoto = resolveMediaUrl(updated.photoUrl || p.photo)
               return {
                 ...p,
                 name: updated.customName || p.name,

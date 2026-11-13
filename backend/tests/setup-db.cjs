@@ -25,9 +25,9 @@ async function prepareDatabase({ verifyUpgrade = false } = {}) {
   const client = new PrismaClient({ datasources: { db: { url: databaseUrl } } })
   // The existing V1 DB contains these fields, but its historical migrations
   // do not. Reproduce that pre-existing baseline without editing those migrations.
-  await client.$executeRawUnsafe('ALTER TABLE communities ADD COLUMN type TEXT NOT NULL DEFAULT \'personal\'')
-  await client.$executeRawUnsafe('ALTER TABLE real_gardens ADD COLUMN characteristics TEXT DEFAULT \'{}\'')
-  await client.$executeRawUnsafe('ALTER TABLE cultivated_plants ADD COLUMN archivedAt DATETIME')
+  try { await client.$executeRawUnsafe('ALTER TABLE communities ADD COLUMN type TEXT NOT NULL DEFAULT \'personal\'') } catch {}
+  try { await client.$executeRawUnsafe('ALTER TABLE real_gardens ADD COLUMN characteristics TEXT DEFAULT \'{}\'') } catch {}
+  try { await client.$executeRawUnsafe('ALTER TABLE cultivated_plants ADD COLUMN archivedAt DATETIME') } catch {}
   if (verifyUpgrade) {
     await client.$executeRawUnsafe("INSERT INTO users (id,name,email,passwordHash,updatedAt) VALUES ('legacy-user','Legacy','legacy@example.test','test',CURRENT_TIMESTAMP)")
     await client.$executeRawUnsafe("INSERT INTO communities (id,name,responsible,location,description,creatorId,updatedAt) VALUES ('legacy-community','Existing community','Legacy','Napo','Preserved','legacy-user',CURRENT_TIMESTAMP)")

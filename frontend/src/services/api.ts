@@ -10,6 +10,18 @@ import { validatePhoto } from '../shared/photo-validation'
 
 const BASE_URL = '' // Utiliza el proxy de Vite configurado hacia http://localhost:3000
 
+export function resolveMediaUrl(url?: string | null): string {
+  if (!url) return ''
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return url.replace(/http:\/\/localhost:3000/g, `${window.location.protocol}//${window.location.hostname}:3000`)
+    }
+    return url
+  }
+  return url.startsWith('/') ? url : `/${url}`
+}
+
 // ─── Gestión de Tokens y Sesión ──────────────────────────────────────────────
 
 const TOKEN_KEY = 'kawsapacha_token'

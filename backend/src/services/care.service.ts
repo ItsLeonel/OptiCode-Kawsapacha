@@ -115,10 +115,10 @@ function calculateGrowthData(
     percentage = Math.min(100, percentage + recentFertilizer.length * 2)
   }
 
-  // En rebrote: porcentaje parte de 25% (planta sigue viva) y crece hasta 100%
+  // En rebrote: porcentaje parte de 0% (barra reiniciada) y crece hasta 100%
   if (isRegrowing) {
-    const regrowthPct = Math.min(100, (daysElapsed / regrowthDays) * 75) // 25% → 100%
-    percentage = Math.min(100, 25 + regrowthPct)
+    const regrowthPct = Math.min(100, (daysElapsed / regrowthDays) * 100)
+    percentage = Math.min(100, regrowthPct)
   }
 
   percentage = Math.round(percentage)
@@ -126,8 +126,9 @@ function calculateGrowthData(
   // ── Etapa de crecimiento ──────────────────────────────────────────────────
   let stage: string
   if (isRegrowing) {
-    if (percentage < 50) stage = 'Rebrote y recuperación 🌱'
-    else if (percentage < 75) stage = 'Crecimiento de rebrote 🌿'
+    if (percentage < 25) stage = 'Rebrote inicial 🌱'
+    else if (percentage < 50) stage = 'Rebrote y recuperación 🌿'
+    else if (percentage < 75) stage = 'Crecimiento de rebrote 🪴'
     else stage = 'Lista para cosechar ✨'
   } else {
     if (percentage <= 25) stage = 'Semilla 🌱'

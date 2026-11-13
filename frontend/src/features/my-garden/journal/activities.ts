@@ -2,7 +2,7 @@ import { PLANT_STATES, type GardenPlant, type PlantState } from '../garden'
 import { validDate } from '../plant-record'
 
 export const ACTIVITY_TYPES = {
-  preparation: 'Preparación del terreno', weeding: 'Limpieza y deshierbe', sowing: 'Siembra', watering: 'Riego',
+  preparation: 'Preparación del terreno', weeding: 'Limpieza y mantenimiento', sowing: 'Siembra', watering: 'Riego',
   fertilizing: 'Abonado', hilling: 'Aporque', replanting: 'Replante', observation: 'Seguimiento del crecimiento', harvest: 'Cosecha',
 } as const
 export type ActivityType = keyof typeof ACTIVITY_TYPES

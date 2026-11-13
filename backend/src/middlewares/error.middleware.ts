@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import { fail } from '../utils/response'
+import { MulterError } from 'multer'
 
 export function errorMiddleware(
   err: Error,
@@ -8,6 +9,10 @@ export function errorMiddleware(
   _next: NextFunction
 ): void {
   console.error('[ERROR]', err.message)
+  if (err instanceof MulterError && err.code !== 'LIMIT_FILE_SIZE') {
+    fail(res, 'INVALID_UPLOAD', 'Envía una sola fotografía en el campo picture.', 400)
+    return
+  }
 
   // Errores de Multer (tamaño o tipo de archivo)
   if (err.message.includes('File too large')) {

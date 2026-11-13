@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './e2e'
-import { chooseCommunityTerritory, mainNavigation, nextCommunityStep } from './community-helpers'
+import { chooseCommunityTerritory, mainNavigation, navigateModule, nextCommunityStep } from './community-helpers'
 
 test.setTimeout(90_000)
 const errors = new WeakMap<Page, string[]>()
@@ -79,7 +79,7 @@ for (const region of regions) {
     await expect(page.getByRole('button', { name: /Publicar mi experiencia/ })).toBeVisible()
     await expect(page.locator('.communities-page')).not.toContainText(/\b(?:XP|monedas|puntos)\b/i)
     await capture(page, `artifacts/comunidad-v3/comunidad-${region.key}.png`)
-    await mainNavigation(page).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+    await navigateModule(page, 'Mi Huerto Vivo')
     await expect(page.locator('.my-garden-page')).toHaveAttribute('data-region', region.key)
     await expect(page.locator('.garden-parcels')).toHaveCount(0)
     await capture(page, `artifacts/comunidad-v3/mi-jardin-con-comunidad-${region.key}.png`)

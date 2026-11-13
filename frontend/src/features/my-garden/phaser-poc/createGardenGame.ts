@@ -1,6 +1,8 @@
+import { coastalFootprintRatio } from './coastal-terrain'
+import { COASTAL_RELIEF_ART, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import Phaser from 'phaser'
 import { GardenSceneBridge, type SceneCommand } from './bridge'
-import { BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
+import { REGIONAL_POTS_ART, REGIONAL_PAD_ART, REGIONAL_BASKETS_ART, REGIONAL_TROUGHS_ART, REGIONAL_SUPPORTS_ART, BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
 import { LAYOUT_PROFILES } from './layouts'
 import { GardenScenePainter } from './scene-painter'
 import type { SlotId } from './model'
@@ -124,18 +126,38 @@ class ModularGardenScene extends Phaser.Scene {
       ['ground-materials', MATERIAL_ART],
       ['organic-soil', ORGANIC_SOIL_ART],
     ]
-    if (model.region === 'costa' && model.kind === 'ground') {
-      if (model.soilType === 'marsh') needed.push(['costa-plot-marsh', COSTA_MARSH_PLOT_ART])
-      else COSTA_PLOT_ART.forEach((url, plot) => needed.push([`costa-plot-${plot}`, url]))
+    if (model.kind === 'ground') {
+      if (model.region === 'costa' || model.slots.some(slot => slot.design === null)) {
+        if (model.soilType === 'marsh') needed.push(['costa-plot-marsh', COSTA_MARSH_PLOT_ART])
+        else COSTA_PLOT_ART.forEach((url, plot) => needed.push([`costa-plot-${plot}`, url]))
+      }
+      // Load only the registered relief artwork; beds keep their approved PNGs.
+      for (const design of new Set(model.slots.map(slot => slot.design))) {
+        if (isCoastalRelief(design)) needed.push([COASTAL_RELIEF_KEY[design], COASTAL_RELIEF_ART[design]])
+      }
     }
     if (model.region === 'costa' && model.characteristics.fences.some(kind => kind === 'living')) needed.push(['costa-fence-flora', COSTA_FENCE_ART.foliage])
     if (model.region === 'costa' && model.characteristics.fences.some(kind => kind === 'metal' || kind === 'conventional')) {
       needed.push(['costa-fence-segment', COSTA_FENCE_ART.segment], ['costa-fence-corner', COSTA_FENCE_ART.corner], ['costa-fence-gate', COSTA_FENCE_ART.gate])
     }
     if (model.kind === 'ground' && model.region !== 'costa' && model.characteristics.groundDesigns.includes('beds')) needed.push(['empty-bed', BED_ART])
-    if (model.kind === 'pots' || model.kind === 'hanging') needed.push(['empty-pots', POTS_ART])
-    if (model.kind === 'vertical') needed.push(['empty-trough', TROUGH_ART], ['garden-trellis', TRELLIS_ART])
-    if (model.kind === 'hanging') needed.push(['garden-pergola', PERGOLA_ART])
+    if (model.kind === 'pots') {
+      needed.push([`regional-pad-${model.region}`, REGIONAL_PAD_ART[model.region]])
+      // Sierra retains its approved ceramic atlas, other regions use local materials.
+      needed.push(['empty-pots', POTS_ART])
+      const art = REGIONAL_POTS_ART[model.region]
+      if (art) needed.push([`regional-pots-${model.region}`, art])
+    }
+    if (model.kind === 'hanging') {
+      needed.push(['empty-pots', POTS_ART], ['garden-pergola', PERGOLA_ART])
+      needed.push([`regional-baskets-${model.region}`, REGIONAL_BASKETS_ART[model.region]])
+      needed.push([`regional-hanging-${model.region}`, REGIONAL_SUPPORTS_ART[model.region].hanging])
+    }
+    if (model.kind === 'vertical') {
+      needed.push(['empty-trough', TROUGH_ART], ['garden-trellis', TRELLIS_ART])
+      needed.push([`regional-trough-${model.region}`, REGIONAL_TROUGHS_ART[model.region]])
+      needed.push([`regional-vertical-${model.region}`, REGIONAL_SUPPORTS_ART[model.region].vertical])
+    }
     if (model.characteristics.naturalFertilizers.some(value => value !== 'fallow') || model.characteristics.irrigationMethods.some(value => value === 'manual' || value === 'hose' || value === 'sprinkler')) needed.push(['garden-supplies', SUPPLIES_ART])
     if (model.characteristics.fences.some(value => value !== 'natural') || model.characteristics.waterSources.some(value => value === 'well' || value === 'mains')) needed.push(['garden-infrastructure', INFRASTRUCTURE_ART])
     model.slots.forEach(slot => {
@@ -213,9 +235,10 @@ class ModularGardenScene extends Phaser.Scene {
     const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
     const profile = LAYOUT_PROFILES[this.bridge.snapshot.model.kind]
     // Keep direct canvas targets at least 44 CSS pixels even on narrow screens.
-    const coastalGround = this.bridge.snapshot.model.region === 'costa' && this.bridge.snapshot.model.kind === 'ground'
-    const hitX = Math.max(coastalGround ? 178 : profile.hitX, 22 / this.cameras.main.zoom)
-    const hitY = Math.max(coastalGround ? 78 : profile.hitY, 22 / this.cameras.main.zoom)
+    const ground = this.bridge.snapshot.model.kind === 'ground'
+    const footprintRatio = ground ? coastalFootprintRatio(this.bridge.snapshot.model.footprintScale) : 1
+    const hitX = Math.max(ground ? 160 * footprintRatio : profile.hitX, 22 / this.cameras.main.zoom)
+    const hitY = Math.max(ground ? 74 * footprintRatio : profile.hitY, 22 / this.cameras.main.zoom)
     return this.bridge.snapshot.model.slots
       .map(slot => ({ slot, distance: Math.hypot((point.x - slot.anchor.x) / hitX, (point.y - slot.anchor.y) / hitY) }))
       .filter(item => item.distance <= 1)
@@ -232,19 +255,26 @@ class ModularGardenScene extends Phaser.Scene {
     if (!this.ready) return
     this.viewportSize = `${this.scale.width}:${this.scale.height}`
     this.drag = null
-    const coast = this.bridge.snapshot.model.region === 'costa'
-    // Coast shows the complete flat cultivation area without hiding the horizon
-    // or the front supports behind the React action bar.
-    // Other regions preserve the existing initial framing until their art is adapted.
-    const zoom = coast
-      ? Math.min(this.scale.width / WORLD.width, this.scale.height / 1030)
+    const ground = this.bridge.snapshot.model.kind === 'ground'
+    // Flat garden regions share a fit-to-width frame that keeps all six plots and the entry in view.
+    const zoom = ground
+      // Fit Costa to the viewport width. Height fitting can expose world X
+      // beyond 0..WORLD.width on short windows, where the lawn ends abruptly.
+      ? this.scale.width / WORLD.width
       : Math.max(
           Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2),
           Math.min(this.scale.width / 1750, this.scale.height / 1100, 1.3),
         )
-    const centerX = coast ? WORLD.width / 2 : WORLD.centerX
-    const centerY = coast ? 800 : WORLD.centerY
-    this.cameras.main.setZoom(zoom).centerOn(centerX, centerY)
+    // En móvil, encuadrar los seis centros táctiles; no dejar fuera la última maceta.
+    const anchors = this.bridge.snapshot.model.slots.map(slot => slot.anchor.x)
+    const minSlotX = Math.min(...anchors)
+    const maxSlotX = Math.max(...anchors)
+    const slotWidth = Math.max(1, maxSlotX - minSlotX)
+    const touchPadding = Math.min(44, this.scale.width * .12)
+    const fittedZoom = ground ? zoom : Math.min(zoom, (this.scale.width - touchPadding) / slotWidth)
+    const centerX = ground ? WORLD.width / 2 : (minSlotX + maxSlotX) / 2
+    const centerY = ground ? 800 : WORLD.centerY
+    this.cameras.main.setZoom(fittedZoom).centerOn(centerX, centerY)
   }
 
   private publishCamera() {

@@ -1,4 +1,4 @@
-﻿import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { GardenSceneRendererProps } from '../garden-scene-renderer'
 import { SOIL_OPTIONS, IRRIGATION_OPTIONS, formatGardenArea } from '../../real-gardens/real-garden'
 import { GARDEN_FEATURE_OPTIONS } from '../../real-gardens/garden-characteristics'
@@ -85,7 +85,7 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
 
   function command(value: SceneCommand) { bridge.command(value) }
   function slotKeyboard(event: KeyboardEvent<HTMLButtonElement>, plot: number) {
-    const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }
+    const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: model.kind === 'vertical' ? -2 : -3, ArrowDown: model.kind === 'vertical' ? 2 : 3 }
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? 5 : event.key in offsets ? Math.max(0, Math.min(5, plot + offsets[event.key])) : null
     if (next !== null) { event.preventDefault(); slotButtons.current[next]?.focus({ preventScroll: true }) }
   }

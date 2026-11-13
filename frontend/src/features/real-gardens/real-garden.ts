@@ -1,6 +1,7 @@
 import { provinces } from '../../EcuadorMap'
 import { officialCantons, officialParishes, provinceForName, territoryLabel } from './territory'
 import { GARDEN_FEATURE_OPTIONS, toGardenFeatures, type GardenFeatures } from './garden-characteristics'
+import { validatePhoto } from '../../shared/photo-validation'
 
 export const GARDEN_KINDS = {
   ground: { label: 'En tierra', description: 'Cultivo directo en el suelo.' },
@@ -40,6 +41,9 @@ export type RealGarden = {
   createdById?: string
   characteristics?: GardenFeatures
   photo?: File
+  photoUrl?: string | null
+  removePhoto?: boolean
+  communityProvince?: string
 }
 
 export type RealGardenDraft = {
@@ -55,6 +59,8 @@ export type RealGardenDraft = {
   soilType: SoilType | ''
   characteristics?: GardenFeatures
   photo?: File
+  photoUrl?: string | null
+  removePhoto?: boolean
 }
 export type RealGardenErrors = Partial<Record<keyof RealGardenDraft, string>>
 
@@ -76,6 +82,8 @@ export function toGardenDraft(garden: RealGarden | null): RealGardenDraft {
     soilType: garden.soilType ?? '',
     characteristics: toGardenFeatures(garden.characteristics),
     photo: garden.photo,
+    photoUrl: garden.photoUrl,
+    removePhoto: garden.removePhoto,
   }
 }
 
@@ -101,7 +109,7 @@ export function parseRealGarden(draft: RealGardenDraft, communityName: string | 
   for (const field of Object.keys(GARDEN_FEATURE_OPTIONS) as (keyof GardenFeatures)[]) {
     if (characteristics[field].some(value => !Object.hasOwn(GARDEN_FEATURE_OPTIONS[field], value))) errors.characteristics = 'Revisa las características seleccionadas.'
   }
-  if (draft.photo && !draft.photo.type.startsWith('image/')) errors.photo = 'Selecciona un archivo de imagen para la fotografía del terreno.'
+  if (draft.photo && validatePhoto(draft.photo)) errors.photo = validatePhoto(draft.photo)
   if (Object.keys(errors).length) return { ok: false, errors }
   return { ok: true, garden: {
     name: draft.name.trim(), kind: draft.kind as GardenKind, areaM2,
@@ -112,7 +120,7 @@ export function parseRealGarden(draft: RealGardenDraft, communityName: string | 
     },
     irrigationAvailability: draft.irrigationAvailability as IrrigationAvailability,
     soilType: draft.kind === 'ground' ? draft.soilType as SoilType : null, communityName,
-    characteristics, photo: draft.photo,
+    characteristics, photo: draft.photo, photoUrl: draft.removePhoto ? null : draft.photoUrl, removePhoto: draft.removePhoto,
   } }
 }
 

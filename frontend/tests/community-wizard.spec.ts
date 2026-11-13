@@ -44,7 +44,8 @@ test('24 provincias reales, cuatro paletas, hover, teclado y mundos regionales',
     await expect(path).toHaveCSS('stroke-width', '3px')
     await expect(page.getByLabel('Provincia de la comunidad')).toHaveValue(province)
     await expect(page.locator('.cw-world')).toHaveAttribute('data-region', region)
-    await expect(page.locator('.cw-world')).toHaveCSS('background-image', new RegExp(`fondo_comunidad_${region}`))
+    const expectedBackground = region === 'costa' ? 'fondo_comunidad_costa' : region === 'sierra' ? 'Paisaje Andino con Volcán Nevado-2.png' : region === 'oriente' ? 'Paraíso Amazónico con Cabaña y Cascada-3.png' : 'Paisaje volcánico de las Galápagos-1.png'
+    await expect.poll(async () => decodeURIComponent(await page.locator('.cw-world').evaluate(el => getComputedStyle(el).backgroundImage))).toContain(expectedBackground)
     await expect(page.locator('.kg-guide__portrait')).toHaveAttribute('src', new RegExp(`personaje_${region}`))
     await expect(page.locator('.kg-region-chip')).toHaveText(`Región: ${label}`)
     await page.locator('.kg-guide__portrait').evaluate(el => (el as HTMLImageElement).decode())

@@ -1,6 +1,7 @@
 import GardenIcon from '../my-garden/GardenIcon'
 import CommunityIcon from './CommunityIcon'
-import { gameRegionAssets } from '../../shared/ui/game-ui/game-region-assets'
+import { regionalLandscapes } from '../../shared/regional-landscapes'
+import { communityProvince } from './community-territory'
 import { regionForProvince } from '../real-gardens/garden-region'
 import type { Community } from './communities'
 import CommunityCoverPhoto from './CommunityCoverPhoto'
@@ -29,7 +30,7 @@ export default function CommunityOverview({
     : ((community as any)?._count?.members ?? ((community.members?.length ?? 0) + 1))
 
   return <section className="community-panel community-overview" aria-label="Mi comunidad registrada">
-    <div className="community-overview-cover"><CommunityCoverPhoto photo={community.coverPhoto} fallback={gameRegionAssets[regionForProvince(community.province ?? '')].background}/></div>
+    <div className="community-overview-cover"><CommunityCoverPhoto photo={community.coverPhoto} photoUrl={community.photoUrl} fallback={regionalLandscapes[regionForProvince(communityProvince(community))]}/></div>
     <div className="community-overview-body">
       <div className="community-overview-heading">
         <div>

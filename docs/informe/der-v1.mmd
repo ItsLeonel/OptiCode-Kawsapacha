@@ -1,0 +1,107 @@
+erDiagram
+    User ||--o{ Community : "crea"
+    User ||--o{ CommunityMember : "integra"
+    User ||--o{ RealGarden : "registra"
+    User ||--o{ CultivatedPlant : "siembra"
+    User ||--o{ CareLog : "realiza"
+    User ||--o{ HarvestRecord : "cosecha"
+    Community ||--o{ CommunityMember : "tiene"
+    Community ||--o{ CommunityInvitation : "envía"
+    Community |o--o{ RealGarden : "vincula"
+    Community ||--o{ CommunityResource : "almacena"
+    Community |o--o{ HarvestRecord : "acumula"
+    RealGarden ||--o{ CultivatedPlant : "6 parcelas"
+    RealGarden ||--o{ HarvestRecord : "produce"
+    MedicinalCatalog ||--o{ CultivatedPlant : "especie de"
+    CultivatedPlant ||--o{ CareLog : "recibe"
+
+    User {
+        string id PK
+        string name
+        string email UK
+        string passwordHash
+        string role
+    }
+    Community {
+        string id PK
+        string name
+        string responsible
+        string location
+        string description
+        string type
+        string creatorId FK
+    }
+    CommunityMember {
+        string id PK
+        string communityId FK
+        string userId FK
+        string roleInCommunity
+        string status
+    }
+    CommunityInvitation {
+        string id PK
+        string communityId FK
+        string email
+        string role
+        string status
+        string invitedById
+    }
+    RealGarden {
+        string id PK
+        string name
+        string kind
+        float areaM2
+        string province
+        string canton
+        string parish
+        float latitude
+        float longitude
+        string irrigationAvailability
+        string soilType
+        string communityId FK
+        string createdById FK
+    }
+    MedicinalCatalog {
+        string id PK
+        string name
+        string latinName
+        string medicinalProperties
+        string contraindications
+        int wateringFrequencyDays
+        int growthCycleDays
+        string lunarPhaseTip
+    }
+    CultivatedPlant {
+        string id PK
+        int plotIndex "0 a 5, unico por huerto"
+        string speciesId FK
+        string realGardenId FK
+        string photoUrl
+        datetime plantingDate
+        string lifecycleStatus
+        string registeredById FK
+    }
+    CareLog {
+        string id PK
+        string plantId FK
+        string actionType
+        datetime performedAt
+        string userId FK
+    }
+    HarvestRecord {
+        string id PK
+        string realGardenId FK
+        string communityId FK
+        string speciesName
+        string quantity
+        datetime harvestDate
+        string harvestedById FK
+    }
+    CommunityResource {
+        string id PK
+        string communityId FK
+        string name
+        string category
+        int quantity
+        string status
+    }

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from './e2e'
 import { registerGround, expectReady, canvasSlot, slots, scene } from './garden-helpers'
+import { navigateModule } from './community-helpers'
 
 async function photoDigest(page: Page) {
   return page.locator('.garden-passport-photo').evaluate(async element => {
@@ -9,27 +10,42 @@ async function photoDigest(page: Page) {
 }
 async function recordActivity(page: Page, type: string, options: { plant?: string; notes?: string; photo?: boolean; destination?: string; complete?: boolean } = {}) {
   await page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button', { name: 'Registrar actividad', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Registrar actividad agrícola' })
-  await dialog.getByLabel('Actividad', { exact: true }).selectOption(type)
-  if (options.plant) await dialog.getByLabel('Ubicación de la actividad', { exact: true }).selectOption({ label: options.plant })
-  await dialog.getByLabel('Persona responsable', { exact: true }).fill('Ana')
-  await dialog.getByLabel('Observaciones de la actividad', { exact: true }).fill(options.notes ?? `Actividad ${type} realizada en el huerto real de prueba.`)
+  const dialog = page.getByRole('dialog', { name: 'Registrar actividad', exact: true })
+  await expect(dialog).toBeVisible()
+  const titles: Record<string, string> = {
+    preparation: 'Preparación del terreno', weeding: 'Limpieza y deshierbe',
+    sowing: 'Siembra', watering: 'Riego', fertilizing: 'Abonado',
+    hilling: 'Aporque', replanting: 'Replante', observation: 'Seguimiento del crecimiento', harvest: 'Cosecha',
+  }
+  if (!['watering', 'sowing', 'fertilizing', 'observation', 'harvest'].includes(type)) {
+    await dialog.getByRole('button', { name: 'Otras', exact: true }).click()
+    await dialog.getByRole('group', { name: 'Otras actividades agrícolas' }).getByRole('button', { name: titles[type], exact: true }).click()
+  } else {
+    await dialog.locator(`.activity-garden-card[title="${titles[type]}"]`).click()
+  }
+  if (options.plant) {
+    await dialog.getByRole('button', { name: /Cambiar planta|Elegir ubicación/ }).click()
+    await dialog.getByLabel('Ubicación de la actividad', { exact: true }).selectOption({ label: options.plant })
+  }
+  await dialog.locator('.activity-garden-field-person input').fill('Ana')
+  await dialog.locator('.activity-garden-observations textarea').fill(options.notes ?? `Actividad ${type} realizada en el huerto real de prueba.`)
   if (type === 'watering') { await dialog.getByLabel('Cantidad', { exact: false }).fill('2'); await dialog.getByLabel('Unidad', { exact: true }).selectOption('L') }
   if (type === 'fertilizing') await dialog.getByLabel('Abono utilizado', { exact: false }).fill('Compost maduro')
-  if (type === 'observation') { await dialog.getByLabel('Estado observado', { exact: true }).selectOption('observed'); await dialog.getByLabel('Altura medida', { exact: false }).fill('22.7') }
+  if (type === 'observation') { await dialog.getByLabel('Estado observado', { exact: true }).selectOption('observed'); await dialog.getByLabel('Altura', { exact: false }).fill('22.7') }
   if (type === 'replanting') await dialog.getByLabel('Espacio de destino', { exact: true }).selectOption(options.destination!)
-  if (type === 'harvest' && options.complete) { await dialog.getByLabel('Tipo de cosecha', { exact: true }).selectOption('complete'); await dialog.getByLabel('Archivar la ficha y liberar el espacio al guardar').check() }
-  if (options.photo) await dialog.getByLabel('Evidencia fotográfica', { exact: false }).setInputFiles('src/features/real-gardens/assets/macetas-v1.jpg')
-  await dialog.getByRole('button', { name: 'Guardar actividad', exact: true }).click()
+  if (type === 'harvest' && options.complete) { await dialog.getByLabel('Tipo de cosecha', { exact: true }).selectOption('complete'); await dialog.getByLabel('Archivar ficha y liberar espacio').check() }
+  if (options.photo) await dialog.getByLabel('Seleccionar imagen de galería').setInputFiles('src/features/real-gardens/assets/macetas-v1.jpg')
+  await dialog.getByRole('button', { name: 'Registrar actividad', exact: true }).click()
   await expect(dialog).toHaveCount(0)
 }
-
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.route('https://tile.openstreetmap.org/**', route => route.abort())
 })
 
 test('agricultural journal: all nine activities, real photos after reload, no inferred growth and reversible harvest', async ({ page }) => {
+  // Recorrido E2E completo: 9 actividades, evidencias y recarga; supera el tiempo global de 120 s en CI.
+  test.setTimeout(300_000)
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
   await registerGround(page)
   await expectReady(page)
@@ -48,12 +64,12 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await recordActivity(page, 'watering', { plant: 'Romero · Espacio 1' })
   await expect(scene(page)).toHaveAttribute('data-feedback', 'watering')
   await canvasSlot(page, 0)
-  await expect(passport).toContainText('Sin estado documentado')
+  await expect(passport).toContainText('La evidencia documental válida del huerto real')
   expect(await photoDigest(page)).toBe(original)
   await expect(passport.locator('.journal-evidences li')).toHaveCount(1)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
   await recordActivity(page, 'watering', { plant: 'Romero · Espacio 1' })
-  await expect(page.getByRole('status', { name: 'Estado de guardado' })).toContainText('único registro')
+  await expect(page.getByRole('status', { name: 'Estado de guardado' })).toContainText('Esta actividad ya estaba guardada.')
   await recordActivity(page, 'weeding')
   await recordActivity(page, 'fertilizing', { plant: 'Romero · Espacio 1' })
   await expect(scene(page)).toHaveAttribute('data-components', /activity:fertilized/)
@@ -72,16 +88,19 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
   await recordActivity(page, 'harvest', { plant: 'Romero · Espacio 2', complete: true })
   await expect(slots(page).nth(1)).toContainText('Registrar una planta')
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi historia', exact: true }).click()
-  await expect(page.locator('.journal-activity')).toHaveCount(9)
-  await page.getByLabel('Filtrar actividades', { exact: true }).selectOption('harvest')
-  const harvest = page.locator('.journal-activity')
-  await harvest.locator('summary').click()
-  await harvest.getByLabel('Motivo de anulación').fill('Se registró una cosecha completa por error.')
-  await harvest.getByRole('button', { name: 'Anular registro conservando evidencia' }).click()
+  await page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button', { name: 'Bitácora', exact: true }).click()
+  await page.getByRole('button', { name: /Ver toda la bitácora/ }).click()
+  await expect(page.locator('.bv-entry-card')).toHaveCount(9)
+  await page.getByRole('group', { name: 'Tipo de actividad' }).getByRole('button', { name: 'Cosecha', exact: true }).click()
+  const harvest = page.locator('.bv-entry-card')
+  await expect(harvest).toHaveCount(1)
+  await harvest.getByRole('button', { name: 'Ver detalle' }).click()
+  const detail = page.getByRole('dialog', { name: 'Cosecha', exact: true })
+  await detail.getByLabel('Anular actividad conservando su historial').fill('Se registró una cosecha completa por error.')
+  await detail.getByRole('button', { name: 'Anular registro' }).click()
   await expect(harvest).toHaveAttribute('data-voided', 'true')
   await page.reload()
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
   await canvasSlot(page, 1)
   await expect(passport).toContainText('Estado observado')
@@ -117,16 +136,17 @@ test('digital mirror: edit a real photo and observations, move, archive and rest
   await expect(slots(page).nth(4)).toContainText('Romero del patio')
   await expect(slots(page).nth(2)).toContainText('Registrar una planta')
   await canvasSlot(page, 4)
-  await page.getByRole('button', { name: 'Archivar ficha y liberar espacio', exact: true }).click()
+  await page.getByRole('button', { name: /Archivar planta y liberar parcela/ }).click()
+  await page.getByRole('button', { name: /Sí, archivar y liberar/ }).click()
   await expect(slots(page).nth(4)).toContainText('Registrar una planta')
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mis plantas', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button', { name: 'Mis plantas', exact: true }).click()
   await page.getByRole('button', { name: 'Archivadas', exact: true }).click()
   await page.locator('.journal-plant-card').click()
-  await expect(passport).toContainText('Ficha archivada')
+  await expect(passport.getByRole('button', { name: 'Restaurar al espacio' })).toBeVisible()
   await page.getByRole('button', { name: 'Restaurar al espacio', exact: true }).click()
-  await expect(passport).not.toContainText('Ficha archivada')
+  await expect(passport.getByRole('button', { name: 'Restaurar al espacio' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo', exact: true }).click()
-  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
   await canvasSlot(page, 4)
   await expect(passport).toContainText('Altura medida con regla')

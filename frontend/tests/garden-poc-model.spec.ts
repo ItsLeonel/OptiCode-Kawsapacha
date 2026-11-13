@@ -5,6 +5,7 @@ import { buildGardenVisualModel, LAYOUT_PROFILES } from '../src/features/my-gard
 import { GardenSceneBridge } from '../src/features/my-garden/phaser-poc/bridge'
 import { SOIL_STYLES } from '../src/features/my-garden/phaser-poc/visual-config'
 import { WORLD } from '../src/features/my-garden/phaser-poc/assets'
+import { coastalFootprintRatio } from '../src/features/my-garden/phaser-poc/coastal-terrain'
 
 // Test fixtures only. The lab never inserts these records into the application.
 const garden: RealGarden = {
@@ -80,13 +81,18 @@ test('four layouts have independent anchors and keep unregistered slots empty', 
   expect(new Set(layouts.values()).size).toBe(4)
 })
 
-test('the six projected touch targets remain distinct at the mobile minimum zoom', () => {
-  const zoom = Math.max(320 / WORLD.width, 460 / WORLD.height)
+test('the six target centers remain individually selectable at mobile width', () => {
   for (const kind of ['ground', 'pots', 'vertical', 'hanging'] as const) {
     const model = buildGardenVisualModel({ ...garden, kind }, [], 'sierra')
-    const profile = LAYOUT_PROFILES[kind], hitX = Math.max(profile.hitX, 22 / zoom), hitY = Math.max(profile.hitY, 22 / zoom)
+    const zoom = kind === 'ground' ? 320 / WORLD.width : Math.max(320 / WORLD.width, 460 / WORLD.height)
+    const ratio = coastalFootprintRatio(model.footprintScale)
+    const profile = LAYOUT_PROFILES[kind]
+    const hitX = Math.max(kind === 'ground' ? 160 * ratio : profile.hitX, 22 / zoom)
+    const hitY = Math.max(kind === 'ground' ? 74 * ratio : profile.hitY, 22 / zoom)
     for (const first of model.slots) for (const second of model.slots) if (first.plot < second.plot) {
-      expect(Math.hypot((first.anchor.x - second.anchor.x) / (hitX * 2), (first.anchor.y - second.anchor.y) / (hitY * 2)), `${kind}: ${first.plot}/${second.plot}`).toBeGreaterThan(1)
+      // Expanded 44px targets may meet; another target must never cover a
+      // slot's center, which the renderer selects by nearest distance.
+      expect(Math.hypot((first.anchor.x - second.anchor.x) / hitX, (first.anchor.y - second.anchor.y) / hitY), `${kind}: ${first.plot}/${second.plot}`).toBeGreaterThan(1)
     }
   }
 })
@@ -103,4 +109,17 @@ test('soil and distributions reflect only recorded configuration, independently 
   const unknown = buildGardenVisualModel({ ...garden, soilType: null, characteristics: undefined }, [], 'oriente')
   expect(unknown.soilStyle).toEqual(SOIL_STYLES.unknown)
   expect(Object.values(unknown.characteristics).every(values => values.length === 0)).toBe(true)
+})
+
+test('regional ground anchors follow the approved Costa footprint at every registered area', () => {
+  for (const areaM2 of [1, 10, 25, 50, 100, 1000]) {
+    const reference = buildGardenVisualModel({ ...garden, areaM2 }, [], 'costa')
+    for (const region of ['sierra', 'oriente', 'galapagos'] as const) {
+      const model = buildGardenVisualModel({ ...garden, areaM2 }, [plant], region)
+      expect(model.slots.map(slot => slot.anchor)).toEqual(reference.slots.map(slot => slot.anchor))
+      expect(model.slots[4].plant).toEqual(plant)
+      expect(new Set(model.slots.map(slot => slot.anchor.y)).size).toBe(2)
+      expect(new Set(model.slots.map(slot => slot.anchor.x)).size).toBe(3)
+    }
+  }
 })

@@ -17,7 +17,7 @@ export default function RealGardenSummary({ garden, onEdit, onConnect, onCommuni
   return <section className="rg-panel rg-summary" aria-labelledby="rg-summary-title">
     <header className="rg-summary-heading"><GardenIcon name="seed"/><h2 id="rg-summary-title">Características de mi terreno</h2></header>
     <div className="rg-summary-layout">
-      <div className="rg-summary-illustration"><GardenPhoto photo={garden.photo} fallback={GARDEN_TYPE_IMAGES[garden.kind]}/></div>
+      <div className="rg-summary-illustration"><GardenPhoto photo={garden.photo} photoUrl={garden.photoUrl} fallback={GARDEN_TYPE_IMAGES[garden.kind]}/></div>
       <div className="rg-summary-data">
         <div className="rg-registered-identity"><h3 className="rg-registered-name">{garden.name}</h3>
           <p className="rg-registered-location"><GardenIcon name="map"/>{[location.province, location.canton, location.parish].filter(Boolean).join(' · ')}</p>

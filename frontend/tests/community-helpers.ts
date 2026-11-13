@@ -1,7 +1,14 @@
 import { expect, type Page } from '@playwright/test'
 import catalogue from '../src/features/real-gardens/data/dpa-2026.json' with { type: 'json' }
 
-export const mainNavigation = (page: Page) => page.getByRole('navigation', { name: 'Navegación principal' })
+export const mainNavigation = (page: Page) => page.getByRole('navigation', { name: 'Módulos principales' })
+
+/** Open the current sidebar if the immersive garden has it collapsed. */
+export async function navigateModule(page: Page, name: 'Mi Huerto Vivo' | 'Comunidad' | 'Mi camino verde') {
+  const openMenu = page.getByRole('button', { name: 'Abrir menú de navegación', exact: true })
+  if (await openMenu.count()) await openMenu.click()
+  await mainNavigation(page).getByRole('button', { name, exact: true }).click()
+}
 export const nextCommunityStep = (page: Page) => page.getByRole('button', { name: 'Continuar →', exact: true }).click()
 
 export async function chooseCommunityTerritory(page: Page, province = 'Imbabura', sector?: string) {
@@ -25,7 +32,7 @@ export async function openCommunityInfo(page: Page, province = 'Imbabura', secto
 }
 
 export async function createCommunity(page: Page, name = 'Comunidad de prueba', province = 'Imbabura') {
-  await mainNavigation(page).getByRole('button', { name: 'Comunidad', exact: true }).click()
+  await navigateModule(page, 'Comunidad')
   await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
   await openCommunityInfo(page, province)
   await page.getByLabel('Nombre de la comunidad').fill(name)

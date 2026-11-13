@@ -1,5 +1,15 @@
 import { cantonsForProvince, parishesForCanton, provinceForName, territoryLabel } from '../real-gardens/territory'
 import { GARDEN_REGIONS, regionForProvince } from '../real-gardens/garden-region'
+import type { Community } from './communities'
+import { provinces } from '../../EcuadorMap'
+
+/** Legacy communities stored the province only in the composed location label. */
+export function communityProvince(community: Pick<Community, 'province' | 'location'> | null | undefined) {
+  const recorded = provinceForName(community?.province ?? '')
+  const legacy = provinceForName((community?.location ?? '').split(/\s*[·,|]\s*/)[0])
+  const province = recorded ?? legacy
+  return province ? provinces.find(name => provinceForName(name)?.code === province.code) ?? territoryLabel(province.name) : ''
+}
 
 export type CommunityTerritory = { province: string; cantonCode: string; parishCode: string; sector: string }
 

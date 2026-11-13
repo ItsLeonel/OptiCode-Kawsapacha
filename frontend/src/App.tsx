@@ -40,7 +40,6 @@ import ActivityList from './features/my-garden/journal/ActivityList'
 import type { ActivityDraft, ActivityType, GardenActivity } from './features/my-garden/journal/activities'
 import './features/my-garden/garden-journal.css'
 import GardenProgress from './features/my-garden/GardenProgress'
-import GreenChallenges from './features/my-garden/GreenChallenges'
 import { calculateProgress } from './features/my-garden/journal/progress'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Bitácora' | 'Mi historia' | 'Mi camino verde'
@@ -867,7 +866,7 @@ export default function App({
         pendingInvitationsCount={pendingInvitations.length}
         onOpenNotifications={() => setNotificationsOpen(true)}
         region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')}
-        progress={{
+        progress={user ? undefined : {
           points: progress.points,
           level: progress.level,
           progressPercent: progress.progressPercent,
@@ -897,7 +896,7 @@ export default function App({
           renderGardenScene={renderGardenScene}
           activities={journal.data.activities}
           feedback={feedback}
-          progress={{ points: progress.points, level: progress.level, responsible: communityRecord?.responsible }}
+          progress={user ? undefined : { points: progress.points, level: progress.level, responsible: communityRecord?.responsible }}
           interactionBlocked={Boolean(registration || detail || editingPlant || activityForm)}
           terrainProvince={realGardenDraft.province}
           terrainView={
@@ -1019,8 +1018,8 @@ export default function App({
 
             {(screen === 'Mi camino verde' || screen === 'Mi historia') && (
               <>
-                <GardenProgress journal={journal.data} />
-                <GreenChallenges onNavigate={navigateGarden} onAction={gardenAction} />
+                <GardenProgress journal={journal.data} region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')} authenticated={Boolean(user)} />
+
               </>
             )}
             {screen === 'Mis plantas' && (

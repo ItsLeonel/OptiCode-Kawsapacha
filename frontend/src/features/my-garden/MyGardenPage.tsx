@@ -200,7 +200,7 @@ export default function MyGardenPage({
               pendingInvitationsCount={pendingInvitationsCount}
             />
           ))}
-        {!terrainView && <GreenChallenges onNavigate={onNavigate} onAction={onAction} />}
+        {!terrainView && <GreenChallenges onNavigate={onNavigate} activities={activities} authenticated={Boolean(user)} />}
       </div>
 
       {/* Módulo lunar de React: se superpone a Phaser sin modificar fondos, cámara ni parcelas. */}

@@ -183,6 +183,13 @@ export default function GardenNavigation({
         </button>
       )}
 
+      {!progress && user && (
+        <button className="garden-path-preview" type="button" onClick={() => onNavigate('progress')}>
+          <span className="garden-progress-heading"><GardenIcon name="seed" /><strong>Mi progreso</strong></span>
+          <span className="garden-progress-level"><strong>Sin sincronizar</strong></span>
+          <span className="garden-progress-next">Recompensas pendientes del servidor</span>
+        </button>
+      )}
       <div className="garden-sidebar-footer">
         {user ? (
           <>

@@ -29,3 +29,29 @@ export const uploadPlantPhoto = multer({
   },
   limits: { fileSize: MAX_SIZE_BYTES },
 }).single('picture')
+
+// ─── Subida de fotos de actividades de la Bitácora Viva ─────────────────────────
+const activityUploadDir = path.resolve(__dirname, '../../uploads/activities')
+if (!fs.existsSync(activityUploadDir)) fs.mkdirSync(activityUploadDir, { recursive: true })
+
+const activityStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, activityUploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase()
+    const uniqueName = `activity-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+    cb(null, uniqueName)
+  },
+})
+
+export const uploadActivityPhoto = multer({
+  storage: activityStorage,
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Solo se permiten imágenes JPG, PNG o WebP.'))
+    }
+  },
+  limits: { fileSize: MAX_SIZE_BYTES },
+}).single('photo')
+

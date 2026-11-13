@@ -50,10 +50,9 @@ export function applyJournalCommand(current: GardenJournal, command: JournalComm
   } else if (command.type === 'terrain') {
     if (!next.community) throw new Error('Primero registra una comunidad para tu huerto.')
     next.terrain = { ...command.terrain, communityName: next.community.name }
-  } else {
+  } else if (command.type === 'plant-add') {
     if (!next.terrain || !next.community) throw new Error('Primero registra tu comunidad y tu terreno.')
-    if (command.type === 'plant-add') {
-      const plant = command.plant
+    const plant = command.plant
       if (!plant.id || !plant.photoId || plant.name.trim().length < 2 || (plant.plantedOn !== undefined && !validDate(plant.plantedOn)) || !Number.isInteger(plant.plot) || plant.plot < 0 || plant.plot >= 6) throw new Error('Revisa la fotografía, identificación y espacio de la planta.')
       if (next.plants.some(item => item.id === plant.id) || projectPlants(next).some(item => !item.archivedAt && item.plot === plant.plot)) throw new Error('Ese espacio ya está ocupado. Tu fotografía no se ha perdido.')
       next.plants.push({ ...plant, photo: '' })
@@ -85,7 +84,6 @@ export function applyJournalCommand(current: GardenJournal, command: JournalComm
         next.plants[index] = { ...plant, plot: visible.plot, state: visible.state, photoId: visible.photoId, plantedOn: visible.plantedOn, updatedAt: command.at, archivedAt: undefined }
       }
     }
-  }
   const occupied = projectPlants(next).filter(plant => !plant.archivedAt).map(plant => plant.plot)
   if (new Set(occupied).size !== occupied.length) throw new Error('Ese cambio ocuparía un espacio que ya tiene otra planta. Libera o cambia su ubicación primero.')
   return { ...next, revision: current.revision + 1, appliedCommands: [...current.appliedCommands, command.id] }

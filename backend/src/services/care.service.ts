@@ -82,10 +82,10 @@ function calculateGrowthData(
     return l.actionType === 'PRUNING' && days <= 7
   }).length
 
-  // Exceso: más de 2 riegos en 24 h, más de 1 abono en 24 h, más de 2 podas en una semana
+  // Exceso: más de 2 riegos en 24 h, más de 1 abono en 24 h, más de 1 poda en una semana
   const overWatered = wateringsLast24h > 2
   const overFertilized = fertilizersLast24h > 1
-  const overPruned = pruningsLastWeek > 2
+  const overPruned = pruningsLastWeek >= 1
 
   // ── Determinar estado de salud ────────────────────────────────────────────
   let healthStatus: HealthStatus = 'VIGOROSA'
@@ -94,9 +94,10 @@ function calculateGrowthData(
   else if (overPruned) healthStatus = 'ESTRES_PODA'
 
   // ── Calcular porcentaje base ──────────────────────────────────────────────
-  // Si hay estrés (sobrecuidado), congelar avance. Si no, calcular normalmente.
+  // Si hay estrés (sobrecuidado), congelar avance sin bonos. Si no, calcular normalmente con bonos.
   const hasStress = overWatered || overFertilized || overPruned
-  let percentage = hasStress ? 0 : Math.min(100, (daysElapsed / cycleDays) * 100)
+  const basePercentage = Math.min(100, (daysElapsed / cycleDays) * 100)
+  let percentage = basePercentage
 
   if (!hasStress) {
     // Bonus por riegos adecuados (dentro de frecuencia)
@@ -117,7 +118,7 @@ function calculateGrowthData(
   // En rebrote: porcentaje parte de 25% (planta sigue viva) y crece hasta 100%
   if (isRegrowing) {
     const regrowthPct = Math.min(100, (daysElapsed / regrowthDays) * 75) // 25% → 100%
-    percentage = hasStress ? 25 : Math.min(100, 25 + regrowthPct)
+    percentage = Math.min(100, 25 + regrowthPct)
   }
 
   percentage = Math.round(percentage)
@@ -172,7 +173,7 @@ function calculateGrowthData(
 
 // ─── Validación previa al registro de cuidado ─────────────────────────────────
 
-async function validateCareAction(
+export async function validateCareAction(
   plantId: string,
   actionType: string,
   plant: { lifecycleStatus: string; species: Species; careLogs: CareLogEntry[] }
@@ -229,10 +230,10 @@ async function validateCareAction(
       const days = (now.getTime() - new Date(l.performedAt).getTime()) / (1000 * 60 * 60 * 24)
       return l.actionType === 'PRUNING' && days <= 7
     }).length
-    if (pruningsLastWeek >= 2) {
+    if (pruningsLastWeek >= 1) {
       return {
         allowed: false,
-        warningMessage: '⚠️ Poda excesiva esta semana: la planta necesita tiempo para recuperarse del estrés por poda.',
+        warningMessage: '⚠️ La planta ya se encuentra podada y con su mantenimiento al día. Espera a que complete su ciclo para podarla nuevamente.',
       }
     }
   }

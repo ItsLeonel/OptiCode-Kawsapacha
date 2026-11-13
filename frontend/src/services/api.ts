@@ -466,6 +466,7 @@ export interface ApiPlant {
   plantingDate: string
   notes?: string
   lifecycleStatus?: string
+  observedState?: string
   archivedAt?: string | null
   species: {
     name: string
@@ -507,6 +508,18 @@ export const plantApi = {
   async passport(plantId: string): Promise<unknown> {
     const data = await request<{ passport: unknown }>(`/api/plants/${plantId}/passport`)
     return data.passport
+  },
+
+  async update(
+    plantId: string,
+    formData: FormData | Record<string, unknown>
+  ): Promise<ApiPlant> {
+    const isFormData = typeof FormData !== 'undefined' && formData instanceof FormData
+    const data = await request<{ plant: ApiPlant }>(`/api/plants/${plantId}`, {
+      method: 'PATCH',
+      body: isFormData ? formData : JSON.stringify(formData),
+    })
+    return data.plant
   },
 
   async archive(plantId: string): Promise<ApiPlant> {
@@ -662,3 +675,153 @@ export const resourceApi = {
     })
   },
 }
+
+// ─── Módulo de Calendario Lunar Dinámico MSP ─────────────────────────────────
+
+export interface LunarDayInfo {
+  date: string
+  timezone: string
+  phase: 'dark' | 'waxing' | 'full' | 'waning'
+  phaseName: string
+  kichwaName: string
+  fraction: number
+  illuminationPercent: number
+  recommendations: Array<{
+    activityType: string
+    title: string
+    description: string
+    source: string
+    advisory: boolean
+  }>
+  advisory: boolean
+}
+
+export interface LunarMonthResponse {
+  month: string
+  timezone: string
+  days: LunarDayInfo[]
+}
+
+export const lunarApi = {
+  async getDay(date?: string, timezone = 'America/Guayaquil'): Promise<LunarDayInfo> {
+    const params = new URLSearchParams()
+    if (date) params.set('date', date)
+    if (timezone) params.set('timezone', timezone)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return await request<LunarDayInfo>(`/api/lunar-calendar${qs}`)
+  },
+
+  async getMonth(month: string, timezone = 'America/Guayaquil'): Promise<LunarMonthResponse> {
+    const params = new URLSearchParams({ month, timezone })
+    return await request<LunarMonthResponse>(`/api/lunar-calendar?${params.toString()}`)
+  },
+}
+
+// ─── Módulo de Bitácora Viva y Actividades Agrícolas ──────────────────────────
+
+export interface BackendActivityEvidence {
+  id: string
+  activityId: string
+  filePath: string
+  fileUrl: string
+  mimeType: string
+  fileSize: number
+  createdAt: string
+}
+
+export interface BackendActivity {
+  id: string
+  gardenId: string
+  actorUserId: string
+  type: string
+  performedDate: string
+  targetKind: string
+  plantId?: string | null
+  plotIndex?: number | null
+  notes: string
+  details: string
+  clientActivityId?: string | null
+  voidedAt?: string | null
+  voidReason?: string | null
+  careLogId?: string | null
+  harvestRecordId?: string | null
+  createdAt: string
+  evidences: BackendActivityEvidence[]
+  actorUser?: { id: string; name: string; email: string }
+  plant?: { id: string; customName: string; plotIndex: number | null; species: unknown }
+}
+
+export const activityApi = {
+  async create(gardenId: string, formData: FormData | Record<string, unknown>): Promise<{ activity: BackendActivity; reward: any }> {
+    const isFormData = typeof FormData !== 'undefined' && formData instanceof FormData
+    return await request<{ activity: BackendActivity; reward: any }>(`/api/gardens/${gardenId}/activities`, {
+      method: 'POST',
+      body: isFormData ? formData : JSON.stringify(formData),
+    })
+  },
+
+  async list(
+    gardenId: string,
+    params?: { plantId?: string; type?: string; from?: string; to?: string; includeVoided?: boolean }
+  ): Promise<BackendActivity[]> {
+    const query = new URLSearchParams()
+    if (params?.plantId) query.set('plantId', params.plantId)
+    if (params?.type) query.set('type', params.type)
+    if (params?.from) query.set('from', params.from)
+    if (params?.to) query.set('to', params.to)
+    if (params?.includeVoided) query.set('includeVoided', 'true')
+    const qs = query.toString() ? `?${query.toString()}` : ''
+    return await request<BackendActivity[]>(`/api/gardens/${gardenId}/activities${qs}`)
+  },
+
+  async get(gardenId: string, activityId: string): Promise<BackendActivity> {
+    return await request<BackendActivity>(`/api/gardens/${gardenId}/activities/${activityId}`)
+  },
+
+  async void(gardenId: string, activityId: string, reason: string): Promise<{ activity: BackendActivity; pointsReverted: number }> {
+    return await request<{ activity: BackendActivity; pointsReverted: number }>(
+      `/api/gardens/${gardenId}/activities/${activityId}/void`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }
+    )
+  },
+}
+
+// ─── Módulo de Recompensas: Semillas de Vida y Misiones ───────────────────────
+
+export interface RewardsSummary {
+  userId: string
+  points: number
+  level: string
+  nextLevel: string | null
+  remaining: number
+  progressPercent: number
+  ledger: Array<{
+    id: string
+    eventType: string
+    sourceId: string
+    pointsDelta: number
+    reason: string
+    awardedAt: string
+  }>
+  badges: Array<{
+    badgeId: string
+    earnedAt: string
+  }>
+  missions: Array<{
+    missionId: string
+    currentValue: number
+    targetValue: number
+    completed: boolean
+    completedAt?: string | null
+  }>
+}
+
+export const rewardsApi = {
+  async getSummary(): Promise<RewardsSummary> {
+    return await request<RewardsSummary>('/api/users/me/rewards')
+  },
+}
+

@@ -3,25 +3,35 @@ import { PLANT_STATES, type GardenPlant, type PlantState } from '../garden'
 import { localDate, recordId } from '../plant-record'
 import { useGardenDialog } from '../useGardenDialog'
 import { useJournalPhoto } from './useJournalPhoto'
-import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails } from './activities'
+import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails, type GardenActivity } from './activities'
 import '../garden-journal.css'
 
-export default function ActivityModal({ plants, gardenId, responsible, initialPlant, initialPlot, onSave, onRegister, onClose }: {
+export default function ActivityModal({ plants, gardenId, responsible, initialPlant, initialPlot, existingActivities, onSave, onRegister, onClose }: {
   plants: GardenPlant[]; gardenId: string; responsible: string; initialPlant?: GardenPlant; initialPlot?: number | null
+  existingActivities?: GardenActivity[]
   onSave: (draft: ActivityDraft) => Promise<void>; onRegister: (plot: number, type: ActivityType) => void; onClose: () => void
 }) {
   const dialog = useGardenDialog(), sending = useRef(false), id = useRef(recordId('activity'))
   const [type, setType] = useState<ActivityType>('watering'), [date, setDate] = useState(localDate())
-  const [person, setPerson] = useState(responsible), [targetId, setTargetId] = useState(initialPlant ? 'plant:' + initialPlant.id : initialPlot != null ? 'plot:' + initialPlot : 'garden')
+  const person = responsible
+  const [targetId, setTargetId] = useState(initialPlant ? 'plant:' + initialPlant.id : initialPlot != null ? 'plot:' + initialPlot : 'garden')
   const [notes, setNotes] = useState(''), [details, setDetails] = useState<ActivityDetails>({})
   const [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const photo = useJournalPhoto()
   const plant = targetId.startsWith('plant:') ? plants.find(item => item.id === targetId.slice(6)) : undefined
   const target: ActivityTarget = plant ? { kind: 'plant', plantId: plant.id, plot: plant.plot } : targetId.startsWith('plot:') ? { kind: 'plot', plot: Number(targetId.slice(5)) } : { kind: 'garden' }
   const needsPlant = ['sowing', 'hilling', 'replanting', 'observation', 'harvest'].includes(type)
+  const isOverWatered = type === 'watering' && plant && (
+    existingActivities?.some(a => !a.voidedAt && a.type === 'watering' && a.target.kind === 'plant' && a.target.plantId === plant.id && a.date === date)
+  )
+
   function detail<K extends keyof ActivityDetails>(key: K, value: ActivityDetails[K]) { setDetails(current => ({ ...current, [key]: value })) }
   async function submit(event: FormEvent) {
     event.preventDefault(); if (sending.current || photo.reading || photo.error) return
+    if (isOverWatered) {
+      setError('⚠️ Esta planta ya cuenta con suficiente humedad y un riego registrado en la fecha indicada. Regar en exceso daña sus raíces.')
+      return
+    }
     const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details, photo: photo.photo }
     const invalid = validateActivity({ ...draft, gardenId, createdAt: new Date().toISOString(), photoIds: photo.photo ? ['pending-photo'] : [], validation: 'local-v1' }, plants)
     if (invalid) { setError(invalid); return }
@@ -34,8 +44,13 @@ export default function ActivityModal({ plants, gardenId, responsible, initialPl
       <div className="journal-fields">
         <label>Actividad<select aria-label="Actividad" value={type} onChange={event => { setType(event.target.value as ActivityType); setDetails(event.target.value === 'harvest' ? { harvestMode: 'partial' } : {}); setError('') }}>{Object.entries(ACTIVITY_TYPES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
         <label>Fecha de la actividad<input required type="date" value={date} max={localDate()} onChange={event => setDate(event.target.value)}/></label>
-        <label>Persona responsable<input required minLength={2} maxLength={100} value={person} onChange={event => setPerson(event.target.value)}/></label>
+        <label>Persona responsable<input required minLength={2} maxLength={100} value={person} readOnly title="Usuario activo en esta sesión" style={{ background: '#f7fafc', cursor: 'not-allowed', color: '#4a5568' }}/></label>
         <label>Ubicación de la actividad<select aria-label="Ubicación de la actividad" value={targetId} onChange={event => setTargetId(event.target.value)}><option value="garden">Todo el huerto</option>{Array.from({ length: 6 }, (_, plot) => <option key={plot} value={'plot:' + plot}>Espacio {plot + 1}</option>)}{plants.filter(item => !item.archivedAt).map(item => <option key={item.id} value={'plant:' + item.id}>{item.name} · Espacio {item.plot + 1}</option>)}</select></label>
+        {isOverWatered && (
+          <div className="journal-wide" style={{ background: '#fff5f5', border: '1px solid #feb2b2', color: '#9b2c2c', padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem' }}>
+            ⚠️ Esta planta ya tiene un riego registrado en la fecha seleccionada ({date}). Regar en exceso puede causar asfixia radicular y pudrir sus raíces.
+          </div>
+        )}
         {needsPlant && !plant && <div className="journal-wide journal-note"><p>Selecciona una planta registrada. Si todavía no existe, su fotografía y ficha se registran antes de documentar esta actividad.</p><button type="button" onClick={() => onRegister(target.kind === 'plot' ? target.plot : 0, type)}>Registrar planta en ese espacio</button></div>}
         {['watering', 'fertilizing', 'harvest'].includes(type) && <><label>Cantidad (opcional)<input type="number" min="0.001" max="1000000" step="any" value={details.quantity ?? ''} onChange={event => detail('quantity', event.target.value === '' ? undefined : Number(event.target.value))}/></label><label>Unidad<select aria-label="Unidad" value={details.unit ?? ''} onChange={event => detail('unit', event.target.value as ActivityDetails['unit'])}><option value="">Sin especificar</option>{['L', 'kg', 'g', 'unidades'].map(value => <option key={value} value={value}>{value}</option>)}</select></label></>}
         {type === 'watering' && <label className="journal-wide">Método utilizado (opcional)<input maxLength={100} value={details.method ?? ''} placeholder="Describe cómo regaste" onChange={event => detail('method', event.target.value)}/></label>}

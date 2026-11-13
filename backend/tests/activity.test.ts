@@ -1,0 +1,164 @@
+// backend/tests/activity.test.ts
+import assert from 'assert'
+import { prisma } from '../src/config/prisma'
+import {
+  createGardenActivity,
+  listGardenActivities,
+  getGardenActivityDetail,
+  voidGardenActivity,
+} from '../src/services/activity.service'
+
+export async function runActivityTests() {
+  console.log('🧪 Iniciando pruebas de Bitácora Viva y Actividades Agrícolas...')
+
+  // Crear usuario y huerto de prueba
+  const testEmail = `test-activity-${Date.now()}@kawsapacha.org`
+  const user = await prisma.user.create({
+    data: {
+      name: 'Usuario Test Actividad',
+      email: testEmail,
+      passwordHash: 'dummyhash',
+      role: 'RESPONSABLE',
+    },
+  })
+
+  const garden = await prisma.realGarden.create({
+    data: {
+      name: 'Huerto Bitácora Viva Test',
+      kind: 'ground',
+      areaM2: 50,
+      province: 'Imbabura',
+      provinceCode: '10',
+      createdById: user.id,
+    },
+  })
+
+  let species = await prisma.medicinalCatalog.findFirst()
+  if (!species) {
+    species = await prisma.medicinalCatalog.create({
+      data: {
+        name: 'Toronjil Andino',
+        latinName: 'Melissa officinalis',
+        icon: '🌿',
+      },
+    })
+  }
+
+  const plant = await prisma.cultivatedPlant.create({
+    data: {
+      realGardenId: garden.id,
+      speciesId: species.id,
+      plotIndex: 1,
+      customName: 'Toronjil de prueba',
+      registeredById: user.id,
+    },
+  })
+
+  try {
+    // 1. Crear actividad de nivel huerto: preparación de terreno (preparation)
+    const prepResult = await createGardenActivity({
+      gardenId: garden.id,
+      actorUserId: user.id,
+      type: 'preparation',
+      performedDate: '2026-11-01',
+      targetKind: 'garden',
+      notes: 'Descompactación y volteo de suelo según práctica andina',
+    })
+
+    assert.ok(prepResult.activity)
+    const prepAct = prepResult.activity!
+    assert.equal(prepResult.isDuplicate, false)
+    assert.equal(prepAct.type, 'preparation')
+    assert.equal(prepResult.reward?.pointsAwarded, 10)
+
+    // 2. Crear actividad sobre planta con evidencia fotográfica: Riego (watering)
+    const clientOpId = `op-water-${Date.now()}`
+    const waterResult = await createGardenActivity({
+      gardenId: garden.id,
+      actorUserId: user.id,
+      type: 'watering',
+      performedDate: '2026-11-02',
+      targetKind: 'plant',
+      plantId: plant.id,
+      notes: 'Riego matutino por infusión al suelo sin aspersión',
+      details: { quantity: 2, unit: 'L', method: 'regadera manual' },
+      clientActivityId: clientOpId,
+      evidenceFile: {
+        filename: 'water-evidence.jpg',
+        path: '/tmp/water-evidence.jpg',
+        mimetype: 'image/jpeg',
+        size: 15420,
+      },
+    })
+
+    assert.ok(waterResult.activity)
+    const waterAct = waterResult.activity!
+    assert.equal(waterResult.isDuplicate, false)
+    assert.equal(waterAct.type, 'watering')
+    assert.equal(waterAct.evidences.length, 1)
+    assert.ok(waterAct.careLogId, 'Debe enlazar un CareLog para actualizar la salud del huerto')
+
+    // Verificar que el CareLog en efecto existe en la base de datos
+    const careLog = await prisma.careLog.findUnique({
+      where: { id: waterAct.careLogId! },
+    })
+    assert.ok(careLog)
+    assert.equal(careLog.actionType, 'WATERING')
+
+    // 3. Idempotencia: reenviar con el mismo clientActivityId
+    const retryResult = await createGardenActivity({
+      gardenId: garden.id,
+      actorUserId: user.id,
+      type: 'watering',
+      performedDate: '2026-11-02',
+      targetKind: 'plant',
+      plantId: plant.id,
+      clientActivityId: clientOpId,
+    })
+    assert.equal(retryResult.isDuplicate, true)
+    assert.ok(retryResult.activity)
+    assert.equal(retryResult.activity!.id, waterAct.id)
+
+    // 4. Listar actividades del huerto en orden descendente
+    const list = await listGardenActivities(garden.id, user.id, {})
+    assert.ok(list.length >= 2)
+    assert.ok(list[0].performedDate >= list[1].performedDate, 'Debe estar ordenado cronológicamente descendente')
+
+    // 5. Filtro por tipo
+    const prepOnly = await listGardenActivities(garden.id, user.id, { type: 'preparation' })
+    assert.ok(prepOnly.every(a => a.type === 'preparation'))
+
+    // 6. Detalle de actividad
+    const detail = await getGardenActivityDetail(waterAct.id, user.id)
+    assert.equal(detail.id, waterAct.id)
+    assert.equal(detail.plant?.id, plant.id)
+
+    // 7. Anulación de actividad
+    const voidResult = await voidGardenActivity(
+      prepAct.id,
+      user.id,
+      'Se registró en el huerto equivocado'
+    )
+    assert.ok(voidResult.activity.voidedAt)
+    assert.equal(voidResult.activity.voidReason, 'Se registró en el huerto equivocado')
+
+    // Comprobar que en listado normal ya no aparece la anulada
+    const listWithoutVoided = await listGardenActivities(garden.id, user.id, { includeVoided: false })
+    assert.ok(listWithoutVoided.every(a => a.id !== prepAct.id))
+
+    // Comprobar que con includeVoided sí aparece
+    const listWithVoided = await listGardenActivities(garden.id, user.id, { includeVoided: true })
+    assert.ok(listWithVoided.some(a => a.id === prepAct.id))
+
+    console.log('Pruebas de Bitácora Viva y Actividades Agrícolas superadas con éxito.')
+  } finally {
+    await prisma.rewardLedger.deleteMany({ where: { userId: user.id } }).catch(() => { })
+    await prisma.userBadge.deleteMany({ where: { userId: user.id } }).catch(() => { })
+    await prisma.userMissionProgress.deleteMany({ where: { userId: user.id } }).catch(() => { })
+    await prisma.gardenActivity.deleteMany({ where: { actorUserId: user.id } }).catch(() => { })
+    await prisma.careLog.deleteMany({ where: { userId: user.id } }).catch(() => { })
+    await prisma.cultivatedPlant.deleteMany({ where: { registeredById: user.id } }).catch(() => { })
+    await prisma.realGarden.deleteMany({ where: { createdById: user.id } }).catch(() => { })
+    await prisma.user.delete({ where: { id: user.id } }).catch(() => { })
+  }
+}

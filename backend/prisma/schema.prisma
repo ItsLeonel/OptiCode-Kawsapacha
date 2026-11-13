@@ -28,6 +28,10 @@ model User {
   plantsRegistered     CultivatedPlant[] @relation("PlantRegistrar")
   careLogs             CareLog[]
   harvestsPerformed    HarvestRecord[]
+  activitiesPerformed  GardenActivity[]  @relation("ActivityActor")
+  rewardLedgers        RewardLedger[]
+  badges               UserBadge[]
+  missionsProgress     UserMissionProgress[]
 
   @@map("users")
 }
@@ -121,8 +125,9 @@ model RealGarden {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plants   CultivatedPlant[]
-  harvests HarvestRecord[]
+  plants     CultivatedPlant[]
+  harvests   HarvestRecord[]
+  activities GardenActivity[]
 
   @@map("real_gardens")
 }
@@ -177,6 +182,7 @@ model CultivatedPlant {
 
   // Estado del ciclo de vida: GROWING | READY_TO_HARVEST | HARVESTED | REGROWING | ARCHIVED
   lifecycleStatus  String    @default("GROWING")
+  observedState    String    @default("not-documented")
   lastHarvestDate  DateTime?
   archivedAt       DateTime?
 
@@ -186,7 +192,8 @@ model CultivatedPlant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  careLogs CareLog[]
+  careLogs   CareLog[]
+  activities GardenActivity[]
 
   @@unique([realGardenId, plotIndex])
   @@map("cultivated_plants")
@@ -203,8 +210,9 @@ model CareLog {
   performedAt DateTime @default(now())
   userId      String
 
-  plant CultivatedPlant @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  user  User            @relation(fields: [userId], references: [id])
+  plant      CultivatedPlant  @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id])
+  activities GardenActivity[]
 
   @@map("care_logs")
 }
@@ -222,9 +230,10 @@ model HarvestRecord {
   harvestedById    String
   notes            String   @default("")
 
-  community   Community?  @relation(fields: [communityId], references: [id])
-  realGarden  RealGarden  @relation(fields: [realGardenId], references: [id])
-  harvestedBy User        @relation(fields: [harvestedById], references: [id])
+  community   Community?       @relation(fields: [communityId], references: [id])
+  realGarden  RealGarden       @relation(fields: [realGardenId], references: [id])
+  harvestedBy User             @relation(fields: [harvestedById], references: [id])
+  activities  GardenActivity[]
 
   @@map("harvest_records")
 }
@@ -249,4 +258,102 @@ model CommunityResource {
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@map("community_resources")
+}
+
+// ─── BITÁCORA VIVA Y ACTIVIDADES AGRÍCOLAS ────────────────────────────────────
+
+model GardenActivity {
+  id               String    @id @default(cuid())
+  gardenId         String
+  actorUserId      String
+  // preparation | weeding | sowing | watering | fertilizing | hilling | replanting | observation | harvest
+  type             String
+  performedDate    String    // YYYY-MM-DD
+  createdAt        DateTime  @default(now())
+  targetKind       String    // garden | plot | plant
+  plantId          String?
+  plotIndex        Int?
+  notes            String    @default("")
+  details          String    @default("{}") // JSON string con cantidades, método, etc.
+  clientActivityId String?   @unique       // Idempotencia
+  voidedAt         DateTime?
+  voidReason       String?
+  voidedByUserId   String?
+  careLogId        String?
+  harvestRecordId  String?
+
+  garden        RealGarden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  actorUser     User             @relation("ActivityActor", fields: [actorUserId], references: [id])
+  plant         CultivatedPlant? @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  careLog       CareLog?         @relation(fields: [careLogId], references: [id], onDelete: SetNull)
+  harvestRecord HarvestRecord?   @relation(fields: [harvestRecordId], references: [id], onDelete: SetNull)
+  evidences     ActivityEvidence[]
+
+  @@index([gardenId, performedDate])
+  @@index([actorUserId])
+  @@map("garden_activities")
+}
+
+model ActivityEvidence {
+  id         String   @id @default(cuid())
+  activityId String
+  filePath   String
+  fileUrl    String
+  mimeType   String
+  fileSize   Int
+  createdAt  DateTime @default(now())
+
+  activity GardenActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@map("activity_evidences")
+}
+
+// ─── MOTOR DE RECOMPENSAS: SEMILLAS DE VIDA (LEDGER) ──────────────────────────
+
+model RewardLedger {
+  id                 String    @id @default(cuid())
+  userId             String
+  eventType          String    // activity.watering, activity.sowing, etc.
+  ruleKey            String    // activity.watering.daily_limit, etc.
+  sourceId           String    // ID del registro que originó la recompensa
+  pointsDelta        Int       // Puntos (+5, +20, o reversión -5)
+  reason             String
+  awardedAt          DateTime  @default(now())
+  reversalOfLedgerId String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventType, sourceId])
+  @@index([userId, awardedAt])
+  @@map("reward_ledgers")
+}
+
+// ─── MISIONES E INSIGNIAS FUNCIONALES ─────────────────────────────────────────
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String   // first-sowing | care | observer | harvest | lunar-cycle
+  earnedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model UserMissionProgress {
+  id           String    @id @default(cuid())
+  userId       String
+  missionId    String    // care | observer | lunar-cycle
+  currentValue Int       @default(0)
+  targetValue  Int
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId])
+  @@map("user_mission_progress")
 }

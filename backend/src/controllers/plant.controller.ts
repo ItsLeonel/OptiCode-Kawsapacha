@@ -1,5 +1,5 @@
 import type { Response } from 'express'
-import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant, archivePlant } from '../services/plant.service'
+import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant, archivePlant, updatePlantDetails } from '../services/plant.service'
 import { ok, fail } from '../utils/response'
 import type { AuthRequest } from '../types'
 
@@ -84,5 +84,35 @@ export async function archive(req: AuthRequest, res: Response): Promise<void> {
     if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
     if (e.code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', e.message, 403)
     fail(res, 'INTERNAL_ERROR', 'Error al archivar la planta.', 500)
+  }
+}
+
+export async function update(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  const plantId = String(req.params['id'] ?? '')
+  if (!plantId) return void fail(res, 'VALIDATION_ERROR', 'ID de planta requerido.', 400)
+
+  const b = req.body as Record<string, string>
+  const plotIndex = b['plotIndex'] !== undefined && b['plotIndex'] !== '' ? parseInt(b['plotIndex'], 10) : undefined
+  const heightCm = b['heightCm'] ? parseFloat(b['heightCm']) : undefined
+
+  try {
+    const plant = await updatePlantDetails({
+      plantId,
+      requestingUserId: req.user.userId,
+      customName: b['customName'] ?? b['name'],
+      plantingDate: b['plantingDate'] ?? b['plantedOn'],
+      notes: b['notes'] ?? b['observations'],
+      observedState: b['observedState'] ?? b['state'],
+      plotIndex,
+      heightCm,
+      file: req.file,
+    })
+    ok(res, { plant }, 'Planta actualizada exitosamente.')
+  } catch (err: unknown) {
+    const e = err as { code?: string; message: string }
+    if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
+    if (e.code === 'PLOT_OCCUPIED') return void fail(res, 'PLOT_OCCUPIED', e.message, 409)
+    fail(res, 'INTERNAL_ERROR', 'Error al actualizar la planta.', 500)
   }
 }

@@ -24,19 +24,21 @@ import {
   plantApi,
   careApi,
   harvestApi,
+  activityApi,
   invitationApi,
   memberApi,
   getUser,
   type UserSession,
   type CommunityInvitationItem,
+  type BackendActivity,
 } from './services/api'
 import { regionForProvince } from './features/real-gardens/garden-region'
 import { matchesCommunityLocation, withCommunityLocation } from './features/real-gardens/garden-community-location'
 import type { GardenSceneRenderer } from './features/my-garden/garden-scene-renderer'
 import { localDate, recordId, validatePlantUpdate, validDate, type PlantUpdate } from './features/my-garden/plant-record'
 import { useGardenJournal } from './features/my-garden/journal/useGardenJournal'
+import type { GardenJournal } from './features/my-garden/journal/journal'
 import ActivityModal from './features/my-garden/journal/ActivityModal'
-import ActivityList from './features/my-garden/journal/ActivityList'
 import type { ActivityDraft, ActivityType, GardenActivity } from './features/my-garden/journal/activities'
 import './features/my-garden/garden-journal.css'
 import GardenProgress from './features/my-garden/GardenProgress'
@@ -88,6 +90,7 @@ export default function App({
   const [backendGarden, setBackendGarden] = useState<RealGarden | null>(null)
   const [activeGardenId, setActiveGardenId] = useState<string | null>(null)
   const [backendPlants, setBackendPlants] = useState<GardenPlant[]>([])
+  const [backendActivities, setBackendActivities] = useState<GardenActivity[]>([])
   const [pendingInvitations, setPendingInvitations] = useState<CommunityInvitationItem[]>([])
   const [isNotificationsOpen, setNotificationsOpen] = useState(false)
   const [speciesCatalog, setSpeciesCatalog] = useState<Array<{ name: string; latin: string; icon: string }>>(() => [...SPECIES])
@@ -97,6 +100,23 @@ export default function App({
   const realGarden = user ? backendGarden : journal.data.terrain
   const plants = user ? backendPlants : journal.plants
   const activePlants = plants.filter(plant => !plant.archivedAt)
+  const activities = user && activeGardenId ? backendActivities : journal.data.activities
+
+  const effectiveJournal: GardenJournal = useMemo(() => {
+    if (user && activeGardenId) {
+      return {
+        version: 1,
+        revision: 1,
+        gardenId: activeGardenId,
+        community: backendCommunity,
+        terrain: backendGarden,
+        plants: backendPlants,
+        activities: backendActivities,
+        appliedCommands: [],
+      }
+    }
+    return journal.data
+  }, [user, activeGardenId, backendCommunity, backendGarden, backendPlants, backendActivities, journal.data])
 
   const [screen, setScreen] = useState<Screen>(currentScreen)
   const [communityEntry, setCommunityEntry] = useState<CommunityEntryAction | null>(null)
@@ -115,7 +135,7 @@ export default function App({
 
   const detail = plants.find(plant => plant.id === detailId) ?? null
   const editingPlant = plants.find(plant => plant.id === editingId)
-  const progress = useMemo(() => calculateProgress(journal.data, communityRecord?.responsible), [journal.data, communityRecord?.responsible])
+  const progress = useMemo(() => calculateProgress(effectiveJournal, communityRecord?.responsible), [effectiveJournal, communityRecord?.responsible])
 
   // Cargar catálogo de especies
   useEffect(() => {
@@ -243,6 +263,51 @@ export default function App({
       })
   }, [user])
 
+  function mapBackendActivity(b: BackendActivity): GardenActivity {
+    let detailsObj: any = {}
+    try {
+      detailsObj = typeof b.details === 'string' ? JSON.parse(b.details || '{}') : (b.details || {})
+    } catch {
+      detailsObj = {}
+    }
+    const target: GardenActivity['target'] =
+      b.targetKind === 'plant' && b.plantId
+        ? { kind: 'plant', plantId: b.plantId, plot: b.plotIndex ?? 0 }
+        : b.targetKind === 'plot'
+        ? { kind: 'plot', plot: b.plotIndex ?? 0 }
+        : { kind: 'garden' }
+
+    const photoUrls = b.evidences?.map(e => (e.fileUrl.startsWith('http') ? e.fileUrl : `http://localhost:3000${e.fileUrl}`)) || []
+
+    return {
+      id: b.id,
+      gardenId: b.gardenId,
+      type: b.type as any,
+      date: b.performedDate,
+      responsible: b.actorUser?.name || 'Comunidad',
+      target,
+      notes: b.notes || '',
+      photoIds: photoUrls.map((_, i) => `${b.id}-photo-${i}`),
+      photos: photoUrls,
+      details: detailsObj,
+      createdAt: b.createdAt,
+      validation: 'local-v1',
+      voidedAt: b.voidedAt ?? undefined,
+      voidReason: b.voidReason ?? undefined,
+    }
+  }
+
+  async function reloadBackendActivities(gId: string) {
+    try {
+      const list = await activityApi.list(gId)
+      if (list && Array.isArray(list)) {
+        setBackendActivities(list.map(mapBackendActivity))
+      }
+    } catch (err) {
+      console.error('Error cargando actividades del servidor:', err)
+    }
+  }
+
   async function loadGardenForCommunity(cId: string) {
     try {
       const gardensList = await gardenApi.list(cId)
@@ -258,30 +323,34 @@ export default function App({
           setBackendPlants(
             activeList.map(p => ({
               id: p.id,
-              name: p.species?.name || p.speciesId,
+              name: p.customName || p.species?.name || p.speciesId,
               latin: p.species?.latinName || '',
-              photo: p.photoUrl,
+              photo: p.photoUrl ? (p.photoUrl.startsWith('http') ? p.photoUrl : `http://localhost:3000${p.photoUrl}`) : '',
               date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
               plot: p.plotIndex ?? -1,
               createdAt: (p as any).createdAt || new Date(p.plantingDate).toISOString(),
-              state: 'observed',
+              state: (p as any).observedState || (p.lifecycleStatus === 'READY_TO_HARVEST' ? 'mature' : 'growing'),
+              observations: p.notes || '',
               archivedAt: p.archivedAt ? new Date(p.archivedAt).toISOString() : (p.lifecycleStatus === 'ARCHIVED' ? new Date().toISOString() : undefined),
             }))
           )
         } else {
           setBackendPlants([])
         }
+        await reloadBackendActivities(g.id)
       } else {
         setActiveGardenId(null)
         setBackendGarden(null)
         setRealGardenDraft(toGardenDraft(null))
         setBackendPlants([])
+        setBackendActivities([])
       }
     } catch {
       setActiveGardenId(null)
       setBackendGarden(null)
       setRealGardenDraft(toGardenDraft(null))
       setBackendPlants([])
+      setBackendActivities([])
     }
   }
 
@@ -418,6 +487,7 @@ export default function App({
     setBackendGarden(null)
     setActiveGardenId(null)
     setBackendPlants([])
+    setBackendActivities([])
     setPendingInvitations([])
     setUserCommunities([])
     setNotificationsOpen(false)
@@ -656,24 +726,75 @@ export default function App({
     if (!editingPlant) throw new Error('No se encontró la ficha de la planta.')
     const invalid = validatePlantUpdate(draft, editingPlant, plants)
     if (invalid) throw new Error(invalid)
-    const photoId = draft.photo ? recordId('photo') : undefined
-    const { photo, ...fields } = draft
-    await journal.commit(
-      {
-        id: draft.requestId ?? recordId('plant-update'),
-        type: 'plant-update',
-        plantId: editingPlant.id,
-        draft: fields,
-        evidenceId: 'evidence-' + (draft.requestId ?? recordId('update')),
-        photoId,
-        retainedPhotoId: editingPlant.photoId,
-        at: new Date().toISOString(),
-      },
-      photo && photoId ? [{ id: photoId, blob: photo }] : []
-    )
+
+    if (user && !editingPlant.id.includes('-')) {
+      try {
+        const formData = new FormData()
+        formData.append('name', draft.name)
+        formData.append('customName', draft.name)
+        formData.append('latin', draft.latin)
+        formData.append('plotIndex', String(draft.plot))
+        if (draft.plantedOn) formData.append('plantedOn', draft.plantedOn)
+        if (draft.state) formData.append('state', draft.state)
+        if (draft.observations) formData.append('observations', draft.observations)
+        if (draft.heightCm !== undefined) formData.append('heightCm', String(draft.heightCm))
+        if (draft.photo) formData.append('picture', draft.photo, 'plant.jpg')
+
+        const updated = await plantApi.update(editingPlant.id, formData)
+
+        setBackendPlants(prev =>
+          prev.map(p => {
+            if (p.id === editingPlant.id) {
+              const fullPhoto = updated.photoUrl
+                ? (updated.photoUrl.startsWith('http') ? updated.photoUrl : `http://localhost:3000${updated.photoUrl}`)
+                : p.photo
+              return {
+                ...p,
+                name: updated.customName || p.name,
+                latin: updated.species?.latinName || p.latin,
+                plot: updated.plotIndex ?? p.plot,
+                plantedOn: updated.plantingDate ? updated.plantingDate.slice(0, 10) : p.plantedOn,
+                state: (updated as any).observedState || draft.state || p.state,
+                observations: updated.notes || draft.observations || p.observations,
+                photo: fullPhoto,
+              }
+            }
+            return p
+          })
+        )
+
+        if (activeGardenId) {
+          void reloadBackendActivities(activeGardenId)
+        }
+      } catch (err: unknown) {
+        console.error('Error al actualizar planta en servidor:', err)
+        throw err
+      }
+    }
+
+    try {
+      const photoId = draft.photo ? recordId('photo') : undefined
+      const { photo, ...fields } = draft
+      await journal.commit(
+        {
+          id: draft.requestId ?? recordId('plant-update'),
+          type: 'plant-update',
+          plantId: editingPlant.id,
+          draft: fields,
+          evidenceId: 'evidence-' + (draft.requestId ?? recordId('update')),
+          photoId,
+          retainedPhotoId: editingPlant.photoId,
+          at: new Date().toISOString(),
+        },
+        photo && photoId ? [{ id: photoId, blob: photo }] : []
+      )
+    } catch (localErr) {
+      console.warn('Local journal commit skipped for plant update:', localErr)
+    }
+
     setEditingId(null)
     setDetailId(editingPlant.id)
-    setNotice('Observación y evidencias guardadas.')
+    setNotice('Observación, estado y evidencias guardadas.')
   }
 
   async function archivePlant() {
@@ -713,6 +834,11 @@ export default function App({
   }
 
   function openActivity(plant?: GardenPlant) {
+    if (user && (activeGardenId || backendPlants.length > 0)) {
+      setDetailId(null)
+      setActivityForm({ plantId: plant?.id, plot: plant?.plot ?? selectedPlot })
+      return
+    }
     if (!realGarden || !communityRecord) {
       const hasPlants = plants.length > 0
       const hasCommunity = Boolean(backendCommunity || activeCommunityId)
@@ -726,7 +852,40 @@ export default function App({
   }
 
   async function saveActivity(draft: ActivityDraft) {
-    if (user && draft.target.kind === 'plant' && draft.target.plantId) {
+    let backendRewardMsg = ''
+    if (user && activeGardenId) {
+      try {
+        const formData = new FormData()
+        formData.append('type', draft.type)
+        formData.append('performedDate', draft.date)
+        formData.append('targetKind', draft.target.kind)
+        if (draft.target.kind === 'plant') {
+          formData.append('plantId', draft.target.plantId)
+          formData.append('plotIndex', String(draft.target.plot))
+        } else if (draft.target.kind === 'plot') {
+          formData.append('plotIndex', String(draft.target.plot))
+        }
+        formData.append('notes', draft.notes || '')
+        formData.append('details', JSON.stringify(draft.details || {}))
+        formData.append('clientActivityId', draft.id)
+        if (draft.photo) {
+          formData.append('photo', draft.photo, 'activity.jpg')
+        }
+        const backendResp = await activityApi.create(activeGardenId, formData)
+        if (backendResp?.reward?.pointsAwarded) {
+          backendRewardMsg = ` ⭐ +${backendResp.reward.pointsAwarded} Semillas de vida ganadas! (Total: ${backendResp.reward.totalPoints} pts · ${backendResp.reward.level})`
+        }
+
+        await reloadBackendActivities(activeGardenId)
+
+        if (activeCommunityId) {
+          await loadGardenForCommunity(activeCommunityId)
+        }
+      } catch (err: unknown) {
+        console.error('Error al sincronizar actividad con el servidor:', err)
+        throw err
+      }
+    } else if (user && draft.target.kind === 'plant' && draft.target.plantId) {
       const targetPlantId = draft.target.plantId
       try {
         if (draft.type === 'watering') {
@@ -741,31 +900,47 @@ export default function App({
         setNotice(err instanceof Error ? err.message : 'Error al registrar cuidado en backend')
       }
     }
-    const photoId = draft.photo ? recordId('photo') : undefined
-    const activity: GardenActivity = {
-      id: draft.id,
-      gardenId: journal.data.gardenId || activeGardenId || '',
-      type: draft.type,
-      date: draft.date,
-      responsible: draft.responsible || user?.name || 'Comunidad',
-      target: draft.target,
-      notes: draft.notes,
-      details: draft.details,
-      createdAt: new Date().toISOString(),
-      validation: 'local-v1',
-      photoIds: photoId ? [photoId] : [],
+    try {
+      const photoId = draft.photo ? recordId('photo') : undefined
+      const activity: GardenActivity = {
+        id: draft.id,
+        gardenId: journal.data.gardenId || activeGardenId || '',
+        type: draft.type,
+        date: draft.date,
+        responsible: draft.responsible || user?.name || 'Comunidad',
+        target: draft.target,
+        notes: draft.notes,
+        details: draft.details,
+        createdAt: new Date().toISOString(),
+        validation: 'local-v1',
+        photoIds: photoId ? [photoId] : [],
+      }
+      await journal.commit({ id: draft.id, type: 'activity', activity }, draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [])
+    } catch (localErr) {
+      console.warn('Local journal commit skipped for activity:', localErr)
     }
-    const saved = await journal.commit({ id: draft.id, type: 'activity', activity }, draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [])
-    const actual = saved.activities.find(item => item.id === draft.id)
+
     setActivityForm(null)
-    setNotice(actual ? (user ? 'Actividad guardada y sincronizada.' : 'Actividad guardada en este navegador.') : 'Esta actividad ya estaba guardada.')
-    if (actual && screen === 'Inicio') {
-      setFeedback({ id: actual.id, type: actual.type, plot: actual.details.destinationPlot ?? (actual.target.kind === 'garden' ? null : actual.target.plot) })
+    setNotice(user ? `Actividad guardada y sincronizada.${backendRewardMsg}` : 'Actividad guardada en este navegador.')
+    if (screen === 'Inicio') {
+      setFeedback({ id: draft.id, type: draft.type, plot: draft.details.destinationPlot ?? (draft.target.kind === 'garden' ? null : draft.target.plot) })
     }
   }
 
   async function voidActivity(id: string, reason: string) {
-    await journal.commit({ id: recordId('activity-void'), type: 'activity-void', activityId: id, reason, at: new Date().toISOString() })
+    if (user && activeGardenId) {
+      try {
+        await activityApi.void(activeGardenId, id, reason)
+        await reloadBackendActivities(activeGardenId)
+      } catch (err: unknown) {
+        console.error('Error al anular actividad en servidor:', err)
+      }
+    }
+    try {
+      await journal.commit({ id: recordId('activity-void'), type: 'activity-void', activityId: id, reason, at: new Date().toISOString() })
+    } catch (localErr) {
+      console.warn('Local journal commit skipped for void:', localErr)
+    }
     setNotice('Actividad anulada; la evidencia y el historial se conservan.')
   }
 
@@ -897,7 +1072,7 @@ export default function App({
           pendingInvitationsCount={pendingInvitations.length}
           onOpenNotifications={() => setNotificationsOpen(true)}
           renderGardenScene={renderGardenScene}
-          activities={journal.data.activities}
+          activities={activities}
           feedback={feedback}
           progress={{ points: progress.points, level: progress.level, responsible: communityRecord?.responsible }}
           interactionBlocked={Boolean(registration || detail || editingPlant || activityForm)}
@@ -1021,7 +1196,7 @@ export default function App({
 
             {(screen === 'Mi camino verde' || screen === 'Mi historia') && (
               <>
-                <GardenProgress journal={journal.data} />
+                <GardenProgress journal={effectiveJournal} currentUser={user?.name || communityRecord?.responsible} />
                 <GreenChallenges onNavigate={navigateGarden} onAction={gardenAction} />
               </>
             )}
@@ -1031,7 +1206,7 @@ export default function App({
             {(screen === 'Bitácora' || screen === 'Mi historia') && (
               <GardenHistory
                 plants={plants}
-                activities={journal.data.activities}
+                activities={activities}
                 onActivity={() => openActivity()}
                 onVoid={voidActivity}
                 onRegister={() => registerInPlot()}
@@ -1114,10 +1289,11 @@ export default function App({
       {activityForm && (
         <ActivityModal
           plants={activePlants}
-          gardenId={journal.data.gardenId}
-          responsible={communityRecord?.responsible ?? ''}
+          gardenId={user && activeGardenId ? activeGardenId : journal.data.gardenId}
+          responsible={user?.name || communityRecord?.responsible || 'Comunidad'}
           initialPlant={plants.find(plant => plant.id === activityForm.plantId)}
           initialPlot={activityForm.plot}
+          existingActivities={activities}
           onSave={saveActivity}
           onClose={() => setActivityForm(null)}
           onRegister={(plot, type) => {
@@ -1129,7 +1305,7 @@ export default function App({
                     ...current,
                     recordSowing: type === 'sowing',
                     plantedOn: type === 'sowing' ? localDate() : '',
-                    responsible: communityRecord?.responsible ?? '',
+                    responsible: user?.name || communityRecord?.responsible || '',
                   }
                 : current
             )
@@ -1140,6 +1316,11 @@ export default function App({
       <PlantPassport
         plant={detail}
         user={user}
+        activeGardenId={activeGardenId}
+        onActivityCreated={() => {
+          if (activeGardenId) void reloadBackendActivities(activeGardenId)
+          if (activeCommunityId) void loadGardenForCommunity(activeCommunityId)
+        }}
         currentCommunityRole={currentCommunityRole}
         onClose={() => setDetailId(null)}
         onHistory={() => goto('Bitácora')}
@@ -1156,19 +1337,6 @@ export default function App({
         onArchive={detail ? archivePlant : undefined}
         onRestore={detail ? restorePlant : undefined}
         onActivity={detail ? () => openActivity(detail) : undefined}
-        activityItems={
-          detail ? (
-            <section aria-label="Actividades de esta planta">
-              <h3>Actividades de esta planta</h3>
-              <ActivityList
-                activities={journal.data.activities.filter(
-                  activity => activity.target.kind === 'plant' && activity.target.plantId === detail.id
-                )}
-                plants={plants}
-              />
-            </section>
-          ) : undefined
-        }
       />
 
       {isNotificationsOpen && (

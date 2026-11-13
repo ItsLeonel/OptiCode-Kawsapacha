@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import GardenIcon from './GardenIcon'
 import { PLANT_STATES, type GardenPlant } from './garden'
 import {
   careApi,
   catalogApi,
   harvestApi,
+  activityApi,
   type CareLog,
   type GrowthData,
   type HealthStatus,
@@ -50,10 +51,12 @@ export default function PlantPassport({
   onArchive,
   onRestore,
   onActivity,
-  activityItems,
+  activeGardenId,
+  onActivityCreated,
 }: {
   plant: GardenPlant | null
   user?: UserSession | null
+  activeGardenId?: string | null
   currentCommunityRole?: 'RESPONSABLE' | 'PARTICIPANTE' | null
   onClose: () => void
   onHistory: () => void
@@ -63,7 +66,7 @@ export default function PlantPassport({
   onArchive?: () => void | Promise<void>
   onRestore?: () => string | null | Promise<string | null>
   onActivity?: () => void
-  activityItems?: ReactNode
+  onActivityCreated?: () => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [logs, setLogs] = useState<CareLog[]>([])
@@ -178,10 +181,32 @@ export default function PlantPassport({
     }
 
     try {
-      await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
-      setMessage(`¡${label} registrado con éxito!`)
+      let rewardText = ''
+      if (user && activeGardenId && !plant.id.includes('-')) {
+        const type = actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
+        if (actionType === 'PRUNING') {
+          await careApi.add(plant.id, actionType, actionNotes || `Cuidado rápido: ${label}`)
+        }
+        const formData = new FormData()
+        formData.append('type', type)
+        formData.append('performedDate', new Date().toISOString().split('T')[0])
+        formData.append('targetKind', 'plant')
+        formData.append('plantId', plant.id)
+        formData.append('plotIndex', String(plant.plot ?? 0))
+        formData.append('notes', actionNotes || `Cuidado rápido: ${label}`)
+        formData.append('details', JSON.stringify({ method: 'Acción rápida desde Pasaporte Vivo' }))
+
+        const backendResp = await activityApi.create(activeGardenId, formData)
+        if (backendResp?.reward?.pointsAwarded) {
+          rewardText = ` ⭐ +${backendResp.reward.pointsAwarded} Semillas de vida ganadas! (Total: ${backendResp.reward.totalPoints} pts · ${backendResp.reward.level})`
+        }
+      } else {
+        await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
+      }
+      setMessage(`¡${label} registrado con éxito!${rewardText}`)
       setActionNotes('')
       await loadPlantData()
+      if (onActivityCreated) onActivityCreated()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al registrar cuidado')
     }
@@ -214,6 +239,7 @@ export default function PlantPassport({
   const isRegrowing = growth?.lifecycleStatus === 'REGROWING'
   const canHarvest = ((growth?.percentage ?? 0) >= 75 && !isRegrowing) || (isRegrowing && (growth?.percentage ?? 0) >= 75)
   const hasStress = growth?.overWatered || growth?.overFertilized || growth?.overPruned
+  const recentlyPruned = logs.some(l => l.actionType === 'PRUNING' && (Date.now() - new Date(l.performedAt).getTime()) < 7 * 24 * 60 * 60 * 1000) || growth?.healthStatus === 'ESTRES_PODA'
   const isResponsible = !user || currentCommunityRole === 'RESPONSABLE'
 
   return (
@@ -264,8 +290,15 @@ export default function PlantPassport({
                 Ubicación: <strong>Parcela {plant.plot + 1}</strong> · Registrada: {plant.date}
                 {plant.plantedOn && ` · Sembrada: ${new Date(`${plant.plantedOn}T12:00:00`).toLocaleDateString('es-EC')}`}
               </div>
-              <div style={{ marginTop: '6px' }}>
+              <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <HealthBadge status={growth?.healthStatus} />
+                <span style={{
+                  display: 'inline-block', padding: '4px 10px', borderRadius: '20px',
+                  background: '#ebf8ff', border: '1px solid #bee3f8', color: '#2b6cb0',
+                  fontSize: '0.78rem', fontWeight: 700,
+                }}>
+                  🌱 {PLANT_STATES[plant.state ?? 'not-documented'] ?? plant.state}
+                </span>
               </div>
             </div>
           </div>
@@ -296,9 +329,14 @@ export default function PlantPassport({
           {/* ─── INDICADOR DE CRECIMIENTO DINÁMICO ─── */}
           <section style={{ background: isRegrowing ? '#fffff0' : '#f0fff4', border: `1px solid ${isRegrowing ? '#fefcbf' : '#c6f6d5'}`, borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
-                Etapa: {growth?.stage || 'Calculando...'}
-              </strong>
+              <div>
+                <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
+                  Etapa: {growth?.stage || 'Calculando...'}
+                </strong>
+                <div style={{ fontSize: '0.82rem', color: '#4a5568', marginTop: '2px' }}>
+                  Estado documentado: <strong>{PLANT_STATES[plant.state ?? 'not-documented'] ?? plant.state}</strong>
+                </div>
+              </div>
               <span style={{ fontWeight: 'bold', color: isRegrowing ? '#d69e2e' : '#2f855a', fontSize: '1.1rem' }}>
                 {growth ? `${growth.percentage}%` : '0%'}
               </span>
@@ -405,16 +443,26 @@ export default function PlantPassport({
 
               <button
                 type="button"
-                onClick={() => void handleApplyCare('PRUNING')}
+                onClick={() => {
+                  if (recentlyPruned) {
+                    setError('⚠️ La planta ya se encuentra podada y con su mantenimiento al día. Podar con demasiada frecuencia causa estrés a la planta.')
+                    return
+                  }
+                  void handleApplyCare('PRUNING')
+                }}
                 disabled={loading}
+                title={recentlyPruned ? 'Poda y mantenimiento al día' : 'Registrar poda o mantenimiento'}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0',
-                  background: '#edf2f7', color: '#4a5568', fontWeight: 600, cursor: 'pointer',
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  border: recentlyPruned ? '1px solid #c6f6d5' : '1px solid #e2e8f0',
+                  background: recentlyPruned ? '#f0fff4' : '#edf2f7',
+                  color: recentlyPruned ? '#276749' : '#4a5568',
+                  fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   opacity: loading ? 0.6 : 1,
                 }}
               >
-                ✂️ Poda / Mantenimiento
+                {recentlyPruned ? '✓ Poda al día' : '✂️ Poda / Mantenimiento'}
               </button>
             </div>
             <input
@@ -604,7 +652,6 @@ export default function PlantPassport({
           </button>
           {/* Evidencias de main */}
           {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={evidence.photo} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
-          {activityItems}
         </div>
       )}
     </dialog>

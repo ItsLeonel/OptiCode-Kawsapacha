@@ -1,5 +1,6 @@
 import { prisma } from '../config/prisma'
 import path from 'path'
+import { evaluateActivityReward } from './rewards.service'
 
 const MAX_PLOTS = 6
 
@@ -166,5 +167,111 @@ export async function getPlantPassport(plantId: string) {
       registeredBy: { select: { id: true, name: true } },
     },
   })
+}
+
+export interface UpdatePlantInput {
+  plantId: string
+  requestingUserId: string
+  customName?: string
+  plantingDate?: string
+  notes?: string
+  observedState?: string
+  plotIndex?: number
+  heightCm?: number
+  file?: Express.Multer.File
+}
+
+export async function updatePlantDetails(input: UpdatePlantInput) {
+  const plant = await prisma.cultivatedPlant.findUnique({
+    where: { id: input.plantId },
+    include: { realGarden: true, species: true },
+  })
+  if (!plant) throw Object.assign(new Error('Planta no encontrada.'), { code: 'NOT_FOUND' })
+
+  const data: Record<string, any> = {}
+  if (input.customName !== undefined && input.customName.trim() !== '') {
+    data.customName = input.customName.trim()
+  }
+  if (input.notes !== undefined) {
+    data.notes = input.notes.trim()
+  }
+  if (input.observedState !== undefined && input.observedState.trim() !== '') {
+    data.observedState = input.observedState.trim()
+    if (input.observedState === 'harvested') {
+      data.lifecycleStatus = 'HARVESTED'
+    } else if (['flowering', 'mature'].includes(input.observedState)) {
+      data.lifecycleStatus = 'READY_TO_HARVEST'
+    } else if (['germinated', 'growing'].includes(input.observedState)) {
+      data.lifecycleStatus = 'GROWING'
+    }
+  }
+  if (input.plantingDate) {
+    const d = new Date(input.plantingDate)
+    if (!isNaN(d.getTime())) {
+      data.plantingDate = d
+    }
+  }
+  if (input.plotIndex !== undefined && Number.isInteger(input.plotIndex) && input.plotIndex >= 0 && input.plotIndex <= 5 && input.plotIndex !== plant.plotIndex) {
+    const existing = await prisma.cultivatedPlant.findUnique({
+      where: { realGardenId_plotIndex: { realGardenId: plant.realGardenId, plotIndex: input.plotIndex } },
+    })
+    if (existing && existing.id !== plant.id) {
+      throw Object.assign(new Error('Esa parcela ya está ocupada por otra planta.'), { code: 'PLOT_OCCUPIED' })
+    }
+    data.plotIndex = input.plotIndex
+  }
+  if (input.file) {
+    const filename = path.basename(input.file.path)
+    data.photoUrl = `/uploads/plants/${filename}`
+    data.photoPath = input.file.path
+    data.photoMime = input.file.mimetype
+    data.photoSize = input.file.size
+  }
+
+  const updated = await prisma.cultivatedPlant.update({
+    where: { id: input.plantId },
+    data,
+    include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },
+  })
+
+  // Registrar actividad de tipo observation en la Bitácora Viva
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const detailsObj: Record<string, any> = {}
+    if (input.observedState) detailsObj.state = input.observedState
+    if (input.heightCm !== undefined) detailsObj.heightCm = input.heightCm
+
+    const activity = await prisma.gardenActivity.create({
+      data: {
+        gardenId: plant.realGardenId,
+        actorUserId: input.requestingUserId,
+        type: 'observation',
+        performedDate: today,
+        targetKind: 'plant',
+        plantId: plant.id,
+        plotIndex: updated.plotIndex,
+        notes: input.notes || `Observación actualizada: ${input.observedState || 'seguimiento'}`,
+        details: JSON.stringify(detailsObj),
+      },
+    })
+
+    if (input.file) {
+      await prisma.activityEvidence.create({
+        data: {
+          activityId: activity.id,
+          filePath: input.file.path,
+          fileUrl: updated.photoUrl,
+          mimeType: input.file.mimetype,
+          fileSize: input.file.size,
+        },
+      })
+    }
+
+    await evaluateActivityReward(activity)
+  } catch (actErr) {
+    console.error('Error al registrar actividad automática de observación:', actErr)
+  }
+
+  return updated
 }
 

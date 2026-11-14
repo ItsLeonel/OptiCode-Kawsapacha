@@ -4,6 +4,7 @@ import { PLANT_STATES, type GardenPlant } from '../garden'
 import { isGrowthStage } from '../growth-stages'
 import { recordId, validDate, validatePlantUpdate, type PlantUpdate } from '../plant-record'
 import { activityKey, validateActivity, type GardenActivity } from './activities'
+import { validatePostharvestStep } from './postharvest'
 
 export type GardenJournal = {
   version: 1; revision: number; gardenId: string; community: Community | null; terrain: RealGarden | null
@@ -95,6 +96,7 @@ export function applyJournalCommand(current: GardenJournal, command: JournalComm
 function addActivity(journal: GardenJournal, activity: GardenActivity): GardenJournal {
   if (activity.gardenId !== journal.gardenId || activity.validation !== 'local-v1') throw new Error('La actividad no corresponde a este huerto.')
   const invalid = validateActivity(activity, projectPlants(journal))
+    ?? validatePostharvestStep(activity, journal.activities)
   if (invalid) throw new Error(invalid)
   if (journal.activities.some(item => item.id === activity.id || activityKey(item) === activityKey(activity))) return journal
   return { ...journal, activities: [...journal.activities, { ...activity, photos: undefined, responsible: activity.responsible.trim(), notes: activity.notes.trim() }] }

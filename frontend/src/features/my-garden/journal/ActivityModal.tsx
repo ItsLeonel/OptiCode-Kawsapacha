@@ -112,7 +112,12 @@ export default function ActivityModal({
   function chooseType(next: ActivityType) {
     setType(next)
     if (next === 'harvest') setDetails({ harvestMode: 'partial' })
-    else if (next === 'postharvest') { const first = harvests[0]; setDetails(first ? { sourceHarvestId: first.id, postharvestStep: nextPostharvestStep(activities, first.id) ?? undefined } : {}) }
+    else if (next === 'postharvest') {
+      const first = harvests[0]
+      const step = first ? nextPostharvestStep(activities, first.id) : null
+      setDetails(first ? { sourceHarvestId: first.id, postharvestStep: step ?? undefined,
+        method: step === 'drying-start' ? 'shade' : undefined, packageDate: step === 'packaging' ? date : undefined } : {})
+    }
     else setDetails({})
     setError('')
   }

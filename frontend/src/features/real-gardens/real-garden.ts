@@ -75,7 +75,7 @@ export function toGardenDraft(garden: RealGarden | null): RealGardenDraft {
     province: loc.province ?? (garden as any).province ?? '',
     cantonCode: loc.cantonCode ?? (garden as any).cantonCode ?? '',
     parishCode: loc.parishCode ?? (garden as any).parishCode ?? '',
-    coordinates: loc.coordinates ?? ((garden as any).latitude ? { latitude: (garden as any).latitude, longitude: (garden as any).longitude } : null),
+    coordinates: loc.coordinates ?? (Number.isFinite((garden as any).latitude) && Number.isFinite((garden as any).longitude) ? { latitude: (garden as any).latitude, longitude: (garden as any).longitude } : null),
     reference: loc.reference ?? (garden as any).reference ?? '',
     areaM2: String(garden.areaM2 ?? ''),
     irrigationAvailability: garden.irrigationAvailability ?? '',

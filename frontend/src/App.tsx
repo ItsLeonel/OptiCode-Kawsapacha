@@ -610,8 +610,9 @@ export default function App({
       createdAt: now,
       state: 'not-documented',
       ...(input.growthStage ? { growthStage: input.growthStage } : {}),
+      ...(input.visualProfile ? { visualProfile: input.visualProfile } : {}),
       ...(input.plantedOn ? { plantedOn: input.plantedOn } : {}),
-      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId, ...(input.growthStage ? { growthStage: input.growthStage } : {}) }],
+      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId, ...(input.growthStage ? { growthStage: input.growthStage } : {}), ...(input.visualProfile ? { visualProfile: input.visualProfile } : {}) }],
     }
     const sowing: GardenActivity | undefined = input.recordSowing
       ? {

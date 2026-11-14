@@ -1,8 +1,19 @@
 import { expect, test } from '@playwright/test'
-import rawSpecies from '../src/features/medicinal-catalog/regional-species.json'
-import { normalizeCatalogSpecies } from '../src/services/api'
+import { readFileSync } from 'node:fs'
 
-const catalog = rawSpecies.map(normalizeCatalogSpecies)
+// El runner de Playwright usa Node y lee JSON como archivo, sin atributos de importación.
+const rawSpecies = JSON.parse(readFileSync(new URL('../src/features/medicinal-catalog/regional-species.json', import.meta.url), 'utf8')) as Array<{
+  id: string
+  name: string
+  latinName: string
+  family: string
+  description: string
+  sourceUrl: string
+  photoSourceUrl: string
+  defaultPhotoUrl: string
+  regions: string
+}>
+const catalog = rawSpecies.map(plant => ({ ...plant, regions: JSON.parse(plant.regions) as string[] }))
 const regions = ['sierra', 'costa', 'oriente', 'galapagos']
 
 test('catálogo MSP/INIAP: especies únicas y fichas con fuentes', () => {

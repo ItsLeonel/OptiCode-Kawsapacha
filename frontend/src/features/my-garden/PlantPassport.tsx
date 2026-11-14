@@ -211,7 +211,7 @@ export default function PlantPassport({
               {growth?.overWatered && <div>💧 Suelo saturado de agua: riesgo inminente de <strong>asfixia radicular y pudrición de raíces</strong>. Suspende el riego.</div>}
               {growth?.overFertilized && <div>🧪 Suelo sobrefertilizado: exceso de sales puede <strong>quemar las raíces</strong>. No apliques más abono.</div>}
               {growth?.overPruned && <div>✂️ Poda excesiva esta semana: la planta necesita tiempo para <strong>recuperarse del estrés</strong>.</div>}
-              <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#c53030' }}>El crecimiento está pausado hasta que el estrés ceda.</div>
+              <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#c53030' }}>Esta alerta es orientativa; no confirma el estado real del suelo o de la planta.</div>
             </div>
           )}
 
@@ -243,16 +243,18 @@ export default function PlantPassport({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#4a5568' }}>
               <span>
-                {isRegrowing
+                {!growth ? 'Sin pronóstico agronómico disponible' : isRegrowing
                   ? 'Indicador orientativo de rebrote; no confirma su estado real'
-                  : `Días estimados para cosecha: `}
-                {!isRegrowing && <strong>{growth?.daysUntilHarvest ?? 0} días</strong>}
+                  : 'Días estimados para cosecha: '}
+                {growth && !isRegrowing && <strong>{growth.daysUntilHarvest} días</strong>}
               </span>
               <span>
-                {growth?.needsWatering ? (
-                  <strong style={{ color: '#d69e2e' }}>💧 Requiere riego</strong>
+                {!growth ? (
+                  <span>No hay medición de humedad</span>
+                ) : growth.needsWatering ? (
+                  <strong style={{ color: '#d69e2e' }}>💧 Riego sugerido (orientativo)</strong>
                 ) : (
-                  <span style={{ color: '#38a169' }}>✓ Riego al día</span>
+                  <span style={{ color: '#38a169' }}>Riego no sugerido hoy (estimación)</span>
                 )}
               </span>
             </div>
@@ -397,7 +399,7 @@ export default function PlantPassport({
 
           <div className="journal-passport-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '12px 0' }}>
             {onEdit && <button type="button" onClick={onEdit} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Actualizar foto y observaciones</button>}
-            {onActivity && !plant.archivedAt && <button type="button" onClick={onActivity} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Registrar actividad</button>}
+            {onActivity && !plant.archivedAt && <button type="button" onClick={() => onActivity()} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Registrar actividad</button>}
             {onRestore && plant.archivedAt && <button type="button" onClick={() => void onRestore()} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Restaurar al espacio</button>}
           </div>
 

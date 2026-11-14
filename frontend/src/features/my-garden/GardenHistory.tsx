@@ -221,7 +221,8 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   const displayEntries = allActivities ? filtered : filtered.slice(0, 3)
   const selected = entries.find(e => e.key === selectedKey)
   const sourceHarvest = selected?.details.sourceHarvestId ? activities.find(event => event.id === selected.details.sourceHarvestId) : undefined
-  const sourcePlant = sourceHarvest?.target.kind === 'plant' ? plants.find(p => p.id === sourceHarvest.target.plantId) : undefined
+  const sourcePlantId = sourceHarvest?.target.kind === 'plant' ? sourceHarvest.target.plantId : undefined
+  const sourcePlant = sourcePlantId ? plants.find(p => p.id === sourcePlantId) : undefined
   const photoCount = activeEntries.reduce((sum, e) => sum + e.photoIds.length, 0)
   const latest = activeEntries[0]
   function seePlantHistory(plantId: string) {

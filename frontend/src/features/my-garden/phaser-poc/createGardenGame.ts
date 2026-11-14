@@ -175,7 +175,10 @@ class ModularGardenScene extends Phaser.Scene {
         this.load.image(key, url)
       }
     })
-    // Herramientas SVG transparentes, cargadas una sola vez y sin recortar el jardín real.
+    // Las ilustraciones de herramientas NO forman parte del preload crítico:
+    // Phaser debe emitir ready aunque el navegador demore la decodificación SVG.
+    // Cuando termina de iniciar, se cargan en segundo plano con fallback vectorial.
+    if (!this.ready) return
     for (const [activity, url] of Object.entries(ACTIVITY_TOOL_ASSETS)) {
       const key = `activity-tool-${activity}`
       if (this.textures.exists(key) || this.failedAssets.has(key) || this.requestedAssets.has(key)) continue

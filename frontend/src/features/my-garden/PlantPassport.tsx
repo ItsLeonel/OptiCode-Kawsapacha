@@ -133,7 +133,7 @@ export default function PlantPassport({
   const isRegrowing = growth?.lifecycleStatus === 'REGROWING'
   const hasStress = growth?.overWatered || growth?.overFertilized || growth?.overPruned
   const isResponsible = !user || currentCommunityRole === 'RESPONSABLE'
-  const visualEvidence = (plant?.evidences ?? []).filter(item => item.visualProfile)
+  const visualEvidence = (plant?.evidences ?? []).filter(item => item.visualProfile).sort((a, b) => a.date.localeCompare(b.date))
   const previousProfile = visualEvidence.length > 1 ? visualEvidence[visualEvidence.length - 2].visualProfile : undefined
   const currentProfile = visualEvidence.length ? visualEvidence[visualEvidence.length - 1].visualProfile : undefined
   const visualChanges = compareVisualProfiles(previousProfile, currentProfile)

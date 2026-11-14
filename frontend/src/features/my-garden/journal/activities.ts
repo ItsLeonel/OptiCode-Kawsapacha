@@ -17,8 +17,9 @@ export type ActivityDetails = {
   sowingMaterial?: 'seed' | 'stake' | 'cutting' | 'seedling'
   groundTechnique?: 'furrows' | 'beds' | 'raisedBeds' | 'terraces'
   sourceHarvestId?: string; plantPart?: 'leaves' | 'flowers' | 'fruits' | 'seeds' | 'roots' | 'other'
-  packagedOn?: string; expiryDate?: string; storageLocation?: string
-  labelCommonName?: string; labelScientificName?: string; labelUse?: string; labelWarnings?: string; labelDose?: string
+  dryingStartOn?: string; dryingEndOn?: string; packagedOn?: string; expiryDate?: string; storageLocation?: string
+  labelCommonName?: string; labelScientificName?: string; labelLocalName?: string; labelFamily?: string
+  labelUse?: string; labelWarnings?: string; labelDose?: string
   traditionalType?: 'hot' | 'cool' | 'unknown'
 }
 export type GardenActivity = {
@@ -65,12 +66,20 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if (detail.growthStage !== undefined && !isGrowthStage(detail.growthStage)) return 'Selecciona una etapa de crecimiento válida.'
   if (activity.type === 'observation' && detail.growthStage !== undefined && detail.growthStage !== plant?.growthStage && !activity.photoIds.length) return 'Añade una foto real para documentar el cambio de etapa.'
   if ((detail.material?.length ?? 0) > 100 || (detail.method?.length ?? 0) > 100) return 'Describe el método o material en hasta 100 caracteres.'
-  for (const value of [detail.storageLocation, detail.labelCommonName, detail.labelScientificName, detail.labelUse, detail.labelWarnings, detail.labelDose]) if ((value?.length ?? 0) > 300) return 'Los campos de etiquetado y almacenamiento permiten hasta 300 caracteres.'
+  for (const value of [detail.storageLocation, detail.labelCommonName, detail.labelScientificName, detail.labelLocalName, detail.labelFamily, detail.labelUse, detail.labelWarnings, detail.labelDose]) if ((value?.length ?? 0) > 300) return 'Los campos de etiquetado y almacenamiento permiten hasta 300 caracteres.'
+  if (activity.type === 'drying' && (!detail.dryingStartOn || !detail.dryingEndOn)) return 'Indica cuándo empezó y terminó realmente el secado.'
+  if (detail.dryingStartOn && !validDate(detail.dryingStartOn)) return 'Indica una fecha válida de inicio de secado.'
+  if (detail.dryingEndOn && !validDate(detail.dryingEndOn)) return 'Indica una fecha válida de finalización de secado.'
+  if (detail.dryingStartOn && detail.dryingEndOn && detail.dryingEndOn < detail.dryingStartOn) return 'El secado no puede terminar antes de empezar.'
+  if (detail.dryingEndOn && detail.dryingEndOn > activity.date) return 'La finalización del secado no puede ser posterior al registro.'
   if (detail.packagedOn && !validDate(detail.packagedOn)) return 'Indica una fecha válida de empaquetado.'
-  if (detail.expiryDate && !/^\d{4}-\d{2}-\d{2}$/.test(detail.expiryDate)) return 'Indica una fecha de caducidad válida.'
+  if (detail.expiryDate && (!/^\d{4}-\d{2}-\d{2}$/.test(detail.expiryDate)
+    || Number.isNaN(Date.parse(detail.expiryDate + 'T12:00:00Z'))
+    || new Date(detail.expiryDate + 'T12:00:00Z').toISOString().slice(0, 10) !== detail.expiryDate)) return 'Indica una fecha de caducidad válida.'
   if (detail.packagedOn && detail.expiryDate && detail.expiryDate < detail.packagedOn) return 'La caducidad debe ser posterior al empaquetado.'
   if (activity.type === 'packaging' && (!detail.labelCommonName?.trim() || !detail.labelScientificName?.trim() || !detail.packagedOn || !detail.expiryDate)) return 'Para etiquetar indica nombre común, científico, fecha de empaque y caducidad real declarada.'
   if (activity.type === 'storage' && !detail.storageLocation?.trim()) return 'Indica dónde almacenaste el lote.'
+  if (activity.type === 'signage' && (!detail.labelCommonName?.trim() || !detail.labelScientificName?.trim())) return 'La señalética debe incluir los nombres común y científico.'
   if (activity.type === 'observation' && !activity.notes.trim() && !activity.photoIds.length && detail.heightCm === undefined && detail.state === undefined && detail.growthStage === undefined) return 'Añade una observación, fotografía, medida o estado documentado.'
   if (activity.type === 'replanting') {
     if (!Number.isInteger(detail.destinationPlot) || detail.destinationPlot! < 0 || detail.destinationPlot! >= 6 || detail.destinationPlot === plant?.plot) return 'Elige un espacio de destino distinto y válido.'

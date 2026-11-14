@@ -67,7 +67,7 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if ((detail.material?.length ?? 0) > 100 || (detail.method?.length ?? 0) > 100) return 'Describe el método o material en hasta 100 caracteres.'
   for (const value of [detail.storageLocation, detail.labelCommonName, detail.labelScientificName, detail.labelUse, detail.labelWarnings, detail.labelDose]) if ((value?.length ?? 0) > 300) return 'Los campos de etiquetado y almacenamiento permiten hasta 300 caracteres.'
   if (detail.packagedOn && !validDate(detail.packagedOn)) return 'Indica una fecha válida de empaquetado.'
-  if (detail.expiryDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(detail.expiryDate)) return 'Indica una fecha de caducidad válida.'
+  if (detail.expiryDate && !/^\d{4}-\d{2}-\d{2}$/.test(detail.expiryDate)) return 'Indica una fecha de caducidad válida.'
   if (detail.packagedOn && detail.expiryDate && detail.expiryDate < detail.packagedOn) return 'La caducidad debe ser posterior al empaquetado.'
   if (activity.type === 'packaging' && (!detail.labelCommonName?.trim() || !detail.labelScientificName?.trim() || !detail.packagedOn || !detail.expiryDate)) return 'Para etiquetar indica nombre común, científico, fecha de empaque y caducidad real declarada.'
   if (activity.type === 'storage' && !detail.storageLocation?.trim()) return 'Indica dónde almacenaste el lote.'

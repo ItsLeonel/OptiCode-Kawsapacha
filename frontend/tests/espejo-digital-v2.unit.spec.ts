@@ -5,6 +5,7 @@ import { applyJournalCommand, emptyJournal, projectPlants } from '../src/feature
 import { validateActivity, type GardenActivity } from '../src/features/my-garden/journal/activities'
 import type { GardenPlant } from '../src/features/my-garden/garden'
 import type { RealGarden } from '../src/features/real-gardens/real-garden'
+import { buildGardenVisualModel } from '../src/features/my-garden/phaser-poc/model'
 
 const terrain: RealGarden = {
   name: 'Huerto medicinal de prueba', kind: 'ground', areaM2: 12,
@@ -48,6 +49,10 @@ test('no se infiere crecimiento desde edad, especie, fotografía ni riegos', () 
     id: 'water', type: 'activity', activity: activity(original.gardenId, 'watering', { quantity: 1, unit: 'L' }),
   })
   expect(projectPlants(watered)[0].growthStage).toBe('sown')
+  const model = buildGardenVisualModel(terrain, projectPlants(watered), 'sierra', watered.activities)
+  expect(model.slots[0].lastWateredAt).toBe(localDate())
+  expect(model.slots[0].plant?.growthStage).toBe('sown')
+  expect(model.slots[0].lastWeededAt).toBeUndefined()
   expect(original.activities).toHaveLength(0)
 })
 

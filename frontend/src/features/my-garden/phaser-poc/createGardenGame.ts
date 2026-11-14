@@ -99,6 +99,9 @@ class ModularGardenScene extends Phaser.Scene {
     this.publishCamera()
     this.game.canvas.setAttribute('aria-hidden', 'true')
     this.bridge.emit({ type: 'ready', renderer: this.game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas' })
+    // Los implementos opcionales se cargan DESPUÉS de emitir ready.
+    // Un SVG defectuoso jamás bloquea el jardín o sus seis parcelas.
+    this.time.delayedCall(800, () => { if (this.ready) this.loadActivityTools() })
   }
 
   private receive(command: SceneCommand) {
@@ -175,20 +178,25 @@ class ModularGardenScene extends Phaser.Scene {
         this.load.image(key, url)
       }
     })
-    // Las ilustraciones de herramientas NO forman parte del preload crítico:
-    // Phaser debe emitir ready aunque el navegador demore la decodificación SVG.
-    // Cuando termina de iniciar, se cargan en segundo plano con fallback vectorial.
-    if (!this.ready) return
-    for (const [activity, url] of Object.entries(ACTIVITY_TOOL_ASSETS)) {
-      const key = `activity-tool-${activity}`
-      if (this.textures.exists(key) || this.failedAssets.has(key) || this.requestedAssets.has(key)) continue
-      this.requestedAssets.add(key)
-      this.load.svg(key, url, { width: 240, height: 220 })
-    }
   }
 
   private syncAssets() {
     this.queueAssets()
+    if (!this.load.isLoading() && this.load.list.size) this.load.start()
+  }
+
+  private loadActivityTools() {
+    for (const [activity, url] of Object.entries(ACTIVITY_TOOL_ASSETS)) {
+      const key = 'activity-tool-' + activity
+      if (this.textures.exists(key) || this.failedAssets.has(key) || this.requestedAssets.has(key)) continue
+      try {
+        this.requestedAssets.add(key)
+        this.load.svg(key, url, { width: 240, height: 220 })
+      } catch (cause) {
+        this.failedAssets.add(key)
+        console.warn('[Kawsapacha] Implemento SVG no disponible; se conserva el efecto vectorial.', activity, cause)
+      }
+    }
     if (!this.load.isLoading() && this.load.list.size) this.load.start()
   }
 

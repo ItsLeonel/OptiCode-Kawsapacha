@@ -3,8 +3,7 @@ import AuthForm from './AuthForm'
 import AuthIcon from './AuthIcon'
 import PlantIllustration from './PlantIllustration'
 import { AUTH_FIELDS, type AuthMode, type AuthSubmitHandler } from './auth'
-import welcomeGuideSierra from '../../assets/welcome/guide-sierra.png'
-import welcomeGuideAmazonia from '../../assets/welcome/guide-amazonia.png'
+import { gameRegionAssets } from '../../shared/ui/game-ui/game-region-assets'
 import welcomeFlowers from '../../assets/welcome/flower-cluster.png'
 import welcomeFlag from '../../assets/welcome/woven-flag.png'
 import './auth.css'
@@ -44,8 +43,8 @@ export default function AuthPage({ onExploreDemo, onSubmit, onAuthenticated }: {
     <div className="auth-landscape" aria-hidden="true"/>
     <div className="auth-warm-light" aria-hidden="true"/>
     <div className="auth-scene-art" aria-hidden="true">
-      <img className="auth-guide auth-guide-sierra" src={welcomeGuideSierra} alt=""/>
-      <img className="auth-guide auth-guide-amazonia" src={welcomeGuideAmazonia} alt=""/>
+      <img className="auth-guide auth-guide-sierra" src={gameRegionAssets.sierra.guide} alt=""/>
+      <img className="auth-guide auth-guide-amazonia" src={gameRegionAssets.oriente.guide} alt=""/>
       <img className="auth-scene-flower" src={welcomeFlowers} alt=""/>
       <img className="auth-scene-flag" src={welcomeFlag} alt=""/>
     </div>

@@ -1,6 +1,8 @@
 # 🌱 Kawsapacha — Mi Huerto Vivo | Equipo OptiCode
 
-**Calidad de Software · EPN · Versión 1 · Demostración: 10 de noviembre de 2026**
+**Calidad de Software · EPN · V1 histórica (10/11/2026) y Espejo Digital V2 en integración (14/11/2026)**
+
+> **Estado actual:** el Espejo Digital refleja etapas declaradas por el usuario mediante ilustraciones, sin inventar crecimiento; el registro y el historial agrícola general permanecen locales en IndexedDB hasta que Ronny integre las APIs #35/#43. Los perfiles de 30 especies y efectos de actividades llegaron con #56. La poscosecha, los rituales y la señalética están desarrollados como frontend documental en #57, **no sincronizados con servidor**. Administración MSP, foro, ranking y despliegue real siguen incompletos; revisar [trazabilidad del cliente](docs/analisis/trazabilidad-cliente-2026-11-14.md).
 
 Kawsapacha es una aplicación web educativa para que comunidades del Ecuador registren **huertos medicinales reales** y los representen en un **huerto virtual interactivo**. Cada planta podrá asociarse con su especie, una fotografía real y una ficha (*Pasaporte Vivo*).
 
@@ -18,7 +20,7 @@ Kawsapacha es una aplicación web educativa para que comunidades del Ecuador reg
 
 ## 👥 Equipo: empiecen por estas tareas
 
-Todos los **16 Issues ya tienen responsables asignados**. Cada persona debe revisar sus actividades, criterios de aceptación y entregables.
+Las tareas de V1 y las fases posteriores están organizadas en GitHub Issues. Cada responsable debe revisar los criterios de aceptación y las dependencias actuales, especialmente #35, #43, #45, #48 y #49.
 
 | Responsable | Qué empieza a hacer ahora | Issues iniciales |
 |---|---|---|
@@ -39,7 +41,7 @@ Todos los **16 Issues ya tienen responsables asignados**. Cada persona debe revi
 - **Diseño:** Figma; mapa provincial con GeoJSON y catálogo territorial INEC DPA 2026.
 - **Gestión y pruebas:** GitHub Issues/PR; Playwright para pruebas automatizadas del frontend; casos de prueba documentados con la plantilla docente.
 
-**Mejoras opcionales, no bloqueantes de V1:** historial de fotos en el Pasaporte Vivo, sugerencias de especies según región e identificación asistida por Pl@ntNet. Solo se incorporan cuando el flujo principal funcione y quede tiempo para probarlas. Una identificación automática siempre requiere confirmación del usuario y no constituye consejo médico.
+**Identificación automática por fotografía:** no forma parte de los flujos actuales y no debe presentarse como existente. El Espejo Digital usa la especie seleccionada y la etapa declarada por la persona; el sistema no valida automáticamente la identidad botánica. Requiere revisión de fuentes y no sustituye criterio sanitario. Una identificación automática siempre requiere confirmación del usuario y no constituye consejo médico.
 
 ### ▶️ Ejecutar la aplicación
 
@@ -53,7 +55,7 @@ cd OptiCode-Kawsapacha/backend
 cp .env.example .env          # PowerShell: Copy-Item .env.example .env
 npm install
 npx prisma migrate dev        # crea la base SQLite
-npm run prisma:seed           # carga las 8 especies del catálogo
+npm run prisma:seed           # carga el catálogo regional actual (30 entradas)
 npm run dev
 ```
 
@@ -109,6 +111,10 @@ Para comprobar tipos y compilación, en cada carpeta: `npm run typecheck` y `npm
 ## 📁 Documentación y entregables
 
 - [Alcance de V1](docs/analisis/alcance-v1.md)
+- [Estado y trazabilidad del cliente (14/11/2026)](docs/analisis/trazabilidad-cliente-2026-11-14.md)
+- [Contrato propuesto de integración Espejo Digital V2](docs/arquitectura/contrato-espejo-digital-v2.md)
+- [Plan de pruebas manuales ciclo agrícola V2](docs/casos-prueba/ciclo-agricola-v2-manual.md)
+- [Despliegue reproducible Docker y HTTPS (aún no público)](docs/arquitectura/despliegue-docker-https.md)
 - [Historias de usuario V1](docs/historias-usuario/historias-usuario-v1.md)
 - [Arquitectura del backend](docs/arquitectura/backend.md) y [contratos de API](docs/arquitectura/contratos-api.md)
 - [Lineamientos MSP aplicados](docs/analisis/lineamientos-msp-aplicados.md) · [Preguntas al cliente](docs/analisis/preguntas-al-cliente.md) · [Dudas y decisiones](docs/analisis/dudas-y-decisiones-pendientes.md)

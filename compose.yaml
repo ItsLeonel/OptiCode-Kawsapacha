@@ -1,0 +1,44 @@
+# Despliegue reproducible / pruebas. La activación pública exige revisión #35/#45/#49.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: deploy/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: "file:./data/kawsapacha.db"
+      UPLOADS_DIR: "/app/uploads"
+      JWT_SECRET: "${JWT_SECRET:?Configura un JWT_SECRET seguro en .env}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-7d}"
+      CORS_ORIGIN: "${PUBLIC_ORIGIN:?Configura PUBLIC_ORIGIN en .env}"
+    volumes:
+      - sqlite_data:/app/prisma/data
+      - uploads_data:/app/uploads
+    expose:
+      - "3000"
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/frontend.Dockerfile
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: "${SITE_ADDRESS:-:80}"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  sqlite_data:
+  uploads_data:
+  caddy_data:
+  caddy_config:

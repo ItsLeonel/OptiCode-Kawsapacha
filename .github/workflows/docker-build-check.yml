@@ -1,0 +1,36 @@
+name: Docker images / reproducible deployment
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - 'compose.yaml'
+      - '.dockerignore'
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/docker-build-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/**'
+      - 'compose.yaml'
+      - '.dockerignore'
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/docker-build-check.yml'
+
+jobs:
+  docker-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar configuración de Compose
+        run: |
+          export JWT_SECRET=prueba_aislada_no_es_credencial_real
+          export PUBLIC_ORIGIN=http://localhost
+          docker compose config -q
+      - name: Compilar imagen de API
+        run: docker build -f deploy/backend.Dockerfile -t kawsapacha-api:ci .
+      - name: Compilar imagen de frontend y proxy
+        run: docker build -f deploy/frontend.Dockerfile -t kawsapacha-web:ci .

@@ -59,7 +59,9 @@ export default function AgriculturalCycleFields({ type, date, details, events, b
       <label className={field}><span>Cosecha documentada de origen</span>
         <select required disabled={busy} aria-label="Cosecha de origen" value={details.sourceHarvestId ?? ''} onChange={e => {
           const id = e.target.value
-          onDetails({ sourceHarvestId: id, postharvestStep: nextPostharvestStep(events, id) ?? undefined })
+          const step = nextPostharvestStep(events, id)
+          onDetails({ sourceHarvestId: id, postharvestStep: step ?? undefined,
+            method: step === 'drying-start' ? 'shade' : undefined, packageDate: step === 'packaging' ? date : undefined })
         }}>
           <option value="">Selecciona una cosecha</option>
           {harvests.map(h => <option key={h.id} value={h.id}>{h.date} · {h.target.kind === 'garden' ? 'Todo el huerto' : 'Espacio ' + (h.target.plot + 1)}</option>)}

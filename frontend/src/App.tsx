@@ -609,9 +609,9 @@ export default function App({
       plot: input.plot,
       createdAt: now,
       state: 'not-documented',
-      ...(input.recordSowing ? { growthStage: 'sown' as const } : {}),
+      ...(input.growthStage ? { growthStage: input.growthStage } : {}),
       ...(input.plantedOn ? { plantedOn: input.plantedOn } : {}),
-      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId, ...(input.recordSowing ? { growthStage: 'sown' as const } : {}) }],
+      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId, ...(input.growthStage ? { growthStage: input.growthStage } : {}) }],
     }
     const sowing: GardenActivity | undefined = input.recordSowing
       ? {
@@ -1118,6 +1118,8 @@ export default function App({
           initialPhoto={registration.photo}
           initialPlantedOn={registration.plantedOn}
           initialSowing={registration.recordSowing}
+          initialGrowthStage={registration.growthStage}
+          growthStageEnabled={!user}
           initialResponsible={registration.responsible ?? communityRecord?.responsible ?? ''}
           initialRequestId={registration.requestId}
           notice={registration.notice}

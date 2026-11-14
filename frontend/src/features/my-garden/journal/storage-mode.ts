@@ -46,9 +46,10 @@ export function validateBasicServerActivity(
     if (details.harvestMode !== 'partial') return 'La API básica no admite cosechas completas ni liberación de parcelas. Espera la API de ciclo agrícola #43.'
     if (typeof details.quantity !== 'number' || !Number.isFinite(details.quantity) || details.quantity <= 0 ||
         !details.unit || !['L', 'kg', 'g', 'unidades'].includes(details.unit)) return 'Para guardar una cosecha en SQLite, indica cantidad y unidad reales.'
-  } else if (details.quantity !== undefined && (!Number.isFinite(details.quantity) || details.quantity <= 0 || !details.unit)) {
+  } else if ((details.quantity !== undefined && (!Number.isFinite(details.quantity) || details.quantity <= 0 || !details.unit)) || (details.unit && details.quantity === undefined)) {
     return 'Para conservar la cantidad del cuidado indica cantidad positiva y unidad.'
   }
+  if (basicServerNotes(draft).length > 2000) return 'Las observaciones y detalles del servidor no deben superar 2000 caracteres.'
   return null
 }
 

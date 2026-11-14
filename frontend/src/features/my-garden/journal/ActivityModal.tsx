@@ -91,6 +91,7 @@ export default function ActivityModal({
   const plant = targetId.startsWith('plant:') ? plants.find(item => item.id === targetId.slice(6)) : undefined
   const postharvest = isPostharvestStep(type)
   const harvestLots = listHarvestLots(activities, gardenId)
+  const activeLot = harvestLots.find(lot => lot.id === details.sourceHarvestId)
   const target: ActivityTarget = postharvest ? { kind: 'garden' } : plant
     ? { kind: 'plant', plantId: plant.id, plot: plant.plot }
     : targetId.startsWith('plot:')
@@ -174,13 +175,15 @@ export default function ActivityModal({
         <section className="activity-garden-plant-section" aria-label="Planta o lugar de la actividad">
           <div className="activity-garden-section-label"><GardenIcon name="seed" /> {postharvest ? 'Lote de cosecha' : 'Planta seleccionada'}</div>
           <div className="activity-garden-plant-card">
-            {plant?.photo
-              ? <img src={plant.photo} alt={`Fotografía de ${plant.name}`} />
-              : <span className="activity-garden-plant-placeholder" aria-hidden="true">🌿</span>}
+            {postharvest
+              ? <span className="activity-garden-plant-placeholder" aria-hidden="true">🧺</span>
+              : plant?.photo
+                ? <img src={plant.photo} alt={`Fotografía de ${plant.name}`} />
+                : <span className="activity-garden-plant-placeholder" aria-hidden="true">🌿</span>}
             <div className="activity-garden-plant-details">
-              <strong>{plant ? plant.name : target.kind === 'plot' ? `Espacio ${target.plot + 1}` : 'Todo el huerto'}</strong>
-              <span>{plant ? (plant.latin || `Espacio ${plant.plot + 1}`) : 'Puedes seleccionar una planta o parcela.'}</span>
-              {plant && <small><GardenIcon name="leaf" /> Planta vinculada · Espacio {plant.plot + 1}</small>}
+              <strong>{postharvest ? (activeLot?.label ?? 'Selecciona una cosecha') : plant ? plant.name : target.kind === 'plot' ? `Espacio ${target.plot + 1}` : 'Todo el huerto'}</strong>
+              <span>{postharvest ? 'Proceso vinculado a un lote con cosecha real registrada' : plant ? (plant.latin || `Espacio ${plant.plot + 1}`) : 'Puedes seleccionar una planta o parcela.'}</span>
+              {!postharvest && plant && <small><GardenIcon name="leaf" /> Planta vinculada · Espacio {plant.plot + 1}</small>}
             </div>
             {!postharvest && <button type="button" className="activity-garden-change" disabled={busy} aria-expanded={showTargetPicker} onClick={() => setShowTargetPicker(current => !current)}>
               <GardenIcon name="seed" /> {plant ? 'Cambiar planta' : 'Elegir ubicación'}

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 export default function GardenChecklist<T extends string>({ id, label, icon, options, value, multiple = false, required = false, error, onChange }: {
-  id: string; label: string; icon: ReactNode; options: Record<T, string>; value: T[] | T | ''
+  id: string; label: string; icon: ReactNode; options: Partial<Record<T, string>>; value: T[] | T | ''
   multiple?: boolean; required?: boolean; error?: string; onChange: (value: T) => void
 }) {
   return <fieldset className="rg-checklist" id={id} tabIndex={-1} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined}>

@@ -6,7 +6,7 @@ import RealGardenIcon from './RealGardenIcon'
 import GardenChecklist from './GardenChecklist'
 import GardenPhoto from './GardenPhoto'
 import GardenFeatureAccordion, { type GardenFeatureStep } from './GardenFeatureAccordion'
-import { FENCE_OPTIONS, GROUND_DESIGN_OPTIONS, IRRIGATION_METHOD_OPTIONS, NATURAL_FERTILIZER_OPTIONS, WATER_SOURCE_OPTIONS, toGardenFeatures, toggleGardenFeature, type GardenFeatures } from './garden-characteristics'
+import { FENCE_OPTIONS, GROUND_DESIGN_OPTIONS, SELECTABLE_IRRIGATION_METHOD_OPTIONS, NATURAL_FERTILIZER_OPTIONS, WATER_SOURCE_OPTIONS, toGardenFeatures, toggleGardenFeature, type GardenFeatures } from './garden-characteristics'
 import { IRRIGATION_OPTIONS, SOIL_OPTIONS, type IrrigationAvailability, type RealGardenDraft, type RealGardenErrors, type SoilType } from './real-garden'
 
 export default function GardenCharacteristics({ values, errors, disabled, actions, onChange, registrationMode = false }: {
@@ -26,7 +26,13 @@ export default function GardenCharacteristics({ values, errors, disabled, action
     { id: 'rg-waterSources', title: 'Fuente de agua', icon: <RealGardenIcon name="water"/>, selected: features.waterSources.length,
       content: <GardenChecklist id="rg-waterSources" label="Fuente de agua" icon={<RealGardenIcon name="water"/>} options={WATER_SOURCE_OPTIONS} value={features.waterSources} multiple onChange={value => toggle('waterSources', value)}/> },
     { id: 'rg-irrigationMethods', title: 'Método de riego', icon: <RealGardenIcon name="water"/>, selected: features.irrigationMethods.length,
-      content: <GardenChecklist id="rg-irrigationMethods" label="Método de riego" icon={<RealGardenIcon name="water"/>} options={IRRIGATION_METHOD_OPTIONS} value={features.irrigationMethods} multiple onChange={value => toggle('irrigationMethods', value)}/> },
+      content: <>
+        <GardenChecklist<GardenFeatures['irrigationMethods'][number]> id="rg-irrigationMethods" label="Método de riego" icon={<RealGardenIcon name="water"/>} options={SELECTABLE_IRRIGATION_METHOD_OPTIONS} value={features.irrigationMethods} multiple onChange={value => toggle('irrigationMethods', value)}/>
+        {features.irrigationMethods.includes('sprinkler') && <p className="rg-hint" role="note">
+          Este huerto conserva «Aspersión» de un registro anterior. Los lineamientos actuales no contemplan ese método.
+          <button type="button" onClick={() => toggle('irrigationMethods', 'sprinkler')}>Quitar aspersión del registro</button>
+        </p>}
+      </> },
   ]
   if (registrationMode || values.kind === 'ground') steps.push(
     { id: 'rg-soilType', title: 'Tipo de suelo', icon: <RealGardenIcon name="soil"/>, selected: values.soilType ? 1 : 0, required: values.kind === 'ground', notApplicable: Boolean(values.kind && values.kind !== 'ground'), error: errors.soilType,

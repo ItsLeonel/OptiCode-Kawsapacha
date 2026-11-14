@@ -30,7 +30,7 @@ export function isPlantVisualProfile(value: unknown): value is PlantVisualProfil
   return p.version === 1 && p.analyzer === 'canvas-foliage-v1' &&
     ['low', 'medium', 'high'].includes(p.confidence ?? '') &&
     [p.coverage, p.heightRatio, p.widthRatio, p.centerX].every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1) &&
-    [p.heightLevel, p.densityLevel, p.spreadLevel].every(v => Number.isInteger(v) && v! >= 1 && v! <= 5) &&
+    [p.heightLevel, p.densityLevel, p.spreadLevel].every(v => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 5) &&
     typeof p.foliageColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(p.foliageColor) &&
     ['light', 'medium', 'dark'].includes(p.leafTone ?? '') &&
     ['left', 'upright', 'right'].includes(p.orientation ?? '') &&

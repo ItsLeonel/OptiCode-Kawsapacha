@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 import type Phaser from 'phaser'
-import catalog from '../src/features/medicinal-catalog/regional-species.json'
+import { readFileSync } from 'node:fs'
+// Playwright ejecuta estas pruebas en Node: leer JSON sin importaciones ESM sin atributo.
+const catalog = JSON.parse(readFileSync('src/features/medicinal-catalog/regional-species.json', 'utf8')) as {name: string; latinName: string}[]
 import { SPECIES_ART_COUNT, resolveSpeciesArt } from '../src/features/my-garden/phaser-poc/species-art'
 import { paintObservedPlant } from '../src/features/my-garden/phaser-poc/plant-illustration'
 import { feedbackMotion, hasIllustratedFeedback, paintActivityFeedback } from '../src/features/my-garden/phaser-poc/activity-feedback-art'

@@ -8,6 +8,7 @@ import { regionalLandscapes } from '../../shared/regional-landscapes'
 import { useGardenDialog } from './useGardenDialog'
 import BitacoraIcon, { type BitacoraIconName } from './BitacoraIcons'
 import bookHeader from './bitacora-art/book-header.webp'
+import PostHarvestLabel from './PostHarvestLabel'
 import './bitacora-viva.css'
 
 type ActivityFilter = 'all' | ActivityType | 'pruning' | 'pest_control' | 'other'
@@ -120,8 +121,8 @@ function EntryVisual({ item, plant }: { item: FeedItem; plant?: GardenPlant }) {
   </div>
 }
 
-function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
-  item: FeedItem; plant?: GardenPlant; onSelect: (plant: GardenPlant) => void
+function EntryDetails({ item, plant, sourcePlant, onSelect, onVoid, onClose }: {
+  item: FeedItem; plant?: GardenPlant; sourcePlant?: GardenPlant; onSelect: (plant: GardenPlant) => void
   onVoid?: (id: string, reason: string) => Promise<void>; onClose: () => void
 }) {
   const dialog = useGardenDialog()
@@ -165,6 +166,7 @@ function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
         {item.details.storageLabel && <div><dt>Etiqueta documentada</dt><dd>{item.details.storageLabel}</dd></div>}
         {item.details.storagePlace && <div><dt>Almacenaje</dt><dd>{item.details.storagePlace}</dd></div>}
       </dl></section>}
+      {item.type === 'postharvest' && item.details.postharvestStep === 'packaging' && <PostHarvestLabel details={item.details} plant={sourcePlant}/>}
       <section className="bv-detail-section"><h3>Registro fotográfico</h3>
         {item.photos.length > 0 ? <div className="bv-detail-photos">{item.photos.map((url, index) => <img key={`${item.key}:${index}`} src={url} alt={`Fotografía ${index + 1} del registro`} loading="lazy" />)}</div>
           : <p className="bv-muted">Esta actividad no tiene una fotografía de evidencia adjunta.{plant?.photo ? ' La foto de la planta que aparece en el álbum es su ficha, no evidencia de esta actividad.' : ''}</p>}
@@ -218,6 +220,8 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   const filtered = entries.filter(item => (filter === 'all' || item.type === filter) && (plantFilter === 'all' || item.plantId === plantFilter))
   const displayEntries = allActivities ? filtered : filtered.slice(0, 3)
   const selected = entries.find(e => e.key === selectedKey)
+  const sourceHarvest = selected?.details.sourceHarvestId ? activities.find(event => event.id === selected.details.sourceHarvestId) : undefined
+  const sourcePlant = sourceHarvest?.target.kind === 'plant' ? plants.find(p => p.id === sourceHarvest.target.plantId) : undefined
   const photoCount = activeEntries.reduce((sum, e) => sum + e.photoIds.length, 0)
   const latest = activeEntries[0]
   function seePlantHistory(plantId: string) {
@@ -279,6 +283,6 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
       </section>
       <p className="bv-honesty-note"><BitacoraIcon name="info" size={15}/> Las fotografías y las actividades se muestran según su origen. Los registros locales todavía no están sincronizados como bitácora general con el backend.</p>
     </div>
-    {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
+    {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} sourcePlant={sourcePlant} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
   </section>
 }

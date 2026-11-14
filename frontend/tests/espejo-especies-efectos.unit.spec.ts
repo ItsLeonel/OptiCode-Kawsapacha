@@ -7,6 +7,7 @@ import { SPECIES_ART_COUNT, resolveSpeciesArt } from '../src/features/my-garden/
 import { paintObservedPlant } from '../src/features/my-garden/phaser-poc/plant-illustration'
 import { feedbackMotion, hasIllustratedFeedback, paintActivityFeedback } from '../src/features/my-garden/phaser-poc/activity-feedback-art'
 import type { GrowthStage } from '../src/features/my-garden/growth-stages'
+import type { PlantVisualProfile } from '../src/features/my-garden/plant-visual-profile'
 
 function graphicsSpy() {
   const shapes: string[] = []
@@ -78,4 +79,24 @@ test('los efectos agrícolas contienen formas distintas y tienen duración limit
   expect(representations.size).toBe(4)
   expect(hasIllustratedFeedback('observation')).toBe(false)
   expect(hasIllustratedFeedback('sowing')).toBe(false)
+})
+
+test('dos fotos de la misma especie y etapa dan ilustraciones individuales', () => {
+  const base: PlantVisualProfile = {
+    version: 1, analyzer: 'canvas-foliage-v1', confidence: 'high',
+    coverage: .18, heightRatio: .45, widthRatio: .35, centerX: .5,
+    heightLevel: 2, densityLevel: 1, spreadLevel: 2, foliageColor: '#287b3e',
+    leafTone: 'medium', orientation: 'upright', floweringHint: 'not-detected',
+  }
+  const dense: PlantVisualProfile = { ...base, densityLevel: 5, foliageColor: '#4d9d55', widthRatio: .6, spreadLevel: 4 }
+  for (const [name, latin] of [['Manzanilla', 'Matricaria chamomilla'], ['Romero', 'Salvia rosmarinus']]) {
+    const a = graphicsSpy(), b = graphicsSpy()
+    paintObservedPlant(a.g, 'vegetative', name, latin, base)
+    paintObservedPlant(b.g, 'vegetative', name, latin, dense)
+    expect(a.shapes.length, name).not.toBe(b.shapes.length)
+    // Sin etapa documentada la foto jamás inventa un brote.
+    const empty = graphicsSpy()
+    paintObservedPlant(empty.g, null, name, latin, dense)
+    expect(empty.shapes).toContain('roundRect')
+  }
 })

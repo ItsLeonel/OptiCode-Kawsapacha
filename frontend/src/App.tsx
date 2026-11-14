@@ -976,9 +976,7 @@ export default function App({
                   {screen === 'Mi historia' || screen === 'Mi camino verde' ? 'Mi camino verde' : 'Mi Huerto Vivo'}
                 </span>
                 <h1 tabIndex={-1} data-screen-heading>
-                  {screen === 'Plantas medicinales'
-                    ? 'Catálogo de plantas medicinales'
-                    : screen === 'Bitácora'
+                  {screen === 'Bitácora'
                     ? 'Bitácora agrícola'
                     : screen === 'Mi historia' || screen === 'Mi camino verde'
                     ? 'Mi camino verde'
@@ -1000,7 +998,7 @@ export default function App({
                 </button>
                 <button
                   type="button"
-                  aria-current={screen === 'Plantas medicinales' ? 'page' : undefined}
+                  aria-label="Abrir catálogo medicinal"
                   onClick={() => goto('Plantas medicinales')}
                 >
                   Catálogo

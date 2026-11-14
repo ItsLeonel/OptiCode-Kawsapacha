@@ -5,7 +5,9 @@ import { GROWTH_STAGES, type GrowthStage } from '../growth-stages'
 import { localDate, recordId } from '../plant-record'
 import { useGardenDialog } from '../useGardenDialog'
 import { useJournalPhoto } from './useJournalPhoto'
-import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails } from './activities'
+import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails, type GardenActivity } from './activities'
+import AgriculturalCycleFields from './AgriculturalCycleFields'
+import { nextPostharvestStep } from './postharvest-cycle'
 import wateringArt from './activity-art/watering.png'
 import sowingArt from './activity-art/sowing.png'
 import fertilizingArt from './activity-art/fertilizing.png'
@@ -31,6 +33,10 @@ const ACTIVITY_CARDS: Record<ActivityType, ActivityCard> = {
   weeding: { emoji: '🌿', short: 'Deshierbe', category: 'cuidado' },
   hilling: { emoji: '⛰️', short: 'Aporque', category: 'cultivo' },
   replanting: { emoji: '🌱', short: 'Replante', category: 'cultivo' },
+  sowing_ritual: { emoji: '🌅', short: 'Ritual de siembra', category: 'cultivo' },
+  gratitude_ritual: { emoji: '🌞', short: 'Ritual de gratitud', category: 'cosecha' },
+  signage: { emoji: '🏷️', short: 'Señalética', category: 'cultivo' },
+  postharvest: { emoji: '📦', short: 'Poscosecha', category: 'cosecha' },
 }
 const FEATURED: ActivityType[] = ['watering', 'sowing', 'fertilizing', 'observation', 'harvest']
 const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
@@ -42,10 +48,11 @@ const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
 ]
 
 export default function ActivityModal({
-  plants, gardenId, responsible, initialPlant, initialPlot, initialDate, initialActivityType,
+  plants, gardenId, responsible, initialPlant, initialPlot, initialDate, initialActivityType, activities = [],
   onSave, onRegister, onClose, growthStageEnabled = true,
 }: {
   plants: GardenPlant[]
+  activities?: readonly GardenActivity[]
   gardenId: string
   responsible: string
   initialPlant?: GardenPlant
@@ -78,13 +85,18 @@ export default function ActivityModal({
   const [dragOver, setDragOver] = useState(false)
   const photo = useJournalPhoto()
 
+  const harvests = activities.filter(item => item.type === 'harvest' && !item.voidedAt).sort((a,b) => b.date.localeCompare(a.date))
+  const selectedHarvest = harvests.find(item => item.id === details.sourceHarvestId)
   const plant = targetId.startsWith('plant:') ? plants.find(item => item.id === targetId.slice(6)) : undefined
-  const target: ActivityTarget = plant
+  const originalTarget: ActivityTarget = plant
     ? { kind: 'plant', plantId: plant.id, plot: plant.plot }
     : targetId.startsWith('plot:')
       ? { kind: 'plot', plot: Number(targetId.slice(5)) }
       : { kind: 'garden' }
-  const needsPlant = ['sowing', 'hilling', 'replanting', 'observation', 'harvest'].includes(type)
+  const target: ActivityTarget = type === 'postharvest' && selectedHarvest
+    ? selectedHarvest.target.kind === 'garden' ? {kind:'garden'} : {kind:'plot',plot:selectedHarvest.target.plot}
+    : originalTarget
+  const needsPlant = ['sowing', 'hilling', 'replanting', 'observation', 'harvest', 'signage'].includes(type)
   const types = category === 'all'
     ? (FEATURED.includes(type) ? FEATURED : [...FEATURED.slice(0, 4), type])
     : (Object.keys(ACTIVITY_TYPES) as ActivityType[]).filter(item => ACTIVITY_CARDS[item].category === category)
@@ -99,7 +111,9 @@ export default function ActivityModal({
 
   function chooseType(next: ActivityType) {
     setType(next)
-    setDetails(next === 'harvest' ? { harvestMode: 'partial' } : {})
+    if (next === 'harvest') setDetails({ harvestMode: 'partial' })
+    else if (next === 'postharvest') { const first = harvests[0]; setDetails(first ? { sourceHarvestId: first.id, postharvestStep: nextPostharvestStep(activities, first.id) ?? undefined } : {}) }
+    else setDetails({})
     setError('')
   }
   function chooseCategory(next: Category) {
@@ -122,7 +136,7 @@ export default function ActivityModal({
     event.preventDefault()
     if (sending.current || photo.reading || photo.error) return
     const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details, photo: photo.photo }
-    const invalid = validateActivity({ ...draft, gardenId, createdAt: new Date().toISOString(), photoIds: photo.photo ? ['pending-photo'] : [], validation: 'local-v1' }, plants)
+    const invalid = validateActivity({ ...draft, gardenId, createdAt: new Date().toISOString(), photoIds: photo.photo ? ['pending-photo'] : [], validation: 'local-v1' }, plants, activities)
     if (invalid) { setError(invalid); return }
     sending.current = true
     setBusy(true)
@@ -166,7 +180,7 @@ export default function ActivityModal({
               <span>{plant ? (plant.latin || `Espacio ${plant.plot + 1}`) : 'Puedes seleccionar una planta o parcela.'}</span>
               {plant && <small><GardenIcon name="leaf" /> Planta vinculada · Espacio {plant.plot + 1}</small>}
             </div>
-            <button type="button" className="activity-garden-change" disabled={busy} aria-expanded={showTargetPicker} onClick={() => setShowTargetPicker(current => !current)}>
+            <button type="button" className="activity-garden-change" disabled={busy || type === 'postharvest'} aria-expanded={showTargetPicker} onClick={() => setShowTargetPicker(current => !current)}>
               <GardenIcon name="seed" /> {plant ? 'Cambiar planta' : 'Elegir ubicación'}
             </button>
           </div>
@@ -240,7 +254,7 @@ export default function ActivityModal({
             <span><span aria-hidden="true">👤</span> Responsable</span>
             <input type="text" required minLength={2} maxLength={100} value={person} disabled={busy} onChange={event => setPerson(event.target.value)} placeholder="Persona responsable" />
           </label>
-          {['watering', 'fertilizing', 'harvest'].includes(type) && <>
+          {['watering', 'fertilizing', 'harvest', 'postharvest'].includes(type) && <>
             <label className="activity-garden-field activity-garden-field-quantity">
               <span>Cantidad <em>(opcional)</em></span>
               <input type="number" min="0.001" max="1000000" step="any" value={details.quantity ?? ''} disabled={busy} onChange={event => detail('quantity', event.target.value === '' ? undefined : Number(event.target.value))} placeholder="Ej. 2" />
@@ -271,6 +285,7 @@ export default function ActivityModal({
             <label className="activity-garden-field activity-garden-field-harvest"><span>Tipo de cosecha</span><select aria-label="Tipo de cosecha" disabled={busy} value={details.harvestMode ?? 'partial'} onChange={event => setDetails(current => ({ ...current, harvestMode: event.target.value as 'partial' | 'complete', releasePlot: false }))}><option value="partial">Parcial</option><option value="complete">Completa</option></select></label>
             {details.harvestMode === 'complete' && <label className="activity-garden-check"><input type="checkbox" disabled={busy} checked={details.releasePlot ?? false} onChange={event => detail('releasePlot', event.target.checked)} /> Archivar ficha y liberar espacio</label>}
           </>}
+          <AgriculturalCycleFields type={type} date={date} details={details} events={activities} busy={busy} onDetails={setDetails}/>
         </div>
 
         <div className="activity-garden-evidence-grid">

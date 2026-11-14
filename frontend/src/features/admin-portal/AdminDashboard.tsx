@@ -1,15 +1,16 @@
-import { useEffect, useState, type ReactNode, type ChangeEvent } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import AdminIcon, { type AdminIconName } from './AdminIcon'
 import AdminMap from './AdminMap'
+import AdminCommunityVerification from './AdminCommunityVerification'
+import AdminEvidenceReview from './AdminEvidenceReview'
 import type {
   AdminNavKey, AdminPanelKind, MspDashboardData, TechDashboardData,
-  SystemHealth, CommunityRow, AdminUserRow,
+  SystemHealth, AdminUserRow, CommunityReviewHandler, EvidenceReviewHandler,
 } from './admin-types'
 import brandLogo from './assets/kawsapacha-marca.svg'
 import ecuadorInsignia from './assets/ecuador-insignia.svg'
 import communityLearning from '../communities/assets/aprender-v2.jpg'
 import communityEvents from '../communities/assets/eventos-v2.jpg'
-import communityForum from '../communities/assets/foro-v2.jpg'
 import './admin-portal.css'
 
 const MSP_NAV: { key: AdminNavKey; label: string; icon: AdminIconName }[] = [
@@ -85,7 +86,7 @@ function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: Adm
     <div className="kap-msp-primary-grid">
       <AdminPanel icon="pin" title="Cobertura de comunidades" subtitle="Distribución de comunidades en el territorio nacional" action={<ActionLink onClick={() => setTab('comunidades')}>Ver cobertura territorial</ActionLink>}>
         <div className="kap-map-panel">
-          <AdminMap province={province} onProvinceChange={setProvince}/>
+          <AdminMap province={province} onProvinceChange={setProvince} communities={data?.communities}/>
           <div className="kap-map-aside"><div className="kap-tally"><AdminIcon name="users" size={20}/><span><strong><FormattedCount value={data?.communitiesTotal}/></strong><small>Comunidades</small></span></div>
             <div className="kap-tally"><AdminIcon name="shield" size={20}/><span><strong><FormattedCount value={data?.communitiesApproved}/></strong><small>Verificadas</small></span></div>
             <div className="kap-tally"><AdminIcon name="map" size={20}/><span><strong>24</strong><small>Provincias del Ecuador</small></span></div></div>
@@ -104,7 +105,7 @@ function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: Adm
       </AdminPanel>
       <AdminPanel icon="shield" title="Contenidos por moderar" subtitle="Publicaciones y evidencias de revisión" action={<ActionLink onClick={() => setTab('moderacion')}>Revisar</ActionLink>}>
         <div className="kap-review-list">
-          {([['Comunidades','users'], ['Evidencias fotográficas','image'], ['Foros y publicaciones','message']] as [string, AdminIconName][]).map(([label, icon]) => <button type="button" key={label} onClick={() => setTab('moderacion')}><AdminIcon name={icon} size={18}/><span>{label}</span><span className="kap-review-pending">Por sincronizar</span></button>)}
+          {([['Comunidades','users'], ['Evidencias fotográficas','image'], ['Foros y publicaciones','message']] as [string, AdminIconName][]).map(([label, icon]) => <button type="button" key={label} onClick={() => setTab('moderacion')}><AdminIcon name={icon} size={18}/><span>{label}</span><span className="kap-review-pending">{data?.evidences !== undefined && label === 'Evidencias fotográficas' ? data.evidences.filter(row => row.state === 'PENDING').length.toLocaleString('es-EC') : 'Por sincronizar'}</span></button>)}
         </div>
       </AdminPanel>
       <AdminPanel icon="chart" title="Reportes rápidos" subtitle="Indicadores del programa" action={<ActionLink onClick={() => setTab('reportes')}>Ver reportes</ActionLink>}>
@@ -113,9 +114,7 @@ function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: Adm
     </div>
   </>
 }
-function MspDetail({ tab, data, setTab }: { tab: AdminNavKey; data?: MspDashboardData; setTab: (next: AdminNavKey) => void }) {
-  const [query, setQuery] = useState('')
-  const [province, setProvince] = useState('')
+function MspDetail({ tab, data, setTab, onReviewCommunity, onRefreshCommunities, onReviewEvidence, onRefreshEvidence }: { tab: AdminNavKey; data?: MspDashboardData; setTab: (next: AdminNavKey) => void; onReviewCommunity?: CommunityReviewHandler; onRefreshCommunities?: () => Promise<void> | void; onReviewEvidence?: EvidenceReviewHandler; onRefreshEvidence?: () => Promise<void> | void }) {
   const definitions: Record<string, { title: string; description: string; icon: AdminIconName }> = {
     comunidades: { title: 'Comunidades del Ecuador', description: 'Registro y estados de verificación de comunidades.', icon: 'users' },
     eventos: { title: 'Eventos y mingas institucionales', description: 'Ferias y encuentros coordinados por el MSP.', icon: 'calendar' },
@@ -124,22 +123,21 @@ function MspDetail({ tab, data, setTab }: { tab: AdminNavKey; data?: MspDashboar
     reportes: { title: 'Reportes institucionales', description: 'Indicadores de comunidades, eventos y contenido educativo.', icon: 'chart' },
   }
   const definition = definitions[tab] ?? definitions.comunidades
-  const communities = (data?.communities ?? []).filter(c => (!province || c.province === province) && `${c.name} ${c.province}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
   return <>
     <SectionHead title={definition.title} subtitle={definition.description} onBack={() => setTab('inicio')}/>
-    {tab === 'comunidades' && <div className="kap-detail-layout">
-      <AdminPanel title="Mapa nacional" subtitle="Cobertura provincial de comunidades" icon="map"><AdminMap province={province} onProvinceChange={setProvince}/></AdminPanel>
-      <AdminPanel title="Directorio de comunidades" subtitle="Sin datos ficticios" icon="users"><label className="kap-search"><AdminIcon name="search" size={17}/><input value={query} onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="Buscar comunidad o provincia" aria-label="Buscar comunidad"/></label>
-        {communities.length ? <div className="kap-table-scroll"><table className="kap-table"><thead><tr><th>Comunidad</th><th>Provincia</th><th>Estado</th></tr></thead><tbody>{communities.map(c => <tr key={c.id}><td>{c.name}</td><td>{c.province}</td><td><ValueBadge>{stateLabel(c)}</ValueBadge></td></tr>)}</tbody></table></div> : <EmptyState title="No hay comunidades para mostrar" detail="El listado se cargará desde el backend autorizado del MSP."/>}
-      </AdminPanel></div>}
+    {tab === 'comunidades' && <AdminCommunityVerification communities={data?.communities} onReview={onReviewCommunity} onRefresh={onRefreshCommunities}/>}
     {tab === 'eventos' && <AdminPanel icon="calendar" title="Eventos institucionales" subtitle="Publicación y coordinación por provincia/cantón"><EmptyState title="Todavía no hay eventos conectados" detail="El formulario de creación se habilitará cuando la API y el rol ADMIN_MSP estén implementados." illustration={communityEvents}/></AdminPanel>}
     {tab === 'recursos' && <AdminPanel icon="book" title="Recursos educativos" subtitle="Contenido validado y propuestas comunitarias"><EmptyState title="Biblioteca pendiente de sincronización" detail="No se presentarán contenidos como avalados por el MSP antes de la revisión." illustration={communityLearning}/></AdminPanel>}
-    {tab === 'moderacion' && <div className="kap-moderation-grid">{([['Comunidades pendientes','users'], ['Fotografías por revisar','image'], ['Foro y experiencias','message']] as [string, AdminIconName][]).map(([label, icon]) => <AdminPanel key={label} title={label} icon={icon}><EmptyState title="Pendiente de conectar" detail="Las decisiones de verificación y su auditoría se registrarán en el servidor; no se simulan aprobaciones." illustration={icon === 'message' ? communityForum : undefined}/></AdminPanel>)}</div>}
+    {tab === 'moderacion' && <>
+      <div className="kap-moderation-entry">
+        <div><AdminIcon name="shield" size={21}/><span><strong>Supervisión de contenidos</strong><small>Las evidencias agrícolas se revisan aquí. Las solicitudes de comunidades se gestionan en su propio expediente.</small></span></div>
+        <button type="button" className="kap-outline-action" onClick={() => setTab('comunidades')}>Verificar comunidades <AdminIcon name="right" size={15}/></button>
+      </div>
+      <AdminEvidenceReview evidences={data?.evidences} onReview={onReviewEvidence} onRefresh={onRefreshEvidence}/>
+      <div className="kap-evidence-related"><AdminIcon name="message" size={19}/><span><strong>Foro y experiencias:</strong> la moderación de publicaciones reportadas se incorporará con el módulo de Comunidades; no se simula aquí.</span></div>
+    </>}
     {tab === 'reportes' && <AdminPanel icon="chart" title="Indicadores y reportes" subtitle="Consulta de resultados nacionales y territoriales"><EmptyState title="Sin indicadores oficiales disponibles" detail="Los reportes se habilitarán cuando existan datos agregados y validados por el backend."/></AdminPanel>}
   </>
-}
-function stateLabel(c: CommunityRow) {
-  return ({ PENDING: 'Pendiente', APPROVED: 'Verificada', NEEDS_CHANGES: 'Requiere correcciones', REJECTED: 'Rechazada' } as const)[c.state]
 }
 function ServiceStatus({ label, state, detail, icon }: { label: string; state: 'online' | 'offline' | 'unknown'; detail?: string; icon: AdminIconName }) {
   return <div className="kap-service-row"><AdminIcon name={icon} size={22}/><strong>{label}</strong><span className={`kap-service-status status-${state}`}><span className="kap-status-dot"/>{state === 'online' ? 'Operativo' : state === 'offline' ? 'No disponible' : 'Sin comprobar'}</span>{detail && <small>{detail}</small>}</div>
@@ -206,9 +204,11 @@ function TechnicalDetail({ tab, data, health, setTab, onRefresh }: { tab: AdminN
   </>
 }
 
-export default function AdminDashboard({ kind, userName, isPreview = false, onLogout, onBack, mspData, techData }: {
+export default function AdminDashboard({ kind, userName, isPreview = false, onLogout, onBack, mspData, techData, onReviewCommunity, onRefreshCommunities, onReviewEvidence, onRefreshEvidence }: {
   kind: AdminPanelKind; userName?: string; isPreview?: boolean; onLogout: () => void; onBack: () => void;
   mspData?: MspDashboardData; techData?: TechDashboardData;
+  onReviewCommunity?: CommunityReviewHandler; onRefreshCommunities?: () => Promise<void> | void;
+  onReviewEvidence?: EvidenceReviewHandler; onRefreshEvidence?: () => Promise<void> | void;
 }) {
   const [activeTab, setActiveTab] = useState<AdminNavKey>('inicio')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -270,7 +270,7 @@ export default function AdminDashboard({ kind, userName, isPreview = false, onLo
       <main className="kap-content">
         {isPreview && <div className="kap-preview-strip"><AdminIcon name="eye" size={16}/><span>Vista previa de diseño · Datos administrativos aún no conectados</span><button type="button" onClick={onBack}>Volver a Kawsapacha</button></div>}
         {activeTab === 'inicio' ? isMsp ? <MspHome data={mspData} setTab={setActiveTab}/> : <TechnicalHome data={techData} health={health} setTab={setActiveTab} onRefresh={checkHealth}/> :
-          isMsp ? <MspDetail tab={activeTab} data={mspData} setTab={setActiveTab}/> : <TechnicalDetail tab={activeTab} data={techData} health={health} setTab={setActiveTab} onRefresh={checkHealth}/>}
+          isMsp ? <MspDetail tab={activeTab} data={mspData} setTab={setActiveTab} onReviewCommunity={isPreview ? undefined : onReviewCommunity} onRefreshCommunities={onRefreshCommunities} onReviewEvidence={isPreview ? undefined : onReviewEvidence} onRefreshEvidence={onRefreshEvidence}/> : <TechnicalDetail tab={activeTab} data={techData} health={health} setTab={setActiveTab} onRefresh={checkHealth}/>}
         <footer className="kap-dashboard-footer"><span>Kawsapacha · Proyecto académico EPN · No constituye una plataforma oficial del MSP</span><span>Fase 4.5 · {isPreview ? 'Vista previa' : 'Interfaz administrativa'}</span></footer>
       </main>
     </div>

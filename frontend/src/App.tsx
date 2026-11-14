@@ -123,7 +123,7 @@ export default function App({
 
   const detail = plants.find(plant => plant.id === detailId) ?? null
   const editingPlant = plants.find(plant => plant.id === editingId)
-  const progress = useMemo(() => user ? undefined : calculateProgress(journal.data, communityRecord?.responsible), [user, journal.data, communityRecord?.responsible])
+  const progress = useMemo(() => calculateProgress(visibleJournal, communityRecord?.responsible), [visibleJournal, communityRecord?.responsible])
 
   // El API es la fuente de verdad; la lista local solo permite consultar en ausencia de servidor.
   useEffect(() => {
@@ -757,7 +757,7 @@ export default function App({
       setNotice(draft.type === 'harvest'
         ? 'Cosecha básica confirmada en SQLite. La evidencia fotográfica y el ciclo avanzado requieren la API #43.'
         : 'Cuidado confirmado en SQLite. Para adjuntar evidencias y registrar actividades avanzadas falta integrar la API #43.')
-      if (screen === 'Inicio') setFeedback({ id: draft.id, type: draft.type, plot: draft.target.plot })
+      if (screen === 'Inicio') setFeedback({ id: draft.id, type: draft.type, plot: draft.target.kind === 'garden' ? null : draft.target.plot })
       return
     }
 

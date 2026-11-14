@@ -56,7 +56,7 @@ async function optimizeImage(file: File | Blob): Promise<File | Blob> {
   }
 }
 
-export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialGrowthStage, growthStageEnabled = true, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
+export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialGrowthStage, growthStageEnabled = true, serverBasicOnly = false, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
   plants: GardenPlant[]
   speciesOptions?: PlantSpecies[]
   initialPlot: number | null
@@ -69,6 +69,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   initialSowing?: boolean
   initialGrowthStage?: GrowthStage
   growthStageEnabled?: boolean
+  serverBasicOnly?: boolean
   initialResponsible?: string
   initialRequestId?: string
   onClose: () => void
@@ -85,7 +86,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   const [error, setError] = useState('')
   const [reading, setReading] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [recordSowing, setRecordSowing] = useState(initialSowing)
+  const [recordSowing, setRecordSowing] = useState(initialSowing && !serverBasicOnly)
   const [growthStage, setGrowthStage] = useState<GrowthStage | undefined>(initialGrowthStage)
   const [responsible, setResponsible] = useState(initialResponsible)
   const requestId = useRef(initialRequestId ?? recordId('registration'))
@@ -261,7 +262,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
             </select>
             <small>{growthStageEnabled ? 'Solo lo que observaste realmente. La foto es evidencia, no la ilustración de Mi Jardín.' : 'Las etapas del usuario autenticado se habilitarán al conectar la API de evidencias del servidor.'}</small>
           </label>
-          <label className="journal-check"><input type="checkbox" checked={recordSowing} onChange={event => setRecordSowing(event.target.checked)}/>Registrar también la actividad de siembra realizada</label>
+          {!serverBasicOnly && <label className="journal-check"><input type="checkbox" checked={recordSowing} onChange={event => setRecordSowing(event.target.checked)}/>Registrar también la actividad de siembra realizada</label>}
           {recordSowing && <label className="plant-registration-field">Persona responsable de la siembra<input required minLength={2} maxLength={100} value={responsible} onChange={event => setResponsible(event.target.value)}/></label>}
           {notice && <p className="plant-registration-notice">{notice}</p>}
           {!available.length && <p className="plant-registration-notice" role="status">Los seis espacios están ocupados. Consulta sus Pasaportes Vivos en el jardín.</p>}
@@ -281,7 +282,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
             </div>
           )}
           <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" disabled={busy} onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={busy || !ready || !available.length || !photo || reading || cameraActive || analysis.status === 'analyzing'}><GardenIcon name="seed"/>{busy ? 'Guardando…' : 'Añadir a mi huerto'}</button></div>
-          <small className="plant-registration-temporary">Se guardan la ficha y la fotografía en este navegador.</small>
+          <small className="plant-registration-temporary">{serverBasicOnly ? 'Se guardarán la ficha básica y la fotografía en SQLite. El perfil visual calculado aquí no se sincroniza hasta que esté lista la API #35/#43; las etapas y la actividad de siembra aún no se guardan.' : 'Se guardan la ficha, la etapa y la fotografía solo en este navegador.'}</small>
         </section>
       </div>
     </form>

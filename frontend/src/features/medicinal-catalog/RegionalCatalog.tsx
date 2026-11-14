@@ -4,6 +4,12 @@ import { regionForProvince, type GardenRegion } from '../real-gardens/garden-reg
 import type { CatalogSpecies } from '../../services/api'
 import mortar from './botanical-mortar.svg'
 import botanicalFallback from './botanical-placeholder.svg'
+import costaBackdrop from '../../assets/regiones/fondo_costa_kawsapacha.png'
+import sierraBackdrop from '../../assets/regiones/fondo_sierra_kawsapacha.png'
+import amazoniaBackdrop from '../../assets/regiones/fondo_oriente_kawsapacha.png'
+import galapagosBackdrop from '../../assets/regiones/fondo_galapagos_kawsapacha.png'
+import flowerCluster from '../../assets/welcome/flower-cluster.png'
+import leafSprig from '../../assets/welcome/leaf-sprig.png'
 import './regional-catalog.css'
 
 type RegionChoice = GardenRegion | 'mine' | 'all'
@@ -11,6 +17,12 @@ const REGION_LABELS: Record<GardenRegion, string> = {
   costa: 'Costa', sierra: 'Sierra', oriente: 'Amazonía', galapagos: 'Galápagos',
 }
 const REGIONS: GardenRegion[] = ['costa', 'sierra', 'oriente', 'galapagos']
+const REGION_BACKDROPS: Record<GardenRegion, string> = {
+  costa: costaBackdrop,
+  sierra: sierraBackdrop,
+  oriente: amazoniaBackdrop,
+  galapagos: galapagosBackdrop,
+}
 const USES = ['Todas', 'Digestivas', 'Respiratorias', 'Calmantes', 'Aromáticas', 'Tradicional'] as const
 
 function BotanicalPhoto({ plant, className = '' }: { plant: CatalogSpecies; className?: string }) {
@@ -52,6 +64,7 @@ export default function RegionalCatalog({
     return hash.startsWith('#plantas/') ? decodeURIComponent(hash.slice('#plantas/'.length)) : null
   })
   const gardenRegion = province ? regionForProvince(province) : null
+  const heroBackdrop = gardenRegion ? REGION_BACKDROPS[gardenRegion] : sierraBackdrop
   const regionChoice = choice === 'mine' ? gardenRegion : choice === 'all' ? null : choice
 
   useEffect(() => setOnlyMine(Boolean(province)), [province])
@@ -88,7 +101,6 @@ export default function RegionalCatalog({
     })
   }, [species, regionChoice, onlyMine, gardenRegion, use, search, sort])
   const selected = selectedId ? species.find(plant => plant.id === selectedId) : null
-  const shownLabel = regionChoice ? REGION_LABELS[regionChoice] : 'Todas las regiones'
 
   function openDetail(id: string) {
     window.history.pushState(null, '', '#plantas/' + encodeURIComponent(id))
@@ -184,12 +196,17 @@ export default function RegionalCatalog({
   }
 
   return <section className="mc-catalog" aria-label="Catálogo regional medicinal">
-    <div className="mc-title-row">
+    <div
+      className="mc-title-row"
+      style={{ backgroundImage: `linear-gradient(90deg, rgba(255,249,231,.98) 0%, rgba(255,249,231,.94) 42%, rgba(255,249,231,.50) 72%, rgba(255,249,231,.55) 100%), url("${heroBackdrop}")` }}
+    >
+      <img className="mc-hero-leaves" src={leafSprig} alt="" aria-hidden="true"/>
+      <img className="mc-hero-flowers" src={flowerCluster} alt="" aria-hidden="true"/>
       <img className="mc-mortar" src={mortar} alt="Mortero tradicional con hojas de plantas"/>
       <div className="mc-heading-copy">
         <span className="mc-kicker">BOTÁNICA · SABERES DEL ECUADOR</span>
         <h1 tabIndex={-1} data-screen-heading>Catálogo de plantas medicinales</h1>
-        <p>Explora especies, usos tradicionales y su presencia documentada según la región de tu huerto.</p>
+        <p>Descubre las plantas medicinales de tu región.</p>
       </div>
       <div className="mc-context">
         <span className="mc-region-pill"><GardenIcon name="mountain"/> {gardenRegion ? 'Región: ' + REGION_LABELS[gardenRegion] : 'Región no configurada'}</span>
@@ -199,7 +216,7 @@ export default function RegionalCatalog({
     </div>
     <div className="mc-filters">
       <div className="mc-filters-title"><GardenIcon name="leaf"/> Filtrar catálogo</div>
-      <label className="mc-search"><span>⌕</span><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Buscar por nombre, familia o uso..." aria-label="Buscar plantas"/></label>
+      <label className="mc-search"><span>⌕</span><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Buscar plantas por nombre o uso..." aria-label="Buscar plantas"/></label>
       <label className="mc-region-select">Región
         <select value={choice} onChange={event=>{setChoice(event.target.value as RegionChoice); if(event.target.value!=='mine') setOnlyMine(false)}}>
           <option value="mine">Mi región</option><option value="all">Todas las regiones</option>
@@ -211,15 +228,8 @@ export default function RegionalCatalog({
       </div>
       <label className="mc-toggle"><input type="checkbox" disabled={!gardenRegion} checked={onlyMine&&Boolean(gardenRegion)} onChange={event=>{setOnlyMine(event.target.checked); if(event.target.checked) setChoice('mine')}}/> Solo mi región</label>
     </div>
-    <div className="mc-context-note" role="note"><GardenIcon name="leaf"/>
-      <p>{gardenRegion
-        ? 'Catálogo adaptado a ' + REGION_LABELS[gardenRegion] + ' (' + province + '). Se muestran especies documentadas, no permisos automáticos de cultivo.'
-        : 'Registra un huerto para obtener una selección regional. Puedes explorar especies de todo el Ecuador.'}
-        {galapagosNotice && ' Galápagos exige especial revisión de bioseguridad para cualquier ingreso o movimiento de plantas.'}
-      </p>
-    </div>
-    {!serverLoaded && <div role="status" className="mc-offline">Vista informativa local: no se ha confirmado la sincronización de fichas con el servidor.</div>}
-    <div className="mc-list-heading"><div><h2>Plantas medicinales <span>({filtered.length} especies)</span></h2><p>Selección: {shownLabel}</p></div>
+    {!serverLoaded && <div role="status" className="mc-offline">Sin conexión con el catálogo. Mostrando fichas locales.</div>}
+    <div className="mc-list-heading"><div><h2><GardenIcon name="leaf"/> Plantas medicinales <span>({filtered.length})</span></h2></div>
       <label>Ordenar por <select value={sort} onChange={e=>setSort(e.target.value)}><option value="relevance">Más relevantes</option><option value="alphabet">Nombre común</option><option value="scientific">Nombre científico</option></select></label>
     </div>
     <div className="mc-grid">
@@ -230,10 +240,11 @@ export default function RegionalCatalog({
             <button type="button" className={'mc-heart'+(favorites.includes(plant.id)?' is-on':'')} aria-label={(favorites.includes(plant.id)?'Quitar de':'Añadir a')+' favoritos: '+plant.name} aria-pressed={favorites.includes(plant.id)} onClick={()=>toggleFavorite(plant.id)}>{favorites.includes(plant.id)?'♥':'♡'}</button>
           </div>
           <div className="mc-card-content">
+            <span className="mc-card-species-icon" aria-hidden="true">{plant.icon || '🌿'}</span>
             <h3>{plant.name}</h3><em>{plant.latinName}</em>
             <div className="mc-tags">{plant.usageTags.slice(0,2).map(tag=><span key={tag}>♧ {tag}</span>)}</div>
             <div className="mc-card-regions">{plant.regions.map(r=><span key={r}>{REGION_LABELS[r as GardenRegion]??r}</span>)}</div>
-            <p className={'mc-status'+(!eligible?' mc-status-muted':'')}>{regionalStatus(plant)}</p>
+            <p className={'mc-status'+(!eligible?' mc-status-muted':galapagosNotice?' mc-status-review':'')}>{!eligible ? (plant.registerStatus === 'INFORMATIVA' ? 'Solo consulta' : 'Otra región') : galapagosNotice ? 'Cultivo por validar' : 'Especie documentada'}</p>
             <div className="mc-actions"><button type="button" className="mc-primary" onClick={()=>openDetail(plant.id)}><GardenIcon name="book"/> Ver ficha</button>
               <button type="button" className="mc-secondary" disabled={!eligible} onClick={()=>registerPlant(plant)}><GardenIcon name="plus"/> {registrationLabel}</button></div>
           </div>
@@ -241,6 +252,5 @@ export default function RegionalCatalog({
       })}
     </div>
     {!filtered.length && <div className="mc-empty"><GardenIcon name="leaf"/><h3>No hay especies que coincidan</h3><p>Prueba otra búsqueda o cambia los filtros. No añadiremos plantas ficticias.</p><button type="button" className="mc-secondary" onClick={()=>{setSearch('');setUse('Todas');setChoice('all');setOnlyMine(false)}}>Limpiar filtros</button></div>}
-    <p className="mc-disclaimer">Fotografías botánicas: Wikimedia Commons, con atribución en cada ficha. Los registros de especies no implican autorización para introducirlas, especialmente en Galápagos. Favoritos guardados solo en este navegador.</p>
   </section>
 }

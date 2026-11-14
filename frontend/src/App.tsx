@@ -1065,6 +1065,7 @@ export default function App({
             )}
             {(screen === 'Bitácora' || screen === 'Mi historia') && (
               <GardenHistory
+                key={user ? `${user.id}:${activeGardenId ?? 'none'}` : 'visitor'}
                 plants={plants}
                 activities={visibleJournal.activities}
                 onActivity={() => openActivity()}

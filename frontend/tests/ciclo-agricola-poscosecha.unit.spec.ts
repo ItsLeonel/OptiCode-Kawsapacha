@@ -55,7 +55,7 @@ test('poscosecha exige cosecha auténtica y secuencia cronológica verificable',
   steps.push(storage)
   expect(completedPostharvestSteps(steps, harvest.id)).toHaveLength(5)
   expect(nextPostharvestStep(steps, harvest.id)).toBeNull()
-  expect(validateActivity(batch('cleaning', '2026-11-06'), [plant], steps)).toContain('todas las etapas')
+  expect(validateActivity({ ...batch('cleaning', '2026-11-06'), id: 'batch-cleaning-duplicate' }, [plant], steps)).toContain('todas las etapas')
 })
 
 test('no acepta etiquetado con caducidad inventada o anterior a fecha de empaquetado', () => {
@@ -72,7 +72,7 @@ test('anulación de una etapa obliga a reconstruir el siguiente paso, sin destru
   const history = [harvest, clean, start]
   expect(completedPostharvestSteps(history, harvest.id)).toEqual(['cleaning'])
   expect(nextPostharvestStep(history, harvest.id)).toBe('drying-start')
-  expect(validateActivity(batch('drying-end','2026-11-03'), [plant], history)).toContain('inicio del secado')
+  expect(validateActivity(batch('drying-end','2026-11-03'), [plant], history)).toContain('Inicio del secado')
 })
 
 test('los nuevos registros no reciben puntos oficiales ni hacen crecer plantas', () => {

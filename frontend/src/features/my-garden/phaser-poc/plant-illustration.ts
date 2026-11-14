@@ -2,6 +2,113 @@ import type Phaser from 'phaser'
 import { isChamomile, type GrowthStage } from '../growth-stages'
 
 /**
+ * Manzanilla: hojas finamente divididas y capítulos blancos con centro dorado.
+ * Todas las proporciones son símbolos visuales del estado registrado, no medidas.
+ */
+function paintChamomile(g: Phaser.GameObjects.Graphics, stage: Exclude<GrowthStage, 'sown' | 'harvested'>) {
+  const dark = 0x27613e
+  const stem = 0x4f9251
+  const highlight = 0x9ccf68
+
+  function stalk(x: number, y: number, tipX: number, tipY: number, width = 3) {
+    g.lineStyle(width + 1, dark, .85).lineBetween(x + 1, y, tipX + 1, tipY)
+    g.lineStyle(width, stem, 1).lineBetween(x, y, tipX, tipY)
+  }
+
+  // La manzanilla tiene hojas plumosas, no las hojas grandes del sprite genérico.
+  function finelyCutLeaf(x: number, y: number, direction: -1 | 1, size = 1) {
+    const tipX = x + direction * 28 * size
+    const tipY = y - 14 * size
+    stalk(x, y, tipX, tipY, 1.7)
+    for (let i = 1; i <= 5; i++) {
+      const t = i / 6
+      const bx = x + (tipX - x) * t
+      const by = y + (tipY - y) * t
+      const leaflet = (6.5 - i * .5) * size
+      for (const side of [-1, 1]) {
+        g.lineStyle(Math.max(.9, 1.35 * size), side === 1 ? highlight : stem, .98)
+        g.lineBetween(bx, by, bx + direction * 3 * size, by + side * leaflet)
+        g.fillStyle(side === 1 ? highlight : 0x65b15b, .96)
+        g.fillEllipse(bx + direction * 4.5 * size, by + side * leaflet, 6 * size, 2.3 * size)
+      }
+    }
+    g.fillStyle(highlight, 1).fillEllipse(tipX, tipY, 7 * size, 2.5 * size)
+  }
+
+  function daisy(x: number, y: number, scale = 1) {
+    // Los pétalos son estrechos; se distribuyen radialmente alrededor del disco.
+    g.fillStyle(0x426943, .3).fillCircle(x + 1.5 * scale, y + 3 * scale, 18 * scale)
+    for (let i = 0; i < 12; i++) {
+      const angle = (i * 2 * Math.PI) / 12 - Math.PI / 2
+      const cos = Math.cos(angle)
+      const sin = Math.sin(angle)
+      const px = -sin
+      const py = cos
+      const tipX = x + cos * 19 * scale
+      const tipY = y + sin * 19 * scale
+      g.fillStyle(i % 3 ? 0xfffcf0 : 0xe4efdf, .99)
+      g.fillTriangle(
+        x + px * 3 * scale, y + py * 3 * scale,
+        x - px * 3 * scale, y - py * 3 * scale,
+        tipX, tipY,
+      )
+      g.fillCircle(tipX, tipY, 3.3 * scale)
+    }
+    g.fillStyle(0xc18526, 1).fillCircle(x + 1 * scale, y + 2 * scale, 8.6 * scale)
+    g.fillStyle(0xeac445, 1).fillCircle(x, y, 8.3 * scale)
+    for (let i = 0; i < 6; i++) {
+      const angle = i * 2 * Math.PI / 6
+      g.fillStyle(0xf8de6e, .95).fillCircle(
+        x + Math.cos(angle) * 4.5 * scale,
+        y + Math.sin(angle) * 4.5 * scale,
+        1.15 * scale,
+      )
+    }
+  }
+
+  if (stage === 'sprout') {
+    stalk(0, 2, 0, -30, 3)
+    g.fillStyle(0x92c96a).fillEllipse(-10, -27, 23, 10)
+    g.fillStyle(0x4b9f50).fillEllipse(10, -27, 23, 10)
+    g.lineStyle(1.3, dark).lineBetween(-3, -27, -16, -28)
+    g.lineBetween(3, -27, 17, -28)
+    return
+  }
+
+  const seedling = stage === 'seedling'
+  const flowering = stage === 'flowering'
+  // Volumen de hojas y ramificación crece solo si la etapa fue declarada.
+  const stems = seedling
+    ? [{ base: 0, x: 0, top: -56 }]
+    : [
+        { base: -12, x: -29, top: -83 },
+        { base: -2, x: 0, top: -105 },
+        { base: 13, x: 33, top: -90 },
+      ]
+  for (let i = 0; i < stems.length; i++) {
+    const item = stems[i]
+    stalk(item.base, 4, item.x, item.top, seedling ? 3 : 3.8)
+    const leafPairs = seedling ? 3 : 5
+    for (let n = 1; n <= leafPairs; n++) {
+      const progress = n / (leafPairs + 1)
+      const x = item.base + (item.x - item.base) * progress
+      const y = 4 + (item.top - 4) * progress
+      const size = (seedling ? .72 : .87) * (1 - progress * .16)
+      finelyCutLeaf(x, y, -1, size)
+      finelyCutLeaf(x, y - 3, 1, size * .88)
+    }
+  }
+
+  if (flowering) {
+    // Cuatro capítulos a distintas alturas: manzanilla, no flor genérica.
+    daisy(-29, -88, .80)
+    daisy(0, -108, 1)
+    daisy(34, -94, .84)
+    daisy(16, -71, .62)
+  }
+}
+
+/**
  * Ilustraciones originales vectoriales. Se anclan a la tierra/maceta, no a una
  * fotografía circular. La observación declarada decide la etapa, nunca la edad.
  */
@@ -55,8 +162,16 @@ export function paintObservedPlant(
     for (const x of [-23, 0, 23]) {
       g.lineStyle(2, 0x4f3624, .75).lineBetween(x - 10, 1, x + 7, 1)
     }
-    g.fillStyle(0xc99948).fillEllipse(1, -1, 12, 7)
-    g.lineStyle(1.5, 0xf8d991).strokeEllipse(1, -1, 12, 7)
+    if (chamomile) {
+      // Semillas de manzanilla diminutas: se amplían discretamente por legibilidad.
+      for (const x of [-11, 0, 12]) {
+        g.fillStyle(0xbf944a).fillEllipse(x, -1, 4.8, 2.4)
+        g.lineStyle(.8, 0xf7dfab, .95).strokeEllipse(x, -1, 4.8, 2.4)
+      }
+    } else {
+      g.fillStyle(0xc99948).fillEllipse(1, -1, 12, 7)
+      g.lineStyle(1.5, 0xf8d991).strokeEllipse(1, -1, 12, 7)
+    }
     return
   }
 
@@ -66,6 +181,11 @@ export function paintObservedPlant(
       branch(x, 2, x + (x < 0 ? -2 : 3), -18, 4)
       g.lineStyle(2, 0xc9ae7a).lineBetween(x - 3, -18, x + 4, -18)
     }
+    return
+  }
+
+  if (chamomile) {
+    paintChamomile(g, stage)
     return
   }
 

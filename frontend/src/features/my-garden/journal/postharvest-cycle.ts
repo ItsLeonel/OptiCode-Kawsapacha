@@ -35,7 +35,7 @@ export function completedPostharvestSteps(events: readonly GardenActivity[], har
 
 export function nextPostharvestStep(events: readonly GardenActivity[], harvestId: string): PostHarvestStep | null {
   const completed = completedPostharvestSteps(events, harvestId)
-  return POSTHARVEST_ORDER[completed.length] ?? null
+  return POSTHARVEST_ORDER.find(step => !completed.includes(step)) ?? null
 }
 
 export function dryingElapsedDays(events: readonly GardenActivity[], harvestId: string, endDate: string): number | null {
@@ -66,7 +66,7 @@ export function validatePostharvest(
 
   const related = events.filter(x => x.id !== activity.id && !x.voidedAt && x.type === 'postharvest' && x.details.sourceHarvestId === harvest.id)
   const completed = POSTHARVEST_ORDER.filter(step => related.some(x => x.details.postharvestStep === step))
-  const next = POSTHARVEST_ORDER[completed.length]
+  const next = POSTHARVEST_ORDER.find(step => !completed.includes(step))
   if (!next || d.postharvestStep !== next) return next
     ? 'El siguiente paso documentable es «' + POSTHARVEST_STEPS[next] + '». Corrige o anula el registro anterior si corresponde.'
     : 'El lote ya tiene documentadas todas las etapas de poscosecha.'

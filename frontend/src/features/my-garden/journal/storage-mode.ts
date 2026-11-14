@@ -29,7 +29,9 @@ export function validateBasicServerActivity(
   if (draft.photo) return 'El servidor actual no admite fotos de cuidados ni cosechas. Conserva la fotografía y regístrala cuando esté disponible la API #43.'
   if (draft.date !== localDate()) return 'La API actual registra la fecha del servidor, no fechas anteriores. Utiliza la fecha de hoy o espera la Bitácora #43.'
   if (draft.responsible.trim() !== authenticatedName.trim()) return 'El servidor atribuye la actividad a la cuenta iniciada. No es posible registrar otro responsable con la API actual.'
-  if (draft.target.kind !== 'plant' || !plants.some(p => p.id === draft.target.plantId && !p.archivedAt && p.plot === draft.target.plot)) {
+  const target = draft.target
+  if (target.kind !== 'plant') return 'Selecciona una planta activa del huerto sincronizado.'
+  if (!plants.some(p => p.id === target.plantId && !p.archivedAt && p.plot === target.plot)) {
     return 'Selecciona una planta activa del huerto sincronizado.'
   }
 

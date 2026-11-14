@@ -1,0 +1,42 @@
+name: Catálogo medicinal - Backend
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/catalogo-backend-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/catalogo-backend-ci.yml'
+jobs:
+  catalogo-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: file:./catalog-ci.db
+      JWT_SECRET: github-actions-test-key-not-a-real-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dependencias
+        run: npm ci --no-audit --no-fund
+      - name: Generar Prisma
+        run: npx prisma generate
+      - name: Comprobar esquema y migración
+        run: |
+          npx prisma validate
+          npx prisma migrate deploy
+      - name: Sembrar el catálogo regional sin borrar datos
+        run: npm run prisma:seed
+      - name: TypeScript y build backend
+        run: |
+          npm run typecheck
+          npm run build
+      - name: Prueba de datos regionales
+        run: node --test tests/catalog-regional.test.cjs
+      - name: Pruebas API y migraciones previas
+        run: npm test

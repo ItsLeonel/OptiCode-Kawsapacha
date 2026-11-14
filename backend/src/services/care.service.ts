@@ -177,7 +177,13 @@ function calculateGrowthData(
 export async function validateCareAction(
   plantId: string,
   actionType: string,
-  plant: { lifecycleStatus: string; species: Species; careLogs: CareLogEntry[] }
+  plant: {
+    lifecycleStatus: string
+    species: Species
+    careLogs: CareLogEntry[]
+    plantingDate?: Date | null
+    lastHarvestDate?: Date | null
+  }
 ): Promise<{ allowed: boolean; warningMessage: string }> {
   const now = new Date()
   const { species, careLogs } = plant
@@ -256,6 +262,12 @@ export async function addCareLog(
     include: { species: true, careLogs: true },
   })
   if (!plantForValidation) throw new Error('Planta no encontrada')
+  if (plantForValidation.reviewStatus !== 'APPROVED') {
+    throw Object.assign(
+      new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su aprobación oficial.'),
+      { code: 'PLANT_NOT_APPROVED' }
+    )
+  }
 
   const { allowed, warningMessage } = await validateCareAction(plantId, actionType, {
     lifecycleStatus: plantForValidation.lifecycleStatus,
@@ -274,10 +286,21 @@ export async function addCareLog(
   // Recalcular estado del ciclo de vida
   const freshPlant = await prisma.cultivatedPlant.findUnique({
     where: { id: plantId },
-    include: { species: true, careLogs: true },
+    include: {
+      species: true,
+      careLogs: {
+        include: {
+          activities: { select: { id: true, reviewStatus: true, voidedAt: true } },
+        },
+      },
+    },
   })
   if (freshPlant && freshPlant.lifecycleStatus !== 'HARVESTED') {
-    const growth = calculateGrowthData(freshPlant, freshPlant.species, freshPlant.careLogs)
+    const approvedCareLogs = freshPlant.careLogs.filter(cl => {
+      if (!cl.activities || cl.activities.length === 0) return true
+      return cl.activities.some(a => a.reviewStatus === 'APPROVED' && !a.voidedAt)
+    })
+    const growth = calculateGrowthData(freshPlant, freshPlant.species, approvedCareLogs)
     if (growth.percentage >= 76 && freshPlant.lifecycleStatus !== 'REGROWING') {
       await prisma.cultivatedPlant.update({
         where: { id: plantId },
@@ -308,12 +331,41 @@ export async function getCareLogs(plantId: string) {
 export async function calculateGrowth(plantId: string) {
   const plant = await prisma.cultivatedPlant.findUnique({
     where: { id: plantId },
-    include: { species: true, careLogs: true },
+    include: {
+      species: true,
+      careLogs: {
+        include: {
+          activities: { select: { id: true, reviewStatus: true, voidedAt: true } },
+        },
+      },
+    },
   })
   if (!plant) throw new Error('Planta no encontrada')
 
+  if (plant.reviewStatus !== 'APPROVED') {
+    return {
+      percentage: 0,
+      stage: 'Siembra pendiente de aprobación MSP ⏳',
+      daysUntilHarvest: plant.species.growthCycleDays,
+      needsWatering: false,
+      needsFertilizer: false,
+      overWatered: false,
+      overFertilized: false,
+      overPruned: false,
+      healthStatus: 'VIGOROSA' as const,
+      lifecycleStatus: plant.lifecycleStatus,
+      plantingDate: plant.plantingDate,
+      lastHarvestDate: plant.lastHarvestDate,
+    }
+  }
+
+  const approvedCareLogs = plant.careLogs.filter(cl => {
+    if (!cl.activities || cl.activities.length === 0) return true
+    return cl.activities.some(a => a.reviewStatus === 'APPROVED' && !a.voidedAt)
+  })
+
   return {
-    ...calculateGrowthData(plant, plant.species, plant.careLogs),
+    ...calculateGrowthData(plant, plant.species, approvedCareLogs),
     lifecycleStatus: plant.lifecycleStatus,
     plantingDate: plant.plantingDate,
     lastHarvestDate: plant.lastHarvestDate,

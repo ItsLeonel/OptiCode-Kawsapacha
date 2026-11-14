@@ -13,12 +13,17 @@ import lunarCalendarRoutes from './lunar-calendar.routes'
 import activityRoutes from './activity.routes'
 import rewardsRoutes from './rewards.routes'
 import { plantHarvestRouter, gardenHarvestRouter, communityHarvestRouter } from './harvest.routes'
+import adminRoutes from './admin.routes'
+import notificationRoutes from './notification.routes'
 import { getCalendarTips } from '../controllers/care.controller'
 import { requireAuth } from '../middlewares/auth.middleware'
 
 const router = Router()
 
 router.use('/auth', authRoutes)
+// Paneles administrativos (ADMIN_TECNICO / ADMIN_MSP) y notificaciones de usuario
+router.use('/admin', adminRoutes)
+router.use('/notifications', notificationRoutes)
 router.use('/lunar-calendar', lunarCalendarRoutes)
 router.use('/users/me/invitations', invitationRoutes)
 router.use('/users/me', rewardsRoutes)

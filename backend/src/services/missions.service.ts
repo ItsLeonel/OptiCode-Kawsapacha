@@ -40,21 +40,28 @@ export const BADGE_DEFINITIONS: Record<string, BadgeDefinition> = {
   'lunar-cycle': {
     id: 'lunar-cycle',
     title: 'Ciclo lunar consciente',
-    description: 'Al menos dos actividades aconsejadas en dos etapas lunares diferentes',
+    description: 'Documenta tres actividades guiadas por las recomendaciones lunares.',
     icon: '🌙',
   },
 }
 
+const MISSION_TITLES: Record<string, string> = {
+  care: 'Raíces cuidadas',
+  observer: 'Mirada atenta',
+  'lunar-cycle': 'Ciclo lunar consciente',
+}
+
 /**
  * Evalúa y actualiza de manera idempotente todas las misiones e insignias para un usuario
- * basándose en sus actividades válidas (no anuladas) y evidencias registradas.
+ * basándose exclusivamente en actividades aprobadas por el MSP (reviewStatus: 'APPROVED', no anuladas).
  */
 export async function syncUserMissionsAndBadges(userId: string) {
-  // Obtener todas las actividades válidas del usuario con sus evidencias
+  // Obtener únicamente actividades aprobadas por el MSP y no anuladas
   const activities = await prisma.gardenActivity.findMany({
     where: {
       actorUserId: userId,
       voidedAt: null,
+      reviewStatus: 'APPROVED',
     },
     include: {
       evidences: true,
@@ -62,65 +69,72 @@ export async function syncUserMissionsAndBadges(userId: string) {
     orderBy: { performedDate: 'asc' },
   })
 
-  // 1. Misión «Raíces cuidadas» (care): 3 riegos en fechas distintas
+  const desiredBadges = new Set<string>()
+
+  // 1. Misión «Raíces cuidadas» (care): 3 riegos aprobados en fechas distintas
   const wateringActivities = activities.filter(a => a.type === 'watering')
   const distinctWateringDates = new Set(wateringActivities.map(a => a.performedDate))
   const wateringCount = distinctWateringDates.size
   await updateMissionProgress(userId, 'care', wateringCount, 3)
   if (wateringCount >= 3) {
-    await awardBadgeIfMissing(userId, 'care')
+    desiredBadges.add('care')
+    await awardMissionBonusIfMissing(userId, 'care')
   }
 
-  // 2. Misión «Mirada atenta» (observer): 3 observaciones con foto en fechas distintas
+  // 2. Misión «Mirada atenta» (observer): 3 observaciones aprobadas con foto en fechas distintas
   const observationWithPhoto = activities.filter(a => a.type === 'observation' && a.evidences.length > 0)
   const distinctObservationDates = new Set(observationWithPhoto.map(a => a.performedDate))
   const observerCount = distinctObservationDates.size
   await updateMissionProgress(userId, 'observer', observerCount, 3)
   if (observerCount >= 3) {
-    await awardBadgeIfMissing(userId, 'observer')
+    desiredBadges.add('observer')
+    await awardMissionBonusIfMissing(userId, 'observer')
   }
 
   // 3. Misión «Ciclo lunar consciente» (lunar-cycle):
-  // Al menos 2 actividades diferentes aconsejadas por MSP en 2 etapas lunares diferentes
-  const phasesWithAdvisedActivities = new Map<string, Set<string>>() // fase -> Set<activityType>
+  // Documentar 3 actividades aprobadas guiadas por las recomendaciones lunares del día (excluyendo replante).
+  const lunarAdvisedKeys = new Set<string>()
   for (const act of activities) {
+    if (act.type === 'replanting') continue
     try {
       const lunarInfo = calculateDayLunarInfo(act.performedDate, 'America/Guayaquil')
       const isAdvised = lunarInfo.recommendations.some(rec => rec.activityType === act.type)
       if (isAdvised) {
-        if (!phasesWithAdvisedActivities.has(lunarInfo.phase)) {
-          phasesWithAdvisedActivities.set(lunarInfo.phase, new Set())
-        }
-        phasesWithAdvisedActivities.get(lunarInfo.phase)!.add(act.type)
+        lunarAdvisedKeys.add(`${act.performedDate}|${act.type}`)
       }
     } catch {
       // Ignorar si la fecha no es parseable
     }
   }
 
-  // Contar cuántas fases distintas tienen actividades aconsejadas
-  const distinctPhasesCount = phasesWithAdvisedActivities.size
-  const totalDistinctActivitiesInPhases = new Set(
-    Array.from(phasesWithAdvisedActivities.values()).flatMap(s => Array.from(s))
-  ).size
-
-  const lunarEligible = distinctPhasesCount >= 2 && totalDistinctActivitiesInPhases >= 2
-  const lunarProgress = Math.min(2, distinctPhasesCount)
-  await updateMissionProgress(userId, 'lunar-cycle', lunarProgress, 2)
-  if (lunarEligible) {
-    await awardBadgeIfMissing(userId, 'lunar-cycle')
+  const lunarCount = lunarAdvisedKeys.size
+  await updateMissionProgress(userId, 'lunar-cycle', lunarCount, 3)
+  if (lunarCount >= 3) {
+    desiredBadges.add('lunar-cycle')
+    await awardMissionBonusIfMissing(userId, 'lunar-cycle')
   }
 
-  // 4. Insignia «La primera semilla» (first-sowing): primera siembra con foto
+  // 4. Insignia «La primera semilla» (first-sowing): primera siembra aprobada con foto
   const hasSowingWithPhoto = activities.some(a => a.type === 'sowing' && a.evidences.length > 0)
   if (hasSowingWithPhoto) {
-    await awardBadgeIfMissing(userId, 'first-sowing')
+    desiredBadges.add('first-sowing')
   }
 
-  // 5. Insignia «Cosecha con memoria» (harvest): primera cosecha con foto
+  // 5. Insignia «Cosecha con memoria» (harvest): primera cosecha aprobada con foto
   const hasHarvestWithPhoto = activities.some(a => a.type === 'harvest' && a.evidences.length > 0)
   if (hasHarvestWithPhoto) {
-    await awardBadgeIfMissing(userId, 'harvest')
+    desiredBadges.add('harvest')
+  }
+
+  // Sincronizar estrictamente insignias reales según actividades aprobadas
+  for (const badgeId of Object.keys(BADGE_DEFINITIONS)) {
+    if (desiredBadges.has(badgeId)) {
+      await awardBadgeIfMissing(userId, badgeId)
+    } else {
+      await prisma.userBadge.deleteMany({
+        where: { userId, badgeId },
+      })
+    }
   }
 
   // Obtener estado final
@@ -186,8 +200,34 @@ async function updateMissionProgress(
       where: { id: existing.id },
       data: {
         currentValue: boundedVal,
+        targetValue: targetVal,
         completed: isCompleted,
         completedAt,
+      },
+    })
+  }
+}
+
+async function awardMissionBonusIfMissing(userId: string, missionId: string) {
+  const existing = await prisma.rewardLedger.findUnique({
+    where: {
+      userId_eventType_sourceId: {
+        userId,
+        eventType: 'mission.completed',
+        sourceId: missionId,
+      },
+    },
+  })
+  if (!existing) {
+    const title = MISSION_TITLES[missionId] || missionId
+    await prisma.rewardLedger.create({
+      data: {
+        userId,
+        eventType: 'mission.completed',
+        ruleKey: `mission.${missionId}.completed`,
+        sourceId: missionId,
+        pointsDelta: 20,
+        reason: `Misión completada: «${title}» (+20 Semillas de vida)`,
       },
     })
   }

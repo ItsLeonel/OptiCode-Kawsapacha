@@ -45,7 +45,9 @@ test.beforeEach(async ({ page }) => {
 
 test('agricultural journal: all nine activities, real photos after reload, no inferred growth and reversible harvest', async ({ page }) => {
   // Recorrido E2E completo: 9 actividades, evidencias y recarga; supera el tiempo global de 120 s en CI.
-  test.setTimeout(300_000)
+  // 9 operaciones agrícolas, 2 recargas y álbum completo con Phaser WebGL.
+  // En runners CI compartidos puede superar 5 minutos sin fallo funcional.
+  test.setTimeout(480_000)
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
   await registerGround(page)
   await expectReady(page)
@@ -78,7 +80,7 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await recordActivity(page, 'replanting', { plant: 'Romero · Espacio 1', destination: '1' })
   await expect(slots(page).nth(0)).toContainText('Registrar una planta')
   await expect(slots(page).nth(1)).toContainText('Romero')
-  await page.reload()
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await expectReady(page)
   await canvasSlot(page, 1)
   await expect(passport).toContainText('22.7 cm')
@@ -99,7 +101,7 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await detail.getByLabel('Anular actividad conservando su historial').fill('Se registró una cosecha completa por error.')
   await detail.getByRole('button', { name: 'Anular registro' }).click()
   await expect(harvest).toHaveAttribute('data-voided', 'true')
-  await page.reload()
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
   await canvasSlot(page, 1)

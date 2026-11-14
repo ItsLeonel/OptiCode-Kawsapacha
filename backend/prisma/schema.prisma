@@ -17,7 +17,8 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
-  role         String   @default("PARTICIPANTE") // RESPONSABLE | PARTICIPANTE
+  role         String   @default("USUARIO") // ADMIN_TECNICO | ADMIN_MSP | USUARIO
+  isActive     Boolean  @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -32,6 +33,8 @@ model User {
   rewardLedgers        RewardLedger[]
   badges               UserBadge[]
   missionsProgress     UserMissionProgress[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]        @relation("ActorAuditLogs")
 
   @@map("users")
 }
@@ -50,6 +53,11 @@ model Community {
   parishCode  String?
   sector      String?
   photoUrl    String?
+
+  status       String    @default("PENDING") // PENDING | APPROVED | NEEDS_CHANGES | REJECTED | SUSPENDED
+  reviewedById String?
+  reviewReason String?
+  reviewedAt   DateTime?
 
   creatorId String
   creator   User   @relation("CommunityCreator", fields: [creatorId], references: [id])
@@ -150,6 +158,22 @@ model MedicinalCatalog {
   preparation             String @default("")
   contraindications       String @default("")
   defaultPhotoUrl         String @default("")
+  // Ficha botánica/regional — cadenas JSON: arrays de nombres, regiones y usos.
+  otherNames              String @default("[]")
+  family                  String @default("")
+  altitude                String @default("")
+  provinces               String @default("")
+  regions                 String @default("[]")
+  usageTags               String @default("[]")
+  cycleCategory           String @default("")
+  traditionalClassification String @default("")
+  careNotes               String @default("")
+  sourceLabel             String @default("")
+  sourceUrl               String @default("")
+  regionalNote            String @default("")
+  registerStatus          String @default("DOCUMENTADA")
+  photoSourceUrl          String @default("")
+  photoCredit             String @default("")
   // Calendario agrícola y cuidados
   wateringFrequencyDays   Int    @default(3)
   fertilizerFrequencyDays Int    @default(30)
@@ -191,6 +215,10 @@ model CultivatedPlant {
   observedState    String    @default("not-documented")
   lastHarvestDate  DateTime?
   archivedAt       DateTime?
+
+  // Estado de revisión institucional (siembra): PENDING | APPROVED | NEEDS_CHANGES | REJECTED
+  // La siembra inicia en PENDING hasta que el MSP la apruebe formalmente
+  reviewStatus     String    @default("PENDING")
 
   registeredById String
   registeredBy   User   @relation("PlantRegistrar", fields: [registeredById], references: [id])
@@ -288,6 +316,12 @@ model GardenActivity {
   careLogId        String?
   harvestRecordId  String?
 
+  // Estado de auditoría y revisión MSP
+  reviewStatus     String    @default("PENDING") // PENDING | APPROVED | NEEDS_CHANGES | REJECTED
+  reviewedById     String?
+  reviewReason     String?
+  reviewedAt       DateTime?
+
   garden        RealGarden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
   actorUser     User             @relation("ActivityActor", fields: [actorUserId], references: [id])
   plant         CultivatedPlant? @relation(fields: [plantId], references: [id], onDelete: SetNull)
@@ -297,6 +331,7 @@ model GardenActivity {
 
   @@index([gardenId, performedDate])
   @@index([actorUserId])
+  @@index([reviewStatus])
   @@map("garden_activities")
 }
 
@@ -324,6 +359,8 @@ model RewardLedger {
   sourceId           String    // ID del registro que originó la recompensa
   pointsDelta        Int       // Puntos (+5, +20, o reversión -5)
   reason             String
+  status             String    @default("CONFIRMED") // CONFIRMED | REVERSED | PENDING
+  ruleVersion        Int       @default(1)
   awardedAt          DateTime  @default(now())
   reversalOfLedgerId String?
 
@@ -362,4 +399,109 @@ model UserMissionProgress {
 
   @@unique([userId, missionId])
   @@map("user_mission_progress")
+}
+
+// ─── NOTIFICACIONES DEL SISTEMA ───────────────────────────────────────────────
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // COMMUNITY_APPROVED | COMMUNITY_REJECTED | COMMUNITY_NEEDS_CHANGES | ACTIVITY_APPROVED | ACTIVITY_REJECTED | ACTIVITY_NEEDS_CHANGES | BADGE_EARNED
+  title      String
+  message    String
+  resourceId String?  // ID de la comunidad o actividad relacionada
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── LOG DE AUDITORÍA INMUTABLE ───────────────────────────────────────────────
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  actorId        String
+  action         String   // REVIEW_COMMUNITY | REVIEW_ACTIVITY | PROVISION_MSP | TOGGLE_USER_STATUS | UPDATE_REWARD_RULE
+  targetResource String   // community | activity | user | reward_rule
+  targetId       String
+  details        String   @default("{}") // JSON string con datos antes/después o motivo
+  ipAddress      String?
+  timestamp      DateTime @default(now())
+
+  actor User @relation("ActorAuditLogs", fields: [actorId], references: [id])
+
+  @@index([targetResource, targetId])
+  @@index([actorId, timestamp])
+  @@map("audit_logs")
+}
+
+// ─── REGLAS DE RECOMPENSAS VERSIONADAS (MSP) ──────────────────────────────────
+
+model RewardRule {
+  id           String    @id @default(cuid())
+  activityType String
+  points       Int
+  dailyCap     Int       @default(50)
+  version      Int       @default(1)
+  isActive     Boolean   @default(true)
+  validFrom    DateTime  @default(now())
+  validTo      DateTime?
+  createdById  String
+  createdAt    DateTime  @default(now())
+
+  @@index([activityType, isActive])
+  @@map("reward_rules")
+}
+
+// ─── DEFINICIÓN DE MISIONES EDITABLES (MSP) ──────────────────────────────────
+
+model MissionDefinition {
+  id          String   @id @default(cuid())
+  code        String   @unique // care | observer | lunar-cycle
+  title       String
+  description String
+  targetValue Int
+  icon        String   @default("🎯")
+  status      String   @default("PUBLISHED") // DRAFT | PUBLISHED | ARCHIVED
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("mission_definitions")
+}
+
+// ─── EVENTOS INSTITUCIONALES DEL MSP ──────────────────────────────────────────
+
+model MspInstitutionalEvent {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  date        String
+  province    String   @default("Pichincha")
+  canton      String?
+  scope       String   @default("NACIONAL") // NACIONAL | PROVINCIAL | CANTONAL
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("msp_institutional_events")
+}
+
+// ─── RECURSOS EDUCATIVOS DEL MSP ──────────────────────────────────────────────
+
+model MspEducationalResource {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  kind        String   @default("GUIA") // GUIA | MANUAL | FICHA | VIDEO
+  fileUrl     String?
+  published   Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("msp_educational_resources")
 }

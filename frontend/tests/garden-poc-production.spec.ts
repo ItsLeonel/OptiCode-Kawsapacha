@@ -5,6 +5,8 @@ import { navigateModule } from './community-helpers'
 test.beforeEach(async ({ page }) => { await page.emulateMedia({ reducedMotion: 'reduce' }); await page.route('https://tile.openstreetmap.org/**', route => route.abort()) })
 
 test('production: persistent garden, region and kind editing, real progress without duplicate rewards', async ({ page }) => {
+  // Incluye cambio de región/modo con nuevo atlas Phaser y recarga completa.
+  test.setTimeout(240_000)
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
   await registerGround(page, '/', 'Imbabura', 'ground', true)
   await expectReady(page)
@@ -32,7 +34,7 @@ test('production: persistent garden, region and kind editing, real progress with
   await navigateModule(page, 'Mi camino verde')
   await expect(page.getByRole('status', { name: 'Semillas de vida individuales' })).toHaveText('5')
   await page.screenshot({ path: test.info().outputPath('documented-local-progress.png'), fullPage: true })
-  await page.reload()
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('status', { name: 'Semillas de vida individuales' })).toHaveText('5')
   await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
@@ -52,7 +54,7 @@ test('production: persistent garden, region and kind editing, real progress with
   await expect(page.locator('.garden-poc')).toHaveAttribute('data-region', 'oriente')
   await expect(page.locator('.garden-poc-guide')).toHaveAttribute('data-guide-region', 'oriente')
   await expect(slots(page).nth(0)).toContainText('Romero')
-  await page.reload()
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await expectReady(page)
   await canvasSlot(page, 0)
   await expect(passport.locator('.garden-passport-photo')).toHaveJSProperty('complete', true)
@@ -79,7 +81,7 @@ test.describe('production touch', () => {
     }
     await page.setViewportSize({ width: 390, height: 844 })
     await page.locator('.garden-poc').screenshot({ path: test.info().outputPath('production-galapagos-pots-mobile.png') })
-    await page.reload()
+    await page.reload({ waitUntil: 'domcontentloaded' })
     await expectReady(page)
     await canvasSlot(page, 5, true)
     await expect(page.getByRole('dialog', { name: 'Romero', exact: true })).toBeVisible()

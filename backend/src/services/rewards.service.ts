@@ -14,17 +14,25 @@ export type ActivityType =
   | 'replanting'
   | 'observation'
   | 'harvest'
+  | 'sowing_ritual'
+  | 'gratitude_ritual'
+  | 'signage'
+  | 'postharvest'
 
 export const BASE_POINTS: Record<ActivityType, number> = {
-  preparation: 0,
-  weeding: 15,
-  sowing: 0,
-  watering: 10,
-  fertilizing: 15,
-  hilling: 15,
-  replanting: 0,
-  observation: 16,
-  harvest: 30,
+  watering: 5,
+  sowing: 20,
+  harvest: 20,
+  fertilizing: 8,
+  preparation: 10,
+  weeding: 8,
+  hilling: 8,
+  replanting: 10,
+  observation: 12,
+  sowing_ritual: 0,
+  gratitude_ritual: 0,
+  signage: 0,
+  postharvest: 0,
 }
 
 export const USER_LEVELS = [
@@ -41,16 +49,50 @@ export interface AwardResult {
   reason: string
 }
 
+const ACTIVITY_LABELS_ES: Record<string, string> = {
+  preparation: 'Preparación del terreno',
+  weeding: 'Limpieza y mantenimiento',
+  sowing: 'Siembra',
+  watering: 'Riego',
+  fertilizing: 'Abonado orgánico',
+  hilling: 'Aporque',
+  observation: 'Observación botánica',
+  harvest: 'Cosecha',
+  sowing_ritual: 'Ritual de siembra',
+  gratitude_ritual: 'Ritual de gratitud',
+  signage: 'Señalética medicinal',
+  postharvest: 'Poscosecha y conservación',
+}
+
 /**
- * Calcula el balance y nivel de un usuario a partir de la suma de su ledger inmutable.
+ * Calcula el balance, historial de moderación y nivel de un usuario a partir del ledger y actividades.
  */
 export async function getUserRewardsSummary(userId: string) {
-  const ledgerEntries = await prisma.rewardLedger.findMany({
-    where: { userId },
-    orderBy: { awardedAt: 'desc' },
-  })
+  const [ledgerEntries, badges, missions, userActivities] = await Promise.all([
+    prisma.rewardLedger.findMany({
+      where: { userId },
+      orderBy: { awardedAt: 'desc' },
+    }),
+    prisma.userBadge.findMany({
+      where: { userId },
+      orderBy: { earnedAt: 'asc' },
+    }),
+    prisma.userMissionProgress.findMany({
+      where: { userId },
+    }),
+    prisma.gardenActivity.findMany({
+      where: { actorUserId: userId, voidedAt: null },
+      include: {
+        plant: { include: { species: true } },
+        garden: { select: { name: true } },
+        evidences: { orderBy: { createdAt: 'asc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    }),
+  ])
 
-  const totalPoints = ledgerEntries.reduce((sum, entry) => sum + entry.pointsDelta, 0)
+  const totalPoints = Math.max(0, ledgerEntries.reduce((sum, entry) => sum + entry.pointsDelta, 0))
 
   let levelName = 'Aprendiz'
   let nextLevel: string | null = 'Oficial'
@@ -74,15 +116,58 @@ export async function getUserRewardsSummary(userId: string) {
     progressPercent = Math.min(100, Math.max(0, Math.round((totalPoints / 100) * 100)))
   }
 
-  // Insignias desbloqueadas
-  const badges = await prisma.userBadge.findMany({
-    where: { userId },
-    orderBy: { earnedAt: 'asc' },
-  })
+  const confirmedPoints = ledgerEntries
+    .filter(e => e.pointsDelta > 0)
+    .reduce((sum, e) => sum + e.pointsDelta, 0)
+  const revertedPoints = ledgerEntries
+    .filter(e => e.pointsDelta < 0)
+    .reduce((sum, e) => sum + Math.abs(e.pointsDelta), 0)
 
-  // Progreso de misiones
-  const missions = await prisma.userMissionProgress.findMany({
-    where: { userId },
+  let provisionalPoints = 0
+  const reviewEntries = userActivities.map(act => {
+    const status = (['PENDING', 'NEEDS_CHANGES', 'APPROVED', 'REJECTED'].includes(act.reviewStatus)
+      ? act.reviewStatus
+      : 'PENDING') as 'PENDING' | 'NEEDS_CHANGES' | 'APPROVED' | 'REJECTED'
+
+    const actPositive = ledgerEntries
+      .filter(e => e.sourceId === act.id && e.pointsDelta > 0)
+      .reduce((s, e) => s + e.pointsDelta, 0)
+    const actReverted = ledgerEntries
+      .filter(e => e.sourceId === act.id && e.pointsDelta < 0)
+      .reduce((s, e) => s + Math.abs(e.pointsDelta), 0)
+
+    const baseExpected = BASE_POINTS[act.type as ActivityType] ?? 0
+    let effect: 'provisional' | 'confirmed' | 'reverted' | 'none' = 'none'
+    let entryPoints: number | null = 0
+
+    if (actReverted > 0) {
+      effect = 'reverted'
+      entryPoints = actReverted
+    } else if (status === 'APPROVED') {
+      effect = actPositive > 0 ? 'confirmed' : 'none'
+      entryPoints = actPositive
+    } else if (status === 'PENDING' || status === 'NEEDS_CHANGES') {
+      effect = baseExpected > 0 ? 'provisional' : 'none'
+      entryPoints = baseExpected
+      provisionalPoints += baseExpected
+    } else {
+      effect = 'none'
+      entryPoints = 0
+    }
+
+    return {
+      id: act.id,
+      evidenceId: act.evidences[0]?.id || act.id,
+      activityName: ACTIVITY_LABELS_ES[act.type] || act.type,
+      status,
+      submittedAt: act.createdAt.toISOString(),
+      reviewedAt: act.reviewedAt ? act.reviewedAt.toISOString() : null,
+      plantName: act.plant?.customName || act.plant?.species?.name || null,
+      gardenName: act.garden?.name || null,
+      reviewerNote: act.reviewReason || null,
+      effect,
+      points: entryPoints,
+    }
   })
 
   return {
@@ -110,7 +195,18 @@ export async function getUserRewardsSummary(userId: string) {
       targetValue: m.targetValue,
       completed: m.completed,
       completedAt: m.completedAt,
+      rewardPoints: 20,
     })),
+    review: {
+      source: 'server' as const,
+      updatedAt: new Date().toISOString(),
+      totals: {
+        provisional: provisionalPoints,
+        confirmed: Math.max(0, confirmedPoints - revertedPoints),
+        reverted: revertedPoints,
+      },
+      entries: reviewEntries,
+    },
   }
 }
 

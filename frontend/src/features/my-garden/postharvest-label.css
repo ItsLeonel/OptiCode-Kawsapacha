@@ -1,0 +1,18 @@
+.postharvest-label-wrapper { margin: 14px 0; background: #f7f0dd; border: 1px solid #c7c9a9; border-radius: 11px; padding: 12px; color: #27452e; }
+.postharvest-label-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:9px; }
+.postharvest-label-print { padding:16px; border:2px solid #6e916e; background:#fffcf4; border-radius:9px; font-size:.88rem; }
+.postharvest-label-print header { font-size:.7rem; font-weight:800; letter-spacing:.08em; color:#55725d; }
+.postharvest-label-print h3 { margin:12px 0 2px; font-size:1.45rem; color:#254d31; }
+.postharvest-label-print em { display:block; color:#45654b; }
+.postharvest-label-lot { font-size:1rem; font-weight:700; }
+.postharvest-label-print dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:9px; }
+.postharvest-label-print dt { font-size:.69rem; font-weight:650; color:#5f715f; }
+.postharvest-label-print dd { margin:0; font-size:.86rem; }
+.postharvest-label-safety { line-height:1.55; overflow-wrap:anywhere; }
+.postharvest-label-print footer { border-top:1px dashed #b9ccab; font-size:.72rem; padding-top:10px; line-height:1.5; color:#4d6755; }
+@media print {
+ @page { size:A5 landscape; margin:12mm; }
+ body:has(.postharvest-label-print) * { visibility:hidden !important; }
+ .postharvest-label-print,.postharvest-label-print * { visibility:visible !important; }
+ .postharvest-label-print { position:fixed; top:12mm; left:12mm; width:calc(100vw - 24mm); box-sizing:border-box; border:2pt solid #376a3c; padding:15mm !important; background:white !important; }
+}

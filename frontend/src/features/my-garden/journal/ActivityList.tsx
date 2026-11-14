@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { GardenPlant } from '../garden'
 import { ACTIVITY_TYPES, type GardenActivity } from './activities'
+import { reviewBadge } from '../../../utils/reviewStatus'
 
 export default function ActivityList({ activities, plants, onSelect, onVoid }: { activities: readonly GardenActivity[]; plants: readonly GardenPlant[]; onSelect?: (plant: GardenPlant) => void; onVoid?: (id: string, reason: string) => Promise<void> }) {
   const [reason, setReason] = useState<Record<string, string>>({}), [error, setError] = useState(''), [busy, setBusy] = useState('')
@@ -12,15 +13,42 @@ export default function ActivityList({ activities, plants, onSelect, onVoid }: {
   if (!activities.length) return <p>No hay actividades registradas para esta selección.</p>
   return <div className="journal-activity-list">{error && <p role="alert" className="journal-error">{error}</p>}{[...activities].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).map(activity => {
     const target = activity.target, plant = target.kind === 'plant' ? plants.find(item => item.id === target.plantId) : undefined
+    const badge = reviewBadge((activity as any).reviewStatus)
     return <details key={activity.id} className="journal-activity" data-activity-id={activity.id} data-voided={Boolean(activity.voidedAt)}>
-      <summary><strong>{ACTIVITY_TYPES[activity.type]}</strong><span>{activity.date} · {activity.responsible}{activity.voidedAt ? ' · Anulada' : ''}</span></summary>
+      <summary>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <strong>{ACTIVITY_TYPES[activity.type]}</strong>
+          {badge && (
+            <span
+              style={{
+                display: 'inline-block',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: badge.color,
+                background: badge.bg,
+                border: `1px solid ${badge.border}`,
+                borderRadius: '12px',
+                padding: '2px 8px',
+              }}
+            >
+              {badge.label}
+            </span>
+          )}
+        </div>
+        <span>{activity.date} · {activity.responsible}{activity.voidedAt ? ' · Anulada' : ''}</span>
+      </summary>
       <div className="journal-activity-body">
+        {badge && (
+          <div style={{ margin: '6px 0 10px', padding: '6px 12px', borderRadius: '6px', background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color, fontSize: '0.85rem' }}>
+            <strong>Estado de revisión:</strong> {badge.label}
+          </div>
+        )}
         <p>{target.kind === 'garden' ? 'Todo el huerto' : `${plant?.name ?? 'Espacio de cultivo'} · Espacio ${target.plot + 1} al registrar la actividad`}</p>
         {activity.notes && <p className="journal-observations">{activity.notes}</p>}
         <dl>{activity.details.method && <div><dt>Método</dt><dd>{activity.details.method}</dd></div>}{activity.details.material && <div><dt>Abono</dt><dd>{activity.details.material}</dd></div>}{activity.details.quantity !== undefined && <div><dt>Cantidad</dt><dd>{activity.details.quantity} {activity.details.unit}</dd></div>}{activity.details.heightCm !== undefined && <div><dt>Altura medida</dt><dd>{activity.details.heightCm} cm</dd></div>}{activity.details.destinationPlot !== undefined && <div><dt>Destino del replante</dt><dd>Espacio {activity.details.destinationPlot + 1}</dd></div>}{activity.details.harvestMode && <div><dt>Cosecha</dt><dd>{activity.details.harvestMode === 'complete' ? 'Completa' : 'Parcial'}{activity.details.releasePlot ? ' · Espacio liberado' : ''}</dd></div>}</dl>
         {activity.photos?.map((photo, index) => <img key={activity.photoIds[index]} src={photo} loading="lazy" alt={`Evidencia de ${ACTIVITY_TYPES[activity.type]} del ${activity.date}`}/>)}
         {plant && onSelect && <button type="button" onClick={() => onSelect(plant)}>Abrir Pasaporte Vivo</button>}
-        <p className="journal-note">Registro local aportado por {activity.responsible}. No cuenta con verificación de un servidor.</p>
+        <p className="journal-note">{badge ? `Registro de ${activity.responsible}. Estado: ${badge.label}.` : `Registro local aportado por ${activity.responsible}. No cuenta con verificación de un servidor.`}</p>
         {activity.voidedAt ? <p className="journal-note">Anulada el {activity.voidedAt.slice(0, 10)}: {activity.voidReason}. La evidencia se conserva.</p> : onVoid && <form onSubmit={event => cancel(event, activity)} className="journal-void-form"><label>Motivo de anulación<input required minLength={5} maxLength={300} value={reason[activity.id] ?? ''} onChange={event => setReason(current => ({ ...current, [activity.id]: event.target.value }))}/></label><button type="submit" disabled={Boolean(busy)}>Anular registro conservando evidencia</button></form>}
       </div>
     </details>

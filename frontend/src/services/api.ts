@@ -31,7 +31,7 @@ export interface UserSession {
   id: string
   name: string
   email: string
-  role: 'RESPONSABLE' | 'PARTICIPANTE'
+  role: 'ADMIN_TECNICO' | 'ADMIN_MSP' | 'USUARIO' | 'RESPONSABLE' | 'PARTICIPANTE' | string
 }
 
 export function getToken(): string | null {
@@ -466,6 +466,47 @@ export interface CatalogSpecies {
   preparation: string
   contraindications: string
   defaultPhotoUrl: string
+  photoSourceUrl: string
+  photoCredit: string
+  family: string
+  otherNames: string[]
+  regions: string[]
+  usageTags: string[]
+  altitude: string
+  provinces: string
+  cycleCategory: string
+  traditionalClassification: string
+  careNotes: string
+  sourceLabel: string
+  sourceUrl: string
+  regionalNote: string
+  registerStatus: string
+  wateringFrequencyDays: number
+  fertilizerFrequencyDays: number
+  growthCycleDays: number
+  bestPlantingSeason: string
+  lunarPhaseTip: string
+}
+
+function catalogArray(input: string | string[]): string[] {
+  if (Array.isArray(input)) return input
+  try {
+    const parsed: unknown = JSON.parse(input)
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+  } catch { return [] }
+}
+
+export function normalizeCatalogSpecies<T extends {
+  regions: string | string[]
+  otherNames: string | string[]
+  usageTags: string | string[]
+}>(plant: T): CatalogSpecies {
+  return {
+    ...plant,
+    regions: catalogArray(plant.regions),
+    otherNames: catalogArray(plant.otherNames),
+    usageTags: catalogArray(plant.usageTags),
+  } as unknown as CatalogSpecies
 }
 
 export interface CalendarTips {
@@ -477,15 +518,18 @@ export interface CalendarTips {
 }
 
 export const catalogApi = {
-  async list(query?: string): Promise<CatalogSpecies[]> {
-    const q = query ? `?q=${encodeURIComponent(query)}` : ''
-    const data = await request<{ species: CatalogSpecies[] }>(`/api/catalog${q}`)
-    return data.species
+  async list(query?: string, region?: 'costa' | 'sierra' | 'oriente' | 'galapagos'): Promise<CatalogSpecies[]> {
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    if (region) params.set('region', region)
+    const suffix = params.size ? `?${params.toString()}` : ''
+    const data = await request<{ species: CatalogSpecies[] }>(`/api/catalog${suffix}`)
+    return data.species.map(normalizeCatalogSpecies)
   },
 
   async getById(id: string): Promise<CatalogSpecies> {
     const data = await request<{ species: CatalogSpecies }>(`/api/catalog/${id}`)
-    return data.species
+    return normalizeCatalogSpecies(data.species)
   },
 
   async getCalendarTips(speciesId: string): Promise<CalendarTips> {
@@ -506,7 +550,9 @@ export interface ApiPlant {
   notes?: string
   lifecycleStatus?: string
   observedState?: string
+  growthStage?: string | null
   archivedAt?: string | null
+  reviewStatus?: string   // Estado de aprobación de la siembra: PENDING | APPROVED | NEEDS_CHANGES | REJECTED
   species: {
     name: string
     latinName: string
@@ -528,6 +574,8 @@ export const plantApi = {
       plotIndex: number
       customName?: string
       notes?: string
+      plantedOn?: string
+      growthStage?: string
     }
   ): Promise<ApiPlant> {
     const formData = new FormData()
@@ -536,6 +584,8 @@ export const plantApi = {
     formData.append('plotIndex', String(params.plotIndex))
     if (params.customName) formData.append('customName', params.customName)
     if (params.notes) formData.append('notes', params.notes)
+    if (params.plantedOn) formData.append('plantedOn', params.plantedOn)
+    if (params.growthStage) formData.append('growthStage', params.growthStage)
 
     const data = await request<{ plant: ApiPlant }>(`/api/gardens/${gardenId}/plants`, {
       method: 'POST',
@@ -788,6 +838,10 @@ export interface BackendActivity {
   evidences: BackendActivityEvidence[]
   actorUser?: { id: string; name: string; email: string }
   plant?: { id: string; customName: string; plotIndex: number | null; species: unknown }
+  reviewStatus?: string | null
+  reviewedById?: string | null
+  reviewReason?: string | null
+  reviewedAt?: string | null
 }
 
 export const activityApi = {
@@ -855,12 +909,174 @@ export interface RewardsSummary {
     targetValue: number
     completed: boolean
     completedAt?: string | null
+    rewardPoints?: number
   }>
+  review?: {
+    source: 'server'
+    updatedAt: string
+    totals: {
+      provisional: number
+      confirmed: number
+      reverted: number
+    }
+    entries: Array<{
+      id: string
+      evidenceId: string
+      activityName: string
+      status: 'PENDING' | 'NEEDS_CHANGES' | 'APPROVED' | 'REJECTED'
+      submittedAt: string
+      reviewedAt?: string | null
+      plantName?: string | null
+      gardenName?: string | null
+      reviewerNote?: string | null
+      effect: 'provisional' | 'confirmed' | 'reverted' | 'none'
+      points?: number | null
+    }>
+  } | null
 }
 
 export const rewardsApi = {
   async getSummary(): Promise<RewardsSummary> {
     return await request<RewardsSummary>('/api/users/me/rewards')
+  },
+}
+
+// ─── Módulo de Notificaciones Oficiales ──────────────────────────────────────
+
+export interface UserNotification {
+  id: string
+  userId: string
+  type: string
+  title: string
+  message: string
+  resourceId?: string | null
+  isRead: boolean
+  createdAt: string
+}
+
+export const notificationApi = {
+  async list(): Promise<{ notifications: UserNotification[]; unreadCount: number }> {
+    return await request<{ notifications: UserNotification[]; unreadCount: number }>('/api/notifications')
+  },
+  async markRead(id: string): Promise<void> {
+    await request(`/api/notifications/${id}/read`, { method: 'PATCH' })
+  },
+  async markAllRead(): Promise<void> {
+    await request('/api/notifications/read-all', { method: 'PATCH' })
+  },
+  async clearRead(): Promise<{ deleted: number }> {
+    return await request<{ deleted: number }>('/api/notifications/read', { method: 'DELETE' })
+  },
+}
+
+// ─── Módulo de Administración (Técnico y MSP) ────────────────────────────────
+
+export interface AdminUserItem {
+  id: string
+  name: string
+  email: string
+  role: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuditLogItem {
+  id: string
+  actorId: string
+  action: string
+  targetEntity: string
+  targetId: string | null
+  details: string | null
+  createdAt: string
+  actor: {
+    id: string
+    name: string
+    email: string
+    role: string
+  }
+}
+
+export const adminApi = {
+  // Técnico
+  async listUsers(): Promise<AdminUserItem[]> {
+    // El backend devuelve ok(res, users) → data = users (array directo)
+    return await request<AdminUserItem[]>('/api/admin/technical/users')
+  },
+
+  async createMspUser(data: { name: string; email: string; password: string }): Promise<AdminUserItem> {
+    // El backend devuelve ok(res, user) → data = user (objeto directo)
+    return await request<AdminUserItem>('/api/admin/technical/msp-users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async toggleUserStatus(id: string, isActive: boolean): Promise<AdminUserItem> {
+    // Backend: ok(res, updated) → data = objeto user directo
+    return await request<AdminUserItem>(`/api/admin/technical/users/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    })
+  },
+
+  async listAuditLogs(): Promise<{ logs: AuditLogItem[] }> {
+    return await request<{ logs: AuditLogItem[] }>('/api/admin/technical/audit-logs?limit=100')
+  },
+
+  // MSP
+  async listCommunities(): Promise<{ communities: any[] }> {
+    return await request<{ communities: any[] }>('/api/admin/msp/communities?limit=100')
+  },
+
+  async reviewCommunity(id: string, data: { action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED'; reason?: string }): Promise<{ message: string; community: any }> {
+    return await request<{ message: string; community: any }>(`/api/admin/msp/communities/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  async listActivities(): Promise<{ activities: any[] }> {
+    return await request<{ activities: any[] }>('/api/admin/msp/activities?limit=100')
+  },
+
+  async reviewActivity(id: string, data: { action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED'; reason?: string }): Promise<{ message: string; activity: any; rewardAwarded?: any }> {
+    return await request<{ message: string; activity: any; rewardAwarded?: any }>(`/api/admin/msp/activities/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // Eventos Institucionales MSP
+  async listEvents(): Promise<{ events: any[] }> {
+    return await request<{ events: any[] }>('/api/admin/msp/events')
+  },
+  async createEvent(data: { name: string; date: string; province?: string; canton?: string; scope?: string; description?: string }): Promise<{ event: any }> {
+    return await request<{ event: any }>('/api/admin/msp/events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+  async deleteEvent(id: string): Promise<{ deleted: boolean }> {
+    return await request<{ deleted: boolean }>(`/api/admin/msp/events/${id}`, {
+      method: 'DELETE',
+    })
+  },
+
+  // Recursos Educativos MSP
+  async listResources(): Promise<{ resources: any[] }> {
+    return await request<{ resources: any[] }>('/api/admin/msp/resources')
+  },
+  async createResource(data: { title: string; kind?: string; description?: string; fileUrl?: string; published?: boolean }): Promise<{ resource: any }> {
+    return await request<{ resource: any }>('/api/admin/msp/resources', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+  async deleteResource(id: string): Promise<{ deleted: boolean }> {
+    return await request<{ deleted: boolean }>(`/api/admin/msp/resources/${id}`, {
+      method: 'DELETE',
+    })
   },
 }
 

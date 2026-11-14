@@ -1,0 +1,175 @@
+/* Kawsapacha · Fase 4.5. Estilo institucional madera/pergamino, aislado con prefijo kap-. */
+.kap-admin-root, .kap-access-page { --kap-wood:#3a1c10; --kap-wood-light:#58301c; --kap-cream:#fbf5e9; --kap-paper:#fffaf0; --kap-line:#d8c9ad; --kap-olive:#445a2b; --kap-green:#2d512f; --kap-gold:#b88a36; --kap-ink:#322919; --kap-muted:#776b56; color:var(--kap-ink); font-family:Georgia,'Times New Roman',serif; }
+.kap-admin-root *,.kap-access-page * {box-sizing:border-box}
+.kap-admin-root button,.kap-admin-root select,.kap-admin-root input,.kap-access-page button,.kap-access-page input {font:inherit}
+.kap-admin-root button,.kap-access-page button {cursor:pointer}
+.kap-admin-root button:focus-visible,.kap-admin-root a:focus-visible,.kap-admin-root select:focus-visible,.kap-admin-root input:focus-visible,.kap-access-page button:focus-visible,.kap-access-page input:focus-visible {outline:3px solid #c98f34;outline-offset:3px}
+.kap-admin-root button:disabled,.kap-access-page button:disabled {cursor:not-allowed;opacity:.57}
+.kap-admin-root {background:#f6f0e2;display:grid;grid-template-columns:clamp(210px,16vw,270px) minmax(0,1fr);min-height:100svh;width:100%;font-size:15px;line-height:1.35;isolation:isolate}
+.kap-sidebar {background:radial-gradient(ellipse at 15% 5%,rgba(206,151,77,.12),transparent 30%),repeating-linear-gradient(91deg,transparent 0px,rgba(255,226,160,.026) 2px,transparent 5px,rgba(0,0,0,.13) 12px),linear-gradient(120deg,#2b150b,#522b19 43%,#361b0e 85%);color:#fff6e6;display:flex;flex-direction:column;min-height:100vh;position:sticky;top:0;height:100svh;overflow-y:auto;box-shadow:inset -2px 0 #9d6d3f;z-index:20}
+.kap-sidebar::before,.kap-sidebar::after {content:"";display:block;flex-shrink:0;height:12px;background:repeating-linear-gradient(45deg,#a77536 0 3px,#4c2a15 3px 7px,#dbbc73 7px 9px,#2f190d 9px 12px);border-top:2px solid #e0be7b;border-bottom:1px solid #291408}
+.kap-sidebar::before {order:2;margin-top:auto}
+.kap-sidebar::after {order:4}
+.kap-logo-lockup {display:flex;flex-direction:column;align-items:center;color:#fff8ed;background:none;border:0;padding:18px 10px 25px;width:100%;letter-spacing:0;text-align:center;gap:3px}
+.kap-logo-art {width:100px;height:69px;object-fit:contain;object-position:center;margin-bottom:-6px}
+.kap-logo-lockup strong {font-size:clamp(21px,2.1vw,31px);font-weight:700;letter-spacing:-.04em;text-shadow:0 2px 2px #0006}
+.kap-logo-lockup span {font:600 10px/1.5 'Segoe UI',sans-serif;letter-spacing:2px;color:#eee3c7}
+.kap-flag-tricolor {display:block;width:57px;height:4px;border:0;margin-top:9px;background:linear-gradient(90deg,#f4c837 0 50%,#16508d 50% 75%,#af2e2e 75%)}
+.kap-nav {display:flex;flex-direction:column;gap:4px;padding:12px 12px 10px}
+.kap-nav-item {width:100%;display:flex;align-items:center;gap:13px;text-align:left;color:#f9f0dd;background:transparent;border:1px solid transparent;border-radius:7px;min-height:44px;padding:9px 13px;white-space:normal;font:600 14px/1.15 Georgia,'Times New Roman',serif;transition:background .16s,border-color .16s}
+.kap-nav-item svg {flex:0 0 auto}
+.kap-nav-item:hover {background:#ffffff1d}
+.kap-nav-item.is-active {background:linear-gradient(#69743a,#455c2b);border-color:#b8a568;color:#fffdf4;box-shadow:inset 0 1px #d8d8a94a,0 2px 6px #1b0d0670}
+.kap-sidebar-art {margin:auto 0 0;display:grid;place-items:center;min-height:126px;color:#b98d50;opacity:.62;position:relative}
+.kap-sidebar-art svg {width:100%;max-height:105px;fill:none;stroke:#bc925e;stroke-width:1.3}
+.kap-sidebar-art>svg+svg {position:absolute;right:30px;bottom:8px}
+.kap-sidebar-caption {font:500 10px 'Segoe UI',sans-serif;text-align:center;color:#ddc8a7;padding:8px 15px 13px;margin:0;order:3}
+.kap-workspace {min-width:0;background:radial-gradient(circle at 92% 3%,#fbf6e6 0,transparent 300px),linear-gradient(0deg,rgba(228,211,174,.11) 0,transparent 40%),#f8f2e7}
+.kap-topbar {height:91px;background:repeating-linear-gradient(92deg,transparent 0,rgba(0,0,0,.085) 4px,rgba(255,240,186,.025) 9px,transparent 17px),linear-gradient(0deg,#32190f,#462514 54%,#2c150c);display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff5e6;padding:13px clamp(18px,2.3vw,32px);box-shadow:inset 0 -2px #a57c48;position:relative}
+.kap-title-block {min-width:0;display:flex;align-items:center;gap:17px}
+.kap-title-block>span:last-child {display:flex;flex-direction:column;gap:0;min-width:0}
+.kap-title-block strong {font:700 clamp(23px,2.15vw,34px)/1.1 Georgia,serif;white-space:nowrap;letter-spacing:-.02em}
+.kap-title-block small {font:500 11px/1.4 'Segoe UI',sans-serif;letter-spacing:.15em;color:#efdfbc;white-space:nowrap}
+.kap-title-block em {font:italic 13px Georgia,serif;color:#e4d5b9;white-space:nowrap}
+.kap-topbar-seal {display:block;width:34px;height:48px;flex-shrink:0;border-left:2px solid #cfaa70;padding-left:8px}
+.kap-topbar-seal img {width:43px;height:43px;object-fit:contain;max-width:none;margin-left:-7px}
+.kap-topbar-right {display:flex;gap:13px;align-items:center;justify-content:flex-end;flex-shrink:0;min-width:0}
+.kap-government-mark {display:flex;align-items:center;gap:7px;color:#eee2c7;font-size:11px;line-height:1.18;white-space:nowrap;margin-right:3px}
+.kap-government-mark img {width:40px;height:49px;object-fit:contain;filter:drop-shadow(0 1px 1px #0005)}
+.kap-government-mark i {height:33px;width:1px;background:#a38d6d;display:block;margin:0 4px}
+.kap-top-icon {display:grid;place-items:center;color:#faf0d9;background:transparent;border:0;padding:6px;border-radius:6px;flex-shrink:0}
+.kap-top-icon:hover {background:#ffffff21}
+.kap-header-separator {width:1px;height:31px;background:#b69468}
+.kap-avatar {width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#f0dfba;color:#4d311a}
+.kap-identity {display:flex;align-items:center;gap:8px;max-width:170px}
+.kap-identity-label {display:flex;flex-direction:column;min-width:0}
+.kap-identity-label strong {font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:135px}
+.kap-identity-label small {font:500 11px 'Segoe UI',sans-serif;color:#e4d1ae}
+.kap-notification-wrap {position:relative}
+.kap-notification-popover {position:absolute;right:0;top:38px;z-index:30;width:min(320px,85vw);color:#4d3826;background:#fff8e9;border:1px solid #d5c19d;border-radius:9px;box-shadow:0 8px 22px #2d20183d;padding:13px;font:13px 'Segoe UI',sans-serif}
+.kap-woven-strip {height:9px;background:repeating-linear-gradient(45deg,#64703e 0 3px,#ebd49c 3px 5px,#8e5c2c 5px 8px,#f6dd9e 8px 12px,#54723f 12px 15px);border-bottom:1px solid #a48b4d}
+.kap-menu-toggle {border:0;display:none;color:#fff4d7;background:transparent;padding:7px}
+.kap-content {padding:clamp(18px,2vw,30px);display:flex;flex-direction:column;gap:17px;min-height:calc(100svh - 100px);position:relative}
+.kap-content:before {content:"";position:absolute;inset:auto 12px 0 auto;width:270px;height:135px;background:radial-gradient(ellipse at bottom right,#c6cf9980,transparent 65%);opacity:.22;pointer-events:none}
+.kap-section-heading {display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.kap-section-heading h2 {font:700 clamp(21px,1.85vw,29px)/1.15 Georgia,serif;color:#294627;margin:0}
+.kap-section-heading p {margin:3px 0 0;font:13px/1.5 'Segoe UI',sans-serif;color:#625e50}
+.kap-info-chip {display:inline-flex;gap:5px;align-items:center;white-space:nowrap;align-self:center;font:12px 'Segoe UI',sans-serif;color:#756949}
+.kap-preview-strip {border:1px solid #d0b776;background:#fff4d6;color:#6e5025;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-radius:8px;font:13px 'Segoe UI',sans-serif}
+.kap-preview-strip button {margin-left:auto;color:#3d5526;background:transparent;border:0;text-decoration:underline;font:600 12px 'Segoe UI',sans-serif}
+.kap-metrics {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.kap-metric {min-height:106px;background:linear-gradient(135deg,#fffcf5,#f2ecd9);border:1px solid var(--kap-line);border-left:5px solid #64824b;box-shadow:0 3px 5px #40260914,inset 0 1px #fff;display:flex;gap:14px;align-items:center;padding:14px 15px;border-radius:13px}
+.kap-metric-gold {border-left-color:#bd8a31}
+.kap-metric-brown {border-left-color:#826d3a}
+.kap-metric-red {border-left-color:#9d4f32}
+.kap-metric-icon {border-radius:50%;background:#eff0d1;color:#4c652e;width:55px;height:55px;display:grid;place-items:center;flex:0 0 auto}
+.kap-metric-gold .kap-metric-icon {background:#f7e7c3;color:#ab7c21}
+.kap-metric-brown .kap-metric-icon {background:#f2e8cc;color:#72602d}
+.kap-metric-red .kap-metric-icon {background:#f6e1d1;color:#944d30}
+.kap-metric-body {display:flex;flex-direction:column;min-width:0;align-items:flex-start}
+.kap-metric-body span {font:700 14px/1.2 Georgia,serif}
+.kap-metric-body strong {font:700 30px/1.15 Georgia,serif;margin-top:5px;color:#2d271a}
+.kap-metric-body small {font:500 11px/1.35 'Segoe UI',sans-serif;color:#827353;margin-top:3px}
+.kap-msp-primary-grid,.kap-tech-primary-grid {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+.kap-msp-secondary-grid {display:grid;grid-template-columns:minmax(0,1.17fr) minmax(0,.64fr) minmax(0,.59fr);gap:16px}
+.kap-tech-primary-grid {grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)}
+.kap-tech-secondary-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:6px}
+.kap-panel {background:linear-gradient(145deg,#fffcf3,#f8f0df);border:1px solid #d4c5a9;border-radius:13px;box-shadow:0 2px 5px #45310e14,inset 0 1px #fff;overflow:hidden;min-width:0;padding:14px}
+.kap-panel-head {display:flex;align-items:center;gap:10px;margin:0 0 13px;min-width:0}
+.kap-panel-icon {color:#425f32;display:grid;place-items:center;flex:0 0 27px}
+.kap-panel-title {flex:1;min-width:0}
+.kap-panel-title h3 {font:700 clamp(17px,1.5vw,22px)/1.2 Georgia,serif;color:#2e331e;margin:0;letter-spacing:-.025em}
+.kap-panel-title p {font:12px/1.35 'Segoe UI',sans-serif;color:#77705e;margin:3px 0 0}
+.kap-panel-action {flex-shrink:0}
+.kap-outline-action {border:1px solid #8a9b62;background:#fffaf0;color:#395128;border-radius:7px;padding:7px 9px;display:inline-flex;align-items:center;gap:6px;font:600 11px 'Segoe UI',sans-serif;white-space:nowrap}
+.kap-outline-action:hover,.kap-icon-button:hover {background:#e8eed8}
+.kap-text-button {border:0;background:transparent;color:#405c32;font:600 13px 'Segoe UI',sans-serif;text-decoration:underline;padding:6px}
+.kap-primary-action {border:1px solid #284823;background:linear-gradient(#607938,#3f5e2e);color:#fff9e6;border-radius:8px;padding:10px 17px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 13px 'Segoe UI',sans-serif}
+.kap-primary-action:hover {filter:brightness(1.09)}
+.kap-icon-button {border:1px solid #c7c7ae;background:#fffaf0;color:#53643a;padding:7px;border-radius:8px;display:grid;place-items:center}
+.kap-map-panel {display:flex;gap:12px;align-items:stretch}
+.kap-map-wrap {flex:1;min-width:0;position:relative}
+.kap-map-toolbar {display:flex;align-items:flex-end;gap:8px;min-height:43px}
+.kap-field {font:600 11px 'Segoe UI',sans-serif;color:#665b46;display:flex;flex-direction:column;gap:3px}
+.kap-field select {background:#fffdf6;color:#354925;padding:6px 9px;border:1px solid #c7c3a6;border-radius:6px;max-width:215px;font:12px 'Segoe UI',sans-serif}
+.kap-ecuador-map {width:100%;max-height:325px;display:block;filter:drop-shadow(0 3px 3px #4f68352a);margin-top:5px}
+.kap-map-foot {display:flex;align-items:flex-start;gap:6px;color:#6d6b50;font:11px/1.45 'Segoe UI',sans-serif}
+.kap-map-foot svg {flex-shrink:0;margin-top:2px}
+.kap-map-error {font:13px 'Segoe UI',sans-serif;color:#8b392e;padding:15px}
+.kap-map-aside {width:147px;min-width:120px;display:flex;flex-direction:column;gap:11px;padding:51px 0 10px}
+.kap-tally {background:#f2edd7;border:1px solid #ebe1c4;border-radius:8px;display:flex;align-items:center;gap:9px;padding:12px 8px;color:#536a3b}
+.kap-tally span {display:flex;flex-direction:column;gap:1px}
+.kap-tally strong {font-size:22px;color:#2f3223}
+.kap-tally small {font:11px 'Segoe UI',sans-serif;color:#665e47}
+.kap-empty {background:linear-gradient(100deg,#f9f4e7,#f2ead8);border:1px dashed #ddd0ab;border-radius:10px;min-height:145px;display:flex;align-items:center;gap:12px;padding:14px}
+.kap-empty-image {width:135px;max-height:140px;align-self:stretch;object-fit:cover;border-radius:7px;filter:saturate(.7);opacity:.87}
+.kap-empty-text {flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;color:#617d4b}
+.kap-empty-text strong {font:700 15px Georgia,serif;color:#4c5e38}
+.kap-empty-text p {font:12px/1.5 'Segoe UI',sans-serif;color:#746f5d;margin:0}
+.kap-list-rows {display:flex;flex-direction:column;gap:9px}
+.kap-row {display:flex;align-items:center;gap:10px;padding:9px;border:1px solid #e2d5bd;border-radius:8px}
+.kap-row-icon {width:40px;height:40px;background:#e9ead5;border-radius:7px;display:grid;place-items:center;color:#53653c}
+.kap-row>div {flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kap-row strong {font:700 14px Georgia,serif}
+.kap-row small {font:11px 'Segoe UI',sans-serif;color:#68634e}
+.kap-status-pill {display:inline-block;border-radius:50px;padding:4px 9px;color:#50623a;background:#e9eed7;font:600 11px 'Segoe UI',sans-serif;white-space:nowrap}
+.kap-resource-list {display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kap-resource-tile {background:#edf0dd;min-height:125px;border-radius:7px;padding:14px 10px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;color:#55703d;text-align:center}
+.kap-resource-tile strong {font:700 13px Georgia,serif;color:#38532d}
+.kap-resource-tile small {font:11px 'Segoe UI',sans-serif}
+.kap-review-list,.kap-report-list {display:flex;flex-direction:column;gap:7px}
+.kap-review-list button,.kap-report-list button {width:100%;min-width:0;display:flex;align-items:center;gap:8px;padding:10px 7px;border:1px solid #e9dec4;background:#fff8e9;color:#4e5731;border-radius:7px;text-align:left;font:600 12px 'Segoe UI',sans-serif}
+.kap-review-list button:hover,.kap-report-list button:hover {background:#f0ecd5}
+.kap-review-list button span:nth-child(2) {flex:1}
+.kap-review-pending {font:500 10px 'Segoe UI',sans-serif;background:#f8eac3;border-radius:30px;padding:4px 6px;color:#765d2e}
+.kap-report-list button svg:last-child {margin-left:auto}
+.kap-table-scroll {width:100%;overflow-x:auto}
+.kap-table {width:100%;border-collapse:collapse;font:12px/1.45 'Segoe UI',sans-serif;min-width:400px}
+.kap-table thead {background:#e6e2cf}
+.kap-table th {padding:10px 8px;text-align:left;color:#4a402d;font-weight:700;white-space:nowrap}
+.kap-table th:first-child {border-radius:6px 0 0 6px}
+.kap-table th:last-child {border-radius:0 6px 6px 0}
+.kap-table td {padding:12px 8px;border-bottom:1px solid #e0d5bd;vertical-align:middle}
+.kap-table tbody tr:last-child td {border-bottom:0}
+.kap-no-rows {text-align:center!important;color:#726b58;padding:32px 8px!important;font-style:italic}
+.kap-table-note {display:flex;gap:7px;align-items:center;color:#736b56;font:11px 'Segoe UI',sans-serif;padding:12px 6px 0}
+.kap-services {display:flex;flex-direction:column;gap:4px}
+.kap-service-row {display:grid;grid-template-columns:27px minmax(95px,1fr) auto;align-items:center;gap:10px;padding:14px 6px;border-bottom:1px solid #e0d7c1}
+.kap-service-row:last-of-type {border-bottom:0}
+.kap-service-row>svg {color:#3d5c36}
+.kap-service-row strong {font:700 12px 'Segoe UI',sans-serif;color:#443d30}
+.kap-service-row small {grid-column:2 / -1;color:#887861;font:11px 'Segoe UI',sans-serif}
+.kap-service-status {white-space:nowrap;padding:6px 9px;font:600 11px 'Segoe UI',sans-serif;color:#6d653e;background:#f1eddc;border-radius:30px;display:inline-flex;align-items:center;gap:6px}
+.kap-service-status.status-online {background:#dbeacc;color:#356a36}
+.kap-service-status.status-offline {background:#f4dfd6;color:#89432f}
+.kap-status-dot {width:8px;height:8px;border-radius:50%;background:#bbab7a}
+.status-online .kap-status-dot {background:#389045}
+.status-offline .kap-status-dot {background:#b54e33}
+.kap-link-card {display:flex;align-items:center;gap:13px;padding:17px;background:linear-gradient(#fffaf0,#f2e9d9);border:1px solid #d9c7a7;border-radius:12px;text-align:left;color:#4c482f;min-height:110px;box-shadow:0 2px 5px #48311610}
+.kap-link-card:hover {border-color:#aab17f;background:#f3f1df}
+.kap-card-icon {width:58px;height:58px;border-radius:50%;background:#e5eacb;display:grid;place-items:center;flex-shrink:0;color:#526936}
+.kap-link-card>div {flex:1;min-width:0}
+.kap-link-card h3 {font:700 17px/1.2 Georgia,serif;margin:0 0 4px;color:#3a3827}
+.kap-link-card p {font:12px/1.5 'Segoe UI',sans-serif;margin:0;color:#6a6555}
+.kap-link-card>svg:last-child {flex-shrink:0;color:#667342}
+.kap-detail-layout {display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.kap-search {display:flex;align-items:center;gap:6px;border:1px solid #d8c9a9;background:#fffcf3;border-radius:8px;padding:7px;margin-bottom:13px;color:#728257}
+.kap-search input {background:transparent;border:0;outline:0;min-width:0;flex:1;font:12px 'Segoe UI',sans-serif}
+.kap-moderation-grid {display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.kap-detail-note {display:flex;align-items:center;gap:8px;color:#665d43;background:#f5eed8;border:1px solid #e9d6ac;border-radius:8px;padding:12px;margin-bottom:14px;font:12px 'Segoe UI',sans-serif}
+.kap-dashboard-footer {font:11px 'Segoe UI',sans-serif;color:#8e815e;display:flex;justify-content:space-between;gap:15px;padding:13px 1px 5px;border-top:1px solid #dfd0b4;margin-top:auto}
+.kap-access-page {min-height:100svh;display:grid;place-items:center;padding:25px;background:radial-gradient(circle at top,#7b704e,#3c281a 80%)}
+.kap-access-card {background:#fff9eb;border:1px solid #c7a971;border-radius:15px;box-shadow:0 15px 40px #2716096e;width:min(430px,100%);padding:27px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.kap-access-card h1 {color:#3f5633;font-size:30px;margin:5px 0}
+.kap-access-card>p {font:13px/1.6 'Segoe UI',sans-serif;color:#5e594a;margin:0}
+.kap-access-header {display:flex;align-items:center;gap:9px;color:#526b38;font:600 14px 'Segoe UI',sans-serif}
+.kap-access-form {display:flex;flex-direction:column;align-items:stretch;gap:14px;width:100%;margin-top:13px}
+.kap-access-form label {font:600 13px 'Segoe UI',sans-serif;color:#4c493b;display:flex;flex-direction:column;gap:5px}
+.kap-access-form input {width:100%;border:1px solid #c7b99b;border-radius:8px;background:#fffdf5;padding:10px 12px;color:#352d26}
+.kap-access-error {color:#93432a;background:#fbe9e0;border:1px solid #e9b7a6;padding:9px;border-radius:7px;font:12px 'Segoe UI',sans-serif;margin:0}
+.kap-mobile-backdrop {display:none}
+@media(max-width:1350px){.kap-government-mark{display:none}.kap-metric{padding:12px 10px;gap:10px}.kap-metric-icon{width:46px;height:46px}.kap-metric-body strong{font-size:25px}.kap-msp-secondary-grid{grid-template-columns:1.1fr 1fr}.kap-msp-secondary-grid>.kap-panel:last-child{grid-column:1 / -1}.kap-map-aside{width:115px;min-width:115px}.kap-topbar-seal{display:none}}
+@media(max-width:1060px){.kap-admin-root{grid-template-columns:202px minmax(0,1fr)}.kap-title-block strong{font-size:24px}.kap-title-block small{font-size:9px}.kap-title-block em{display:none}.kap-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.kap-msp-primary-grid,.kap-tech-primary-grid,.kap-detail-layout{grid-template-columns:1fr}.kap-msp-secondary-grid{grid-template-columns:1fr 1fr}.kap-tech-secondary-grid{grid-template-columns:1fr}.kap-map-aside{width:160px}.kap-ecuador-map{max-height:385px}}
+@media(max-width:740px){.kap-admin-root{display:block}.kap-sidebar{position:fixed;transform:translateX(-105%);transition:transform .2s;left:0;top:0;width:min(290px,82vw);height:100svh;min-height:0}.kap-sidebar.is-open{transform:translateX(0)}.kap-mobile-backdrop{display:block;position:fixed;inset:0;background:#150b0688;border:0;z-index:19}.kap-menu-toggle{display:grid;place-items:center}.kap-topbar{height:82px;padding:9px 12px}.kap-title-block{gap:8px}.kap-title-block strong{font-size:20px;white-space:normal}.kap-title-block small{font-size:8px;letter-spacing:.05em}.kap-title-block em{display:none}.kap-topbar-right{gap:6px}.kap-header-separator,.kap-identity-label{display:none}.kap-avatar{width:29px;height:29px}.kap-content{padding:14px 12px;gap:14px}.kap-section-heading{flex-wrap:wrap}.kap-msp-secondary-grid{grid-template-columns:1fr}.kap-msp-secondary-grid>.kap-panel:last-child{grid-column:auto}.kap-moderation-grid{grid-template-columns:1fr}.kap-dashboard-footer{flex-wrap:wrap}}
+@media(max-width:500px){.kap-metrics{gap:9px}.kap-metric{flex-direction:column;align-items:flex-start;min-height:132px}.kap-metric-body span{font-size:12px}.kap-metric-body strong{font-size:26px}.kap-metric-icon{width:38px;height:38px}.kap-metric-icon svg{width:23px;height:23px}.kap-map-panel{flex-direction:column}.kap-map-aside{width:100%;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.kap-tally{padding:6px 3px;gap:4px;flex-direction:column;text-align:center}.kap-tally strong{font-size:18px}.kap-tally small{font-size:9px}.kap-empty{min-height:145px}.kap-empty-image{width:95px}.kap-panel{padding:11px}.kap-panel-head{flex-wrap:wrap}.kap-panel-action{margin-left:auto}.kap-topbar-right .kap-top-icon:last-child{display:none}.kap-identity{display:none}.kap-section-heading h2{font-size:21px}.kap-service-row{grid-template-columns:22px minmax(70px,1fr) auto;gap:5px}.kap-service-status{font-size:10px;padding:4px 6px}}
+@media(prefers-reduced-motion:reduce){.kap-sidebar,.kap-nav-item{transition:none!important}}

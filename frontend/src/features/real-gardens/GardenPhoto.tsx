@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import GardenIcon from '../my-garden/GardenIcon'
-import { PHOTO_ACCEPT, validatePhoto } from '../../shared/photo-validation'
+import { PHOTO_ACCEPT, optimizeMobilePhoto, validatePhoto } from '../../shared/photo-validation'
 
 export default function GardenPhoto({ photo, photoUrl, fallback, disabled = false, onChange }: {
   photo?: File; photoUrl?: string | null; fallback?: string; disabled?: boolean; onChange?: (photo: File | undefined) => void
@@ -23,13 +23,18 @@ export default function GardenPhoto({ photo, photoUrl, fallback, disabled = fals
     <figcaption>{hasPhoto ? 'Fotografía de tu terreno' : onChange ? 'Fotografía del terreno (opcional)' : 'Ilustración de referencia'}</figcaption>
     {onChange && <div className="rg-garden-photo-actions">
       <label htmlFor={inputId}>{hasPhoto ? 'Reemplazar fotografía' : 'Subir fotografía'}</label>
-      <input id={inputId} type="file" accept={PHOTO_ACCEPT} disabled={disabled} aria-label="Fotografía del terreno (opcional)" aria-invalid={Boolean(error)} aria-describedby={error ? `${inputId}-error` : undefined} onChange={event => {
+      <input id={inputId} type="file" accept={PHOTO_ACCEPT} disabled={disabled} aria-label="Fotografía del terreno (opcional)" aria-invalid={Boolean(error)} aria-describedby={error ? `${inputId}-error` : undefined} onChange={async event => {
         const file = event.target.files?.[0]
-        if (file) {
-          if (validatePhoto(file)) setError(validatePhoto(file))
-          else { setError(''); onChange(file) }
-        }
         event.target.value = ''
+        if (!file) return
+        try {
+          const optimized = await optimizeMobilePhoto(file, 'foto-huerto')
+          const invalid = validatePhoto(optimized)
+          if (invalid) setError(invalid)
+          else { setError(''); onChange(optimized) }
+        } catch {
+          setError('No se pudo procesar la fotografía seleccionada. Elige otra imagen.')
+        }
       }}/>
       {hasPhoto && <button type="button" className="rg-text-button" disabled={disabled} onClick={() => { setError(''); onChange(undefined) }}>Quitar fotografía</button>}
     </div>}

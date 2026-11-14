@@ -14,6 +14,10 @@ export type Community = {
   coverPhoto?: File
   photoUrl?: string | null
   removePhoto?: boolean
+  status?: 'PENDING' | 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED' | string
+  reviewedById?: string | null
+  reviewReason?: string | null
+  reviewedAt?: string | null
 }
 
 export type CommunityType = 'personal' | 'familiar' | 'condominio' | 'barrial'

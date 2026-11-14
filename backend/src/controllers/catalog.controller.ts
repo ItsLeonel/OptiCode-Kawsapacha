@@ -1,13 +1,16 @@
 import type { Request, Response } from 'express'
-import { listCatalog, getCatalogById } from '../services/catalog.service'
+import { CATALOG_REGIONS, listCatalog, getCatalogById, type CatalogRegion } from '../services/catalog.service'
 import { ok, fail } from '../utils/response'
 
 export async function list(req: Request, res: Response): Promise<void> {
   try {
-    const q = req.query['q']
-    const query = q ? String(q) : undefined
-    const species = await listCatalog(query)
-    ok(res, { species }, 'Catálogo medicinal.')
+    const region = typeof req.query['region'] === 'string' ? req.query['region'] : undefined
+    if (region && !CATALOG_REGIONS.includes(region as CatalogRegion)) {
+      return void fail(res, 'VALIDATION_ERROR', 'Región inválida.', 400)
+    }
+    const q = typeof req.query['q'] === 'string' ? req.query['q'].trim().slice(0, 100) : undefined
+    const species = await listCatalog(q || undefined, region as CatalogRegion | undefined)
+    ok(res, { species }, 'Catálogo medicinal por región.')
   } catch {
     fail(res, 'INTERNAL_ERROR', 'Error al obtener el catálogo.', 500)
   }

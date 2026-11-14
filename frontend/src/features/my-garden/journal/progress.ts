@@ -4,14 +4,18 @@ import { validDate } from '../plant-record'
 
 /** Local rules V1, not server-approved balances or verification of physical actions. */
 export const LOCAL_POINTS: Readonly<Record<ActivityType, number>> = {
-  preparation: 0, weeding: 15, sowing: 0, watering: 10, fertilizing: 15, hilling: 15, replanting: 0, observation: 16, harvest: 30,
+  preparation: 10, weeding: 8, sowing: 20, watering: 5, fertilizing: 8, hilling: 8, observation: 12, harvest: 20,
+  // Nuevos registros de ciclo agrícola: 0 puntos hasta definir reglas versionadas.
+  sowing_ritual: 0, gratitude_ritual: 0, signage: 0, postharvest: 0,
 }
 export const LOCAL_LEVELS = [{ name: 'Aprendiz', threshold: 0 }, { name: 'Oficial', threshold: 100 }, { name: 'Maestro', threshold: 300 }] as const
 export const normalizeResponsible = (value: string) => value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')
 
 export function calculateProgress(journal: GardenJournal, responsible?: string) {
   const identities = new Set<string>(), fingerprints = new Set<string>(), rewardedDays = new Set<string>()
-  const eligible = journal.activities.filter(activity => activity.gardenId === journal.gardenId && !activity.voidedAt && activity.validation === 'local-v1' && activity.id && Object.hasOwn(ACTIVITY_TYPES, activity.type) && validDate(activity.date) && activity.responsible.trim().length >= 2 && (!responsible || normalizeResponsible(activity.responsible) === normalizeResponsible(responsible)) && (activity.target.kind !== 'plant' || journal.plants.some(plant => plant.id === (activity.target as { plantId: string }).plantId)))
+  const eligible = journal.activities
+    .filter(activity => (activity as any).reviewStatus === undefined || (activity as any).reviewStatus === 'APPROVED')
+    .filter(activity => activity.gardenId === journal.gardenId && !activity.voidedAt && activity.validation === 'local-v1' && activity.id && Object.hasOwn(ACTIVITY_TYPES, activity.type) && validDate(activity.date) && activity.responsible.trim().length >= 2 && (!responsible || normalizeResponsible(activity.responsible) === normalizeResponsible(responsible)) && (activity.target.kind !== 'plant' || journal.plants.some(plant => plant.id === (activity.target as { plantId: string }).plantId)))
     .filter(activity => {
       const target = activity.target
       const plant = target.kind === 'plant' ? journal.plants.find(item => item.id === target.plantId) : undefined

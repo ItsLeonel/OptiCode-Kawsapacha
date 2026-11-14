@@ -69,8 +69,10 @@ export async function createActivity(req: AuthRequest, res: Response): Promise<v
 
     ok(res, result, message, status)
   } catch (err: unknown) {
+    const errCode = (err as { code?: string })?.code
+    const status = errCode === 'ACTIVITY_ALREADY_PENDING' ? 409 : errCode === 'COMMUNITY_NOT_APPROVED' || errCode === 'PLANT_NOT_APPROVED' ? 403 : 400
     const message = err instanceof Error ? err.message : 'Error al registrar la actividad.'
-    fail(res, 'ACTIVITY_CREATE_ERROR', message, 400)
+    fail(res, errCode || 'ACTIVITY_CREATE_ERROR', message, status)
   }
 }
 

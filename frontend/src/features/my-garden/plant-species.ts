@@ -1,3 +1,6 @@
+import type { GrowthStage } from './growth-stages'
+import type { PlantVisualProfile } from './plant-visual-profile'
+
 // Existing demonstration catalogue. Selection is supplied by the user, never inferred from a photo.
 export const PLANT_SPECIES = [
   { name: 'Romero', latin: 'Salvia rosmarinus', icon: '🌿' },
@@ -10,13 +13,17 @@ export const PLANT_SPECIES = [
   { name: 'Llantén', latin: 'Plantago major', icon: '🌾' },
 ] as const
 
+export type PlantSpecies = { id?: string; name: string; latin: string; icon: string }
+
 export type PlantRegistration = {
   photo: Blob
-  species: typeof PLANT_SPECIES[number]
+  species: PlantSpecies
   plot: number
   plantedOn?: string
   requestId?: string
   recordSowing?: boolean
+  growthStage?: GrowthStage
+  visualProfile?: PlantVisualProfile
   responsible?: string
 }
 

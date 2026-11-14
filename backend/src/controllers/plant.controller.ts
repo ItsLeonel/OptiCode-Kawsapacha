@@ -22,6 +22,8 @@ export async function register(req: AuthRequest, res: Response): Promise<void> {
       plotIndex,
       customName: (b['customName'] ?? '').trim(),
       notes: (b['notes'] ?? '').trim(),
+      plantedOn: b['plantedOn'] ? b['plantedOn'].trim() : undefined,
+      growthStage: b['growthStage'] ? b['growthStage'].trim() : undefined,
       registeredById: req.user.userId,
       file: req.file,
     })
@@ -32,6 +34,7 @@ export async function register(req: AuthRequest, res: Response): Promise<void> {
     if (e.code === 'INVALID_PLOT') return void fail(res, 'INVALID_PLOT', e.message, 400)
     if (e.code === 'GARDEN_NOT_FOUND') return void fail(res, 'GARDEN_NOT_FOUND', e.message, 404)
     if (e.code === 'SPECIES_NOT_FOUND') return void fail(res, 'SPECIES_NOT_FOUND', e.message, 404)
+    if (e.code === 'SPECIES_REGION_MISMATCH' || e.code === 'SPECIES_INFORMATION_ONLY') return void fail(res, e.code, e.message, 400)
     fail(res, 'INTERNAL_ERROR', 'Error al registrar la planta.', 500)
   }
 }
@@ -104,6 +107,7 @@ export async function update(req: AuthRequest, res: Response): Promise<void> {
       plantingDate: b['plantingDate'] ?? b['plantedOn'],
       notes: b['notes'] ?? b['observations'],
       observedState: b['observedState'] ?? b['state'],
+      growthStage: b['growthStage'] ? b['growthStage'].trim() : undefined,
       plotIndex,
       heightCm,
       file: req.file,
@@ -112,6 +116,7 @@ export async function update(req: AuthRequest, res: Response): Promise<void> {
   } catch (err: unknown) {
     const e = err as { code?: string; message: string }
     if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
+    if (e.code === 'PLANT_NOT_APPROVED') return void fail(res, 'PLANT_NOT_APPROVED', e.message, 403)
     if (e.code === 'PLOT_OCCUPIED') return void fail(res, 'PLOT_OCCUPIED', e.message, 409)
     fail(res, 'INTERNAL_ERROR', 'Error al actualizar la planta.', 500)
   }

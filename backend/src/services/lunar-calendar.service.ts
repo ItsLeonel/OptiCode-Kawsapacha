@@ -91,9 +91,9 @@ export function getRecommendationsForPhase(phase: LunarPhaseCode): LunarRecommen
           advisory: true,
         },
         {
-          activityType: 'replanting',
-          title: 'Trasplante y replante',
-          description: 'Paso de plántulas a espacio definitivo y sustitución de fallas para rápido enraizamiento.',
+          activityType: 'watering',
+          title: 'Riego de acompañamiento foliar',
+          description: 'Humedad equilibrada al pie del cultivo para acompañar la brotación en luna creciente.',
           source: 'MSP, 2017, Anexo 4 (p. 45, 69)',
           advisory: true,
         },

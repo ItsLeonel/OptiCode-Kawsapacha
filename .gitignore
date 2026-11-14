@@ -20,6 +20,8 @@ backend/prisma/*.db
 backend/prisma/*.db-journal
 backend/uploads/plants/*
 !backend/uploads/plants/.gitkeep
+backend/uploads/activities/*
+!backend/uploads/activities/.gitkeep
 backend/uploads/communities/
 backend/uploads/gardens/
 

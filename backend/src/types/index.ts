@@ -22,7 +22,7 @@ export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiError
 
 // ─── Autenticación ────────────────────────────────────────────────────────────
 
-export type UserRole = 'RESPONSABLE' | 'PARTICIPANTE'
+export type UserRole = 'ADMIN_TECNICO' | 'ADMIN_MSP' | 'USUARIO'
 
 export interface JwtPayload {
   userId: string
@@ -35,6 +35,7 @@ export interface AuthenticatedUser {
   name: string
   email: string
   role: UserRole
+  isActive?: boolean
 }
 
 // ─── Express: Request extendido con usuario autenticado ──────────────────────

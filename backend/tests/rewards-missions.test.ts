@@ -8,6 +8,7 @@ import {
   revertActivityReward,
 } from '../src/services/rewards.service'
 import { syncUserMissionsAndBadges } from '../src/services/missions.service'
+import { calculateDayLunarInfo } from '../src/services/lunar-calendar.service'
 
 export async function runRewardsAndMissionsTests() {
   console.log('🧪 Iniciando pruebas de Motor de Recompensas (Semillas de vida) y Misiones...')
@@ -146,7 +147,18 @@ export async function runRewardsAndMissionsTests() {
       plotIndex: 0,
     })
 
-    // Sincronizar misiones con 2 riegos en fechas distintas -> progreso 2/3
+    // Verificar que mientras act1 siga en PENDING no otorga misiones ni insignias
+    let pendingMissionState = await syncUserMissionsAndBadges(user.id)
+    assert.equal(pendingMissionState.missions.find(m => m.missionId === 'care')?.currentValue, 0)
+    assert.equal(pendingMissionState.badges.length, 0, 'Actividades PENDING no deben otorgar insignias')
+
+    // Marcar act1 y act3 como APPROVED para que el motor de misiones/insignias los compute
+    await prisma.gardenActivity.updateMany({
+      where: { id: { in: [act1.id, act3.id] } },
+      data: { reviewStatus: 'APPROVED' },
+    })
+
+    // Sincronizar misiones con 2 riegos aprobados en fechas distintas -> progreso 2/3
     let missionState = await syncUserMissionsAndBadges(user.id)
     const careMission2 = missionState.missions.find(m => m.missionId === 'care')
     assert.ok(careMission2)
@@ -154,7 +166,7 @@ export async function runRewardsAndMissionsTests() {
     assert.equal(careMission2!.targetValue, 3)
     assert.equal(careMission2!.completed, false)
 
-    // Tercer riego en otra fecha distinta
+    // Tercer riego en otra fecha distinta (aprobado)
     const act4 = await prisma.gardenActivity.create({
       data: {
         gardenId: garden.id,
@@ -164,6 +176,7 @@ export async function runRewardsAndMissionsTests() {
         targetKind: 'plant',
         plantId: plant.id,
         plotIndex: 0,
+        reviewStatus: 'APPROVED',
       },
     })
     await evaluateActivityReward({
@@ -176,7 +189,7 @@ export async function runRewardsAndMissionsTests() {
       plotIndex: 0,
     })
 
-    // Sincronizar misiones con 3 riegos en fechas distintas -> progreso 3/3 y medalla 'care'
+    // Sincronizar misiones con 3 riegos aprobados en fechas distintas -> progreso 3/3 y medalla 'care'
     missionState = await syncUserMissionsAndBadges(user.id)
     const careMission3 = missionState.missions.find(m => m.missionId === 'care')
     assert.ok(careMission3)
@@ -184,7 +197,7 @@ export async function runRewardsAndMissionsTests() {
     assert.equal(careMission3!.completed, true)
     assert.ok(missionState.badges.some(b => b.badgeId === 'care'))
 
-    // 5. Misión «Mirada atenta» (3 observaciones con fotografía en fechas diferentes)
+    // 5. Misión «Mirada atenta» (3 observaciones aprobadas con fotografía en fechas diferentes)
     for (const obsDate of ['2026-11-02', '2026-11-04', '2026-11-06']) {
       const obsAct = await prisma.gardenActivity.create({
         data: {
@@ -194,6 +207,7 @@ export async function runRewardsAndMissionsTests() {
           performedDate: obsDate,
           targetKind: 'plant',
           plantId: plant.id,
+          reviewStatus: 'APPROVED',
         },
       })
       await prisma.activityEvidence.create({
@@ -214,7 +228,7 @@ export async function runRewardsAndMissionsTests() {
     assert.equal(observerMission!.completed, true)
     assert.ok(missionState.badges.some(b => b.badgeId === 'observer'))
 
-    // 6. Insignia «La primera semilla» (siembra con foto)
+    // 6. Insignia «La primera semilla» (siembra aprobada con foto)
     const sowingAct = await prisma.gardenActivity.create({
       data: {
         gardenId: garden.id,
@@ -223,6 +237,7 @@ export async function runRewardsAndMissionsTests() {
         performedDate: '2026-11-07',
         targetKind: 'plant',
         plantId: plant.id,
+        reviewStatus: 'APPROVED',
       },
     })
     await prisma.activityEvidence.create({
@@ -246,13 +261,38 @@ export async function runRewardsAndMissionsTests() {
     missionState = await syncUserMissionsAndBadges(user.id)
     assert.ok(missionState.badges.some(b => b.badgeId === 'first-sowing'))
 
-    // 7. Prueba de anulación (void) y reversión de puntos
+    // 6b. Misión «Ciclo lunar consciente» (3 actividades alineadas al calendario lunar aprobadas)
+    for (const lunarDate of ['2026-10-10', '2026-10-18', '2026-10-25']) {
+      const lunarInfo = calculateDayLunarInfo(lunarDate)
+      const rec = lunarInfo.recommendations[0]
+      assert.ok(rec && rec.activityType !== 'replanting', 'No debe recomendar replanting')
+      await prisma.gardenActivity.create({
+        data: {
+          gardenId: garden.id,
+          actorUserId: user.id,
+          type: rec.activityType,
+          performedDate: lunarDate,
+          targetKind: 'garden',
+          reviewStatus: 'APPROVED',
+        },
+      })
+    }
+    missionState = await syncUserMissionsAndBadges(user.id)
+    const lunarMission = missionState.missions.find(m => m.missionId === 'lunar-cycle')
+    assert.ok(lunarMission)
+    assert.equal(lunarMission!.targetValue, 3)
+    assert.ok(lunarMission!.currentValue >= 3)
+    assert.equal(lunarMission!.completed, true)
+
+    // 7. Prueba de anulación (void) y reversión de puntos + resumen oficial de revisión
     const pointsDeducted = await revertActivityReward(sowingAct.id, 'Error de registro por el usuario')
     assert.equal(pointsDeducted, -20, 'Debe descontar exactamente 20 puntos por reversión de siembra')
 
     const summaryAfterVoid = await getUserRewardsSummary(user.id)
     // El ledger debe reflejar la entrada original (+20) y la reversión (-20)
     assert.ok(summaryAfterVoid.ledger.some(l => l.sourceId === sowingAct.id && l.pointsDelta === -20))
+    assert.equal(summaryAfterVoid.review.source, 'server')
+    assert.ok(summaryAfterVoid.review.totals.reverted >= 1)
 
     console.log('✅ Pruebas de Recompensas y Misiones superadas con éxito.')
   } finally {

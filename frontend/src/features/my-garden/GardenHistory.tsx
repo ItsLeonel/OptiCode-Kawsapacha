@@ -3,11 +3,14 @@ import type { GardenPlant } from './garden'
 import { PLANT_STATES } from './garden'
 import type { GardenActivity, ActivityType, ActivityDetails } from './journal/activities'
 import { ACTIVITY_TYPES } from './journal/activities'
-import { careApi, getToken, type CareLog } from '../../services/api'
+import { careApi, getToken, harvestApi, type CareLog, type HarvestRecord } from '../../services/api'
 import { regionalLandscapes } from '../../shared/regional-landscapes'
 import { useGardenDialog } from './useGardenDialog'
 import BitacoraIcon, { type BitacoraIconName } from './BitacoraIcons'
 import bookHeader from './bitacora-art/book-header.webp'
+import { reviewBadge } from '../../utils/reviewStatus'
+import PostHarvestLabel from './PostHarvestLabel'
+import { createActivityCsv } from './journal/report-csv'
 import './bitacora-viva.css'
 
 type ActivityFilter = 'all' | ActivityType | 'pruning' | 'pest_control' | 'other'
@@ -26,7 +29,8 @@ type FeedItem = {
   details: ActivityDetails
   photos: string[]
   photoIds: string[]
-  source: 'journal' | 'care'
+  source: 'journal' | 'care' | 'harvest'
+  reviewStatus?: string
   voidedAt?: string
   voidReason?: string
 }
@@ -38,13 +42,16 @@ const MAIN_FILTERS: { key: ActivityFilter; title: string; icon: BitacoraIconName
   { key: 'fertilizing', title: 'Abonado', icon: 'fertilizing' },
   { key: 'observation', title: 'Seguimiento', icon: 'observation' },
   { key: 'harvest', title: 'Cosecha', icon: 'harvest' },
+  { key: 'postharvest', title: 'Poscosecha', icon: 'harvest' },
 ]
 
 const OTHER_FILTERS: { key: ActivityFilter; title: string }[] = [
   { key: 'preparation', title: 'Preparación del terreno' },
   { key: 'weeding', title: 'Limpieza y deshierbe' },
   { key: 'hilling', title: 'Aporque' },
-  { key: 'replanting', title: 'Replante' },
+  { key: 'sowing_ritual', title: 'Ritual de siembra' },
+  { key: 'gratitude_ritual', title: 'Ritual de gratitud' },
+  { key: 'signage', title: 'Señalética medicinal' },
   { key: 'pruning', title: 'Poda' },
   { key: 'pest_control', title: 'Control de plagas' },
   { key: 'other', title: 'Otros cuidados' },
@@ -54,7 +61,8 @@ function activityIcon(type: ActivityFilter): BitacoraIconName {
   const icons: Record<string, BitacoraIconName> = {
     watering: 'water', sowing: 'sowing', fertilizing: 'fertilizing', observation: 'observation',
     harvest: 'harvest', preparation: 'preparation', weeding: 'weeding', hilling: 'hilling',
-    replanting: 'replanting', pruning: 'weeding', pest_control: 'leaf', other: 'leaf',
+    replanting: 'replanting', postharvest: 'harvest', sowing_ritual: 'sowing',
+    gratitude_ritual: 'harvest', signage: 'leaf', pruning: 'weeding', pest_control: 'leaf', other: 'leaf',
   }
   return icons[type] ?? 'leaf'
 }
@@ -91,7 +99,7 @@ function normalizeActivity(activity: GardenActivity, plants: GardenPlant[]): Fee
     date: activity.date, createdAt: activity.createdAt, responsible: activity.responsible,
     plantId: targetPlantId, plot, targetName: plant?.name ?? (plot === undefined ? 'Todo el huerto' : `Espacio ${plot + 1}`),
     notes: activity.notes, details: activity.details, photos: activity.photos ?? [], photoIds: activity.photoIds,
-    source: 'journal', voidedAt: activity.voidedAt, voidReason: activity.voidReason,
+    source: 'journal', reviewStatus: (activity as any).reviewStatus, voidedAt: activity.voidedAt, voidReason: activity.voidReason,
   }
 }
 
@@ -105,6 +113,16 @@ function normalizeCare(log: CareLog, plant: GardenPlant): FeedItem {
   }
 }
 
+function normalizeHarvest(harvest: HarvestRecord): FeedItem {
+  return {
+    key: 'harvest:' + harvest.id, id: harvest.id, type: 'harvest', title: 'Cosecha',
+    date: harvest.harvestDate.slice(0, 10), createdAt: harvest.harvestDate,
+    responsible: harvest.harvestedBy?.name ?? 'Integrante de la comunidad',
+    targetName: harvest.speciesName, notes: [harvest.notes, 'Cantidad registrada: ' + harvest.quantity].filter(Boolean).join('\n'),
+    details: {}, photos: [], photoIds: [], source: 'harvest',
+  }
+}
+
 function EntryVisual({ item, plant }: { item: FeedItem; plant?: GardenPlant }) {
   const photo = item.photos[0] || plant?.photo
   const isEvidence = item.photos.length > 0
@@ -115,8 +133,8 @@ function EntryVisual({ item, plant }: { item: FeedItem; plant?: GardenPlant }) {
   </div>
 }
 
-function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
-  item: FeedItem; plant?: GardenPlant; onSelect: (plant: GardenPlant) => void
+function EntryDetails({ item, plant, sourcePlant, onSelect, onVoid, onClose }: {
+  item: FeedItem; plant?: GardenPlant; sourcePlant?: GardenPlant; onSelect: (plant: GardenPlant) => void
   onVoid?: (id: string, reason: string) => Promise<void>; onClose: () => void
 }) {
   const dialog = useGardenDialog()
@@ -138,7 +156,10 @@ function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
         <div><dt>Fecha</dt><dd><BitacoraIcon name="calendar" size={16}/>{displayDate(item.date)}</dd></div>
         <div><dt>Responsable</dt><dd><BitacoraIcon name="person" size={16}/>{item.responsible}</dd></div>
         <div><dt>Ubicación</dt><dd><BitacoraIcon name="pin" size={16}/>{item.targetName}{item.plot !== undefined ? ` · Espacio ${item.plot + 1}` : ''}</dd></div>
-        <div><dt>Guardado</dt><dd><BitacoraIcon name={item.source === 'care' ? 'check' : 'file'} size={16}/>{item.source === 'care' ? 'Registro de cuidados del servidor' : 'Registro de la bitácora local'}</dd></div>
+        <div><dt>Guardado</dt><dd><BitacoraIcon name={item.source === 'care' ? 'check' : 'file'} size={16}/>{item.source === 'care' ? 'Registro de cuidados del servidor' : item.source === 'harvest' ? 'Registro de cosecha del servidor' : 'Registro de la bitácora'}</dd></div>
+        {item.reviewStatus && reviewBadge(item.reviewStatus) && (
+          <div><dt>Estado MSP</dt><dd style={{ color: reviewBadge(item.reviewStatus)!.color, fontWeight: 700 }}><BitacoraIcon name="check" size={16}/>{reviewBadge(item.reviewStatus)!.label}</dd></div>
+        )}
       </dl>
       {item.notes && <section className="bv-detail-section"><h3>Observaciones</h3><p>{item.notes}</p></section>}
       {Object.keys(item.details).length > 0 && <section className="bv-detail-section"><h3>Detalles de la actividad</h3><dl className="bv-detail-extras">
@@ -149,7 +170,18 @@ function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
         {item.details.state && <div><dt>Estado documentado</dt><dd>{PLANT_STATES[item.details.state]}</dd></div>}
         {item.details.destinationPlot !== undefined && <div><dt>Espacio de destino</dt><dd>{item.details.destinationPlot + 1}</dd></div>}
         {item.details.harvestMode && <div><dt>Tipo de cosecha</dt><dd>{item.details.harvestMode === 'complete' ? 'Completa' : 'Parcial'}</dd></div>}
+        {item.details.sowingMethod && <div><dt>Propagación</dt><dd>{({ seeds: 'Semillas', stakes: 'Estacas', cuttings: 'Esquejes', seedlings: 'Plántulas' } as const)[item.details.sowingMethod]}</dd></div>}
+        {item.details.harvestedPart && <div><dt>Parte cosechada</dt><dd>{item.details.harvestedPart}</dd></div>}
+        {item.details.traditionalTemperature && <div><dt>Clasificación registrada</dt><dd>{item.details.traditionalTemperature === 'hot' ? 'Caliente' : item.details.traditionalTemperature === 'cold' ? 'Fresca/fría' : 'Sin clasificar'}</dd></div>}
+        {item.details.sourceHarvestId && <div><dt>Cosecha de origen</dt><dd>{item.details.sourceHarvestId}</dd></div>}
+        {item.details.postharvestStep && <div><dt>Paso de conservación</dt><dd>{({ cleaning: 'Limpieza', 'drying-start': 'Inicio secado', 'drying-end': 'Fin secado', packaging: 'Empaquetado y etiquetado', storage: 'Almacenaje' } as const)[item.details.postharvestStep]}</dd></div>}
+        {item.details.batchCode && <div><dt>Código de lote</dt><dd>{item.details.batchCode}</dd></div>}
+        {item.details.packageDate && <div><dt>Empaquetado</dt><dd>{item.details.packageDate}</dd></div>}
+        {item.details.expiryDate && <div><dt>Caducidad declarada</dt><dd>{item.details.expiryDate}</dd></div>}
+        {item.details.storageLabel && <div><dt>Etiqueta documentada</dt><dd>{item.details.storageLabel}</dd></div>}
+        {item.details.storagePlace && <div><dt>Almacenaje</dt><dd>{item.details.storagePlace}</dd></div>}
       </dl></section>}
+      {item.type === 'postharvest' && item.details.postharvestStep === 'packaging' && <PostHarvestLabel details={item.details} plant={sourcePlant}/>}
       <section className="bv-detail-section"><h3>Registro fotográfico</h3>
         {item.photos.length > 0 ? <div className="bv-detail-photos">{item.photos.map((url, index) => <img key={`${item.key}:${index}`} src={url} alt={`Fotografía ${index + 1} del registro`} loading="lazy" />)}</div>
           : <p className="bv-muted">Esta actividad no tiene una fotografía de evidencia adjunta.{plant?.photo ? ' La foto de la planta que aparece en el álbum es su ficha, no evidencia de esta actividad.' : ''}</p>}
@@ -161,7 +193,7 @@ function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
   </dialog>
 }
 
-export default function GardenHistory({ plants, onRegister, onSelect, activities = [], onActivity, onVoid }: {
+export default function GardenHistory({ plants, onRegister, onSelect, activities = [], onActivity, onVoid, authenticated = Boolean(getToken()), gardenId, refreshKey = 0 }: {
   plants: GardenPlant[]
   onRegister: () => void
   onSelect: (plant: GardenPlant) => void
@@ -169,6 +201,9 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   activities?: GardenActivity[]
   onActivity?: () => void
   onVoid?: (id: string, reason: string) => Promise<void>
+  authenticated?: boolean
+  gardenId?: string | null
+  refreshKey?: number
 }) {
   const [filter, setFilter] = useState<ActivityFilter>('all')
   const [plantFilter, setPlantFilter] = useState('all')
@@ -177,34 +212,64 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   const [allPlants, setAllPlants] = useState(false)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [care, setCare] = useState<FeedItem[]>([])
+  const [harvests, setHarvests] = useState<FeedItem[]>([])
   const [loadingCare, setLoadingCare] = useState(false)
   const activityAnchor = useRef<HTMLElement>(null)
 
   useEffect(() => {
     let cancelled = false
-    if (!getToken() || !plants.length) { setCare([]); setLoadingCare(false); return }
+    if (!authenticated || !plants.length) { setCare([]); setLoadingCare(false); return }
     setLoadingCare(true)
     void Promise.all(plants.map(async plant => {
       try { const logs = await careApi.list(plant.id); return logs.map(log => normalizeCare(log, plant)) }
       catch { return [] as FeedItem[] }
     })).then(results => { if (!cancelled) setCare(results.flat()) }).finally(() => { if (!cancelled) setLoadingCare(false) })
     return () => { cancelled = true }
-  }, [plants])
+  }, [plants, authenticated, refreshKey])
+
+  useEffect(() => {
+    let active = true
+    setHarvests([])
+    if (!authenticated || !gardenId) return () => { active = false }
+    void harvestApi.listByGarden(gardenId).then(records => {
+      if (active) setHarvests(records.map(normalizeHarvest))
+    }).catch(() => { if (active) setHarvests([]) })
+    return () => { active = false }
+  }, [authenticated, gardenId, refreshKey])
 
   const entries = useMemo(() => {
     const local = activities.map(activity => normalizeActivity(activity, plants))
     const merged = [...local]
     for (const backend of care) if (!merged.some(existing => isTheSameCare(existing, backend))) merged.push(backend)
+    merged.push(...harvests)
     return merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
-  }, [activities, plants, care])
+  }, [activities, plants, care, harvests])
   const activeEntries = entries.filter(item => !item.voidedAt)
   const activePlants = plants.filter(p => !p.archivedAt)
   const shownPlants = plants.filter(p => Boolean(p.archivedAt) === includeArchived)
   const filtered = entries.filter(item => (filter === 'all' || item.type === filter) && (plantFilter === 'all' || item.plantId === plantFilter))
   const displayEntries = allActivities ? filtered : filtered.slice(0, 3)
   const selected = entries.find(e => e.key === selectedKey)
+  const sourceHarvest = selected?.details.sourceHarvestId ? activities.find(event => event.id === selected.details.sourceHarvestId) : undefined
+  const sourcePlantId = sourceHarvest?.target.kind === 'plant' ? sourceHarvest.target.plantId : undefined
+  const sourcePlant = sourcePlantId ? plants.find(p => p.id === sourcePlantId) : undefined
   const photoCount = activeEntries.reduce((sum, e) => sum + e.photoIds.length, 0)
   const latest = activeEntries[0]
+  function downloadHistoryCsv() {
+    if (!filtered.length) return
+    const rows = filtered.map(item => ({
+      id: item.id, date: item.date, name: item.title, responsible: item.responsible,
+      target: item.targetName, notes: item.notes, source: item.source === 'journal' ? 'local' as const : 'server' as const,
+      photoCount: item.photos.length, voided: Boolean(item.voidedAt), details: JSON.stringify(item.details),
+    }))
+    const file = new Blob([createActivityCsv(rows)], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(file)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `kawsapacha-bitacora-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
   function seePlantHistory(plantId: string) {
     setPlantFilter(plantId); setFilter('all'); setAllActivities(true)
     activityAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -238,12 +303,43 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
 
       <section className="bv-activities" ref={activityAnchor} aria-labelledby="bv-activities-title">
         <div className="bv-section-heading"><div><BitacoraIcon name="leaf" size={30}/><div><h2 id="bv-activities-title">Álbum de actividades</h2><p>Cuidados, observaciones y momentos de tu huerto real.</p></div></div><span className="bv-quantity">{filtered.length} {filtered.length === 1 ? 'registro' : 'registros'}</span></div>
+        <div className="bv-report-actions"><button type="button" className="bv-secondary-button" disabled={!filtered.length || loadingCare} onClick={downloadHistoryCsv}>Exportar reporte CSV</button><small>Incluye los registros visibles según filtros y su origen local o servidor. No certifica actividades.</small></div>
         {loadingCare && <p className="bv-status" role="status">Consultando los cuidados del servidor…</p>}
         {filtered.length ? <div className="bv-activity-grid">{displayEntries.map(item => {
           const plant = item.plantId ? plants.find(p => p.id === item.plantId) : undefined
-          return <article key={item.key} className="bv-entry-card" data-type={item.type} data-voided={item.voidedAt ? 'true' : 'false'}>
+          const badge = reviewBadge(item.reviewStatus)
+          const isPending = item.reviewStatus === 'PENDING'
+          return <article
+            key={item.key}
+            className="bv-entry-card"
+            data-type={item.type}
+            data-voided={item.voidedAt ? 'true' : 'false'}
+            style={isPending ? { background: '#fffbeb', border: '1px solid #fde68a' } : undefined}
+          >
             <EntryVisual item={item} plant={plant}/>
-            <div className="bv-entry-copy"><div className="bv-entry-type"><span className="bv-activity-icon"><BitacoraIcon name={activityIcon(item.type)} size={29}/></span><h3>{item.title}</h3></div>
+            <div className="bv-entry-copy">
+              <div className="bv-entry-type">
+                <span className="bv-activity-icon"><BitacoraIcon name={activityIcon(item.type)} size={29}/></span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <h3>{item.title}</h3>
+                  {badge && (
+                    <span
+                      style={{
+                        alignSelf: 'flex-start',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        color: badge.color,
+                        background: badge.bg,
+                        border: `1px solid ${badge.border}`,
+                        borderRadius: '12px',
+                        padding: '1px 8px',
+                      }}
+                    >
+                      {badge.label}
+                    </span>
+                  )}
+                </div>
+              </div>
               <div className="bv-entry-meta"><span><BitacoraIcon name="leaf" size={15}/>{item.targetName}</span><span><BitacoraIcon name="pin" size={15}/>{item.plot === undefined ? 'Todo el huerto' : `Espacio ${item.plot + 1}`}</span><span><BitacoraIcon name="calendar" size={15}/>{displayDate(item.date)}</span></div>
               <p className="bv-entry-excerpt">{item.notes || 'Actividad documentada sin observaciones adicionales.'}</p>
               {item.voidedAt && <span className="bv-entry-status">Anulada · historial conservado</span>}
@@ -264,6 +360,6 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
       </section>
       <p className="bv-honesty-note"><BitacoraIcon name="info" size={15}/> Las fotografías y las actividades se muestran según su origen. Los registros locales todavía no están sincronizados como bitácora general con el backend.</p>
     </div>
-    {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
+    {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} sourcePlant={sourcePlant} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
   </section>
 }

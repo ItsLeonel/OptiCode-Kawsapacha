@@ -3,7 +3,7 @@ import type { GardenRegion } from '../../real-gardens/garden-region'
 /** Existing independent art; no screen capture is used as a texture. */
 export const LANDSCAPES: Record<GardenRegion, string> = {
   sierra: new URL('./art/region-scenes/sierra-integrado.webp', import.meta.url).href,
-  costa: new URL('./art/paisaje-costa-v1.png', import.meta.url).href,
+  costa: new URL('../../../shared/assets/comunidad-v3/fondos/fondo_comunidad_costa_v3.png', import.meta.url).href,
   oriente: new URL('./art/region-scenes/oriente-integrado.webp', import.meta.url).href,
   galapagos: new URL('./art/region-scenes/galapagos-integrado.webp', import.meta.url).href,
 }
@@ -72,9 +72,3 @@ export const PROP_FRAMES = {
   fence: [15, 675, 495, 320], wall: [520, 560, 505, 435], pergola: [1025, 575, 510, 425],
 } as const
 
-export function photoTextureKey(id: string, url: string) {
-  // URLs may change while the plant id stays stable (and may contain private data).
-  let hash = 2166136261
-  for (let index = 0; index < url.length; index++) hash = Math.imul(hash ^ url.charCodeAt(index), 16777619)
-  return `evidence-${id}-${hash >>> 0}`
-}

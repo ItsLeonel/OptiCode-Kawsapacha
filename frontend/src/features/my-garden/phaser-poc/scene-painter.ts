@@ -1,11 +1,14 @@
 import Phaser from 'phaser'
 import { potArtwork } from '../pot-artwork'
-import { PROP_FRAMES, SCENE_LAYERS, photoTextureKey, WORLD } from './assets'
+import { PROP_FRAMES, SCENE_LAYERS, WORLD } from './assets'
 import { REGION_STYLES } from './visual-config'
 import { makeMaterials, paintFence, paintMeadow, paintPlot, paintStone, paintSupport, tintEarth, type Materials } from './paint-materials'
 import type { GardenVisualModel, SlotId, VisualSlot } from './model'
 import { POT_GEOMETRY, VERTICAL_GROUPS, HANGING_GROUPS, COASTAL_HANGING_GROUPS, hangingGeometry } from './layouts'
 import { paintCourtyard } from './courtyard'
+import { documentedGrowthStage, isChamomile } from '../growth-stages'
+import { paintObservedPlant } from './plant-illustration'
+import { feedbackMotion, hasIllustratedFeedback, paintActivityFeedback } from './activity-feedback-art'
 import { paintCoastalOriginalBed, paintCoastalStandaloneRelief } from './coastal-bed'
 import { coastalReliefFrame, coastalReliefGeometry, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import { gardenFeaturePlacements } from './garden-feature-placements'
@@ -965,34 +968,49 @@ export class GardenScenePainter {
       for (let grain = 0; grain < 24; grain++) prepared.fillStyle(grain % 2 ? model.soilStyle.light : model.soilStyle.grain, .55).fillEllipse(x - 100 + grain % 8 * 28, y - 35 + Math.floor(grain / 8) * 26, 6, 3)
       this.components.add('activity:prepared')
     }
-    if (slot.lastFertilizedAt) {
-      const badge = this.graphics('plants', slot.depth * 10 + 4)
-      badge.fillStyle(0xb6984e, .9).fillCircle(x + 38, y + 25, 7)
-      badge.lineStyle(2, 0xffe3a0).strokeCircle(x + 38, y + 25, 7)
-      this.components.add('activity:fertilized')
-    }
     if (!slot.plant) {
-      // A tiny warm glint suggests interactivity without a sign, number or fake crop.
-      const g = this.graphics('plants', slot.depth * 10 + 1)
-      g.fillStyle(0xffeab1, .12).fillEllipse(x, y, 46, 26)
-      g.lineStyle(2, 0xffe9b1, .75).strokeEllipse(x, y, 18, 10)
-      g.fillStyle(0xfff4d2, .9).fillCircle(x, y - 1, 3)
+      // Espacio vacío: sin marcas de cuidados, solo un sutil indicador de interactividad.
+      // No se dibujan iconos residuales de actividades de plantas anteriores.
     } else {
-      const key = photoTextureKey(slot.plant.id, slot.plant.photo)
-      const g = this.graphics('plants', slot.depth * 10 + 1)
-      g.fillStyle(0x263e28, .25).fillEllipse(x + 4, y + 28, 82, 23)
-      g.fillStyle(0x254632).fillCircle(x, y - 13, 43)
-      g.lineStyle(3, 0xf5dca0).strokeCircle(x, y - 13, 43)
-      if (this.scene.textures.exists(key)) {
-        const frame = this.scene.textures.getFrame(key)
-        const image = this.add('plants', this.scene.add.image(x, y - 13, key).setScale(76 / Math.min(frame.realWidth, frame.realHeight)), slot.depth * 10 + 2)
-        const shape = this.scene.make.graphics({ x: 0, y: 0 }, false)
-        shape.fillStyle(0xffffff).fillCircle(x, y - 13, 38)
-        this.nodes.plants.add(shape)
-        const mask = shape.createGeometryMask()
-        image.setMask(mask)
-        this.masks.add(mask)
+      // Son marcas de eventos en la bitácora, solo cuando hay planta activa en el espacio.
+      if (slot.lastFertilizedAt) {
+        const badge = this.graphics('plants', slot.depth * 10 + 4)
+        badge.fillStyle(0xb6984e, .9).fillCircle(x + 38, y + 25, 7)
+        badge.lineStyle(2, 0xffe3a0).strokeCircle(x + 38, y + 25, 7)
+        this.components.add('activity:fertilized')
       }
+      if (slot.lastWateredAt) {
+        const badge = this.graphics('plants', slot.depth * 10 + 4)
+        badge.fillStyle(0x287f9e, .95).fillCircle(x - 47, y + 24, 8)
+        badge.fillStyle(0xc5f1fa, .97).fillTriangle(x - 47, y + 9, x - 53, y + 25, x - 41, y + 25)
+        this.components.add('activity:watered')
+      }
+      if (slot.lastWeededAt) {
+        const badge = this.graphics('plants', slot.depth * 10 + 4)
+        badge.fillStyle(0x4b8b4b, .95).fillCircle(x + 56, y + 23, 8)
+        badge.lineStyle(2.5, 0xe6f2b4, .95)
+        badge.lineBetween(x + 56, y + 27, x + 56, y + 17)
+        badge.lineBetween(x + 56, y + 21, x + 51, y + 18)
+        badge.lineBetween(x + 56, y + 21, x + 61, y + 18)
+        this.components.add('activity:weeded')
+      }
+      // Espejo Digital V2: la fotografía solo es evidencia en Pasaporte Vivo.
+      // Sin observación explícita, se dibuja una señal sin crecimiento inventado.
+      const stage = documentedGrowthStage(slot.plant)
+      const illustration = this.graphics('plants', slot.depth * 10 + 2).setPosition(x, y)
+      // La planta nace del centro del recipiente; sus hojas permanecen dentro
+      // de la parcela/maceta incluso al documentar floración.
+      const scale = model.kind === 'ground' ? 1 : model.kind === 'pots' ? .83 : .72
+      const visual = slot.plant.visualProfile
+      // Diferencias leves, relativas al encuadre; nunca equivalen a centímetros.
+      const widthFactor = visual ? .8 + visual.widthRatio * .28 : 1
+      const heightFactor = visual ? .83 + visual.heightRatio * .25 : 1
+      illustration.setScale(scale * widthFactor, scale * heightFactor)
+      illustration.setRotation(visual?.orientation === 'left' ? -.035 : visual?.orientation === 'right' ? .035 : 0)
+      paintObservedPlant(illustration, stage, slot.plant.name, slot.plant.latin, visual)
+      this.components.add('plant-stage:' + (stage ?? 'unrecorded'))
+      if (visual && stage !== null && stage !== 'sown' && stage !== 'harvested') this.components.add('plant-visual-profile:photographic')
+      if (isChamomile(slot.plant.name, slot.plant.latin)) this.components.add('plant-art:chamomile')
     }
     this.components.add('slot:' + slot.id)
   }
@@ -1016,20 +1034,49 @@ export class GardenScenePainter {
     }
   }
 
-  /** Feedback is transient and cannot create or validate an agricultural record. */
+  /** Animación efímera después de GUARDAR una actividad; jamás adelanta la etapa. */
   feedback(model: GardenVisualModel, type: ActivityType, plot: number | null, reducedMotion: boolean) {
     this.clear('feedback')
-    for (const slot of model.slots.filter(item => plot === null || item.plot === plot)) {
-      const point = slot.anchor
-      const count = type === 'watering' && !reducedMotion ? 9 : 1
+    // Una actividad a nivel de todo el huerto se ilustra en el centro, sin
+    // señalar falsamente que cada una de las seis plantas fue intervenida.
+    const targets = plot === null
+      ? [{ x: WORLD.centerX, y: WORLD.centerY }]
+      : model.slots.filter(slot => slot.plot === plot).map(slot => slot.anchor)
+    for (const point of targets) {
+      const illustrated = hasIllustratedFeedback(type)
+      const count = illustrated && !reducedMotion ? feedbackMotion(type, 0).count : 1
       for (let index = 0; index < count; index++) {
-        const node = this.graphics('feedback', 5).setPosition(point.x + (index % 3 - 1) * 22, point.y - (type === 'watering' ? 65 : 0))
-        const color = type === 'watering' ? 0x80d9eb : type === 'fertilizing' ? 0xe5c671 : 0xf5df9e
-        if (type === 'watering' && !reducedMotion) node.fillStyle(color, .9).fillCircle(0, 0, 5).fillTriangle(-4, 0, 4, 0, 0, -9)
-        else node.lineStyle(3, color, .9).strokeEllipse(0, 0, 140, 65)
-        const destroy = () => { this.nodes.feedback.delete(node); node.destroy() }
-        if (reducedMotion) this.scene.time.delayedCall(750, destroy)
-        else this.scene.tweens.add({ targets: node, y: point.y + 20, alpha: 0, duration: type === 'watering' ? 650 : 1000, delay: index * 65, onComplete: destroy })
+        const motion = illustrated
+          ? feedbackMotion(type, index)
+          : { fromY: 0, toY: 0, duration: 650, delay: 0 }
+        const delta = index - (count - 1) / 2
+        const horizontal = illustrated && type === 'watering' ? delta * 13
+          : illustrated && type === 'fertilizing' ? delta * 17
+          : illustrated && type === 'weeding' ? delta * 22 : 0
+        const node = this.graphics('feedback', 5)
+          .setPosition(point.x + horizontal, point.y + (reducedMotion ? -29 : motion.fromY))
+        if (illustrated) paintActivityFeedback(node, type, index)
+        else node.lineStyle(3, 0xf5df9e, .94).strokeEllipse(0, 0, 120, 50)
+
+        const destroy = () => {
+          if (!this.nodes.feedback.has(node)) return
+          this.nodes.feedback.delete(node)
+          node.destroy()
+        }
+        if (reducedMotion) {
+          // Motion preference: static illustration, no tweening or looping.
+          this.scene.time.delayedCall(800, destroy)
+        } else {
+          this.scene.tweens.add({
+            targets: node,
+            y: point.y + motion.toY,
+            alpha: 0,
+            duration: motion.duration,
+            delay: motion.delay,
+            ease: type === 'weeding' || type === 'harvest' ? 'Sine.easeOut' : 'Sine.easeIn',
+            onComplete: destroy,
+          })
+        }
       }
     }
   }

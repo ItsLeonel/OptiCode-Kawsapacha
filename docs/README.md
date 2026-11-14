@@ -11,5 +11,6 @@
 - `informe/`: [esquema](informe/esquema-informe-v1.md) y borrador del informe final (`Proyecto-Version1-OptiCode.pdf`).
 - `PLAN_*.md` (raíz de `docs/`): planes de implementación de cambios puntuales del equipo; registro del proceso de desarrollo.
 - `organizacion/`: reglas de trabajo, roles y convenciones.
+- [Credenciales en BD y actualización de SQLite](CREDENCIALES-Y-ACTUALIZACION-BD.md): cuentas técnicas grabadas en BD (`admin1` / `admin2`), creación de usuarios/MSP desde la app y migración desde versiones anteriores.
 
 Los especialistas aportan información comprobable; Leonardo redacta y consolida; Leonel revisa y entrega.

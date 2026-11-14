@@ -1,10 +1,18 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { type GardenPlant } from '../garden'
+import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
+import GardenIcon from '../GardenIcon'
+import { PLANT_STATES, type GardenPlant, type PlantState } from '../garden'
+import { GROWTH_STAGES, type GrowthStage } from '../growth-stages'
 import { localDate, recordId } from '../plant-record'
 import { useGardenDialog } from '../useGardenDialog'
 import { useJournalPhoto } from './useJournalPhoto'
+import { usePlantVisualAnalysis } from '../usePlantVisualAnalysis'
+import PlantVisualAnalysis from '../PlantVisualAnalysis'
 import { careApi } from '../../../services/api'
+import { PHOTO_ACCEPT } from '../../../shared/photo-validation'
+import AgriculturalCycleFields from './AgriculturalCycleFields'
+import { nextPostharvestStep } from './postharvest-cycle'
 import {
+  ACTIVITY_TYPES,
   validateActivity,
   type ActivityDraft,
   type ActivityTarget,
@@ -12,14 +20,45 @@ import {
   type ActivityDetails,
   type GardenActivity,
 } from './activities'
+import wateringArt from './activity-art/watering.png'
+import sowingArt from './activity-art/sowing.png'
+import fertilizingArt from './activity-art/fertilizing.png'
+import harvestArt from './activity-art/harvest.png'
 import '../garden-journal.css'
+import './activity-modal-v2.css'
 
-export const ALLOWED_MODAL_ACTIVITIES: Array<{ key: ActivityType; label: string }> = [
-  { key: 'watering', label: 'Riego' },
-  { key: 'fertilizing', label: 'Abonado' },
-  { key: 'weeding', label: 'Limpieza y mantenimiento' },
-  { key: 'hilling', label: 'Aporque' },
-  { key: 'harvest', label: 'Cosecha' },
+type Category = 'all' | 'cultivo' | 'cuidado' | 'seguimiento' | 'cosecha'
+
+type ActivityCard = {
+  short: string
+  emoji: string
+  art?: string
+  category: Exclude<Category, 'all'>
+}
+
+const ACTIVITY_CARDS: Record<ActivityType, ActivityCard> = {
+  watering: { emoji: '💧', art: wateringArt, short: 'Riego', category: 'cuidado' },
+  sowing: { emoji: '🌱', art: sowingArt, short: 'Siembra', category: 'cultivo' },
+  fertilizing: { emoji: '🪴', art: fertilizingArt, short: 'Abonado', category: 'cuidado' },
+  observation: { emoji: '🔎', short: 'Seguimiento', category: 'seguimiento' },
+  harvest: { emoji: '🧺', art: harvestArt, short: 'Cosecha', category: 'cosecha' },
+  preparation: { emoji: '🌾', short: 'Preparación', category: 'cultivo' },
+  weeding: { emoji: '🌿', short: 'Deshierbe', category: 'cuidado' },
+  hilling: { emoji: '⛰️', short: 'Aporque', category: 'cultivo' },
+  sowing_ritual: { emoji: '🌅', short: 'Ritual de siembra', category: 'cultivo' },
+  gratitude_ritual: { emoji: '🌞', short: 'Ritual de gratitud', category: 'cosecha' },
+  signage: { emoji: '🏷️', short: 'Señalética', category: 'cultivo' },
+  postharvest: { emoji: '📦', short: 'Poscosecha', category: 'cosecha' },
+}
+
+const FEATURED: ActivityType[] = ['watering', 'sowing', 'fertilizing', 'observation', 'harvest']
+
+const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
+  { id: 'all', label: 'Todas', symbol: '✦' },
+  { id: 'cultivo', label: 'Cultivo', symbol: '🌱' },
+  { id: 'cuidado', label: 'Cuidados', symbol: '🍃' },
+  { id: 'seguimiento', label: 'Crecimiento', symbol: '🌿' },
+  { id: 'cosecha', label: 'Cosecha', symbol: '🧺' },
 ]
 
 export default function ActivityModal({
@@ -30,10 +69,11 @@ export default function ActivityModal({
   initialPlot,
   initialDate,
   initialActivityType,
-  existingActivities,
+  existingActivities = [],
   onSave,
   onRegister,
   onClose,
+  growthStageEnabled = true,
 }: {
   plants: GardenPlant[]
   gardenId: string
@@ -46,45 +86,100 @@ export default function ActivityModal({
   onSave: (draft: ActivityDraft) => Promise<void>
   onRegister: (plot: number, type: ActivityType) => void
   onClose: () => void
+  growthStageEnabled?: boolean
 }) {
   const dialog = useGardenDialog()
   const sending = useRef(false)
   const id = useRef(recordId('activity'))
+  const galleryRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
-  const initialType: ActivityType =
-    initialActivityType && ALLOWED_MODAL_ACTIVITIES.some(a => a.key === initialActivityType)
+  const initialType =
+    initialActivityType && Object.hasOwn(ACTIVITY_TYPES, initialActivityType)
       ? initialActivityType
       : 'watering'
 
   const [type, setType] = useState<ActivityType>(initialType)
   const [date, setDate] = useState(initialDate && initialDate <= localDate() ? initialDate : localDate())
-  const person = responsible || 'Usuario activo'
-
-  const [targetId, setTargetId] = useState(
-    initialPlant
-      ? 'plant:' + initialPlant.id
-      : initialPlot != null
-      ? 'plot:' + initialPlot
-      : plants.length > 0 && !plants[0].archivedAt
-      ? 'plant:' + plants[0].id
-      : 'garden'
-  )
-
+  const [person, setPerson] = useState(responsible)
+  const [targetId, setTargetId] = useState(() => {
+    if (initialPlant) return `plant:${initialPlant.id}`
+    if (initialPlot != null) {
+      const occupant = plants.find(item => !item.archivedAt && item.plot === initialPlot)
+      return occupant ? `plant:${occupant.id}` : `plot:${initialPlot}`
+    }
+    return 'garden'
+  })
+  const [showTargetPicker, setShowTargetPicker] = useState(false)
+  const [category, setCategory] = useState<Category>('all')
+  const [showMore, setShowMore] = useState(false)
   const [notes, setNotes] = useState('')
-  const [details, setDetails] = useState<ActivityDetails>({})
+  const [details, setDetails] = useState<ActivityDetails>(
+    initialType === 'harvest' ? { harvestMode: 'partial' } : {}
+  )
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [dragOver, setDragOver] = useState(false)
   const [confirmEarlyHarvest, setConfirmEarlyHarvest] = useState(false)
   const [growthData, setGrowthData] = useState<{ percentage: number; daysUntilHarvest: number; stage: string } | null>(null)
 
   const photo = useJournalPhoto()
+  const analysis = usePlantVisualAnalysis(photo.photo)
 
+  const harvests = existingActivities.filter(item => item.type === 'harvest' && !item.voidedAt).sort((a, b) => b.date.localeCompare(a.date))
+  const selectedHarvest = harvests.find(item => item.id === details.sourceHarvestId)
   const plant = targetId.startsWith('plant:') ? plants.find(item => item.id === targetId.slice(6)) : undefined
-  const target: ActivityTarget = plant
+  const originalTarget: ActivityTarget = plant
     ? { kind: 'plant', plantId: plant.id, plot: plant.plot }
     : targetId.startsWith('plot:')
-    ? { kind: 'plot', plot: Number(targetId.slice(5)) }
-    : { kind: 'garden' }
+      ? { kind: 'plot', plot: Number(targetId.slice(5)) }
+      : { kind: 'garden' }
+  const target: ActivityTarget = type === 'postharvest' && selectedHarvest
+    ? selectedHarvest.target.kind === 'garden' ? { kind: 'garden' } : { kind: 'plot', plot: selectedHarvest.target.plot }
+    : originalTarget
+
+  // Verificar si la planta o espacio objetivo tiene la siembra pendiente de aprobación o ya está ocupado
+  const plantInPlot = target.kind === 'plot'
+    ? plants.find(p => p.plot === target.plot && !p.archivedAt)
+    : undefined
+  const effectivePlant = plant || plantInPlot
+  const isTargetPlantPending = Boolean(
+    effectivePlant && (effectivePlant.reviewStatus === 'PENDING' || effectivePlant.reviewStatus === 'NEEDS_CHANGES')
+  )
+  const isSpaceBlockedForNewPlantOrPrep = Boolean(
+    effectivePlant && (type === 'sowing' || type === 'preparation')
+  )
+  const matchesTarget = (a: GardenActivity) => {
+    if (effectivePlant) return a.target.kind === 'plant' && a.target.plantId === effectivePlant.id
+    if (target.kind === 'plot') return a.target.kind === 'plot' && a.target.plot === target.plot
+    return a.target.kind === 'garden'
+  }
+  const pendingActivitiesForTarget = existingActivities.filter(
+    a => !a.voidedAt && (a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES') && matchesTarget(a)
+  )
+  const pendingTypesForTarget = new Set(pendingActivitiesForTarget.map(a => a.type))
+  const pendingSameTypeActivity = pendingActivitiesForTarget.find(a => a.type === type) ?? null
+
+  const needsPlant = ['sowing', 'hilling', 'observation', 'harvest', 'signage'].includes(type)
+  const types =
+    category === 'all'
+      ? FEATURED.includes(type)
+        ? FEATURED
+        : [...FEATURED.slice(0, 4), type]
+      : (Object.keys(ACTIVITY_TYPES) as ActivityType[]).filter(item => ACTIVITY_CARDS[item].category === category)
+  const extraTypes = (Object.keys(ACTIVITY_TYPES) as ActivityType[]).filter(item => !FEATURED.includes(item))
+
+  useEffect(() => {
+    if (!photo.photo) {
+      setPreviewUrl('')
+      return
+    }
+    const url = URL.createObjectURL(photo.photo)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photo.photo])
 
   // Cargar estado de crecimiento real de la planta para validar cosecha
   useEffect(() => {
@@ -119,7 +214,7 @@ export default function ActivityModal({
     }
   }, [plant?.id, plant?.state])
 
-  // Validaciones de sobrecuidado según tipo de actividad
+  // Validaciones de sobrecuidado
   const isOverWatered =
     type === 'watering' &&
     Boolean(plant) &&
@@ -138,61 +233,81 @@ export default function ActivityModal({
       )
     )
 
-  const isAlreadyWeeded =
-    type === 'weeding' &&
-    Boolean(plant) &&
-    Boolean(
-      existingActivities?.some(a => {
-        if (a.voidedAt || a.target.kind !== 'plant' || a.target.plantId !== plant?.id) return false
-        if (a.type !== 'weeding') return false
-        const diffDays = Math.abs((new Date(date).getTime() - new Date(a.date).getTime()) / (1000 * 3600 * 24))
-        return diffDays < 7
-      })
-    )
-
-  const isAlreadyHilled =
-    type === 'hilling' &&
-    Boolean(plant) &&
-    Boolean(
-      existingActivities?.some(a => {
-        if (a.voidedAt || a.target.kind !== 'plant' || a.target.plantId !== plant?.id) return false
-        if (a.type !== 'hilling') return false
-        const diffDays = Math.abs((new Date(date).getTime() - new Date(a.date).getTime()) / (1000 * 3600 * 24))
-        return diffDays < 7
-      })
-    )
-
   const isPlantReady = (growthData?.percentage ?? 100) >= 75
   const isEarlyHarvest = type === 'harvest' && Boolean(plant) && !isPlantReady
+
+  function chooseType(next: ActivityType) {
+    setType(next)
+    if (next === 'harvest') setDetails({ harvestMode: 'partial' })
+    else if (next === 'postharvest') {
+      const first = harvests[0]
+      const step = first ? nextPostharvestStep(existingActivities, first.id) : null
+      setDetails(first ? {
+        sourceHarvestId: first.id,
+        postharvestStep: step ?? undefined,
+        method: step === 'drying-start' ? 'shade' : undefined,
+        packageDate: step === 'packaging' ? date : undefined,
+      } : {})
+    } else setDetails({})
+    setConfirmEarlyHarvest(false)
+    setError('')
+  }
+
+  function chooseCategory(next: Category) {
+    setShowMore(false)
+    setCategory(next)
+    if (next !== 'all') {
+      const candidate = (Object.keys(ACTIVITY_TYPES) as ActivityType[]).find(
+        item => ACTIVITY_CARDS[item].category === next
+      )
+      if (candidate && ACTIVITY_CARDS[type].category !== next) chooseType(candidate)
+    }
+  }
 
   function detail<K extends keyof ActivityDetails>(key: K, value: ActivityDetails[K]) {
     setDetails(current => ({ ...current, [key]: value }))
   }
 
-  async function submit(event: FormEvent) {
+  function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
-    if (sending.current || photo.reading || photo.error) return
+    setDragOver(false)
+    if (!busy && !photo.reading && event.dataTransfer.files.length) {
+      void photo.chooseFile(event.dataTransfer.files[0])
+    }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (sending.current || photo.reading || photo.error || (type === 'observation' && analysis.status === 'analyzing')) return
 
     if (isOverWatered) {
-      setError('⚠️ Esta planta ya cuenta con suficiente humedad y un riego registrado en la fecha indicada. Regar en exceso daña sus raíces.')
+      setError('⚠️ Esta planta ya cuenta con un riego registrado en la fecha indicada. Regar en exceso daña sus raíces.')
       return
     }
     if (isOverFertilized) {
       setError('⚠️ Esta planta ya tiene un abonado registrado recientemente. Abonar con demasiada frecuencia puede quemar sus raíces.')
       return
     }
-    if (isAlreadyWeeded) {
-      setError('⚠️ La planta ya se encuentra con limpieza y mantenimiento al día. Realizarlo con demasiada frecuencia puede estresar el cultivo.')
-      return
-    }
-    if (isAlreadyHilled) {
-      setError('⚠️ La planta ya cuenta con aporque reciente en su base. El exceso de aporque puede compactar la tierra o cubrir tallos tiernos.')
-      return
-    }
     if (isEarlyHarvest && !confirmEarlyHarvest) {
       setError('⚠️ Confirma que deseas realizar la cosecha anticipada antes de guardar.')
       return
     }
+    if (isTargetPlantPending) {
+      setError(`⚠️ El Espacio ${(effectivePlant?.plot ?? 0) + 1} tiene a «${effectivePlant?.name ?? 'una planta'}» pendiente de aprobación por el MSP. No se pueden registrar actividades ni utilizar este espacio hasta que sea aprobada oficialmente.`)
+      return
+    }
+    if (isSpaceBlockedForNewPlantOrPrep) {
+      setError(`⚠️ El Espacio ${(effectivePlant?.plot ?? 0) + 1} ya está ocupado por «${effectivePlant?.name ?? 'una planta'}». Elige un espacio disponible para realizar esta acción.`)
+      return
+    }
+    if (pendingSameTypeActivity) {
+      setError(`⏳ La actividad «${ACTIVITY_TYPES[type]}» ya fue realizada por ${pendingSameTypeActivity.responsible || 'un integrante'} y está pendiente de revisión MSP. Espera a que sea validada o rechazada antes de repetirla.`)
+      return
+    }
+
+    const observedDetails = type === 'observation' && analysis.status === 'ready' && analysis.profile
+      ? { ...details, visualProfile: analysis.profile }
+      : details
 
     const draft: ActivityDraft = {
       id: id.current,
@@ -201,7 +316,7 @@ export default function ActivityModal({
       responsible: person,
       target,
       notes,
-      details,
+      details: observedDetails,
       photo: photo.photo,
     }
 
@@ -213,7 +328,8 @@ export default function ActivityModal({
         photoIds: photo.photo ? ['pending-photo'] : [],
         validation: 'local-v1',
       },
-      plants
+      plants,
+      existingActivities
     )
 
     if (invalid) {
@@ -227,6 +343,7 @@ export default function ActivityModal({
 
     try {
       await onSave(draft)
+      setSubmitted(true)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo guardar la actividad.')
       sending.current = false
@@ -237,161 +354,314 @@ export default function ActivityModal({
   return (
     <dialog
       ref={dialog}
-      className="garden-journal-dialog"
+      className="garden-journal-dialog activity-garden-modal"
       aria-labelledby="activity-title"
       onCancel={event => {
         event.preventDefault()
         if (!busy) onClose()
       }}
     >
-      <header>
-        <div>
-          <small>BITÁCORA DEL HUERTO REAL</small>
-          <h2 id="activity-title">Registrar actividad agrícola</h2>
+      <header className="activity-garden-header">
+        <div className="activity-garden-header-mark" aria-hidden="true">
+          <GardenIcon name="book" />
         </div>
-        <button type="button" autoFocus disabled={busy} aria-label="Cerrar actividad" onClick={onClose}>
+        <div className="activity-garden-header-text">
+          <small>KAWSAPACHA · MI HUERTO VIVO</small>
+          <h2 id="activity-title">Registrar actividad</h2>
+          <p>Registra el cuidado de tus plantas y mantén vivo tu huerto.</p>
+        </div>
+        <span className="activity-garden-header-moon" aria-hidden="true">
+          ☾
+        </span>
+        <button
+          type="button"
+          autoFocus
+          disabled={busy}
+          className="activity-garden-close"
+          aria-label="Cerrar registro"
+          onClick={onClose}
+        >
           ×
         </button>
       </header>
 
-      <form onSubmit={submit} aria-busy={busy}>
-        <div className="journal-fields">
-          <label>
-            Actividad
-            <select
-              aria-label="Actividad"
-              value={type}
-              onChange={event => {
-                const nextType = event.target.value as ActivityType
-                setType(nextType)
-                setDetails(nextType === 'harvest' ? { harvestMode: 'partial' } : {})
-                setConfirmEarlyHarvest(false)
-                setError('')
-              }}
-            >
-              {ALLOWED_MODAL_ACTIVITIES.map(item => (
-                <option key={item.key} value={item.key}>
-                  {item.label}
-                </option>
+      {submitted ? (
+        <div className="activity-submitted-notice" style={{ padding: '36px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '3.2rem', marginBottom: '14px' }}>🕐</div>
+          <h3 style={{ margin: '0 0 10px', color: '#276749', fontSize: '1.4rem', fontWeight: 700 }}>
+            Actividad enviada al MSP
+          </h3>
+          <p style={{ margin: '0 auto 24px', maxWidth: '440px', color: '#4a5568', fontSize: '0.98rem', lineHeight: '1.6' }}>
+            Tu actividad ha sido registrada y está <strong>pendiente de aprobación por el MSP</strong>.<br />
+            Una vez verificada por el equipo oficial, tus Semillas de vida serán acreditadas y se reflejarán en tu progreso 🌱.
+          </p>
+          <button
+            type="button"
+            className="garden-solid-button"
+            onClick={onClose}
+            style={{ margin: '0 auto', padding: '10px 28px', fontSize: '1rem', borderRadius: '10px', fontWeight: 600 }}
+          >
+            Entendido
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={submit} aria-busy={busy} className="activity-garden-form">
+          <section className="activity-garden-plant-section" aria-label="Planta o lugar de la actividad">
+            <div className="activity-garden-section-label">
+              <GardenIcon name="seed" /> Planta seleccionada
+            </div>
+            <div className="activity-garden-plant-card">
+              {plant?.photo ? (
+                <img src={plant.photo} alt={`Fotografía de ${plant.name}`} />
+              ) : (
+                <span className="activity-garden-plant-placeholder" aria-hidden="true">
+                  🌿
+                </span>
+              )}
+              <div className="activity-garden-plant-details">
+                <strong>
+                  {effectivePlant ? effectivePlant.name : target.kind === 'plot' ? `Espacio ${target.plot + 1}` : 'Todo el huerto'}
+                </strong>
+                <span>
+                  {effectivePlant
+                    ? isTargetPlantPending
+                      ? `Espacio ${effectivePlant.plot + 1} · ⏳ Pendiente de aprobación MSP`
+                      : effectivePlant.latin || `Espacio ${effectivePlant.plot + 1}`
+                    : target.kind === 'plot'
+                      ? 'Espacio disponible'
+                      : 'Puedes seleccionar un espacio o planta.'}
+                </span>
+                {effectivePlant && (
+                  <small>
+                    <GardenIcon name="leaf" /> {isTargetPlantPending ? 'Siembra en revisión institucional' : `Planta vinculada · Espacio ${effectivePlant.plot + 1}`}
+                  </small>
+                )}
+              </div>
+              <button
+                type="button"
+                className="activity-garden-change"
+                disabled={busy || type === 'postharvest'}
+                aria-expanded={showTargetPicker}
+                onClick={() => setShowTargetPicker(current => !current)}
+              >
+                <GardenIcon name="seed" /> {plant ? 'Cambiar planta' : 'Elegir ubicación'}
+              </button>
+            </div>
+            {showTargetPicker && (
+              <div className="activity-garden-picker-popover">
+                <label className="activity-garden-field activity-garden-target">
+                  <span>Planta o ubicación</span>
+                  <select
+                    aria-label="Ubicación de la actividad"
+                    autoFocus
+                    value={targetId}
+                    onChange={event => {
+                      setTargetId(event.target.value)
+                      setError('')
+                      setShowTargetPicker(false)
+                    }}
+                    disabled={busy}
+                  >
+                    <option value="garden">Todo el huerto</option>
+                    {Array.from({ length: 6 }, (_, plot) => {
+                      const occupant = plants.find(item => !item.archivedAt && item.plot === plot)
+                      if (occupant) {
+                        const isPending = occupant.reviewStatus === 'PENDING' || occupant.reviewStatus === 'NEEDS_CHANGES'
+                        return (
+                          <option key={plot} value={`plant:${occupant.id}`}>
+                            Espacio {plot + 1} · {occupant.name} {isPending ? '(⏳ Pendiente MSP)' : '(Ocupado)'}
+                          </option>
+                        )
+                      }
+                      return (
+                        <option key={plot} value={`plot:${plot}`}>
+                          Espacio {plot + 1} (Disponible)
+                        </option>
+                      )
+                    })}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="activity-garden-picker-done"
+                  onClick={() => setShowTargetPicker(false)}
+                >
+                  Cerrar
+                </button>
+              </div>
+            )}
+            {needsPlant && !effectivePlant && (
+              <div className="activity-garden-attention" role="note">
+                <span>Esta actividad necesita una planta registrada.</span>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    const firstFreePlot = Array.from({ length: 6 }, (_, idx) => idx).find(
+                      idx => !plants.some(p => !p.archivedAt && p.plot === idx)
+                    ) ?? 0
+                    onRegister(target.kind === 'plot' ? target.plot : firstFreePlot, type)
+                  }}
+                >
+                  Registrar planta
+                </button>
+              </div>
+            )}
+            {isTargetPlantPending && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  background: '#fffbeb',
+                  border: '2px solid #f59e0b',
+                  color: '#92400e',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.86rem',
+                }}
+              >
+                <strong>⚠️ Espacio {(effectivePlant?.plot ?? 0) + 1} pendiente de aprobación por el MSP:</strong>
+                <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
+                  Ya se encuentra «{effectivePlant?.name}» en proceso de revisión institucional en este espacio. Ningún usuario puede utilizar este espacio ni registrar actividades sobre él hasta que el MSP apruebe o rechace la siembra.
+                </div>
+              </div>
+            )}
+            {!isTargetPlantPending && isSpaceBlockedForNewPlantOrPrep && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  background: '#fef2f2',
+                  border: '2px solid #f87171',
+                  color: '#991b1b',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.86rem',
+                }}
+              >
+                <strong>⚠️ Espacio {(effectivePlant?.plot ?? 0) + 1} ocupado:</strong>
+                <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
+                  Ya existe una planta activa («{effectivePlant?.name}») en este espacio. Selecciona otro espacio disponible.
+                </div>
+              </div>
+            )}
+            {!isTargetPlantPending && !isSpaceBlockedForNewPlantOrPrep && pendingSameTypeActivity && (
+              <div
+                role="status"
+                style={{
+                  marginTop: '10px',
+                  background: '#fffbeb',
+                  border: '2px solid #f59e0b',
+                  color: '#92400e',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.86rem',
+                }}
+              >
+                <strong>⏳ Actividad ya realizada · Pendiente de revisión MSP:</strong>
+                <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
+                  <strong>{ACTIVITY_TYPES[type]}</strong> ya fue registrada por <strong>{pendingSameTypeActivity.responsible || 'un integrante'}</strong> el {pendingSameTypeActivity.date} y está en espera de validación. No se puede repetir en este espacio/planta hasta que el MSP la apruebe o rechace.
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section className="activity-garden-choose" aria-label="Selecciona la actividad realizada">
+            <div className="activity-garden-section-label">
+              <GardenIcon name="seed" /> Actividad realizada
+            </div>
+            <div className="activity-garden-cards">
+              {types.map(item => (
+                <button
+                  type="button"
+                  key={item}
+                  className="activity-garden-card"
+                  data-selected={type === item}
+                  aria-pressed={type === item}
+                  disabled={busy}
+                  title={pendingTypesForTarget.has(item) ? `${ACTIVITY_TYPES[item]} (⏳ Ya realizada y pendiente de revisión MSP)` : ACTIVITY_TYPES[item]}
+                  onClick={() => chooseType(item)}
+                >
+                  {type === item && <span className="activity-garden-card-check" aria-hidden="true">✓</span>}
+                  {pendingTypesForTarget.has(item) && (
+                    <span
+                      title="Pendiente de revisión MSP"
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        left: '4px',
+                        fontSize: '0.68rem',
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        border: '1px solid #f59e0b',
+                        borderRadius: '6px',
+                        padding: '0 4px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      ⏳
+                    </span>
+                  )}
+                  <span className="activity-garden-card-icon" aria-hidden="true">
+                    {ACTIVITY_CARDS[item].art ? (
+                      <img src={ACTIVITY_CARDS[item].art} alt="" />
+                    ) : (
+                      <span>{ACTIVITY_CARDS[item].emoji}</span>
+                    )}
+                  </span>
+                  <span>{ACTIVITY_CARDS[item].short}</span>
+                </button>
               ))}
-            </select>
-          </label>
-
-          <label>
-            Fecha de la actividad
-            <input required type="date" value={date} max={localDate()} onChange={event => setDate(event.target.value)} />
-          </label>
-
-          <label>
-            Persona responsable
-            <input
-              required
-              minLength={2}
-              maxLength={100}
-              value={person}
-              readOnly
-              title="Usuario activo en esta sesión"
-              style={{ background: '#f7fafc', cursor: 'not-allowed', color: '#4a5568' }}
-            />
-          </label>
-
-          <label>
-            Ubicación de la actividad
-            <select
-              aria-label="Ubicación de la actividad"
-              value={targetId}
-              onChange={event => {
-                setTargetId(event.target.value)
-                setConfirmEarlyHarvest(false)
-                setError('')
-              }}
-            >
-              <option value="garden">Todo el huerto</option>
-              {Array.from({ length: 6 }, (_, plot) => (
-                <option key={plot} value={'plot:' + plot}>
-                  Espacio {plot + 1}
-                </option>
-              ))}
-              {plants
-                .filter(item => !item.archivedAt)
-                .map(item => (
-                  <option key={item.id} value={'plant:' + item.id}>
-                    {item.name} · Espacio {item.plot + 1}
-                  </option>
+              {category === 'all' && (
+                <button
+                  type="button"
+                  className="activity-garden-card activity-garden-more"
+                  aria-expanded={showMore}
+                  disabled={busy}
+                  onClick={() => setShowMore(current => !current)}
+                >
+                  <span className="activity-garden-card-icon" aria-hidden="true">
+                    •••
+                  </span>
+                  <span>{showMore ? 'Cerrar' : 'Otras'}</span>
+                </button>
+              )}
+            </div>
+            {showMore && category === 'all' && (
+              <div className="activity-garden-extra-picker" role="group" aria-label="Otras actividades agrícolas">
+                {extraTypes.map(item => (
+                  <button
+                    type="button"
+                    key={item}
+                    disabled={busy}
+                    onClick={() => {
+                      chooseType(item)
+                      setShowMore(false)
+                    }}
+                  >
+                    <span aria-hidden="true">{ACTIVITY_CARDS[item].emoji}</span> {ACTIVITY_TYPES[item]}{pendingTypesForTarget.has(item) ? ' (⏳ En revisión)' : ''}
+                  </button>
                 ))}
-            </select>
-          </label>
-
-          {/* Banners informativos de sobrecuidado */}
-          {isOverWatered && (
-            <div
-              className="journal-wide"
-              style={{
-                background: '#fff5f5',
-                border: '1px solid #feb2b2',
-                color: '#9b2c2c',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                fontSize: '0.88rem',
-              }}
-            >
-              ⚠️ Esta planta ya tiene un riego registrado en la fecha seleccionada ({date}). Regar en exceso puede causar asfixia radicular y pudrir sus raíces.
+              </div>
+            )}
+            <div className="activity-garden-categories" aria-label="Filtrar actividades por categoría">
+              {CATEGORIES.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-active={category === item.id}
+                  aria-pressed={category === item.id}
+                  disabled={busy}
+                  onClick={() => chooseCategory(item.id)}
+                >
+                  {item.symbol} {item.label}
+                </button>
+              ))}
             </div>
-          )}
+          </section>
 
-          {isOverFertilized && (
-            <div
-              className="journal-wide"
-              style={{
-                background: '#fffaf0',
-                border: '1px solid #fbd38d',
-                color: '#9c4221',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                fontSize: '0.88rem',
-              }}
-            >
-              ⚠️ Esta planta ya tiene un abonado registrado en la fecha seleccionada ({date}). Abonar con demasiada frecuencia puede quemar sus raíces.
-            </div>
-          )}
-
-          {isAlreadyWeeded && (
-            <div
-              className="journal-wide"
-              style={{
-                background: '#f0fff4',
-                border: '1px solid #9ae6b4',
-                color: '#22543d',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                fontSize: '0.88rem',
-              }}
-            >
-              🌿 La planta ya se encuentra con limpieza y mantenimiento al día. Realizarlo con demasiada frecuencia puede estresar el cultivo.
-            </div>
-          )}
-
-          {isAlreadyHilled && (
-            <div
-              className="journal-wide"
-              style={{
-                background: '#fffff0',
-                border: '1px solid #faf089',
-                color: '#744210',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                fontSize: '0.88rem',
-              }}
-            >
-              ⛰️ La planta ya cuenta con aporque reciente en su base. El exceso de aporque puede compactar la tierra o cubrir tallos tiernos.
-            </div>
-          )}
-
-          {/* Alerta de Cosecha Anticipada */}
           {isEarlyHarvest && (
             <div
-              className="journal-wide"
               style={{
+                margin: '12px 0',
                 background: '#fffaf0',
                 border: '2px solid #dd6b20',
                 color: '#7b341e',
@@ -417,140 +687,313 @@ export default function ActivityModal({
             </div>
           )}
 
-          {type === 'harvest' && !plant && (
-            <div className="journal-wide journal-note">
-              <p>Selecciona una planta registrada para documentar la cosecha.</p>
-              <button type="button" onClick={() => onRegister(target.kind === 'plot' ? target.plot : 0, type)}>
-                Registrar planta en ese espacio
-              </button>
-            </div>
-          )}
-
-          {['watering', 'fertilizing', 'harvest'].includes(type) && (
-            <>
-              <label>
-                Cantidad (opcional)
+          <div className="activity-garden-input-grid">
+            <label className="activity-garden-field activity-garden-field-date">
+              <span>
+                <span aria-hidden="true">📅</span> Fecha de la actividad
+              </span>
+              <input
+                type="date"
+                required
+                value={date}
+                max={localDate()}
+                disabled={busy}
+                onChange={event => setDate(event.target.value)}
+              />
+            </label>
+            <label className="activity-garden-field activity-garden-field-person">
+              <span>
+                <span aria-hidden="true">👤</span> Responsable
+              </span>
+              <input
+                type="text"
+                required
+                minLength={2}
+                maxLength={100}
+                value={person}
+                disabled={busy}
+                onChange={event => setPerson(event.target.value)}
+                placeholder="Persona responsable"
+              />
+            </label>
+            {['watering', 'fertilizing', 'harvest', 'postharvest'].includes(type) && (
+              <>
+                <label className="activity-garden-field activity-garden-field-quantity">
+                  <span>
+                    Cantidad <em>(opcional)</em>
+                  </span>
+                  <input
+                    type="number"
+                    min="0.001"
+                    max="1000000"
+                    step="any"
+                    value={details.quantity ?? ''}
+                    disabled={busy}
+                    onChange={event =>
+                      detail('quantity', event.target.value === '' ? undefined : Number(event.target.value))
+                    }
+                    placeholder="Ej. 2"
+                  />
+                </label>
+                <label className="activity-garden-field activity-garden-field-unit">
+                  <span>Unidad</span>
+                  <select
+                    aria-label="Unidad"
+                    value={details.unit ?? ''}
+                    disabled={busy}
+                    onChange={event => detail('unit', event.target.value as ActivityDetails['unit'])}
+                  >
+                    <option value="">Sin especificar</option>
+                    {['L', 'kg', 'g', 'unidades'].map(value => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
+            {type === 'watering' && (
+              <label className="activity-garden-field activity-garden-field-method">
+                <span>
+                  ¿Cómo realizaste el riego? <em>(opcional)</em>
+                </span>
                 <input
-                  type="number"
-                  min="0.001"
-                  max="1000000"
-                  step="any"
-                  value={details.quantity ?? ''}
-                  onChange={event => detail('quantity', event.target.value === '' ? undefined : Number(event.target.value))}
+                  maxLength={100}
+                  disabled={busy}
+                  value={details.method ?? ''}
+                  onChange={event => detail('method', event.target.value)}
+                  placeholder="Ej. Con regadera, manguera…"
                 />
               </label>
-              <label>
-                Unidad
-                <select
-                  aria-label="Unidad"
-                  value={details.unit ?? ''}
-                  onChange={event => detail('unit', event.target.value as ActivityDetails['unit'])}
-                >
-                  <option value="">Sin especificar</option>
-                  {['L', 'kg', 'g', 'unidades'].map(value => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
+            )}
+            {type === 'fertilizing' && (
+              <label className="activity-garden-field activity-garden-field-method">
+                <span>
+                  Abono utilizado <em>(opcional)</em>
+                </span>
+                <input
+                  maxLength={100}
+                  disabled={busy}
+                  value={details.material ?? ''}
+                  onChange={event => detail('material', event.target.value)}
+                  placeholder="Ej. Compost orgánico"
+                />
               </label>
-            </>
-          )}
-
-          {type === 'watering' && (
-            <label className="journal-wide">
-              Método utilizado (opcional)
-              <input
-                maxLength={100}
-                value={details.method ?? ''}
-                placeholder="Describe cómo regaste"
-                onChange={event => detail('method', event.target.value)}
-              />
-            </label>
-          )}
-
-          {type === 'fertilizing' && (
-            <label className="journal-wide">
-              Abono utilizado (opcional)
-              <input
-                maxLength={100}
-                value={details.material ?? ''}
-                placeholder="Describe el abono o compost utilizado"
-                onChange={event => detail('material', event.target.value)}
-              />
-            </label>
-          )}
-
-          {type === 'harvest' && (
-            <>
-              <label>
-                Tipo de cosecha
-                <select
-                  aria-label="Tipo de cosecha"
-                  value={details.harvestMode ?? 'partial'}
-                  onChange={event =>
-                    setDetails(current => ({
-                      ...current,
-                      harvestMode: event.target.value as 'partial' | 'complete',
-                      releasePlot: false,
-                    }))
-                  }
-                >
-                  <option value="partial">Parcial (conserva la planta para rebrote)</option>
-                  <option value="complete">Completa (cosecha total)</option>
-                </select>
-              </label>
-              {details.harvestMode === 'complete' && (
-                <label className="journal-check">
-                  <input
-                    type="checkbox"
-                    checked={details.releasePlot ?? false}
-                    onChange={event => detail('releasePlot', event.target.checked)}
-                  />
-                  Archivar la ficha y liberar el espacio al guardar
+            )}
+            {type === 'observation' && (
+              <>
+                <label className="activity-garden-field activity-garden-field-observed">
+                  <span>Estado observado</span>
+                  <select
+                    aria-label="Estado observado"
+                    disabled={busy}
+                    value={details.state ?? ''}
+                    onChange={event =>
+                      detail('state', event.target.value ? (event.target.value as PlantState) : undefined)
+                    }
+                  >
+                    <option value="">Sin cambio de estado</option>
+                    {Object.entries(PLANT_STATES).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-              )}
-            </>
+                <label className="activity-garden-field activity-garden-field-observed">
+                  <span>Etapa ilustrada a partir de evidencia</span>
+                  <select
+                    aria-label="Etapa de crecimiento observada"
+                    disabled={busy || !growthStageEnabled}
+                    value={details.growthStage ?? ''}
+                    onChange={event =>
+                      detail('growthStage', event.target.value ? (event.target.value as GrowthStage) : undefined)
+                    }
+                  >
+                    <option value="">Sin cambio de etapa</option>
+                    {Object.entries(GROWTH_STAGES).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <small>
+                    {growthStageEnabled
+                      ? 'Para cambiar la ilustración del jardín debes adjuntar una fotografía real de la etapa observada.'
+                      : 'La sincronización de etapas con el servidor estará disponible tras integrar la API de evidencias #43.'}
+                  </small>
+                </label>
+                <label className="activity-garden-field activity-garden-field-height">
+                  <span>
+                    Altura (cm) <em>(opcional)</em>
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    disabled={busy}
+                    value={details.heightCm ?? ''}
+                    onChange={event =>
+                      detail('heightCm', event.target.value === '' ? undefined : Number(event.target.value))
+                    }
+                  />
+                </label>
+              </>
+            )}
+            {type === 'harvest' && (
+              <>
+                <label className="activity-garden-field activity-garden-field-harvest">
+                  <span>Tipo de cosecha</span>
+                  <select
+                    aria-label="Tipo de cosecha"
+                    disabled={busy}
+                    value={details.harvestMode ?? 'partial'}
+                    onChange={event =>
+                      setDetails(current => ({
+                        ...current,
+                        harvestMode: event.target.value as 'partial' | 'complete',
+                        releasePlot: false,
+                      }))
+                    }
+                  >
+                    <option value="partial">Parcial</option>
+                    <option value="complete">Completa</option>
+                  </select>
+                </label>
+                {details.harvestMode === 'complete' && (
+                  <label className="activity-garden-check">
+                    <input
+                      type="checkbox"
+                      disabled={busy}
+                      checked={details.releasePlot ?? false}
+                      onChange={event => detail('releasePlot', event.target.checked)}
+                    />{' '}
+                    Archivar ficha y liberar espacio
+                  </label>
+                )}
+              </>
+            )}
+            <AgriculturalCycleFields type={type} date={date} details={details} events={existingActivities} busy={busy} onDetails={setDetails}/>
+          </div>
+
+          <div className="activity-garden-evidence-grid">
+            <div className="activity-garden-photo-area">
+              <div className="activity-garden-section-label">
+                <GardenIcon name="camera" /> Evidencia fotográfica{' '}
+                <em>
+                  {type === 'observation' && details.growthStage && details.growthStage !== plant?.growthStage
+                    ? '(obligatoria para cambiar etapa)'
+                    : '(opcional)'}
+                </em>
+              </div>
+              <div
+                className="activity-garden-photo-drop"
+                data-drag-over={dragOver}
+                onDragOver={event => {
+                  event.preventDefault()
+                  setDragOver(true)
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={onDrop}
+              >
+                <input
+                  ref={cameraRef}
+                  className="activity-garden-sr-only"
+                  type="file"
+                  accept={PHOTO_ACCEPT}
+                  capture="environment"
+                  aria-label="Tomar foto con cámara"
+                  disabled={busy}
+                  onChange={photo.choose}
+                />
+                <input
+                  ref={galleryRef}
+                  className="activity-garden-sr-only"
+                  type="file"
+                  accept={PHOTO_ACCEPT}
+                  aria-label="Seleccionar imagen de galería"
+                  disabled={busy}
+                  onChange={photo.choose}
+                />
+                <div className="activity-garden-photo-placeholder">
+                  <GardenIcon name="camera" />
+                  <span>{photo.reading ? 'Preparando fotografía…' : 'Toma una foto o elige un archivo'}</span>
+                </div>
+                <div className="activity-garden-photo-controls">
+                  <button type="button" disabled={busy || photo.reading} onClick={() => cameraRef.current?.click()}>
+                    <GardenIcon name="camera" /> Cámara
+                  </button>
+                  <button type="button" disabled={busy || photo.reading} onClick={() => galleryRef.current?.click()}>
+                    <GardenIcon name="gallery" /> Galería
+                  </button>
+                </div>
+                {previewUrl && (
+                  <div className="activity-garden-photo-preview">
+                    <img src={previewUrl} alt="Fotografía elegida" />
+                    <button
+                      type="button"
+                      aria-label="Quitar fotografía"
+                      title="Quitar fotografía"
+                      disabled={busy}
+                      onClick={photo.clear}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                {type === 'observation' && <PlantVisualAnalysis analysis={analysis} previous={plant?.visualProfile}/>}
+                <small>JPG, PNG o WebP · hasta 3 MB</small>
+              </div>
+            </div>
+            <label className="activity-garden-field activity-garden-observations">
+              <span>
+                <span aria-hidden="true">📝</span> Observaciones
+              </span>
+              <textarea
+                maxLength={2000}
+                disabled={busy}
+                value={notes}
+                onChange={event => setNotes(event.target.value)}
+                placeholder="Cuenta qué hiciste y cómo encontraste la planta…"
+                rows={3}
+              />
+              <small>{notes.length} / 2000</small>
+            </label>
+          </div>
+
+          <p className="activity-garden-storage-note">
+            <span aria-hidden="true">ⓘ</span> Actividad real documentada · Sincronización con verificación MSP.
+          </p>
+          {(error || photo.error) && (
+            <p role="alert" className="journal-error">
+              {error || photo.error}
+            </p>
           )}
-
-          <label className="journal-wide">
-            Observaciones de la actividad
-            <textarea maxLength={2000} value={notes} onChange={event => setNotes(event.target.value)} />
-          </label>
-
-          <label className="journal-wide">
-            Evidencia fotográfica (opcional)
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={photo.choose} />
-          </label>
-        </div>
-
-        <p className="journal-note">
-          Registra una acción que realizaste en el huerto real. Guardado y sincronizado con tu progreso en Kawsapacha.
-        </p>
-
-        {(error || photo.error) && <p role="alert" className="journal-error">{error || photo.error}</p>}
-
-        <footer>
-          <button type="button" disabled={busy} onClick={onClose}>
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={
-              busy ||
-              photo.reading ||
-              Boolean(photo.error) ||
-              isOverWatered ||
-              isOverFertilized ||
-              isAlreadyWeeded ||
-              isAlreadyHilled ||
-              (isEarlyHarvest && !confirmEarlyHarvest)
-            }
-          >
-            {busy ? 'Guardando…' : 'Guardar actividad'}
-          </button>
-        </footer>
-      </form>
+          <footer className="activity-garden-footer">
+            <button type="button" disabled={busy} onClick={onClose}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={
+                busy ||
+                photo.reading ||
+                Boolean(photo.error) ||
+                (type === 'observation' && analysis.status === 'analyzing') ||
+                isOverWatered ||
+                isOverFertilized ||
+                (isEarlyHarvest && !confirmEarlyHarvest) ||
+                isTargetPlantPending ||
+                isSpaceBlockedForNewPlantOrPrep ||
+                Boolean(pendingSameTypeActivity)
+              }
+            >
+              <GardenIcon name="book" /> {busy ? 'Guardando…' : (isTargetPlantPending ? 'Espacio pendiente MSP' : isSpaceBlockedForNewPlantOrPrep ? 'Espacio ocupado' : pendingSameTypeActivity ? 'En revisión MSP' : 'Registrar actividad')}
+            </button>
+          </footer>
+        </form>
+      )}
     </dialog>
   )
 }

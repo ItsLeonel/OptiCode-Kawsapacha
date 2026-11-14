@@ -1,45 +1,25 @@
 import type { GardenJournal } from './journal/journal'
-import { ACTIVITY_TYPES } from './journal/activities'
-import { calculateProgress, LOCAL_LEVELS, LOCAL_POINTS } from './journal/progress'
-import './garden-journal.css'
+import type { GardenRegion } from '../real-gardens/garden-region'
+import RewardsDashboard from './rewards/RewardsDashboard'
+import RewardReviewPanel from './rewards/RewardReviewPanel'
+import type { AuthoritativeRewards } from './rewards/rewards-types'
+import type { AuthoritativeRewardReview } from './rewards/reward-review'
 
-export default function GardenProgress({ journal, currentUser }: { journal: GardenJournal; currentUser?: string }) {
-  const actor = currentUser || journal.community?.responsible || 'Usuario'
-  const personal = calculateProgress(journal, actor), community = calculateProgress(journal)
-  const recorded = personal.ledger.flatMap(entry => { const activity = journal.activities.find(item => item.id === entry.activityId); return activity ? [{ entry, activity }] : [] })
-  const firstFor = (type: keyof typeof ACTIVITY_TYPES, withPhoto = false) => recorded.find(item => item.entry.type === type && (!withPhoto || item.activity.photoIds.length > 0))?.entry.date
-  const thirdDateFor = (type: keyof typeof ACTIVITY_TYPES, withPhoto = false) => [...new Set(recorded.filter(item => item.entry.type === type && (!withPhoto || item.activity.photoIds.length > 0)).map(item => item.entry.date))].sort()[2]
-  const milestones: { id: string; date: string; title: string; detail: string }[] = []
-  const sowingDate = firstFor('sowing', true), wateringDate = thirdDateFor('watering'), observationDate = thirdDateFor('observation', true), harvestDate = firstFor('harvest', true)
-  const badgeDates: Record<string, string | undefined> = { 'first-sowing': sowingDate, care: wateringDate, observer: observationDate, harvest: harvestDate }
-  personal.badges.filter(badge => badge.earned).forEach(badge => {
-    const date = badgeDates[badge.id]
-    if (date) milestones.push({ id: 'badge-' + badge.id, date, title: badge.label, detail: 'Insignia documentada' })
-  })
-  let accumulated = 0
-  for (const { entry } of recorded) {
-    const before = accumulated
-    accumulated += entry.points
-    for (const level of LOCAL_LEVELS.slice(1)) {
-      if (before < level.threshold && accumulated >= level.threshold) milestones.push({ id: `level-${level.name}`, date: entry.date, title: `Nivel ${level.name}`, detail: `${level.threshold} Semillas de vida registradas` })
-    }
-  }
-  milestones.sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title))
-  return <section className="journal-progress" aria-label="Mi camino verde">
-    <div className="journal-heading">
-      <div>
-        <small>RECONOCIMIENTOS</small>
-        <h2>Mi camino verde</h2>
-      </div>
-      <span className="journal-badge-user" style={{ fontSize: '0.85rem', color: '#276749', background: '#f0fff4', border: '1px solid #c6f6d5', padding: '4px 12px', borderRadius: '16px', fontWeight: 600 }}>
-        🌱 Usuario: {actor}
-      </span>
-    </div>
-    <p>Avances y reconocimientos obtenidos por tus actividades agrícolas documentadas en Kawsapacha.</p>
-    <section className="journal-personal-history" aria-labelledby="personal-history-title"><div><h3 id="personal-history-title">Mi historia</h3><p>Hitos y logros derivados de tus registros reales.</p></div>{milestones.length ? <ol>{milestones.map(item => <li key={item.id}><time dateTime={item.date}>{item.date}</time><span><strong>{item.title}</strong><small>{item.detail}</small></span></li>)}</ol> : <p>Aún no hay hitos documentados para esta trayectoria.</p>}</section>
-    <div className="journal-progress-cards"><div><span>Semillas de vida</span><output aria-label="Semillas de vida individuales">{personal.points}</output><small>{actor || 'Sin actividades registradas'}</small></div><div><span>Nivel local</span><strong>{personal.level}</strong><progress aria-label="Progreso de nivel" max="100" value={personal.progressPercent}/><small>{personal.nextLevel ? `${personal.remaining} para ${personal.nextLevel}` : 'Nivel Maestro alcanzado con registros locales'}</small></div><div><span>Actividades documentadas</span><strong>{personal.activities}</strong><small>Incluye actividades sin una segunda recompensa el mismo día</small></div></div>
-    <h3>Insignias</h3><ul className="journal-badges">{personal.badges.map(badge => <li key={badge.id} data-earned={badge.earned}><span aria-hidden="true">{badge.earned ? '✦' : '◇'}</span><strong>{badge.label}</strong><small>{badge.criterion}</small><span>{badge.earned ? 'Obtenida' : 'Por documentar'}</span></li>)}</ul>
-    {journal.community && <section className="journal-community-progress" aria-label="Progreso comunitario local"><h3>{journal.community.name}</h3><p>Solo actividades conservadas en este dispositivo; no representa el progreso completo de la comunidad.</p><output aria-label="Semillas de vida comunitarias locales">{community.points}</output><span> Semillas de vida · {community.activities} actividades</span></section>}
-    <details><summary>Reglas y desglose de los reconocimientos</summary><p>Un reconocimiento por tipo de actividad, fecha, responsable y destino. Repetir el guardado, modificar las notas o recargar no duplica los puntos. Las actividades anuladas se excluyen.</p><p>{LOCAL_LEVELS.map(level => `${level.name}: ${level.threshold}`).join(' · ')}</p><ul>{Object.entries(LOCAL_POINTS).filter(([, points]) => points > 0).map(([key, points]) => <li key={key}>{ACTIVITY_TYPES[key as keyof typeof ACTIVITY_TYPES]}: {points} Semillas de vida</li>)}</ul></details>
-  </section>
+/**
+ * Mi camino verde: la bitácora local conserva sus reglas V1.
+ * Los puntos oficiales y las decisiones de moderación se reciben por props,
+ * exclusivamente después de obtenerlos del backend autenticado.
+ */
+export default function GardenProgress({ journal, region = 'sierra', authenticated = false, official, review, currentUser: _currentUser }: {
+  journal: GardenJournal
+  region?: GardenRegion
+  authenticated?: boolean
+  official?: AuthoritativeRewards | null
+  review?: AuthoritativeRewardReview | null
+  currentUser?: string
+}) {
+  return <div className="kaws-progress-phase45">
+    <RewardsDashboard journal={journal} region={region} authenticated={authenticated} official={official}/>
+    <RewardReviewPanel authenticated={authenticated} review={review}/>
+  </div>
 }

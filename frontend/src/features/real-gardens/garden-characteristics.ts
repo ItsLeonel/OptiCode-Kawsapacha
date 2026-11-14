@@ -14,6 +14,15 @@ export const IRRIGATION_METHOD_OPTIONS = {
   manual: 'Manual (regadera)', hose: 'Manguera', drip: 'Goteo', sprinkler: 'Aspersión', other: 'Otro método',
 } as const
 
+/** Solo ofrecer métodos admitidos para huertos nuevos; se conserva
+ * sprinkler en el modelo histórico para editar sin perder datos antiguos. */
+export const SELECTABLE_IRRIGATION_METHOD_OPTIONS = {
+  manual: IRRIGATION_METHOD_OPTIONS.manual,
+  hose: IRRIGATION_METHOD_OPTIONS.hose,
+  drip: IRRIGATION_METHOD_OPTIONS.drip,
+  other: IRRIGATION_METHOD_OPTIONS.other,
+} satisfies Partial<typeof IRRIGATION_METHOD_OPTIONS>
+
 export const NATURAL_FERTILIZER_OPTIONS = {
   fallow: 'Barbecho', leaves: 'Hojas', plantRemains: 'Restos vegetales', compost: 'Compost',
 } as const

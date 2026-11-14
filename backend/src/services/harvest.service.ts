@@ -12,6 +12,28 @@ export async function harvestPlant(
     include: { species: true },
   })
   if (!plant) throw new Error('Planta no encontrada')
+  if (plant.reviewStatus !== 'APPROVED') {
+    throw Object.assign(
+      new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se puede cosechar hasta su validación oficial.'),
+      { code: 'PLANT_NOT_APPROVED' }
+    )
+  }
+
+  const pendingHarvest = await prisma.gardenActivity.findFirst({
+    where: {
+      plantId,
+      type: 'harvest',
+      voidedAt: null,
+      reviewStatus: { in: ['PENDING', 'NEEDS_CHANGES'] },
+    },
+    select: { id: true },
+  })
+  if (pendingHarvest) {
+    throw Object.assign(
+      new Error('Ya existe una cosecha registrada para esta planta pendiente de revisión por el MSP. No se puede volver a cosechar hasta que sea validada o rechazada.'),
+      { code: 'ACTIVITY_ALREADY_PENDING' }
+    )
+  }
 
   // 1. Obtener communityId desde el huerto
   const garden = await prisma.realGarden.findUnique({

@@ -763,7 +763,7 @@ export default function App({
     // Solo modo visitante: evento y fotografía se guardan juntos en IndexedDB.
     if (journal.data.activities.some(item => item.id === draft.id)) {
       setActivityForm(null)
-      setNotice('Esta actividad ya estaba guardada en este navegador.')
+      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este navegador.')
       return
     }
     const photoId = draft.photo ? recordId('photo') : undefined
@@ -782,7 +782,7 @@ export default function App({
     }
     if (journal.data.activities.some(item => activityKey(item) === activityKey(activity))) {
       setActivityForm(null)
-      setNotice('Esta actividad ya estaba guardada en este navegador.')
+      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este navegador.')
       return
     }
     const saved = await journal.commit(
@@ -792,7 +792,7 @@ export default function App({
     const actual = saved.activities.find(item => item.id === draft.id)
     setActivityForm(null)
     if (!actual) {
-      setNotice('Esta actividad ya estaba guardada en este navegador.')
+      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este navegador.')
       return
     }
     setNotice('Actividad y evidencias guardadas en este navegador. No están sincronizadas con una cuenta.')

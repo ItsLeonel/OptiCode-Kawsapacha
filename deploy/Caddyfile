@@ -1,0 +1,14 @@
+# SITE_ADDRESS=:80 para pruebas HTTP locales.
+# SITE_ADDRESS=huerto.example.org con DNS público y puertos 80/443 para HTTPS.
+{$SITE_ADDRESS} {
+    encode zstd gzip
+    @backend path /api/* /uploads/*
+    handle @backend {
+        reverse_proxy api:3000
+    }
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}

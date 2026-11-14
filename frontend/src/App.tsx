@@ -578,16 +578,15 @@ export default function App({
           photo: apiPlant.photoUrl,
           date: new Date(apiPlant.plantingDate).toLocaleDateString('es-EC'),
           plot: apiPlant.plotIndex ?? 0,
-          plantedOn: input.plantedOn,
+          // La API actual no persiste la fecha de siembra como campo documentado.
           createdAt: (apiPlant as any).createdAt || new Date(apiPlant.plantingDate).toISOString(),
           state: 'observed',
         }
         setBackendPlants(existing => [...existing, record])
-        setRegistration(null)
-        setDetailId(record.id)
-        setSelectedPlot(null)
-        setNotice('¡Fotografía y planta guardadas exitosamente en el servidor!')
         goto('Inicio')
+        setSelectedPlot(null)
+        setDetailId(record.id)
+        setNotice('Fotografía y ficha básica guardadas en SQLite. El perfil visual y la siembra documentada requieren la API #35/#43.')
         return { ok: true }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error al registrar la planta en el servidor.'
@@ -1106,6 +1105,7 @@ export default function App({
           initialSowing={registration.recordSowing}
           initialGrowthStage={registration.growthStage}
           growthStageEnabled={!user}
+          serverBasicOnly={Boolean(user)}
           initialResponsible={registration.responsible ?? communityRecord?.responsible ?? ''}
           initialRequestId={registration.requestId}
           notice={registration.notice}

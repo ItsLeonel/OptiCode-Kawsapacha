@@ -5,6 +5,7 @@ import { GROWTH_STAGES, type GrowthStage } from '../growth-stages'
 import { localDate, recordId } from '../plant-record'
 import { useGardenDialog } from '../useGardenDialog'
 import { useJournalPhoto } from './useJournalPhoto'
+import { BASIC_SERVER_ACTIVITY_TYPES, isBasicServerActivity } from './storage-mode'
 import { usePlantVisualAnalysis } from '../usePlantVisualAnalysis'
 import PlantVisualAnalysis from '../PlantVisualAnalysis'
 import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails, type GardenActivity } from './activities'
@@ -51,7 +52,7 @@ const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
 
 export default function ActivityModal({
   plants, gardenId, responsible, initialPlant, initialPlot, initialDate, initialActivityType, activities = [],
-  onSave, onRegister, onClose, growthStageEnabled = true,
+  onSave, onRegister, onClose, growthStageEnabled = true, serverBasicOnly = false,
 }: {
   plants: GardenPlant[]
   activities?: readonly GardenActivity[]
@@ -65,13 +66,14 @@ export default function ActivityModal({
   onRegister: (plot: number, type: ActivityType) => void
   onClose: () => void
   growthStageEnabled?: boolean
+  serverBasicOnly?: boolean
 }) {
   const dialog = useGardenDialog()
   const sending = useRef(false)
   const id = useRef(recordId('activity'))
   const galleryRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
-  const initialType = initialActivityType && Object.hasOwn(ACTIVITY_TYPES, initialActivityType) ? initialActivityType : 'watering'
+  const initialType = initialActivityType && Object.hasOwn(ACTIVITY_TYPES, initialActivityType) && (!serverBasicOnly || isBasicServerActivity(initialActivityType)) ? initialActivityType : 'watering'
   const [type, setType] = useState<ActivityType>(initialType)
   const [date, setDate] = useState(initialDate && initialDate <= localDate() ? initialDate : localDate())
   const [person, setPerson] = useState(responsible)
@@ -99,11 +101,11 @@ export default function ActivityModal({
   const target: ActivityTarget = type === 'postharvest' && selectedHarvest
     ? selectedHarvest.target.kind === 'garden' ? {kind:'garden'} : {kind:'plot',plot:selectedHarvest.target.plot}
     : originalTarget
-  const needsPlant = ['sowing', 'hilling', 'replanting', 'observation', 'harvest', 'signage'].includes(type)
-  const types = category === 'all'
+  const needsPlant = serverBasicOnly || ['sowing', 'hilling', 'replanting', 'observation', 'harvest', 'signage'].includes(type)
+  const types: ActivityType[] = serverBasicOnly ? [...BASIC_SERVER_ACTIVITY_TYPES] : category === 'all'
     ? (FEATURED.includes(type) ? FEATURED : [...FEATURED.slice(0, 4), type])
     : (Object.keys(ACTIVITY_TYPES) as ActivityType[]).filter(item => ACTIVITY_CARDS[item].category === category)
-  const extraTypes = (Object.keys(ACTIVITY_TYPES) as ActivityType[]).filter(item => !FEATURED.includes(item))
+  const extraTypes = serverBasicOnly ? [] : (Object.keys(ACTIVITY_TYPES) as ActivityType[]).filter(item => !FEATURED.includes(item))
 
   useEffect(() => {
     if (!photo.photo) { setPreviewUrl(''); return }
@@ -237,31 +239,31 @@ export default function ActivityModal({
                 <span>{ACTIVITY_CARDS[item].short}</span>
               </button>
             ))}
-            {category === 'all' && (
+            {!serverBasicOnly && category === 'all' && (
               <button type="button" className="activity-garden-card activity-garden-more" aria-expanded={showMore} disabled={busy} onClick={() => setShowMore(current => !current)}>
                 <span className="activity-garden-card-icon" aria-hidden="true">•••</span>
                 <span>{showMore ? 'Cerrar' : 'Otras'}</span>
               </button>
             )}
           </div>
-          {showMore && category === 'all' && (
+          {!serverBasicOnly && showMore && category === 'all' && (
             <div className="activity-garden-extra-picker" role="group" aria-label="Otras actividades agrícolas">
               {extraTypes.map(item => <button type="button" key={item} disabled={busy} onClick={() => { chooseType(item); setShowMore(false) }}><span aria-hidden="true">{ACTIVITY_CARDS[item].emoji}</span> {ACTIVITY_TYPES[item]}</button>)}
             </div>
           )}
-          <div className="activity-garden-categories" aria-label="Filtrar actividades por categoría">
+          {!serverBasicOnly && <div className="activity-garden-categories" aria-label="Filtrar actividades por categoría">
             {CATEGORIES.map(item => <button key={item.id} type="button" data-active={category === item.id} aria-pressed={category === item.id} disabled={busy} onClick={() => chooseCategory(item.id)}>{item.symbol} {item.label}</button>)}
-          </div>
+          </div>}
         </section>
 
         <div className="activity-garden-input-grid">
           <label className="activity-garden-field activity-garden-field-date">
             <span><span aria-hidden="true">📅</span> Fecha de la actividad</span>
-            <input type="date" required value={date} max={localDate()} disabled={busy} onChange={event => setDate(event.target.value)} />
+            <input type="date" required value={date} max={localDate()} disabled={busy || serverBasicOnly} onChange={event => setDate(event.target.value)} />
           </label>
           <label className="activity-garden-field activity-garden-field-person">
             <span><span aria-hidden="true">👤</span> Responsable</span>
-            <input type="text" required minLength={2} maxLength={100} value={person} disabled={busy} onChange={event => setPerson(event.target.value)} placeholder="Persona responsable" />
+            <input type="text" required minLength={2} maxLength={100} value={person} disabled={busy} readOnly={serverBasicOnly} onChange={event => setPerson(event.target.value)} placeholder="Persona responsable" />
           </label>
           {['watering', 'fertilizing', 'harvest', 'postharvest'].includes(type) && <>
             <label className="activity-garden-field activity-garden-field-quantity">
@@ -291,14 +293,14 @@ export default function ActivityModal({
             <label className="activity-garden-field activity-garden-field-height"><span>Altura (cm) <em>(opcional)</em></span><input type="number" min="0" step="0.1" disabled={busy} value={details.heightCm ?? ''} onChange={event => detail('heightCm', event.target.value === '' ? undefined : Number(event.target.value))} /></label>
           </>}
           {type === 'harvest' && <>
-            <label className="activity-garden-field activity-garden-field-harvest"><span>Tipo de cosecha</span><select aria-label="Tipo de cosecha" disabled={busy} value={details.harvestMode ?? 'partial'} onChange={event => setDetails(current => ({ ...current, harvestMode: event.target.value as 'partial' | 'complete', releasePlot: false }))}><option value="partial">Parcial</option><option value="complete">Completa</option></select></label>
+            <label className="activity-garden-field activity-garden-field-harvest"><span>Tipo de cosecha</span><select aria-label="Tipo de cosecha" disabled={busy} value={details.harvestMode ?? 'partial'} onChange={event => setDetails(current => ({ ...current, harvestMode: event.target.value as 'partial' | 'complete', releasePlot: false }))}><option value="partial">Parcial</option>{!serverBasicOnly && <option value="complete">Completa</option>}</select></label>
             {details.harvestMode === 'complete' && <label className="activity-garden-check"><input type="checkbox" disabled={busy} checked={details.releasePlot ?? false} onChange={event => detail('releasePlot', event.target.checked)} /> Archivar ficha y liberar espacio</label>}
           </>}
-          <AgriculturalCycleFields type={type} date={date} details={details} events={activities} busy={busy} onDetails={setDetails}/>
+          {!serverBasicOnly && <AgriculturalCycleFields type={type} date={date} details={details} events={activities} busy={busy} onDetails={setDetails}/>}
         </div>
 
         <div className="activity-garden-evidence-grid">
-          <div className="activity-garden-photo-area">
+          {!serverBasicOnly && <div className="activity-garden-photo-area">
             <div className="activity-garden-section-label"><GardenIcon name="camera" /> Evidencia fotográfica <em>{type === 'observation' && details.growthStage && details.growthStage !== plant?.growthStage ? '(obligatoria para cambiar etapa)' : '(opcional)'}</em></div>
             <div className="activity-garden-photo-drop" data-drag-over={dragOver} onDragOver={event => { event.preventDefault(); setDragOver(true) }} onDragLeave={() => setDragOver(false)} onDrop={onDrop}>
               <input ref={cameraRef} className="activity-garden-sr-only" type="file" accept="image/*" capture="environment" aria-label="Tomar foto con cámara" disabled={busy} onChange={photo.choose} />
@@ -312,7 +314,7 @@ export default function ActivityModal({
               {type === 'observation' && <PlantVisualAnalysis analysis={analysis} previous={plant?.visualProfile}/>}
               <small>JPG, PNG o WebP · hasta 3 MB</small>
             </div>
-          </div>
+          </div>}
           <label className="activity-garden-field activity-garden-observations">
             <span><span aria-hidden="true">📝</span> Observaciones</span>
             <textarea maxLength={2000} disabled={busy} value={notes} onChange={event => setNotes(event.target.value)} placeholder="Cuenta qué hiciste y cómo encontraste la planta…" rows={3} />
@@ -320,7 +322,7 @@ export default function ActivityModal({
           </label>
         </div>
 
-        <p className="activity-garden-storage-note"><span aria-hidden="true">ⓘ</span> Actividad real documentada · Sincronización completa de la bitácora pendiente de la API.</p>
+        <p className="activity-garden-storage-note" role="status"><span aria-hidden="true">ⓘ</span> {serverBasicOnly ? 'Sesión autenticada: solo riego, abono y cosecha parcial básica, guardados en SQLite sin fotografía. Seguimientos, fotos, fechas anteriores y demás actividades requieren la API #43.' : 'Modo visitante: actividad y fotografías guardadas en este navegador, sin sincronización con servidor.'}</p>
         {(error || photo.error) && <p role="alert" className="journal-error">{error || photo.error}</p>}
         <footer className="activity-garden-footer">
           <button type="button" disabled={busy} onClick={onClose}>Cancelar</button>

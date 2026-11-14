@@ -134,7 +134,9 @@ export default function ActivityModal({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (sending.current || photo.reading || photo.error) return
-    const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details: type === 'packaging' ? { ...details, packagedOn: date } : details, photo: photo.photo }
+    const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details: type === 'packaging' ? { ...details, packagedOn: date }
+      : type === 'signage' ? { ...details, labelCommonName: details.labelCommonName ?? plant?.name, labelScientificName: details.labelScientificName ?? plant?.latin }
+      : details, photo: photo.photo }
     const invalid = validateActivity({ ...draft, gardenId, createdAt: new Date().toISOString(), photoIds: photo.photo ? ['pending-photo'] : [], validation: 'local-v1' }, plants)
     const invalidStep = invalid ?? validatePostharvestDraft(draft, gardenId, activities)
     if (invalidStep) { setError(invalidStep); return }
@@ -294,6 +296,9 @@ export default function ActivityModal({
             <label className="activity-garden-field"><span>Clasificación tradicional indicada</span><select disabled={busy} value={details.traditionalType ?? 'unknown'} onChange={e => detail('traditionalType', e.target.value as ActivityDetails['traditionalType'])}>
               <option value="unknown">Sin clasificar</option><option value="hot">Caliente · rojo</option><option value="cool">Fresca · verde/blanco</option>
             </select></label>
+            <label className="activity-garden-field"><span>Nombre en idioma de la comunidad (opcional)</span><input disabled={busy} maxLength={300} value={details.labelLocalName ?? ''} onChange={e => detail('labelLocalName', e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Familia botánica (si la conoces)</span><input disabled={busy} maxLength={300} value={details.labelFamily ?? ''} onChange={e => detail('labelFamily', e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Uso tradicional general (opcional)</span><input disabled={busy} maxLength={300} value={details.labelUse ?? ''} onChange={e => detail('labelUse', e.target.value)}/></label>
             <small>Los datos de señalética son declaraciones del usuario y no equivalen a validación oficial.</small>
           </>}
           {(type === 'ritualSowing' || type === 'ritualHarvest') && <p className="activity-postharvest-tip">Describe la práctica cultural realmente realizada. El calendario lunar orienta, pero no valida ni impide registrar actividades.</p>}
@@ -301,10 +306,23 @@ export default function ActivityModal({
             <option value="">Sin documentar</option><option value="leaves">Hojas</option><option value="flowers">Flores</option><option value="fruits">Frutos</option><option value="seeds">Semillas</option><option value="roots">Raíces</option><option value="other">Otra parte</option>
           </select></label>}
           {type === 'cleaning' && <label className="activity-garden-field"><span>Procedimiento de limpieza</span><input disabled={busy} maxLength={100} value={details.method ?? ''} onChange={e => detail('method',e.target.value)} placeholder="Describe la limpieza realizada"/></label>}
-          {type === 'drying' && <p className="activity-postharvest-tip">Según la referencia MSP: secado a la sombra durante 10–15 días. Documenta el proceso real; esta app no certifica la inocuidad del lote.</p>}
+          {type === 'drying' && <>
+            <label className="activity-garden-field"><span>Inicio real del secado *</span><input required disabled={busy} type="date" max={date} value={details.dryingStartOn ?? ''} onChange={e => detail('dryingStartOn',e.target.value || undefined)} /></label>
+            <label className="activity-garden-field"><span>Finalización real del secado *</span><input required disabled={busy} type="date" min={details.dryingStartOn} max={date} value={details.dryingEndOn ?? ''} onChange={e => detail('dryingEndOn',e.target.value || undefined)}/></label>
+            <p className="activity-postharvest-tip">Referencia tradicional MSP: secado a la sombra aproximadamente 10–15 días. Solo anota fechas reales: Kawsapacha no certifica la inocuidad ni afirma que un lote se ha secado por el calendario.</p>
+          </>}
           {type === 'packaging' && <>
             <label className="activity-garden-field"><span>Nombre común de la etiqueta *</span><input required disabled={busy} maxLength={300} value={details.labelCommonName ?? ''} onChange={e => detail('labelCommonName',e.target.value)}/></label>
             <label className="activity-garden-field"><span>Nombre científico *</span><input required disabled={busy} maxLength={300} value={details.labelScientificName ?? ''} onChange={e => detail('labelScientificName',e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Nombre ancestral o local (opcional)</span><input disabled={busy} maxLength={300} value={details.labelLocalName ?? ''} onChange={e => detail('labelLocalName',e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Familia botánica (opcional)</span><input disabled={busy} maxLength={300} value={details.labelFamily ?? ''} onChange={e => detail('labelFamily',e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Peso o cantidad real del paquete (opcional)</span><input disabled={busy} type="number" min="0.001" step="any" value={details.quantity ?? ''} onChange={e => detail('quantity',e.target.value ? Number(e.target.value) : undefined)}/></label>
+            <label className="activity-garden-field"><span>Unidad medida</span><select disabled={busy} value={details.unit ?? ''} onChange={e => detail('unit',(e.target.value || undefined) as ActivityDetails['unit'])}>
+              <option value="">Sin especificar</option><option value="g">Gramos</option><option value="kg">Kilogramos</option><option value="unidades">Unidades</option>
+            </select></label>
+            <label className="activity-garden-field"><span>Clasificación tradicional</span><select disabled={busy} value={details.traditionalType ?? 'unknown'} onChange={e => detail('traditionalType',e.target.value as ActivityDetails['traditionalType'])}>
+              <option value="unknown">Sin documentar</option><option value="hot">Caliente</option><option value="cool">Fresca</option>
+            </select></label>
             <label className="activity-garden-field"><span>Uso indicado (de fuente confiable)</span><input disabled={busy} maxLength={300} value={details.labelUse ?? ''} onChange={e => detail('labelUse',e.target.value)}/></label>
             <label className="activity-garden-field"><span>Contraindicaciones declaradas</span><input disabled={busy} maxLength={300} value={details.labelWarnings ?? ''} onChange={e => detail('labelWarnings',e.target.value)}/></label>
             <label className="activity-garden-field"><span>Dosificación de referencia validada (opcional)</span><input disabled={busy} maxLength={300} value={details.labelDose ?? ''} onChange={e => detail('labelDose',e.target.value)} placeholder="No se genera automáticamente"/></label>

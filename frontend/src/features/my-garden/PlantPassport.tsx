@@ -307,9 +307,10 @@ export default function PlantPassport({
             {onActivity && !plant.archivedAt && <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
               <button type="button" className="rg-outline-button" onClick={() => onActivity('watering')}>💧 Riego</button>
               <button type="button" className="rg-outline-button" onClick={() => onActivity('fertilizing')}>🌾 Abonado</button>
-              <button type="button" className="rg-outline-button" onClick={() => onActivity('weeding')}>🌿 Deshierbe</button>
-              <button type="button" className="rg-outline-button" onClick={() => onActivity('observation')}>📷 Seguimiento</button>
+              {!user && <button type="button" className="rg-outline-button" onClick={() => onActivity('weeding')}>🌿 Deshierbe</button>}
+              {!user && <button type="button" className="rg-outline-button" onClick={() => onActivity('observation')}>📷 Seguimiento</button>}
             </div>}
+            {user && <p style={{ fontSize: '0.8rem', color: '#785830' }}>El seguimiento con fotografía y las demás actividades se habilitarán al integrar el servidor de evidencias #35/#43.</p>}
           </section>
 
           {/* ─── SUGERENCIAS DEL CALENDARIO AGRÍCOLA Y FASE LUNAR ─── */}
@@ -332,7 +333,7 @@ export default function PlantPassport({
           {/* Una cosecha real se registra aunque el estimador de madurez no la espere. */}
           <section style={{ borderTop:'1px solid #e2e8f0', paddingTop:'16px', marginBottom:'16px' }}>
             <p style={{ fontSize:'0.84rem', color:'#718096' }}>Si realizaste una cosecha, documenta tipo, cantidad medida y fotografía desde la Bitácora. No se inventa rebrote ni cantidad.</p>
-            {onActivity && !plant.archivedAt && <button type="button" className="garden-solid-button" onClick={() => onActivity('harvest')}>🧺 Registrar cosecha con evidencia</button>}
+            {onActivity && !plant.archivedAt && <button type="button" className="garden-solid-button" onClick={() => onActivity('harvest')}>🧺 {user ? 'Registrar cosecha parcial básica, sin foto' : 'Registrar cosecha con evidencia'}</button>}
           </section>
 
           {/* ─── BOTÓN UNIFICADO ARCHIVAR Y LIBERAR PARCELA (SOLO RESPONSABLE) ─── */}
@@ -380,6 +381,8 @@ export default function PlantPassport({
                             await onArchive()
                             setShowArchiveDialog(false)
                             dialogRef.current?.close()
+                          } catch (cause) {
+                            setError(cause instanceof Error ? cause.message : 'No fue posible archivar en el servidor.')
                           } finally {
                             setLoading(false)
                           }

@@ -23,7 +23,9 @@ app.use(cors({
   origin: (origin, callback) => {
     // Sin origen (curl, Postman, same-origin) → permitir
     if (!origin) return callback(null, true)
-    if (ALLOWED_ORIGIN_PATTERN.test(origin)) return callback(null, true)
+    // Permite únicamente el dominio público explícito de la instancia.
+    // No abrir CORS a todos los dominios para permitir el despliegue HTTPS.
+    if (origin === env.corsOrigin || ALLOWED_ORIGIN_PATTERN.test(origin)) return callback(null, true)
     callback(new Error(`CORS bloqueado para origen: ${origin}`))
   },
   credentials: true,

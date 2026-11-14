@@ -113,7 +113,7 @@ export default function App({
   const [pendingRegistration, setPendingRegistration] = useState<PlantRegistrationDraft | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [activityForm, setActivityForm] = useState<{ plantId?: string; plot?: number | null } | null>(null)
+  const [activityForm, setActivityForm] = useState<{ plantId?: string; plot?: number | null; type?: ActivityType } | null>(null)
   const [feedback, setFeedback] = useState<{ id: string; type: ActivityType; plot: number | null } | null>(null)
   const [notice, setNotice] = useState('')
   const [selectedPlot, setSelectedPlot] = useState<number | null>(null)
@@ -719,7 +719,7 @@ export default function App({
     }
   }
 
-  function openActivity(plant?: GardenPlant) {
+  function openActivity(plant?: GardenPlant, type?: ActivityType) {
     if (!realGarden || !communityRecord) {
       const hasPlants = plants.length > 0
       const hasCommunity = Boolean(backendCommunity || activeCommunityId)
@@ -729,7 +729,7 @@ export default function App({
       }
     }
     setDetailId(null)
-    setActivityForm({ plantId: plant?.id, plot: plant?.plot ?? selectedPlot })
+    setActivityForm({ plantId: plant?.id, plot: plant?.plot ?? selectedPlot, type })
   }
 
   async function saveActivity(draft: ActivityDraft) {
@@ -1157,6 +1157,7 @@ export default function App({
           responsible={communityRecord?.responsible ?? ''}
           initialPlant={plants.find(plant => plant.id === activityForm.plantId)}
           initialPlot={activityForm.plot}
+          initialActivityType={activityForm.type}
           onSave={saveActivity}
           growthStageEnabled={!user}
           onClose={() => setActivityForm(null)}
@@ -1195,7 +1196,7 @@ export default function App({
         }
         onArchive={detail ? archivePlant : undefined}
         onRestore={detail ? restorePlant : undefined}
-        onActivity={detail ? () => openActivity(detail) : undefined}
+        onActivity={detail ? (type?: ActivityType) => openActivity(detail, type) : undefined}
         activityItems={
           detail ? (
             <section aria-label="Actividades de esta planta">

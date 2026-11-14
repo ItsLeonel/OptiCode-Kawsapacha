@@ -1,5 +1,6 @@
 import type Phaser from 'phaser'
 import { isChamomile, type GrowthStage } from '../growth-stages'
+import type { PlantVisualProfile } from '../plant-visual-profile'
 import { resolveSpeciesArt } from './species-art'
 import { paintSpeciesIllustration } from './species-illustration'
 
@@ -7,7 +8,7 @@ import { paintSpeciesIllustration } from './species-illustration'
  * Manzanilla: hojas finamente divididas y capítulos blancos con centro dorado.
  * Todas las proporciones son símbolos visuales del estado registrado, no medidas.
  */
-function paintChamomile(g: Phaser.GameObjects.Graphics, stage: Exclude<GrowthStage, 'sown' | 'harvested'>) {
+function paintChamomile(g: Phaser.GameObjects.Graphics, stage: Exclude<GrowthStage, 'sown' | 'harvested'>, profile?: PlantVisualProfile) {
   const dark = 0x27613e
   const stem = 0x4f9251
   const highlight = 0x9ccf68
@@ -87,10 +88,11 @@ function paintChamomile(g: Phaser.GameObjects.Graphics, stage: Exclude<GrowthSta
         { base: -2, x: 0, top: -105 },
         { base: 13, x: 33, top: -90 },
       ]
-  for (let i = 0; i < stems.length; i++) {
-    const item = stems[i]
+  const displayedStems = seedling ? stems : stems.slice(0, Math.max(1, Math.ceil((profile?.densityLevel ?? 5) * stems.length / 5)))
+  for (let i = 0; i < displayedStems.length; i++) {
+    const item = displayedStems[i]
     stalk(item.base, 4, item.x, item.top, seedling ? 3 : 3.8)
-    const leafPairs = seedling ? 3 : 5
+    const leafPairs = seedling ? 3 : Math.max(2, (profile?.densityLevel ?? 4) + 1)
     for (let n = 1; n <= leafPairs; n++) {
       const progress = n / (leafPairs + 1)
       const x = item.base + (item.x - item.base) * progress
@@ -103,10 +105,9 @@ function paintChamomile(g: Phaser.GameObjects.Graphics, stage: Exclude<GrowthSta
 
   if (flowering) {
     // Cuatro capítulos a distintas alturas: manzanilla, no flor genérica.
-    daisy(-29, -88, .80)
-    daisy(0, -108, 1)
-    daisy(34, -94, .84)
-    daisy(16, -71, .62)
+    const blossoms = [[-29, -88, .80], [0, -108, 1], [34, -94, .84], [16, -71, .62]] as const
+    const count = profile ? Math.max(1, Math.ceil(profile.densityLevel * 4 / 5)) : blossoms.length
+    for (const [x, y, size] of blossoms.slice(0, count)) daisy(x, y, size)
   }
 }
 
@@ -119,9 +120,10 @@ export function paintObservedPlant(
   stage: GrowthStage | null,
   name: string,
   latin: string,
+  profile?: PlantVisualProfile,
 ) {
   const chamomile = isChamomile(name, latin)
-  const leafGreen = 0x39834a
+  const leafGreen = profile ? parseInt(profile.foliageColor.slice(1), 16) : 0x39834a
   const leafLight = 0x92c85a
   const stemDark = 0x356d3c
   const soil = 0x795237
@@ -187,7 +189,7 @@ export function paintObservedPlant(
   }
 
   if (chamomile) {
-    paintChamomile(g, stage)
+    paintChamomile(g, stage, profile)
     return
   }
 
@@ -195,7 +197,7 @@ export function paintObservedPlant(
   // Para una planta de nombre libre/desconocido sigue disponible la figura neutra.
   const speciesArt = resolveSpeciesArt(name, latin)
   if (speciesArt) {
-    paintSpeciesIllustration(g, stage, speciesArt)
+    paintSpeciesIllustration(g, stage, speciesArt, profile)
     return
   }
 
@@ -216,9 +218,9 @@ export function paintObservedPlant(
        { baseX: -4, topX: 0, height },
        { baseX: 10, topX: 35, height: height * .85 }]
 
-  for (const stem of stems) {
+  for (const stem of stems.slice(0, young ? 1 : Math.max(1, Math.ceil((profile?.densityLevel ?? 5) * stems.length / 5)))) {
     branch(stem.baseX, 1, stem.topX, -stem.height, young ? 4 : 5)
-    const leaves = young ? 2 : 4
+    const leaves = young ? 2 : Math.max(2, (profile?.densityLevel ?? 3) + 1)
     for (let level = 0; level < leaves; level++) {
       const t = (level + 1) / (leaves + 1)
       const cy = -stem.height * t

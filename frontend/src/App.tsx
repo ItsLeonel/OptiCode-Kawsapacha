@@ -37,7 +37,7 @@ import { localDate, recordId, validatePlantUpdate, validDate, type PlantUpdate }
 import { useGardenJournal } from './features/my-garden/journal/useGardenJournal'
 import ActivityModal from './features/my-garden/journal/ActivityModal'
 import ActivityList from './features/my-garden/journal/ActivityList'
-import type { ActivityDraft, ActivityType, GardenActivity } from './features/my-garden/journal/activities'
+import { activityKey, type ActivityDraft, type ActivityType, type GardenActivity } from './features/my-garden/journal/activities'
 import './features/my-garden/garden-journal.css'
 import GardenProgress from './features/my-garden/GardenProgress'
 import { calculateProgress } from './features/my-garden/journal/progress'
@@ -77,6 +77,7 @@ export default function App({
 
   // Bitácora local IndexedDB (modo visitante)
   const journal = useGardenJournal()
+  const serverSavedActivityIds = useRef<Set<string>>(new Set())
 
   // Estado del backend cuando hay usuario con sesión activa
   const [backendCommunity, setBackendCommunity] = useState<Community | null>(null)
@@ -723,20 +724,12 @@ export default function App({
   }
 
   async function saveActivity(draft: ActivityDraft) {
-    if (user && draft.target.kind === 'plant' && draft.target.plantId) {
-      const targetPlantId = draft.target.plantId
-      try {
-        if (draft.type === 'watering') {
-          await careApi.add(targetPlantId, 'WATERING', draft.notes || 'Riego aplicado desde diario')
-        } else if (draft.type === 'fertilizing') {
-          await careApi.add(targetPlantId, 'FERTILIZER', draft.notes || 'Abono aplicado desde diario')
-        } else if (draft.type === 'harvest') {
-          const qty = draft.details?.quantity ? `${draft.details.quantity}${draft.details.unit || 'g'}` : '250g'
-          await harvestApi.harvest(targetPlantId, qty, draft.notes || 'Cosecha registrada desde diario')
-        }
-      } catch (err: unknown) {
-        setNotice(err instanceof Error ? err.message : 'Error al registrar cuidado en backend')
-      }
+    // La bitácora completa permanece en IndexedDB hasta integrar la API unificada #43.
+    // Los cuidados y cosechas usan sus endpoints básicos existentes y son registros distintos.
+    if (journal.data.activities.some(item => item.id === draft.id)) {
+      setActivityForm(null)
+      setNotice('Esta actividad ya estaba guardada en este dispositivo.')
+      return
     }
     const photoId = draft.photo ? recordId('photo') : undefined
     const activity: GardenActivity = {
@@ -744,7 +737,7 @@ export default function App({
       gardenId: journal.data.gardenId || activeGardenId || '',
       type: draft.type,
       date: draft.date,
-      responsible: draft.responsible || user?.name || 'Comunidad',
+      responsible: draft.responsible,
       target: draft.target,
       notes: draft.notes,
       details: draft.details,
@@ -752,18 +745,76 @@ export default function App({
       validation: 'local-v1',
       photoIds: photoId ? [photoId] : [],
     }
-    const saved = await journal.commit({ id: draft.id, type: 'activity', activity }, draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [])
+
+    if (journal.data.activities.some(item => activityKey(item) === activityKey(activity))) {
+      setActivityForm(null)
+      setNotice('Ya existe una actividad con esos datos en este dispositivo.')
+      return
+    }
+
+    type BasicApiState = 'not-applicable' | 'saved' | 'failed' | 'missing-quantity'
+    let basicApiState: BasicApiState = 'not-applicable'
+    let basicApiError = ''
+    if (user && draft.target.kind === 'plant' && draft.target.plantId &&
+        ['watering', 'fertilizing', 'harvest'].includes(draft.type)) {
+      if (serverSavedActivityIds.current.has(draft.id)) {
+        // Un reintento tras fallo de IndexedDB no vuelve a ejecutar la operación básica.
+        basicApiState = 'saved'
+      } else if (draft.type === 'harvest' &&
+          (typeof draft.details.quantity !== 'number' || !Number.isFinite(draft.details.quantity) ||
+            draft.details.quantity <= 0 || !draft.details.unit)) {
+        // No inventar el peso de la cosecha.
+        basicApiState = 'missing-quantity'
+      } else {
+        try {
+          if (draft.type === 'watering') {
+            await careApi.add(draft.target.plantId, 'WATERING', draft.notes)
+          } else if (draft.type === 'fertilizing') {
+            await careApi.add(draft.target.plantId, 'FERTILIZER', draft.notes)
+          } else if (draft.type === 'harvest') {
+            const quantity = `${draft.details.quantity}${draft.details.unit}`
+            await harvestApi.harvest(draft.target.plantId, quantity, draft.notes)
+          }
+          serverSavedActivityIds.current.add(draft.id)
+          basicApiState = 'saved'
+        } catch (err: unknown) {
+          basicApiState = 'failed'
+          basicApiError = err instanceof Error ? err.message : 'Error de comunicación.'
+        }
+      }
+    }
+
+    // Si falla el guardado local, el modal conserva los datos para reintentar.
+    const saved = await journal.commit(
+      { id: draft.id, type: 'activity', activity },
+      draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [],
+    )
     const actual = saved.activities.find(item => item.id === draft.id)
     setActivityForm(null)
-    setNotice(actual ? (user ? 'Actividad guardada y sincronizada.' : 'Actividad guardada en este navegador.') : 'Esta actividad ya estaba guardada.')
-    if (actual && screen === 'Inicio') {
+    if (!actual) {
+      setNotice('Esta actividad ya estaba guardada en este dispositivo.')
+      return
+    }
+
+    if (!user) {
+      setNotice('Actividad guardada en este navegador. No existe sincronización con el servidor.')
+    } else if (basicApiState === 'saved') {
+      setNotice('Cuidado o cosecha registrado en el servidor. La ficha de Bitácora y su fotografía están solo en este dispositivo; falta sincronización completa.')
+    } else if (basicApiState === 'failed') {
+      setNotice(`Actividad guardada solo en este dispositivo. El servidor no confirmó el cuidado o cosecha: ${basicApiError}`)
+    } else if (basicApiState === 'missing-quantity') {
+      setNotice('Cosecha registrada solo en este dispositivo. Para enviarla al servidor debes indicar una cantidad y unidad reales; la Bitácora no está sincronizada.')
+    } else {
+      setNotice('Actividad guardada solo en este dispositivo. La Bitácora general todavía no está sincronizada con el servidor.')
+    }
+    if (screen === 'Inicio') {
       setFeedback({ id: actual.id, type: actual.type, plot: actual.details.destinationPlot ?? (actual.target.kind === 'garden' ? null : actual.target.plot) })
     }
   }
 
   async function voidActivity(id: string, reason: string) {
     await journal.commit({ id: recordId('activity-void'), type: 'activity-void', activityId: id, reason, at: new Date().toISOString() })
-    setNotice('Actividad anulada; la evidencia y el historial se conservan.')
+    setNotice(user ? 'Actividad anulada solo en este dispositivo; la anulación aún no llega al servidor.' : 'Actividad anulada en este navegador; se conserva el historial.')
   }
 
   function handlePlantHarvested(_plantId: string) {

@@ -1008,7 +1008,7 @@ export default function App({
             </span>
           </header>
           <div className="page">
-            {user ? (
+            {screen !== 'Plantas medicinales' && (user ? (
               <div
                 className="prototype-alert"
                 style={{ background: 'rgba(56, 161, 105, 0.15)', borderColor: '#38a169', color: '#2f855a' }}
@@ -1019,7 +1019,7 @@ export default function App({
               <div className="prototype-alert">
                 Guardado en este navegador · No sincronizado con otras personas ni con una cuenta.
               </div>
-            )}
+            ))}
             {screen !== 'Plantas medicinales' && <div className="heading">
               <div>
                 <span className="eyebrow">

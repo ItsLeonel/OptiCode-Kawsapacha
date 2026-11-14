@@ -58,7 +58,8 @@ function activityIcon(type: ActivityFilter): BitacoraIconName {
   const icons: Record<string, BitacoraIconName> = {
     watering: 'water', sowing: 'sowing', fertilizing: 'fertilizing', observation: 'observation',
     harvest: 'harvest', preparation: 'preparation', weeding: 'weeding', hilling: 'hilling',
-    replanting: 'replanting', pruning: 'weeding', pest_control: 'leaf', other: 'leaf',
+    replanting: 'replanting', postharvest: 'harvest', sowing_ritual: 'sowing',
+    gratitude_ritual: 'harvest', signage: 'leaf', pruning: 'weeding', pest_control: 'leaf', other: 'leaf',
   }
   return icons[type] ?? 'leaf'
 }

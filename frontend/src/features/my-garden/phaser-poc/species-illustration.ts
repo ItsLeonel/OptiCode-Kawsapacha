@@ -1,12 +1,15 @@
 import type Phaser from 'phaser'
 import type { GrowthStage } from '../growth-stages'
+import type { PlantVisualProfile } from '../plant-visual-profile'
 import type { SpeciesArt, LeafSilhouette, BloomSilhouette } from './species-art'
 
 type VisibleStage = Exclude<GrowthStage, 'sown' | 'harvested'>
 type Graphics = Phaser.GameObjects.Graphics
 
 /** Ilustración plana y original del hábito registrado, sin foto como textura. */
-export function paintSpeciesIllustration(g: Graphics, stage: VisibleStage, art: SpeciesArt) {
+export function paintSpeciesIllustration(g: Graphics, stage: VisibleStage, baseArt: SpeciesArt, profile?: PlantVisualProfile) {
+  const art: SpeciesArt = profile ? { ...baseArt, green: parseInt(profile.foliageColor.slice(1), 16) } : baseArt
+  const density = profile?.densityLevel ?? 3
   const juvenile = stage === 'seedling'
   const flowering = stage === 'flowering'
   const stem = (x: number, y: number, tx: number, ty: number, width = 3, wood = false) => {
@@ -123,7 +126,7 @@ export function paintSpeciesIllustration(g: Graphics, stage: VisibleStage, art: 
 
   const scale = juvenile ? .7 : 1
   if (art.habit === 'tuft') {
-    for (let i = -5; i <= 5; i++) {
+    for (let i = -Math.max(2, density + 1); i <= Math.max(2, density + 1); i++) {
       const dx = i * 7 * scale
       const top = -((65 + (5 - Math.abs(i)) * 8) * scale)
       g.fillStyle(i % 2 ? art.green : art.light, .98)
@@ -134,8 +137,9 @@ export function paintSpeciesIllustration(g: Graphics, stage: VisibleStage, art: 
   }
 
   if (art.habit === 'rosette') {
-    for (let i = 0; i < 8; i++) {
-      const a = Math.PI + i * Math.PI / 7
+    const leafCount = 3 + density
+    for (let i = 0; i < leafCount; i++) {
+      const a = Math.PI + i * Math.PI / (leafCount - 1)
       const x = Math.cos(a) * 15 * scale
       const y = Math.sin(a) * 12 * scale - 12 * scale
       leaf(x, y, i % 2 ? -1 : 1, .92 * scale)
@@ -175,7 +179,7 @@ export function paintSpeciesIllustration(g: Graphics, stage: VisibleStage, art: 
   if (art.habit === 'tree') {
     stem(0, 3, 0, -76 * scale, 9 * scale, true)
     const branches = juvenile ? [[0,-44,0,-65]] : [[0,-45,-41,-89],[0,-55,35,-101],[0,-69,0,-115]]
-    for (const [x,y,tx,ty] of branches) {
+    for (const [x,y,tx,ty] of branches.slice(0, juvenile ? 1 : Math.max(1, Math.ceil(density * 3 / 5)))) {
       stem(x * scale, y * scale, tx * scale, ty * scale, 4 * scale, true)
       for (let n = 0; n < 3; n++) {
         leaf((tx + n * 7 - 8) * scale, (ty + n * 4) * scale, n % 2 ? -1 : 1, 1.05 * scale)
@@ -190,9 +194,9 @@ export function paintSpeciesIllustration(g: Graphics, stage: VisibleStage, art: 
     { base: 0, x: 0, y: -113 },
     { base: 13, x: 37, y: -92 },
   ]
-  for (const top of tops) {
+  for (const top of tops.slice(0, juvenile ? 1 : Math.max(1, Math.ceil(density * 3 / 5)))) {
     stem(top.base * scale, 2, top.x * scale, top.y * scale, woody ? 4 : 3, woody)
-    const levels = juvenile ? 2 : 4
+    const levels = juvenile ? 2 : Math.max(2, density + 1)
     for (let i = 1; i <= levels; i++) {
       const t = i / (levels + 1)
       const x = (top.base + (top.x - top.base) * t) * scale

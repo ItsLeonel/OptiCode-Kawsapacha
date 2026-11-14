@@ -8,6 +8,8 @@ import { regionalLandscapes } from '../../shared/regional-landscapes'
 import { useGardenDialog } from './useGardenDialog'
 import BitacoraIcon, { type BitacoraIconName } from './BitacoraIcons'
 import bookHeader from './bitacora-art/book-header.webp'
+import PostHarvestLabel from './PostHarvestLabel'
+import { createActivityCsv } from './journal/report-csv'
 import './bitacora-viva.css'
 
 type ActivityFilter = 'all' | ActivityType | 'pruning' | 'pest_control' | 'other'
@@ -38,6 +40,7 @@ const MAIN_FILTERS: { key: ActivityFilter; title: string; icon: BitacoraIconName
   { key: 'fertilizing', title: 'Abonado', icon: 'fertilizing' },
   { key: 'observation', title: 'Seguimiento', icon: 'observation' },
   { key: 'harvest', title: 'Cosecha', icon: 'harvest' },
+  { key: 'postharvest', title: 'Poscosecha', icon: 'harvest' },
 ]
 
 const OTHER_FILTERS: { key: ActivityFilter; title: string }[] = [
@@ -45,6 +48,9 @@ const OTHER_FILTERS: { key: ActivityFilter; title: string }[] = [
   { key: 'weeding', title: 'Limpieza y deshierbe' },
   { key: 'hilling', title: 'Aporque' },
   { key: 'replanting', title: 'Replante' },
+  { key: 'sowing_ritual', title: 'Ritual de siembra' },
+  { key: 'gratitude_ritual', title: 'Ritual de gratitud' },
+  { key: 'signage', title: 'Señalética medicinal' },
   { key: 'pruning', title: 'Poda' },
   { key: 'pest_control', title: 'Control de plagas' },
   { key: 'other', title: 'Otros cuidados' },
@@ -54,7 +60,8 @@ function activityIcon(type: ActivityFilter): BitacoraIconName {
   const icons: Record<string, BitacoraIconName> = {
     watering: 'water', sowing: 'sowing', fertilizing: 'fertilizing', observation: 'observation',
     harvest: 'harvest', preparation: 'preparation', weeding: 'weeding', hilling: 'hilling',
-    replanting: 'replanting', pruning: 'weeding', pest_control: 'leaf', other: 'leaf',
+    replanting: 'replanting', postharvest: 'harvest', sowing_ritual: 'sowing',
+    gratitude_ritual: 'harvest', signage: 'leaf', pruning: 'weeding', pest_control: 'leaf', other: 'leaf',
   }
   return icons[type] ?? 'leaf'
 }
@@ -115,8 +122,8 @@ function EntryVisual({ item, plant }: { item: FeedItem; plant?: GardenPlant }) {
   </div>
 }
 
-function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
-  item: FeedItem; plant?: GardenPlant; onSelect: (plant: GardenPlant) => void
+function EntryDetails({ item, plant, sourcePlant, onSelect, onVoid, onClose }: {
+  item: FeedItem; plant?: GardenPlant; sourcePlant?: GardenPlant; onSelect: (plant: GardenPlant) => void
   onVoid?: (id: string, reason: string) => Promise<void>; onClose: () => void
 }) {
   const dialog = useGardenDialog()
@@ -149,7 +156,18 @@ function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
         {item.details.state && <div><dt>Estado documentado</dt><dd>{PLANT_STATES[item.details.state]}</dd></div>}
         {item.details.destinationPlot !== undefined && <div><dt>Espacio de destino</dt><dd>{item.details.destinationPlot + 1}</dd></div>}
         {item.details.harvestMode && <div><dt>Tipo de cosecha</dt><dd>{item.details.harvestMode === 'complete' ? 'Completa' : 'Parcial'}</dd></div>}
+        {item.details.sowingMethod && <div><dt>Propagación</dt><dd>{({ seeds: 'Semillas', stakes: 'Estacas', cuttings: 'Esquejes', seedlings: 'Plántulas' } as const)[item.details.sowingMethod]}</dd></div>}
+        {item.details.harvestedPart && <div><dt>Parte cosechada</dt><dd>{item.details.harvestedPart}</dd></div>}
+        {item.details.traditionalTemperature && <div><dt>Clasificación registrada</dt><dd>{item.details.traditionalTemperature === 'hot' ? 'Caliente' : item.details.traditionalTemperature === 'cold' ? 'Fresca/fría' : 'Sin clasificar'}</dd></div>}
+        {item.details.sourceHarvestId && <div><dt>Cosecha de origen</dt><dd>{item.details.sourceHarvestId}</dd></div>}
+        {item.details.postharvestStep && <div><dt>Paso de conservación</dt><dd>{({ cleaning: 'Limpieza', 'drying-start': 'Inicio secado', 'drying-end': 'Fin secado', packaging: 'Empaquetado y etiquetado', storage: 'Almacenaje' } as const)[item.details.postharvestStep]}</dd></div>}
+        {item.details.batchCode && <div><dt>Código de lote</dt><dd>{item.details.batchCode}</dd></div>}
+        {item.details.packageDate && <div><dt>Empaquetado</dt><dd>{item.details.packageDate}</dd></div>}
+        {item.details.expiryDate && <div><dt>Caducidad declarada</dt><dd>{item.details.expiryDate}</dd></div>}
+        {item.details.storageLabel && <div><dt>Etiqueta documentada</dt><dd>{item.details.storageLabel}</dd></div>}
+        {item.details.storagePlace && <div><dt>Almacenaje</dt><dd>{item.details.storagePlace}</dd></div>}
       </dl></section>}
+      {item.type === 'postharvest' && item.details.postharvestStep === 'packaging' && <PostHarvestLabel details={item.details} plant={sourcePlant}/>}
       <section className="bv-detail-section"><h3>Registro fotográfico</h3>
         {item.photos.length > 0 ? <div className="bv-detail-photos">{item.photos.map((url, index) => <img key={`${item.key}:${index}`} src={url} alt={`Fotografía ${index + 1} del registro`} loading="lazy" />)}</div>
           : <p className="bv-muted">Esta actividad no tiene una fotografía de evidencia adjunta.{plant?.photo ? ' La foto de la planta que aparece en el álbum es su ficha, no evidencia de esta actividad.' : ''}</p>}
@@ -203,8 +221,26 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   const filtered = entries.filter(item => (filter === 'all' || item.type === filter) && (plantFilter === 'all' || item.plantId === plantFilter))
   const displayEntries = allActivities ? filtered : filtered.slice(0, 3)
   const selected = entries.find(e => e.key === selectedKey)
+  const sourceHarvest = selected?.details.sourceHarvestId ? activities.find(event => event.id === selected.details.sourceHarvestId) : undefined
+  const sourcePlantId = sourceHarvest?.target.kind === 'plant' ? sourceHarvest.target.plantId : undefined
+  const sourcePlant = sourcePlantId ? plants.find(p => p.id === sourcePlantId) : undefined
   const photoCount = activeEntries.reduce((sum, e) => sum + e.photoIds.length, 0)
   const latest = activeEntries[0]
+  function downloadHistoryCsv() {
+    if (!filtered.length) return
+    const rows = filtered.map(item => ({
+      id: item.id, date: item.date, name: item.title, responsible: item.responsible,
+      target: item.targetName, notes: item.notes, source: item.source === 'care' ? 'server' as const : 'local' as const,
+      photoCount: item.photos.length, voided: Boolean(item.voidedAt), details: JSON.stringify(item.details),
+    }))
+    const file = new Blob([createActivityCsv(rows)], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(file)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `kawsapacha-bitacora-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
   function seePlantHistory(plantId: string) {
     setPlantFilter(plantId); setFilter('all'); setAllActivities(true)
     activityAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -238,6 +274,7 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
 
       <section className="bv-activities" ref={activityAnchor} aria-labelledby="bv-activities-title">
         <div className="bv-section-heading"><div><BitacoraIcon name="leaf" size={30}/><div><h2 id="bv-activities-title">Álbum de actividades</h2><p>Cuidados, observaciones y momentos de tu huerto real.</p></div></div><span className="bv-quantity">{filtered.length} {filtered.length === 1 ? 'registro' : 'registros'}</span></div>
+        <div className="bv-report-actions"><button type="button" className="bv-secondary-button" disabled={!filtered.length || loadingCare} onClick={downloadHistoryCsv}>Exportar reporte CSV</button><small>Incluye los registros visibles según filtros y su origen local o servidor. No certifica actividades.</small></div>
         {loadingCare && <p className="bv-status" role="status">Consultando los cuidados del servidor…</p>}
         {filtered.length ? <div className="bv-activity-grid">{displayEntries.map(item => {
           const plant = item.plantId ? plants.find(p => p.id === item.plantId) : undefined
@@ -264,6 +301,6 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
       </section>
       <p className="bv-honesty-note"><BitacoraIcon name="info" size={15}/> Las fotografías y las actividades se muestran según su origen. Los registros locales todavía no están sincronizados como bitácora general con el backend.</p>
     </div>
-    {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
+    {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} sourcePlant={sourcePlant} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
   </section>
 }

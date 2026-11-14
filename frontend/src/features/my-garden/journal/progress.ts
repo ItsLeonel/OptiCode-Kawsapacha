@@ -5,6 +5,8 @@ import { validDate } from '../plant-record'
 /** Local rules V1, not server-approved balances or verification of physical actions. */
 export const LOCAL_POINTS: Readonly<Record<ActivityType, number>> = {
   preparation: 10, weeding: 8, sowing: 20, watering: 5, fertilizing: 8, hilling: 8, replanting: 10, observation: 12, harvest: 20,
+  // Nuevos registros: 0 hasta contar con reglas versionadas oficiales en #43/#45.
+  sowing_ritual: 0, gratitude_ritual: 0, signage: 0, postharvest: 0,
 }
 export const LOCAL_LEVELS = [{ name: 'Aprendiz', threshold: 0 }, { name: 'Oficial', threshold: 100 }, { name: 'Maestro', threshold: 300 }] as const
 export const normalizeResponsible = (value: string) => value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')

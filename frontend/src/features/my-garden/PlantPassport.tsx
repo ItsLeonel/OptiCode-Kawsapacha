@@ -13,6 +13,7 @@ import {
   type UserSession,
 } from '../../services/api'
 import './garden-journal.css'
+import BotanicalSignage from './BotanicalSignage'
 
 // ─── Badge de salud ──────────────────────────────────────────────────────────
 
@@ -276,6 +277,8 @@ export default function PlantPassport({
               </small>
             </div>
           </div>
+
+          <BotanicalSignage plant={plant}/>
 
           {message && (
             <div style={{ background: '#e6fffa', border: '1px solid #38b2ac', color: '#234e52', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>

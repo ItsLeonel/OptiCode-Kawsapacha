@@ -23,14 +23,34 @@ jobs:
   docker-check:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      JWT_SECRET: github-actions-test-only-not-for-real-users
+      PUBLIC_ORIGIN: http://localhost
+      SITE_ADDRESS: ':80'
     steps:
       - uses: actions/checkout@v4
       - name: Validar configuración de Compose
+        run: docker compose config -q
+      - name: Compilar ambas imágenes desde Compose
+        run: docker compose build api web
+      - name: Iniciar servicios en red privada de CI
+        run: docker compose up -d --no-build
+      - name: Verificar API real, SPA y proxy de Caddy
+        shell: bash
         run: |
-          export JWT_SECRET=prueba_aislada_no_es_credencial_real
-          export PUBLIC_ORIGIN=http://localhost
-          docker compose config -q
-      - name: Compilar imagen de API
-        run: docker build -f deploy/backend.Dockerfile -t kawsapacha-api:ci .
-      - name: Compilar imagen de frontend y proxy
-        run: docker build -f deploy/frontend.Dockerfile -t kawsapacha-web:ci .
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 45); do
+            if curl -fsS --max-time 4 http://127.0.0.1/api/health > /tmp/kawsapacha-ci-health.json; then ok=1; break; fi
+            sleep 2
+          done
+          test "$ok" = 1
+          grep -Eq '"status"\s*:\s*"ok"' /tmp/kawsapacha-ci-health.json
+          grep -Eq '"db"\s*:\s*"connected"' /tmp/kawsapacha-ci-health.json
+          curl --fail --silent --show-error --max-time 6 http://127.0.0.1/ | grep -q 'id="root"'
+      - name: Registrar estado y cerrar contenedores
+        if: always()
+        run: |
+          docker compose ps || true
+          docker compose logs --no-color --tail=80 api web || true
+          docker compose down || true

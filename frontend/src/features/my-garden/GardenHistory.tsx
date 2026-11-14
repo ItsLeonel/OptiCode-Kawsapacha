@@ -9,6 +9,7 @@ import { useGardenDialog } from './useGardenDialog'
 import BitacoraIcon, { type BitacoraIconName } from './BitacoraIcons'
 import bookHeader from './bitacora-art/book-header.webp'
 import PostHarvestLabel from './PostHarvestLabel'
+import { createActivityCsv } from './journal/report-csv'
 import './bitacora-viva.css'
 
 type ActivityFilter = 'all' | ActivityType | 'pruning' | 'pest_control' | 'other'
@@ -225,6 +226,21 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   const sourcePlant = sourcePlantId ? plants.find(p => p.id === sourcePlantId) : undefined
   const photoCount = activeEntries.reduce((sum, e) => sum + e.photoIds.length, 0)
   const latest = activeEntries[0]
+  function downloadHistoryCsv() {
+    if (!filtered.length) return
+    const rows = filtered.map(item => ({
+      id: item.id, date: item.date, name: item.title, responsible: item.responsible,
+      target: item.targetName, notes: item.notes, source: item.source === 'care' ? 'server' as const : 'local' as const,
+      photoCount: item.photos.length, voided: Boolean(item.voidedAt), details: JSON.stringify(item.details),
+    }))
+    const file = new Blob([createActivityCsv(rows)], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(file)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `kawsapacha-bitacora-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
   function seePlantHistory(plantId: string) {
     setPlantFilter(plantId); setFilter('all'); setAllActivities(true)
     activityAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -258,6 +274,7 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
 
       <section className="bv-activities" ref={activityAnchor} aria-labelledby="bv-activities-title">
         <div className="bv-section-heading"><div><BitacoraIcon name="leaf" size={30}/><div><h2 id="bv-activities-title">Álbum de actividades</h2><p>Cuidados, observaciones y momentos de tu huerto real.</p></div></div><span className="bv-quantity">{filtered.length} {filtered.length === 1 ? 'registro' : 'registros'}</span></div>
+        <div className="bv-report-actions"><button type="button" className="bv-secondary-button" disabled={!filtered.length || loadingCare} onClick={downloadHistoryCsv}>Exportar reporte CSV</button><small>Incluye los registros visibles según filtros y su origen local o servidor. No certifica actividades.</small></div>
         {loadingCare && <p className="bv-status" role="status">Consultando los cuidados del servidor…</p>}
         {filtered.length ? <div className="bv-activity-grid">{displayEntries.map(item => {
           const plant = item.plantId ? plants.find(p => p.id === item.plantId) : undefined

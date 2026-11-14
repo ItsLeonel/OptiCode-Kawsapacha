@@ -1,3 +1,5 @@
+import type { GrowthStage } from './growth-stages'
+
 // Existing demonstration catalogue. Selection is supplied by the user, never inferred from a photo.
 export const PLANT_SPECIES = [
   { name: 'Romero', latin: 'Salvia rosmarinus', icon: '🌿' },
@@ -19,6 +21,7 @@ export type PlantRegistration = {
   plantedOn?: string
   requestId?: string
   recordSowing?: boolean
+  growthStage?: GrowthStage
   responsible?: string
 }
 

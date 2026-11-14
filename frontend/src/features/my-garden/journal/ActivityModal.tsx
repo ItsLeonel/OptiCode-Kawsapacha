@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import GardenIcon from '../GardenIcon'
 import { PLANT_STATES, type GardenPlant, type PlantState } from '../garden'
+import { GROWTH_STAGES, type GrowthStage } from '../growth-stages'
 import { localDate, recordId } from '../plant-record'
 import { useGardenDialog } from '../useGardenDialog'
 import { useJournalPhoto } from './useJournalPhoto'
@@ -42,7 +43,7 @@ const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
 
 export default function ActivityModal({
   plants, gardenId, responsible, initialPlant, initialPlot, initialDate, initialActivityType,
-  onSave, onRegister, onClose,
+  onSave, onRegister, onClose, growthStageEnabled = true,
 }: {
   plants: GardenPlant[]
   gardenId: string
@@ -54,6 +55,7 @@ export default function ActivityModal({
   onSave: (draft: ActivityDraft) => Promise<void>
   onRegister: (plot: number, type: ActivityType) => void
   onClose: () => void
+  growthStageEnabled?: boolean
 }) {
   const dialog = useGardenDialog()
   const sending = useRef(false)
@@ -256,6 +258,13 @@ export default function ActivityModal({
           {type === 'replanting' && <label className="activity-garden-field activity-garden-field-method"><span>Espacio de destino</span><select required aria-label="Espacio de destino" disabled={busy} value={details.destinationPlot ?? ''} onChange={event => detail('destinationPlot', event.target.value === '' ? undefined : Number(event.target.value))}><option value="" disabled>Selecciona un espacio libre</option>{Array.from({ length: 6 }, (_, plot) => <option key={plot} value={plot} disabled={plants.some(item => !item.archivedAt && item.plot === plot)}>Espacio {plot + 1}</option>)}</select></label>}
           {type === 'observation' && <>
             <label className="activity-garden-field activity-garden-field-observed"><span>Estado observado</span><select aria-label="Estado observado" disabled={busy} value={details.state ?? ''} onChange={event => detail('state', event.target.value ? event.target.value as PlantState : undefined)}><option value="">Sin cambio de estado</option>{Object.entries(PLANT_STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+            <label className="activity-garden-field activity-garden-field-observed"><span>Etapa ilustrada a partir de evidencia</span>
+              <select aria-label="Etapa de crecimiento observada" disabled={busy || !growthStageEnabled} value={details.growthStage ?? ''} onChange={event => detail('growthStage', event.target.value ? event.target.value as GrowthStage : undefined)}>
+                <option value="">Sin cambio de etapa</option>
+                {Object.entries(GROWTH_STAGES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+              <small>{growthStageEnabled ? 'Para cambiar la ilustración del jardín debes adjuntar una fotografía real de la etapa observada.' : 'La sincronización de etapas con el servidor estará disponible tras integrar la API de evidencias #43.'}</small>
+            </label>
             <label className="activity-garden-field activity-garden-field-height"><span>Altura (cm) <em>(opcional)</em></span><input type="number" min="0" step="0.1" disabled={busy} value={details.heightCm ?? ''} onChange={event => detail('heightCm', event.target.value === '' ? undefined : Number(event.target.value))} /></label>
           </>}
           {type === 'harvest' && <>
@@ -266,7 +275,7 @@ export default function ActivityModal({
 
         <div className="activity-garden-evidence-grid">
           <div className="activity-garden-photo-area">
-            <div className="activity-garden-section-label"><GardenIcon name="camera" /> Evidencia fotográfica <em>(opcional)</em></div>
+            <div className="activity-garden-section-label"><GardenIcon name="camera" /> Evidencia fotográfica <em>{type === 'observation' && details.growthStage && details.growthStage !== plant?.growthStage ? '(obligatoria para cambiar etapa)' : '(opcional)'}</em></div>
             <div className="activity-garden-photo-drop" data-drag-over={dragOver} onDragOver={event => { event.preventDefault(); setDragOver(true) }} onDragLeave={() => setDragOver(false)} onDrop={onDrop}>
               <input ref={cameraRef} className="activity-garden-sr-only" type="file" accept="image/*" capture="environment" aria-label="Tomar foto con cámara" disabled={busy} onChange={photo.choose} />
               <input ref={galleryRef} className="activity-garden-sr-only" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Seleccionar imagen de galería" disabled={busy} onChange={photo.choose} />

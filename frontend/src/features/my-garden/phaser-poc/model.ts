@@ -21,6 +21,8 @@ export type VisualSlot = Readonly<{
   plant: Readonly<GardenPlant> | null
   lastPreparedAt?: string
   lastFertilizedAt?: string
+  lastWateredAt?: string
+  lastWeededAt?: string
 }>
 
 export type GardenVisualModel = Readonly<{
@@ -62,7 +64,7 @@ export function buildGardenVisualModel(garden: RealGarden, plants: readonly Gard
       // Multiple recorded designs are shown schematically; no physical plot assignment is saved.
       const designs = garden.kind === 'ground' ? characteristics.groundDesigns : []
       const latest = (type: GardenActivity['type']) => activities?.filter(activity => activity.type === type && activityAffectsPlot(activity, plot)).map(activity => activity.date).sort().at(-1)
-      return { id: `garden-slot-${plot}`, plot, anchor, base, depth: base.y, design: designs.length ? designs[plot % designs.length] : null, plant: plant ? { ...plant } : null, lastPreparedAt: latest('preparation'), lastFertilizedAt: latest('fertilizing') }
+      return { id: `garden-slot-${plot}`, plot, anchor, base, depth: base.y, design: designs.length ? designs[plot % designs.length] : null, plant: plant ? { ...plant } : null, lastPreparedAt: latest('preparation'), lastFertilizedAt: latest('fertilizing'), lastWateredAt: latest('watering'), lastWeededAt: latest('weeding') }
     }),
     activitySource: activities ? 'local-records' : 'not-connected',
   }

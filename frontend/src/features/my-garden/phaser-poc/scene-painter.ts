@@ -1,11 +1,13 @@
 import Phaser from 'phaser'
 import { potArtwork } from '../pot-artwork'
-import { PROP_FRAMES, SCENE_LAYERS, photoTextureKey, WORLD } from './assets'
+import { PROP_FRAMES, SCENE_LAYERS, WORLD } from './assets'
 import { REGION_STYLES } from './visual-config'
 import { makeMaterials, paintFence, paintMeadow, paintPlot, paintStone, paintSupport, tintEarth, type Materials } from './paint-materials'
 import type { GardenVisualModel, SlotId, VisualSlot } from './model'
 import { POT_GEOMETRY, VERTICAL_GROUPS, HANGING_GROUPS, COASTAL_HANGING_GROUPS, hangingGeometry } from './layouts'
 import { paintCourtyard } from './courtyard'
+import { documentedGrowthStage } from '../growth-stages'
+import { paintObservedPlant } from './plant-illustration'
 import { paintCoastalOriginalBed, paintCoastalStandaloneRelief } from './coastal-bed'
 import { coastalReliefFrame, coastalReliefGeometry, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import { gardenFeaturePlacements } from './garden-feature-placements'
@@ -971,6 +973,23 @@ export class GardenScenePainter {
       badge.lineStyle(2, 0xffe3a0).strokeCircle(x + 38, y + 25, 7)
       this.components.add('activity:fertilized')
     }
+    // Son marcas de eventos en la bitácora, nunca una inferencia sobre
+    // humedad actual, malezas ni crecimiento biológico.
+    if (slot.lastWateredAt) {
+      const badge = this.graphics('plants', slot.depth * 10 + 4)
+      badge.fillStyle(0x287f9e, .95).fillCircle(x - 47, y + 24, 8)
+      badge.fillStyle(0xc5f1fa, .97).fillTriangle(x - 47, y + 9, x - 53, y + 25, x - 41, y + 25)
+      this.components.add('activity:watered')
+    }
+    if (slot.lastWeededAt) {
+      const badge = this.graphics('plants', slot.depth * 10 + 4)
+      badge.fillStyle(0x4b8b4b, .95).fillCircle(x + 56, y + 23, 8)
+      badge.lineStyle(2.5, 0xe6f2b4, .95)
+      badge.lineBetween(x + 56, y + 27, x + 56, y + 17)
+      badge.lineBetween(x + 56, y + 21, x + 51, y + 18)
+      badge.lineBetween(x + 56, y + 21, x + 61, y + 18)
+      this.components.add('activity:weeded')
+    }
     if (!slot.plant) {
       // A tiny warm glint suggests interactivity without a sign, number or fake crop.
       const g = this.graphics('plants', slot.depth * 10 + 1)
@@ -978,21 +997,13 @@ export class GardenScenePainter {
       g.lineStyle(2, 0xffe9b1, .75).strokeEllipse(x, y, 18, 10)
       g.fillStyle(0xfff4d2, .9).fillCircle(x, y - 1, 3)
     } else {
-      const key = photoTextureKey(slot.plant.id, slot.plant.photo)
-      const g = this.graphics('plants', slot.depth * 10 + 1)
-      g.fillStyle(0x263e28, .25).fillEllipse(x + 4, y + 28, 82, 23)
-      g.fillStyle(0x254632).fillCircle(x, y - 13, 43)
-      g.lineStyle(3, 0xf5dca0).strokeCircle(x, y - 13, 43)
-      if (this.scene.textures.exists(key)) {
-        const frame = this.scene.textures.getFrame(key)
-        const image = this.add('plants', this.scene.add.image(x, y - 13, key).setScale(76 / Math.min(frame.realWidth, frame.realHeight)), slot.depth * 10 + 2)
-        const shape = this.scene.make.graphics({ x: 0, y: 0 }, false)
-        shape.fillStyle(0xffffff).fillCircle(x, y - 13, 38)
-        this.nodes.plants.add(shape)
-        const mask = shape.createGeometryMask()
-        image.setMask(mask)
-        this.masks.add(mask)
-      }
+      // Espejo Digital V2: la fotografía solo es evidencia en Pasaporte Vivo.
+      // Sin observación explícita, se dibuja una señal sin crecimiento inventado.
+      const stage = documentedGrowthStage(slot.plant)
+      const illustration = this.graphics('plants', slot.depth * 10 + 2).setPosition(x, y)
+      paintObservedPlant(illustration, stage, slot.plant.name, slot.plant.latin)
+      this.components.add('plant-stage:' + (stage ?? 'unrecorded'))
+
     }
     this.components.add('slot:' + slot.id)
   }

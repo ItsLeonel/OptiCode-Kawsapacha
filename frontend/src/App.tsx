@@ -609,8 +609,9 @@ export default function App({
       plot: input.plot,
       createdAt: now,
       state: 'not-documented',
+      ...(input.growthStage ? { growthStage: input.growthStage } : {}),
       ...(input.plantedOn ? { plantedOn: input.plantedOn } : {}),
-      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId }],
+      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId, ...(input.growthStage ? { growthStage: input.growthStage } : {}) }],
     }
     const sowing: GardenActivity | undefined = input.recordSowing
       ? {
@@ -1117,6 +1118,8 @@ export default function App({
           initialPhoto={registration.photo}
           initialPlantedOn={registration.plantedOn}
           initialSowing={registration.recordSowing}
+          initialGrowthStage={registration.growthStage}
+          growthStageEnabled={!user}
           initialResponsible={registration.responsible ?? communityRecord?.responsible ?? ''}
           initialRequestId={registration.requestId}
           notice={registration.notice}
@@ -1134,6 +1137,7 @@ export default function App({
         <PlantEditor
           plant={editingPlant}
           plants={plants}
+          growthStageEnabled={!user}
           onSave={updatePlant}
           onClose={() => {
             setEditingId(null)
@@ -1150,6 +1154,7 @@ export default function App({
           initialPlant={plants.find(plant => plant.id === activityForm.plantId)}
           initialPlot={activityForm.plot}
           onSave={saveActivity}
+          growthStageEnabled={!user}
           onClose={() => setActivityForm(null)}
           onRegister={(plot, type) => {
             setActivityForm(null)

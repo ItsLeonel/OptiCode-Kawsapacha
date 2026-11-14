@@ -1,6 +1,10 @@
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
-import regionalSpecies from './regional-species.json'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import type { Prisma } from '@prisma/client'
+
+const regionalSpecies = JSON.parse(readFileSync(join(__dirname, 'regional-species.json'), 'utf8')) as Array<Prisma.MedicinalCatalogUncheckedCreateInput>
 
 const prisma = new PrismaClient()
 

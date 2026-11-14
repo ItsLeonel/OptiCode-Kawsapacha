@@ -45,6 +45,7 @@ import { activityKey, type ActivityDraft, type ActivityType, type GardenActivity
 import './features/my-garden/garden-journal.css'
 import GardenProgress from './features/my-garden/GardenProgress'
 import { calculateProgress } from './features/my-garden/journal/progress'
+import { AUTHENTICATED_JOURNAL, basicServerNotes, isBasicServerActivity, validateBasicServerActivity } from './features/my-garden/journal/storage-mode'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Bitácora' | 'Mi historia' | 'Mi camino verde'
 
@@ -81,8 +82,9 @@ export default function App({
   const [authenticated, setAuthenticated] = useState<boolean>(() => Boolean(getUser()))
 
   // Bitácora local IndexedDB (modo visitante)
-  const journal = useGardenJournal()
+  const journal = useGardenJournal(!user)
   const serverSavedActivityIds = useRef<Set<string>>(new Set())
+  const [serverActivityRevision, setServerActivityRevision] = useState(0)
 
   // Estado del backend cuando hay usuario con sesión activa
   const [backendCommunity, setBackendCommunity] = useState<Community | null>(null)
@@ -102,6 +104,7 @@ export default function App({
   const communityRecord = user ? backendCommunity : journal.data.community
   const realGarden = user ? backendGarden : journal.data.terrain
   const plants = user ? backendPlants : journal.plants
+  const visibleJournal = user ? AUTHENTICATED_JOURNAL : journal.data
   const activePlants = plants.filter(plant => !plant.archivedAt)
 
   const [screen, setScreen] = useState<Screen>(currentScreen)
@@ -120,7 +123,7 @@ export default function App({
 
   const detail = plants.find(plant => plant.id === detailId) ?? null
   const editingPlant = plants.find(plant => plant.id === editingId)
-  const progress = useMemo(() => calculateProgress(journal.data, communityRecord?.responsible), [journal.data, communityRecord?.responsible])
+  const progress = useMemo(() => user ? undefined : calculateProgress(journal.data, communityRecord?.responsible), [user, journal.data, communityRecord?.responsible])
 
   // El API es la fuente de verdad; la lista local solo permite consultar en ausencia de servidor.
   useEffect(() => {
@@ -429,6 +432,7 @@ export default function App({
     setPendingInvitations([])
     setUserCommunities([])
     setNotificationsOpen(false)
+    serverSavedActivityIds.current.clear()
     goto('Bienvenida')
   }
 
@@ -661,6 +665,7 @@ export default function App({
   }
 
   async function updatePlant(draft: PlantUpdate) {
+    if (user) throw new Error('La edición con cuenta requiere la API de evidencias #35/#43. No se guardará en IndexedDB de visitante.')
     if (!editingPlant) throw new Error('No se encontró la ficha de la planta.')
     const invalid = validatePlantUpdate(draft, editingPlant, plants)
     if (invalid) throw new Error(invalid)
@@ -686,32 +691,22 @@ export default function App({
 
   async function archivePlant() {
     if (!detail) return
-    if (user && currentCommunityRole && currentCommunityRole !== 'RESPONSABLE') {
-      setNotice('Solo las personas con rol Responsable pueden archivar plantas y liberar parcelas.')
+    if (user) {
+      if (currentCommunityRole !== 'RESPONSABLE') throw new Error('Solo el Responsable puede archivar plantas.')
+      await plantApi.archive(detail.id)
+      setBackendPlants(prev => prev.map(p => p.id === detail.id ? { ...p, plot: -1, archivedAt: new Date().toISOString() } : p))
+      setDetailId(null)
+      setNotice('Planta archivada en SQLite. Se liberó el espacio.')
       return
-    }
-    if (user && !detail.id.includes('-')) {
-      try {
-        await plantApi.archive(detail.id)
-        setBackendPlants(prev =>
-          prev.map(p =>
-            p.id === detail.id
-              ? { ...p, plot: -1, archivedAt: new Date().toISOString() }
-              : p
-          )
-        )
-      } catch (err: unknown) {
-        setNotice(err instanceof Error ? err.message : 'Error al archivar la planta')
-        return
-      }
     }
     await journal.commit({ id: recordId('archive'), type: 'plant-archive', plantId: detail.id, at: new Date().toISOString() })
     setDetailId(null)
-    setNotice('📦 Planta archivada. La parcela ha quedado libre para un nuevo cultivo.')
+    setNotice('Planta archivada en este navegador. El espacio quedó libre.')
   }
 
   async function restorePlant() {
     if (!detail) return null
+    if (user) return 'La restauración en servidor no está disponible; requiere un endpoint autorizado.'
     try {
       await journal.commit({ id: recordId('restore'), type: 'plant-restore', plantId: detail.id, at: new Date().toISOString() })
       return null
@@ -721,6 +716,11 @@ export default function App({
   }
 
   function openActivity(plant?: GardenPlant, type?: ActivityType) {
+    if (user && type && !isBasicServerActivity(type)) {
+      setDetailId(null)
+      setNotice('La actividad requiere la Bitácora persistente #43; no se guardará una copia local bajo tu cuenta.')
+      return
+    }
     if (!realGarden || !communityRecord) {
       const hasPlants = plants.length > 0
       const hasCommunity = Boolean(backendCommunity || activeCommunityId)
@@ -734,17 +734,43 @@ export default function App({
   }
 
   async function saveActivity(draft: ActivityDraft) {
-    // La bitácora completa permanece en IndexedDB hasta integrar la API unificada #43.
-    // Los cuidados y cosechas usan sus endpoints básicos existentes y son registros distintos.
+    if (user) {
+      const invalid = validateBasicServerActivity(draft, backendPlants, user.name, activeGardenId)
+      if (invalid) throw new Error(invalid)
+      if (serverSavedActivityIds.current.has(draft.id)) {
+        setActivityForm(null)
+        setNotice('Esta actividad ya fue confirmada por el servidor. No se enviará de nuevo.')
+        return
+      }
+      // No tocar IndexedDB: el identificador del huerto y de la planta pertenecen a SQLite.
+      const plantId = draft.target.kind === 'plant' ? draft.target.plantId : null
+      if (!plantId) throw new Error('Selecciona una planta registrada en el servidor.')
+      const notes = basicServerNotes(draft)
+      if (draft.type === 'watering') await careApi.add(plantId, 'WATERING', notes)
+      else if (draft.type === 'fertilizing') await careApi.add(plantId, 'FERTILIZER', notes)
+      else if (draft.type === 'harvest') {
+        await harvestApi.harvest(plantId, String(draft.details.quantity) + draft.details.unit, notes)
+      } else throw new Error('Actividad no disponible en la API actual.')
+      serverSavedActivityIds.current.add(draft.id)
+      setActivityForm(null)
+      setServerActivityRevision(current => current + 1)
+      setNotice(draft.type === 'harvest'
+        ? 'Cosecha básica confirmada en SQLite. La evidencia fotográfica y el ciclo avanzado requieren la API #43.'
+        : 'Cuidado confirmado en SQLite. Para adjuntar evidencias y registrar actividades avanzadas falta integrar la API #43.')
+      if (screen === 'Inicio') setFeedback({ id: draft.id, type: draft.type, plot: draft.target.plot })
+      return
+    }
+
+    // Solo modo visitante: evento y fotografía se guardan juntos en IndexedDB.
     if (journal.data.activities.some(item => item.id === draft.id)) {
       setActivityForm(null)
-      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este dispositivo.')
+      setNotice('Esta actividad ya estaba guardada en este navegador.')
       return
     }
     const photoId = draft.photo ? recordId('photo') : undefined
     const activity: GardenActivity = {
       id: draft.id,
-      gardenId: journal.data.gardenId || activeGardenId || '',
+      gardenId: journal.data.gardenId,
       type: draft.type,
       date: draft.date,
       responsible: draft.responsible,
@@ -755,46 +781,11 @@ export default function App({
       validation: 'local-v1',
       photoIds: photoId ? [photoId] : [],
     }
-
     if (journal.data.activities.some(item => activityKey(item) === activityKey(activity))) {
       setActivityForm(null)
-      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este dispositivo.')
+      setNotice('Esta actividad ya estaba guardada en este navegador.')
       return
     }
-
-    type BasicApiState = 'not-applicable' | 'saved' | 'failed' | 'missing-quantity'
-    let basicApiState: BasicApiState = 'not-applicable'
-    let basicApiError = ''
-    if (user && draft.target.kind === 'plant' && draft.target.plantId &&
-        ['watering', 'fertilizing', 'harvest'].includes(draft.type)) {
-      if (serverSavedActivityIds.current.has(draft.id)) {
-        // Un reintento tras fallo de IndexedDB no vuelve a ejecutar la operación básica.
-        basicApiState = 'saved'
-      } else if (draft.type === 'harvest' &&
-          (typeof draft.details.quantity !== 'number' || !Number.isFinite(draft.details.quantity) ||
-            draft.details.quantity <= 0 || !draft.details.unit)) {
-        // No inventar el peso de la cosecha.
-        basicApiState = 'missing-quantity'
-      } else {
-        try {
-          if (draft.type === 'watering') {
-            await careApi.add(draft.target.plantId, 'WATERING', draft.notes)
-          } else if (draft.type === 'fertilizing') {
-            await careApi.add(draft.target.plantId, 'FERTILIZER', draft.notes)
-          } else if (draft.type === 'harvest') {
-            const quantity = `${draft.details.quantity}${draft.details.unit}`
-            await harvestApi.harvest(draft.target.plantId, quantity, draft.notes)
-          }
-          serverSavedActivityIds.current.add(draft.id)
-          basicApiState = 'saved'
-        } catch (err: unknown) {
-          basicApiState = 'failed'
-          basicApiError = err instanceof Error ? err.message : 'Error de comunicación.'
-        }
-      }
-    }
-
-    // Si falla el guardado local, el modal conserva los datos para reintentar.
     const saved = await journal.commit(
       { id: draft.id, type: 'activity', activity },
       draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [],
@@ -802,32 +793,19 @@ export default function App({
     const actual = saved.activities.find(item => item.id === draft.id)
     setActivityForm(null)
     if (!actual) {
-      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este dispositivo.')
+      setNotice('Esta actividad ya estaba guardada en este navegador.')
       return
     }
-
-    if (!user) {
-      setNotice('Actividad guardada en este navegador. No existe sincronización con el servidor.')
-    } else if (basicApiState === 'saved') {
-      setNotice('Cuidado o cosecha registrado en el servidor. La ficha de Bitácora y su fotografía están solo en este dispositivo; falta sincronización completa.')
-    } else if (basicApiState === 'failed') {
-      setNotice(`Actividad guardada solo en este dispositivo. El servidor no confirmó el cuidado o cosecha: ${basicApiError}`)
-    } else if (basicApiState === 'missing-quantity') {
-      setNotice('Cosecha registrada solo en este dispositivo. Para enviarla al servidor debes indicar una cantidad y unidad reales; la Bitácora no está sincronizada.')
-    } else {
-      setNotice('Actividad guardada solo en este dispositivo. La Bitácora general todavía no está sincronizada con el servidor.')
-    }
-    // Visitante: efecto tras persistir en IndexedDB.
-    // Usuario autenticado: el efecto de éxito solo se muestra si el servidor
-    // confirmó la operación básica. El resto espera la API unificada #43.
-    if (screen === 'Inicio' && (!user || basicApiState === 'saved')) {
+    setNotice('Actividad y evidencias guardadas en este navegador. No están sincronizadas con una cuenta.')
+    if (screen === 'Inicio') {
       setFeedback({ id: actual.id, type: actual.type, plot: actual.details.destinationPlot ?? (actual.target.kind === 'garden' ? null : actual.target.plot) })
     }
   }
 
   async function voidActivity(id: string, reason: string) {
+    if (user) throw new Error('La anulación con cuenta requiere la API de actividades #43; no se alterará la bitácora de visitante.')
     await journal.commit({ id: recordId('activity-void'), type: 'activity-void', activityId: id, reason, at: new Date().toISOString() })
-    setNotice(user ? 'Actividad anulada solo en este dispositivo; la anulación aún no llega al servidor.' : 'Actividad anulada en este navegador; se conserva el historial.')
+    setNotice('Actividad anulada en este navegador; se conserva el historial.')
   }
 
   function handlePlantHarvested(_plantId: string) {
@@ -956,7 +934,7 @@ export default function App({
           pendingInvitationsCount={pendingInvitations.length}
           onOpenNotifications={() => setNotificationsOpen(true)}
           renderGardenScene={renderGardenScene}
-          activities={journal.data.activities}
+          activities={visibleJournal.activities}
           feedback={feedback}
           progress={user ? undefined : { points: progress.points, level: progress.level, responsible: communityRecord?.responsible }}
           interactionBlocked={Boolean(registration || detail || editingPlant || activityForm)}
@@ -1018,7 +996,7 @@ export default function App({
                 className="prototype-alert"
                 style={{ background: 'rgba(56, 161, 105, 0.15)', borderColor: '#38a169', color: '#2f855a' }}
               >
-                <strong>Sesión activa ({user.name}):</strong> Tus datos, comunidades, huertos y fotografías se guardan y persisten en el servidor de Kawsapacha.
+                <strong>Sesión activa ({user.name}):</strong> La cuenta, comunidad, huerto y fichas básicas de plantas se guardan en SQLite. Las observaciones fotográficas, la Bitácora avanzada y sus recompensas aún requieren la API #35/#43.
               </div>
             ) : (
               <div className="prototype-alert">
@@ -1078,7 +1056,7 @@ export default function App({
 
             {(screen === 'Mi camino verde' || screen === 'Mi historia') && (
               <>
-                <GardenProgress journal={journal.data} region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')} authenticated={Boolean(user)} />
+                <GardenProgress journal={visibleJournal} region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')} authenticated={Boolean(user)} />
 
               </>
             )}
@@ -1088,9 +1066,12 @@ export default function App({
             {(screen === 'Bitácora' || screen === 'Mi historia') && (
               <GardenHistory
                 plants={plants}
-                activities={journal.data.activities}
+                activities={visibleJournal.activities}
                 onActivity={() => openActivity()}
-                onVoid={voidActivity}
+                onVoid={user ? undefined : voidActivity}
+                authenticated={Boolean(user)}
+                gardenId={activeGardenId}
+                refreshKey={serverActivityRevision}
                 onRegister={() => registerInPlot()}
                 onSelect={selectPlant}
                 onRealGarden={() => goto('Mi terreno')}
@@ -1153,9 +1134,10 @@ export default function App({
       {activityForm && (
         <ActivityModal
           plants={activePlants}
-          activities={journal.data.activities}
-          gardenId={journal.data.gardenId}
-          responsible={communityRecord?.responsible ?? ''}
+          activities={visibleJournal.activities}
+          gardenId={user ? (activeGardenId ?? '') : journal.data.gardenId}
+          responsible={user?.name ?? communityRecord?.responsible ?? ''}
+          serverBasicOnly={Boolean(user)}
           initialPlant={plants.find(plant => plant.id === activityForm.plantId)}
           initialPlot={activityForm.plot}
           initialActivityType={activityForm.type}
@@ -1188,7 +1170,7 @@ export default function App({
         onPlantHarvested={handlePlantHarvested}
         onPlantRemoved={handlePlantRemoved}
         onEdit={
-          detail
+          !user && detail
             ? () => {
                 setEditingId(detail.id)
                 setDetailId(null)
@@ -1196,14 +1178,14 @@ export default function App({
             : undefined
         }
         onArchive={detail ? archivePlant : undefined}
-        onRestore={detail ? restorePlant : undefined}
+        onRestore={!user && detail ? restorePlant : undefined}
         onActivity={detail ? (type?: ActivityType) => openActivity(detail, type) : undefined}
         activityItems={
-          detail ? (
+          detail && !user ? (
             <section aria-label="Actividades de esta planta">
               <h3>Actividades de esta planta</h3>
               <ActivityList
-                activities={journal.data.activities.filter(
+                activities={visibleJournal.activities.filter(
                   activity => activity.target.kind === 'plant' && activity.target.plantId === detail.id
                 )}
                 plants={plants}
@@ -1220,14 +1202,14 @@ export default function App({
         />
       )}
 
-      {journal.failure || (journal.saving ? 'Guardando en este navegador…' : notice || (!user ? 'Guardado local · Solo en este navegador' : '')) ? (
+      {(!user && journal.failure) || (!user && journal.saving) || notice || !user ? (
         <div
           className="garden-storage-status"
           role="status"
           aria-label="Estado de guardado"
-          data-state={journal.failure ? 'error' : journal.saving ? 'saving' : 'saved'}
+          data-state={!user && journal.failure ? 'error' : !user && journal.saving ? 'saving' : 'saved'}
         >
-          {journal.failure || (journal.saving ? 'Guardando en este navegador…' : notice || (!user ? 'Guardado local · Solo en este navegador' : ''))}
+          {user ? notice : journal.failure || (journal.saving ? 'Guardando en este navegador…' : notice || 'Guardado local · Solo en este navegador')}
         </div>
       ) : null}
     </div>

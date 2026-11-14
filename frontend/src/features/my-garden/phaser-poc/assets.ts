@@ -1,10 +1,9 @@
 import type { GardenRegion } from '../../real-gardens/garden-region'
-import { gameRegionAssets } from '../../../shared/ui/game-ui/game-region-assets'
 
 /** Existing independent art; no screen capture is used as a texture. */
 export const LANDSCAPES: Record<GardenRegion, string> = {
   sierra: new URL('./art/region-scenes/sierra-integrado.webp', import.meta.url).href,
-  costa: gameRegionAssets.costa.background,
+  costa: new URL('../../../shared/assets/comunidad-v3/fondos/fondo_comunidad_costa_v3.png', import.meta.url).href,
   oriente: new URL('./art/region-scenes/oriente-integrado.webp', import.meta.url).href,
   galapagos: new URL('./art/region-scenes/galapagos-integrado.webp', import.meta.url).href,
 }

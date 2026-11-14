@@ -609,8 +609,9 @@ export default function App({
       plot: input.plot,
       createdAt: now,
       state: 'not-documented',
+      ...(input.recordSowing ? { growthStage: 'sown' as const } : {}),
       ...(input.plantedOn ? { plantedOn: input.plantedOn } : {}),
-      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId }],
+      evidences: [{ id: 'initial-' + id, date: localDate(), notes: 'Fotografía de registro', photoId, ...(input.recordSowing ? { growthStage: 'sown' as const } : {}) }],
     }
     const sowing: GardenActivity | undefined = input.recordSowing
       ? {
@@ -1150,6 +1151,7 @@ export default function App({
           initialPlant={plants.find(plant => plant.id === activityForm.plantId)}
           initialPlot={activityForm.plot}
           onSave={saveActivity}
+          growthStageEnabled={!user}
           onClose={() => setActivityForm(null)}
           onRegister={(plot, type) => {
             setActivityForm(null)

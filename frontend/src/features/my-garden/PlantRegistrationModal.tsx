@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
 import GardenIcon from './GardenIcon'
 import { PLOT_COUNT, type GardenPlant } from './garden'
+import { GROWTH_STAGES, type GrowthStage } from './growth-stages'
 import { PLANT_SPECIES, type PlantSpecies, type PlantRegistration, type PlantRegistrationResult } from './plant-species'
 import { usePlantCamera } from './usePlantCamera'
 import './plant-registration.css'
@@ -15,6 +16,7 @@ export type PlantRegistrationDraft = {
   notice?: string
   requestId?: string
   recordSowing?: boolean
+  growthStage?: GrowthStage
   responsible?: string
 }
 
@@ -52,7 +54,7 @@ async function optimizeImage(file: File | Blob): Promise<File | Blob> {
   }
 }
 
-export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
+export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialGrowthStage, growthStageEnabled = true, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
   plants: GardenPlant[]
   speciesOptions?: PlantSpecies[]
   initialPlot: number | null
@@ -63,6 +65,8 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   notice?: string
   onConfirm: (registration: PlantRegistration) => PlantRegistrationResult | Promise<PlantRegistrationResult>
   initialSowing?: boolean
+  initialGrowthStage?: GrowthStage
+  growthStageEnabled?: boolean
   initialResponsible?: string
   initialRequestId?: string
   onClose: () => void
@@ -79,6 +83,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   const [reading, setReading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [recordSowing, setRecordSowing] = useState(initialSowing)
+  const [growthStage, setGrowthStage] = useState<GrowthStage | undefined>(initialGrowthStage)
   const [responsible, setResponsible] = useState(initialResponsible)
   const requestId = useRef(initialRequestId ?? recordId('registration'))
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -192,7 +197,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     setBusy(true)
     try {
       camera.stop()
-      const result = await onConfirm({ photo, species, plot, requestId: requestId.current, recordSowing, responsible, ...(plantedOn ? { plantedOn } : {}) })
+      const result = await onConfirm({ photo, species, plot, requestId: requestId.current, recordSowing, responsible, ...(growthStageEnabled && growthStage ? { growthStage } : {}), ...(plantedOn ? { plantedOn } : {}) })
       if (!result.ok) { saving.current = false; setBusy(false); setError(result.error) }
     } catch {
       saving.current = false
@@ -244,11 +249,19 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
           <label className="plant-registration-field" htmlFor="plant-species">Especie medicinal<select id="plant-species" value={speciesName} onChange={event => setSpeciesName(event.target.value)} required>{speciesOptions.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label>
           <label className="plant-registration-field" htmlFor="plant-position">Posición de cultivo<select id="plant-position" value={plot} onChange={event => setPlot(Number(event.target.value))} required disabled={!available.length}>{!available.length && <option value={-1}>Sin espacios disponibles</option>}{Array.from({ length: PLOT_COUNT }, (_, index) => <option key={index} value={index} disabled={!available.includes(index)}>Espacio {index + 1}{!available.includes(index) ? ' · ocupado' : ''}</option>)}</select></label>
           <label className="plant-registration-field" htmlFor="plant-sowing-date">Fecha de siembra <span>(opcional)</span><input type="date" id="plant-sowing-date" max={localDate()} value={plantedOn} onChange={event => setPlantedOn(event.target.value)}/></label>
+          <label className="plant-registration-field" htmlFor="plant-growth-stage">
+            Etapa que muestra esta fotografía <span>(opcional)</span>
+            <select id="plant-growth-stage" value={growthStage ?? ''} disabled={!growthStageEnabled} onChange={event => setGrowthStage(event.target.value ? event.target.value as GrowthStage : undefined)}>
+              <option value="">Sin etapa documentada</option>
+              {Object.entries(GROWTH_STAGES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </select>
+            <small>{growthStageEnabled ? 'Solo lo que observaste realmente. La foto es evidencia, no la ilustración de Mi Jardín.' : 'Las etapas del usuario autenticado se habilitarán al conectar la API de evidencias del servidor.'}</small>
+          </label>
           <label className="journal-check"><input type="checkbox" checked={recordSowing} onChange={event => setRecordSowing(event.target.checked)}/>Registrar también la actividad de siembra realizada</label>
           {recordSowing && <label className="plant-registration-field">Persona responsable de la siembra<input required minLength={2} maxLength={100} value={responsible} onChange={event => setResponsible(event.target.value)}/></label>}
           {notice && <p className="plant-registration-notice">{notice}</p>}
           {!available.length && <p className="plant-registration-notice" role="status">Los seis espacios están ocupados. Consulta sus Pasaportes Vivos en el jardín.</p>}
-          {!ready && <div className="plant-registration-setup"><p>Primero registra tu terreno en Mi Jardín. Debe estar vinculado a una comunidad. Una comunidad personal es válida.</p><button type="button" disabled={reading || cameraActive} onClick={() => onSetup({ plot, species: speciesName, photo, plantedOn, notice, requestId: requestId.current, recordSowing, responsible })}>Ir a Mi terreno <GardenIcon name="arrow"/></button></div>}
+          {!ready && <div className="plant-registration-setup"><p>Primero registra tu terreno en Mi Jardín. Debe estar vinculado a una comunidad. Una comunidad personal es válida.</p><button type="button" disabled={reading || cameraActive} onClick={() => onSetup({ plot, species: speciesName, photo, plantedOn, notice, requestId: requestId.current, recordSowing, responsible, ...(growthStageEnabled && growthStage ? { growthStage } : {}) })}>Ir a Mi terreno <GardenIcon name="arrow"/></button></div>}
           {(error || (mode === 'camera' && camera.error)) && (
             <div className="plant-registration-error" role="alert">
               <p>{error || camera.error}</p>

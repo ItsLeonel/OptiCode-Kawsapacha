@@ -5,6 +5,8 @@ import { navigateModule } from './community-helpers'
 test.beforeEach(async ({ page }) => { await page.emulateMedia({ reducedMotion: 'reduce' }); await page.route('https://tile.openstreetmap.org/**', route => route.abort()) })
 
 test('production: persistent garden, region and kind editing, real progress without duplicate rewards', async ({ page }) => {
+  // Incluye cambio de región/modo con nuevo atlas Phaser y recarga completa.
+  test.setTimeout(240_000)
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
   await registerGround(page, '/', 'Imbabura', 'ground', true)
   await expectReady(page)

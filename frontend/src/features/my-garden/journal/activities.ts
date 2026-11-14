@@ -1,4 +1,5 @@
 import { PLANT_STATES, type GardenPlant, type PlantState } from '../garden'
+import { isGrowthStage, type GrowthStage } from '../growth-stages'
 import { validDate } from '../plant-record'
 
 export const ACTIVITY_TYPES = {
@@ -9,7 +10,7 @@ export type ActivityType = keyof typeof ACTIVITY_TYPES
 export type ActivityTarget = { kind: 'garden' } | { kind: 'plot'; plot: number } | { kind: 'plant'; plantId: string; plot: number }
 export type ActivityDetails = {
   method?: string; material?: string; quantity?: number; unit?: 'L' | 'kg' | 'g' | 'unidades'
-  heightCm?: number; state?: PlantState; destinationPlot?: number; harvestMode?: 'partial' | 'complete'; releasePlot?: boolean
+  heightCm?: number; state?: PlantState; growthStage?: GrowthStage; destinationPlot?: number; harvestMode?: 'partial' | 'complete'; releasePlot?: boolean
 }
 export type GardenActivity = {
   id: string; gardenId: string; type: ActivityType; date: string; responsible: string; target: ActivityTarget
@@ -41,15 +42,17 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if (plant?.plantedOn && activity.date < plant.plantedOn) return 'La actividad no puede ser anterior a la siembra registrada.'
   if (activity.type === 'sowing' && plant?.plantedOn && plant.plantedOn !== activity.date) return 'La fecha debe coincidir con la siembra de la ficha. Corrige la ficha si es necesario.'
   const detail = activity.details
-  if ((detail.heightCm !== undefined || detail.state !== undefined) && activity.type !== 'observation') return 'Las medidas y el estado se documentan mediante una actividad de seguimiento.'
+  if ((detail.heightCm !== undefined || detail.state !== undefined || detail.growthStage !== undefined) && activity.type !== 'observation') return 'Las medidas y el estado se documentan mediante una actividad de seguimiento.'
   if (detail.destinationPlot !== undefined && activity.type !== 'replanting') return 'El cambio de espacio corresponde a un replante.'
   if (detail.harvestMode !== undefined && activity.type !== 'harvest') return 'El tipo de cosecha corresponde a una actividad de cosecha.'
   for (const value of [detail.quantity, detail.heightCm]) if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1000000)) return 'Revisa las cantidades y medidas registradas.'
   if (detail.quantity !== undefined && detail.quantity === 0) return 'La cantidad debe ser mayor que cero.'
   if (detail.quantity !== undefined && (!detail.unit || !['L', 'kg', 'g', 'unidades'].includes(detail.unit))) return 'Indica la unidad de la cantidad.'
   if (detail.state !== undefined && !Object.hasOwn(PLANT_STATES, detail.state)) return 'Selecciona un estado documentado válido.'
+  if (detail.growthStage !== undefined && !isGrowthStage(detail.growthStage)) return 'Selecciona una etapa de crecimiento válida.'
+  if (activity.type === 'observation' && detail.growthStage !== undefined && detail.growthStage !== plant?.growthStage && !activity.photoIds.length) return 'Añade una foto real para documentar el cambio de etapa.'
   if ((detail.material?.length ?? 0) > 100 || (detail.method?.length ?? 0) > 100) return 'Describe el método o material en hasta 100 caracteres.'
-  if (activity.type === 'observation' && !activity.notes.trim() && !activity.photoIds.length && detail.heightCm === undefined && detail.state === undefined) return 'Añade una observación, fotografía, medida o estado documentado.'
+  if (activity.type === 'observation' && !activity.notes.trim() && !activity.photoIds.length && detail.heightCm === undefined && detail.state === undefined && detail.growthStage === undefined) return 'Añade una observación, fotografía, medida o estado documentado.'
   if (activity.type === 'replanting') {
     if (!Number.isInteger(detail.destinationPlot) || detail.destinationPlot! < 0 || detail.destinationPlot! >= 6 || detail.destinationPlot === plant?.plot) return 'Elige un espacio de destino distinto y válido.'
     if (plants.some(item => !item.archivedAt && item.id !== plant?.id && item.plot === detail.destinationPlot)) return 'El espacio de destino está ocupado. No se sustituirá su planta.'

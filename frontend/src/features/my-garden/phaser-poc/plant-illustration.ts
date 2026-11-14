@@ -1,5 +1,7 @@
 import type Phaser from 'phaser'
 import { isChamomile, type GrowthStage } from '../growth-stages'
+import { resolveSpeciesArt } from './species-art'
+import { paintSpeciesIllustration } from './species-illustration'
 
 /**
  * Manzanilla: hojas finamente divididas y capítulos blancos con centro dorado.
@@ -186,6 +188,14 @@ export function paintObservedPlant(
 
   if (chamomile) {
     paintChamomile(g, stage)
+    return
+  }
+
+  // Las 30 especies catalogadas disponen de siluetas simbólicas diferenciadas.
+  // Para una planta de nombre libre/desconocido sigue disponible la figura neutra.
+  const speciesArt = resolveSpeciesArt(name, latin)
+  if (speciesArt) {
+    paintSpeciesIllustration(g, stage, speciesArt)
     return
   }
 

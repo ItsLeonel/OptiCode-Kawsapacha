@@ -102,18 +102,53 @@ Al ejecutar `npm run prisma:seed` en `backend/`, además de las 30 fichas del ca
 | **Carlos Sanchez** | `carlos@kawsapacha.ec` | `Password123` | **PARTICIPANTE** | Recibir invitación a la comunidad y probar la campana de notificaciones (aceptar/rechazar). |
 | **Juan Lopez** | `juan@mail.com` | `Password123` | **PARTICIPANTE** | Usuario independiente con estado inicial limpio (0 comunidades y 0 huertos) para verificar aislamiento de datos. |
 
-### 3. Si actualizas desde una versión anterior del programa
+### 3. Cómo pasar de una base de datos antigua a la versión actual (paso a paso)
 
-Respalda `backend/prisma/kawsapacha.db` y ejecuta desde `backend/`:
+Si ya tienes una base SQLite de una versión anterior (por ejemplo de V1 o de ramas previas) y quieres **actualizarla conservando tus usuarios, comunidades, huertos, plantas y fotos**:
 
-```bash
-npm install
-npx prisma migrate deploy
-npx prisma generate
-npm run prisma:seed
-```
-
-Si tu base local previa usó `prisma db push` y reporta columnas ya existentes, revisa la sección correspondiente en [docs/CREDENCIALES-Y-ACTUALIZACION-BD.md](docs/CREDENCIALES-Y-ACTUALIZACION-BD.md).
+1. **Detén el servidor backend** (`Ctrl + C` en la terminal donde corría `npm run dev`) para evitar bloqueos de lectura/escritura en SQLite.
+2. **Verifica la ruta de tu base antigua en `backend/.env`:**
+   - Prisma resuelve `DATABASE_URL` respecto a `backend/prisma/schema.prisma`. Por defecto `.env.example` usa `DATABASE_URL="file:./kawsapacha.db"`, que corresponde al archivo `backend/prisma/kawsapacha.db`.
+   - Si tu versión anterior guardaba los datos en otro archivo (por ejemplo `backend/prisma/dev.db`), copia ese archivo como `backend/prisma/kawsapacha.db` o ajusta `DATABASE_URL` en `backend/.env` antes de migrar.
+3. **Haz una copia de respaldo** de la base y de tus fotos locales (`backend/uploads/`) por seguridad:
+   ```powershell
+   # Windows PowerShell (desde OptiCode-Kawsapacha/backend)
+   Copy-Item prisma/kawsapacha.db prisma/kawsapacha.db.bak
+   ```
+   ```bash
+   # Linux / macOS (desde OptiCode-Kawsapacha/backend)
+   cp prisma/kawsapacha.db prisma/kawsapacha.db.bak
+   ```
+4. **Instala dependencias y revisa qué migraciones faltan:**
+   ```bash
+   cd OptiCode-Kawsapacha/backend
+   npm install
+   npx prisma migrate status
+   ```
+   Verás listadas las migraciones pendientes (por ejemplo `20261114044500_catalogo_medicinal_regional` y `20261114190000_fase4_5_msp_moderacion_auditoria_y_espejo_v2`).
+5. **Aplica las migraciones de forma aditiva (sin borrar registros):**
+   ```bash
+   npx prisma migrate deploy
+   npx prisma generate
+   ```
+   Esto agrega las nuevas tablas (`notifications`, `audit_logs`, `reward_rules`, `mission_definitions`, `msp_institutional_events`, `msp_educational_resources`) y las columnas nuevas en `users`, `communities`, `cultivated_plants`, `garden_activities`, `reward_ledgers` y `medicinal_catalog`, preservando tus filas existentes.
+6. **Actualiza el catálogo medicinal y asegura las cuentas técnicas (`admin1` y `admin2`):**
+   ```bash
+   npm run prisma:seed
+   ```
+   Este comando actualiza las 30 especies del catálogo regional manteniendo intactos los 8 IDs históricos y crea `admin1@mail.com` y `admin2@mail.com` (`Password123`, rol `ADMIN_TECNICO`) únicamente si aún no existen en tu base.
+7. **Verifica qué sucede con los datos antiguos y posibles casos especiales:**
+   - **Estados iniciales tras migrar desde V1:** las comunidades, plantas y actividades creadas antes de Fase 4.5 reciben automáticamente `status = 'PENDING'` / `reviewStatus = 'PENDING'`. Inicia sesión con `admin1@mail.com` (`Password123`) o crea una cuenta `ADMIN_MSP` para aprobarlas en `#admin-msp`.
+   - **Si aparece error `duplicate column name` al correr `migrate deploy`:** significa que esa BD ya había recibido cambios manuales con `prisma db push` anteriormente. Marca las migraciones ya presentes como aplicadas y reintenta:
+     ```bash
+     npx prisma migrate resolve --applied 20261114044500_catalogo_medicinal_regional
+     npx prisma migrate resolve --applied 20261114190000_fase4_5_msp_moderacion_auditoria_y_espejo_v2
+     npx prisma migrate deploy
+     npx prisma generate
+     npm run prisma:seed
+     ```
+   - **Si prefieres empezar con una BD nueva sin conservar datos antiguos:** ejecuta `npx prisma migrate reset --force` y luego `npm run prisma:seed`.
+8. **Comprueba que todo quedó operativo:** levanta `npm run dev` en `backend/` y `frontend/`, verifica `http://localhost:3000/api/health` (`"status": "ok"`) e inicia sesión con `admin1@mail.com` / `Password123` o con tus cuentas comunitarias previas. Más detalles y ejemplos en [docs/CREDENCIALES-Y-ACTUALIZACION-BD.md](docs/CREDENCIALES-Y-ACTUALIZACION-BD.md).
 
 
 

@@ -22,16 +22,16 @@
 | referencias/comunidad-v3/ | 16 | 40.715.733 | Fondos, personajes y decoraciones idénticos por SHA a las copias de ejecución; seis capturas de diseño sin dependencias de ejecución. Se conserva frontend/src/shared/assets/comunidad-v3. |
 | docs/diseno/ sin referencias de texto/código | 16 | 35.091.722 | Copia documental de fondo ya presente en src y 15 maquetas sin consumidores localizados mediante búsqueda del nombre en archivos indexados. Se conservan las imágenes citadas por documentos. |
 | Arte antiguo o duplicado de jardines | 6 | 18.367.003 | Tres paisajes reemplazados por region-scenes, paisaje Costa reemplazado por el recurso canónico idéntico, pared vertical v3 reemplazada por arte v4 y paisaje andino v1 reemplazado por v2. |
-| Guías duplicadas de bienvenida | 4 | 7.697.198 | Son bytes idénticos a la copia central compartida de comunidad-v3; AuthPage ahora usa gameRegionAssets. |
-| Guías duplicadas de Phaser | 4 | 7.697.198 | Son bytes idénticos a la copia central compartida de comunidad-v3; garden-guides.ts ahora usa gameRegionAssets. |
+| Guías duplicadas de bienvenida | 4 | 7.697.198 | Son bytes idénticos a la copia central compartida de comunidad-v3; AuthPage ahora usa URLs estáticas a los archivos compartidos, compatibles con Vite y Playwright. |
+| Guías duplicadas de Phaser | 4 | 7.697.198 | Son bytes idénticos a la copia central compartida de comunidad-v3; garden-guides.ts ahora usa URLs estáticas a los archivos compartidos, compatibles con Vite y Playwright. |
 
 **Verificación de equivalencia visual:** se contrastaron los SHA de blobs Git para los archivos duplicados. Los nombres de importación fueron redirigidos hacia las imágenes canónicas, sin alterar el contenido binario.
 
 ### Refactorización de código
 
-- frontend/src/features/auth/AuthPage.tsx: reutiliza los guías de Sierra y Amazonía desde game-region-assets.ts.
-- frontend/src/features/my-garden/garden-guides.ts: reutiliza los cuatro personajes compartidos sin tener que mantener copias en Phaser.
-- frontend/src/features/my-garden/phaser-poc/assets.ts: Costa utiliza el fondo regional compartido en vez de una copia idéntica; se eliminó photoTextureKey porque ya no tenía llamadas en el código (era la clave de una textura fotográfica de la V1, reemplazada por ilustraciones documentadas).
+- frontend/src/features/auth/AuthPage.tsx: reutiliza las guías de Sierra y Amazonía mediante rutas `new URL(..., import.meta.url)` a la carpeta canónica, sin importación binaria en módulos de Node.
+- frontend/src/features/my-garden/garden-guides.ts: reutiliza los cuatro personajes desde el directorio compartido mediante URLs estáticas, sin copias en Phaser.
+- frontend/src/features/my-garden/phaser-poc/assets.ts: Costa utiliza el fondo regional compartido mediante `new URL` en lugar de importar un módulo que a su vez importa un PNG (Playwright ejecuta parte de estas rutas en Node). Se eliminó photoTextureKey porque no tenía llamadas en el código (era la clave de una textura fotográfica de la V1).
 - Se actualizaron los README y documentos de referencia que apuntaban a assets retirados. El documento docs/arquitectura/ciclo-planta-espejo-v1.md ya está identificado como histórico/obsoleto; no debe confundirse con el diseño V2.
 
 ## Lo que se verificó y NO se eliminó

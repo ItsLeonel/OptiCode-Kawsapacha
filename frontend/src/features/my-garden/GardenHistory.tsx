@@ -154,6 +154,16 @@ function EntryDetails({ item, plant, onSelect, onVoid, onClose }: {
         {item.details.state && <div><dt>Estado documentado</dt><dd>{PLANT_STATES[item.details.state]}</dd></div>}
         {item.details.destinationPlot !== undefined && <div><dt>Espacio de destino</dt><dd>{item.details.destinationPlot + 1}</dd></div>}
         {item.details.harvestMode && <div><dt>Tipo de cosecha</dt><dd>{item.details.harvestMode === 'complete' ? 'Completa' : 'Parcial'}</dd></div>}
+        {item.details.sowingMethod && <div><dt>Propagación</dt><dd>{({ seeds: 'Semillas', stakes: 'Estacas', cuttings: 'Esquejes', seedlings: 'Plántulas' } as const)[item.details.sowingMethod]}</dd></div>}
+        {item.details.harvestedPart && <div><dt>Parte cosechada</dt><dd>{item.details.harvestedPart}</dd></div>}
+        {item.details.traditionalTemperature && <div><dt>Clasificación registrada</dt><dd>{item.details.traditionalTemperature === 'hot' ? 'Caliente' : item.details.traditionalTemperature === 'cold' ? 'Fresca/fría' : 'Sin clasificar'}</dd></div>}
+        {item.details.sourceHarvestId && <div><dt>Cosecha de origen</dt><dd>{item.details.sourceHarvestId}</dd></div>}
+        {item.details.postharvestStep && <div><dt>Paso de conservación</dt><dd>{({ cleaning: 'Limpieza', 'drying-start': 'Inicio secado', 'drying-end': 'Fin secado', packaging: 'Empaquetado y etiquetado', storage: 'Almacenaje' } as const)[item.details.postharvestStep]}</dd></div>}
+        {item.details.batchCode && <div><dt>Código de lote</dt><dd>{item.details.batchCode}</dd></div>}
+        {item.details.packageDate && <div><dt>Empaquetado</dt><dd>{item.details.packageDate}</dd></div>}
+        {item.details.expiryDate && <div><dt>Caducidad declarada</dt><dd>{item.details.expiryDate}</dd></div>}
+        {item.details.storageLabel && <div><dt>Etiqueta documentada</dt><dd>{item.details.storageLabel}</dd></div>}
+        {item.details.storagePlace && <div><dt>Almacenaje</dt><dd>{item.details.storagePlace}</dd></div>}
       </dl></section>}
       <section className="bv-detail-section"><h3>Registro fotográfico</h3>
         {item.photos.length > 0 ? <div className="bv-detail-photos">{item.photos.map((url, index) => <img key={`${item.key}:${index}`} src={url} alt={`Fotografía ${index + 1} del registro`} loading="lazy" />)}</div>

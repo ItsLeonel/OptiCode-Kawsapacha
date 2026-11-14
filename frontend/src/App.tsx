@@ -1149,6 +1149,7 @@ export default function App({
       {activityForm && (
         <ActivityModal
           plants={activePlants}
+          activities={journal.data.activities}
           gardenId={journal.data.gardenId}
           responsible={communityRecord?.responsible ?? ''}
           initialPlant={plants.find(plant => plant.id === activityForm.plantId)}

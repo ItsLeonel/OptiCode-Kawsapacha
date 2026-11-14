@@ -4,19 +4,22 @@ import { GROWTH_STAGES, type GrowthStage } from './growth-stages'
 import { localDate, recordId, validatePlantUpdate, type PlantUpdate } from './plant-record'
 import { useGardenDialog } from './useGardenDialog'
 import { useJournalPhoto } from './journal/useJournalPhoto'
+import { usePlantVisualAnalysis } from './usePlantVisualAnalysis'
+import PlantVisualAnalysis from './PlantVisualAnalysis'
 import './garden-journal.css'
 
 export default function PlantEditor({ plant, plants, onSave, onClose, growthStageEnabled = true }: { plant: GardenPlant; plants: GardenPlant[]; onSave: (draft: PlantUpdate) => void | Promise<void>; onClose: () => void; growthStageEnabled?: boolean }) {
   const dialog = useGardenDialog(), request = useRef(recordId('plant-update')), photo = useJournalPhoto()
+  const analysis = usePlantVisualAnalysis(photo.photo)
   const [draft, setDraft] = useState<PlantUpdate>({ name: plant.name, latin: plant.latin, plantedOn: plant.plantedOn ?? '', plot: plant.plot, observations: plant.observations ?? '', state: plant.state ?? 'not-documented', growthStage: plant.growthStage, date: localDate() })
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   function field<K extends keyof PlantUpdate>(key: K, value: PlantUpdate[K]) { setDraft(current => ({ ...current, [key]: value })) }
   async function submit(event: FormEvent) {
-    event.preventDefault(); if (busy || photo.reading || photo.error) return
+    event.preventDefault(); if (busy || photo.reading || photo.error || analysis.status === 'analyzing') return
     const invalid = validatePlantUpdate({ ...draft, photo: photo.photo }, plant, plants)
     if (invalid) { setError(invalid); return }
     setBusy(true); setError('')
-    try { await onSave({ ...draft, photo: photo.photo, requestId: request.current }) } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo guardar la ficha.'); setBusy(false) }
+    try { await onSave({ ...draft, photo: photo.photo, ...(analysis.status === 'ready' && analysis.profile ? { visualProfile: analysis.profile } : {}), requestId: request.current }) } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo guardar la ficha.'); setBusy(false) }
   }
   return <dialog ref={dialog} className="garden-journal-dialog" aria-labelledby="plant-edit-title" onCancel={event => { event.preventDefault(); if (!busy) onClose() }}>
     <header><div><small>PASAPORTE VIVO</small><h2 id="plant-edit-title">Actualizar planta</h2></div><button type="button" autoFocus disabled={busy} onClick={onClose} aria-label="Cerrar edición de planta">×</button></header>
@@ -33,9 +36,10 @@ export default function PlantEditor({ plant, plants, onSave, onClose, growthStag
         <label>Nueva fotografía (obligatoria si cambia la etapa)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={photo.choose}/></label>
         <label className="journal-wide">Observaciones<textarea value={draft.observations} maxLength={2000} onChange={event => field('observations', event.target.value)}/></label>
       </div>
+      <PlantVisualAnalysis analysis={analysis} previous={plant.visualProfile}/>
       <p className="journal-note">{growthStageEnabled ? 'Una nueva etapa solo aparecerá en el jardín cuando adjuntes una fotografía real. No existe crecimiento automático.' : 'La actualización de etapas con sesión requiere la API de evidencias #43. Tus fotos actuales se conservan.'}</p>
       {(error || photo.error) && <p role="alert" className="journal-error">{error || photo.error}</p>}
-      <footer><button type="button" disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" disabled={busy || photo.reading || Boolean(photo.error)}>{busy ? 'Guardando…' : 'Guardar observación'}</button></footer>
+      <footer><button type="button" disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" disabled={busy || photo.reading || Boolean(photo.error) || analysis.status === 'analyzing'}>{busy ? 'Guardando…' : 'Guardar observación'}</button></footer>
     </form>
   </dialog>
 }

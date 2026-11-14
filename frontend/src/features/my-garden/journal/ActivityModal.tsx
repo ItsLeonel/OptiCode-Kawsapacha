@@ -5,6 +5,8 @@ import { GROWTH_STAGES, type GrowthStage } from '../growth-stages'
 import { localDate, recordId } from '../plant-record'
 import { useGardenDialog } from '../useGardenDialog'
 import { useJournalPhoto } from './useJournalPhoto'
+import { usePlantVisualAnalysis } from '../usePlantVisualAnalysis'
+import PlantVisualAnalysis from '../PlantVisualAnalysis'
 import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails, type GardenActivity } from './activities'
 import AgriculturalCycleFields from './AgriculturalCycleFields'
 import { nextPostharvestStep } from './postharvest-cycle'
@@ -84,6 +86,7 @@ export default function ActivityModal({
   const [previewUrl, setPreviewUrl] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const photo = useJournalPhoto()
+  const analysis = usePlantVisualAnalysis(photo.photo)
 
   const harvests = activities.filter(item => item.type === 'harvest' && !item.voidedAt).sort((a,b) => b.date.localeCompare(a.date))
   const selectedHarvest = harvests.find(item => item.id === details.sourceHarvestId)
@@ -139,8 +142,9 @@ export default function ActivityModal({
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (sending.current || photo.reading || photo.error) return
-    const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details, photo: photo.photo }
+    if (sending.current || photo.reading || photo.error || (type === 'observation' && analysis.status === 'analyzing')) return
+    const observedDetails = type === 'observation' && analysis.status === 'ready' && analysis.profile ? { ...details, visualProfile: analysis.profile } : details
+    const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details: observedDetails, photo: photo.photo }
     const invalid = validateActivity({ ...draft, gardenId, createdAt: new Date().toISOString(), photoIds: photo.photo ? ['pending-photo'] : [], validation: 'local-v1' }, plants, activities)
     if (invalid) { setError(invalid); return }
     sending.current = true
@@ -305,6 +309,7 @@ export default function ActivityModal({
                 <button type="button" disabled={busy || photo.reading} onClick={() => galleryRef.current?.click()}><GardenIcon name="gallery" /> Galería</button>
               </div>
               {previewUrl && <div className="activity-garden-photo-preview"><img src={previewUrl} alt="Fotografía elegida" /><button type="button" aria-label="Quitar fotografía" title="Quitar fotografía" disabled={busy} onClick={photo.clear}>×</button></div>}
+              {type === 'observation' && <PlantVisualAnalysis analysis={analysis} previous={plant?.visualProfile}/>}
               <small>JPG, PNG o WebP · hasta 3 MB</small>
             </div>
           </div>
@@ -319,7 +324,7 @@ export default function ActivityModal({
         {(error || photo.error) && <p role="alert" className="journal-error">{error || photo.error}</p>}
         <footer className="activity-garden-footer">
           <button type="button" disabled={busy} onClick={onClose}>Cancelar</button>
-          <button type="submit" disabled={busy || photo.reading || Boolean(photo.error)}><GardenIcon name="book" /> {busy ? 'Guardando…' : 'Registrar actividad'}</button>
+          <button type="submit" disabled={busy || photo.reading || Boolean(photo.error) || (type === 'observation' && analysis.status === 'analyzing')}><GardenIcon name="book" /> {busy ? 'Guardando…' : 'Registrar actividad'}</button>
         </footer>
       </form>
     </dialog>

@@ -1,12 +1,13 @@
 import { PLOT_COUNT, PLANT_STATES, type GardenPlant, type PlantState } from './garden'
 import { isGrowthStage, type GrowthStage } from './growth-stages'
+import { isPlantVisualProfile, type PlantVisualProfile } from './plant-visual-profile'
 
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 export function validDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value && value <= localDate()
 }
 export function recordId(prefix: string) { return `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}` }
-export type PlantUpdate = { name: string; latin: string; plot: number; plantedOn: string; observations: string; state: PlantState; date: string; heightCm?: number; growthStage?: GrowthStage; photo?: Blob; requestId?: string }
+export type PlantUpdate = { name: string; latin: string; plot: number; plantedOn: string; observations: string; state: PlantState; date: string; heightCm?: number; growthStage?: GrowthStage; visualProfile?: PlantVisualProfile; photo?: Blob; requestId?: string }
 export function validatePlantUpdate(update: PlantUpdate, plant: GardenPlant, plants: readonly GardenPlant[], hasPhoto = Boolean(update.photo)): string | null {
   if (update.name.trim().length < 2 || update.name.length > 100 || update.latin.length > 150) return 'Revisa el nombre común y el nombre científico.'
   if (!Number.isInteger(update.plot) || update.plot < 0 || update.plot >= PLOT_COUNT) return 'Selecciona un espacio válido.'
@@ -17,6 +18,7 @@ export function validatePlantUpdate(update: PlantUpdate, plant: GardenPlant, pla
   if (update.observations.length > 2000) return 'Usa hasta 2000 caracteres de observaciones.'
   if (update.growthStage !== undefined && !isGrowthStage(update.growthStage)) return 'Selecciona una etapa botánica válida.'
   if (update.growthStage !== undefined && update.growthStage !== plant.growthStage && !hasPhoto) return 'Adjunta una fotografía nueva para documentar el cambio de etapa.'
+  if (update.visualProfile !== undefined && (!hasPhoto || !isPlantVisualProfile(update.visualProfile))) return 'Un perfil visual requiere fotografía nueva válida.'
   if (update.heightCm !== undefined && (!Number.isFinite(update.heightCm) || update.heightCm < 0 || update.heightCm > 100000)) return 'Indica una altura válida en centímetros.'
   return null
 }
@@ -25,8 +27,8 @@ export function validatePlantUpdate(update: PlantUpdate, plant: GardenPlant, pla
 export function updatePlantRecord(plant: GardenPlant, draft: PlantUpdate, photo?: { id?: string; url: string }): GardenPlant {
   const initial = plant.evidences ?? [{ id: `initial-${plant.id}`, date: plant.createdAt?.slice(0, 10) ?? plant.plantedOn ?? draft.date, notes: 'Fotografía de registro', photo: plant.photo, photoId: plant.photoId }]
   return { ...plant, name: draft.name.trim(), latin: draft.latin.trim(), plot: draft.plot, plantedOn: draft.plantedOn || undefined,
-    observations: draft.observations.trim(), state: draft.state, ...(draft.growthStage !== undefined ? { growthStage: draft.growthStage } : {}),
+    observations: draft.observations.trim(), state: draft.state, ...(draft.growthStage !== undefined ? { growthStage: draft.growthStage } : {}), ...(draft.visualProfile ? { visualProfile: draft.visualProfile } : {}),
     ...(photo ? { photo: photo.url, photoId: photo.id } : {}),
-    evidences: [...initial, { id: recordId('evidence'), date: draft.date, notes: draft.observations.trim() || 'Actualización de la ficha', state: draft.state, ...(draft.growthStage !== undefined ? { growthStage: draft.growthStage } : {}), ...(draft.heightCm !== undefined ? { heightCm: draft.heightCm } : {}), ...(photo ? { photo: photo.url, photoId: photo.id } : {}) }],
+    evidences: [...initial, { id: recordId('evidence'), date: draft.date, notes: draft.observations.trim() || 'Actualización de la ficha', state: draft.state, ...(draft.growthStage !== undefined ? { growthStage: draft.growthStage } : {}), ...(draft.heightCm !== undefined ? { heightCm: draft.heightCm } : {}), ...(draft.visualProfile ? { visualProfile: draft.visualProfile } : {}), ...(photo ? { photo: photo.url, photoId: photo.id } : {}) }],
   }
 }

@@ -1005,9 +1005,15 @@ export class GardenScenePainter {
       // La planta nace del centro del recipiente; sus hojas permanecen dentro
       // de la parcela/maceta incluso al documentar floración.
       const scale = model.kind === 'ground' ? 1 : model.kind === 'pots' ? .83 : .72
-      illustration.setScale(scale)
-      paintObservedPlant(illustration, stage, slot.plant.name, slot.plant.latin)
+      const visual = slot.plant.visualProfile
+      // Diferencias leves, relativas al encuadre; nunca equivalen a centímetros.
+      const widthFactor = visual ? .8 + visual.widthRatio * .28 : 1
+      const heightFactor = visual ? .83 + visual.heightRatio * .25 : 1
+      illustration.setScale(scale * widthFactor, scale * heightFactor)
+      illustration.setRotation(visual?.orientation === 'left' ? -.035 : visual?.orientation === 'right' ? .035 : 0)
+      paintObservedPlant(illustration, stage, slot.plant.name, slot.plant.latin, visual)
       this.components.add('plant-stage:' + (stage ?? 'unrecorded'))
+      if (visual && stage !== null && stage !== 'sown' && stage !== 'harvested') this.components.add('plant-visual-profile:photographic')
       if (isChamomile(slot.plant.name, slot.plant.latin)) this.components.add('plant-art:chamomile')
     }
     this.components.add('slot:' + slot.id)

@@ -1,5 +1,6 @@
 import { PLANT_STATES, type GardenPlant, type PlantState } from '../garden'
 import { isGrowthStage, type GrowthStage } from '../growth-stages'
+import { isPlantVisualProfile, type PlantVisualProfile } from '../plant-visual-profile'
 import { validDate } from '../plant-record'
 import { validatePostharvest, SOWING_METHODS, POSTHARVEST_STEPS, HARVEST_PARTS, type PostHarvestStep, type SowingMethod, type HarvestPart } from './postharvest-cycle'
 
@@ -12,7 +13,7 @@ export type ActivityType = keyof typeof ACTIVITY_TYPES
 export type ActivityTarget = { kind: 'garden' } | { kind: 'plot'; plot: number } | { kind: 'plant'; plantId: string; plot: number }
 export type ActivityDetails = {
   method?: string; material?: string; quantity?: number; unit?: 'L' | 'kg' | 'g' | 'unidades'
-  heightCm?: number; state?: PlantState; growthStage?: GrowthStage; destinationPlot?: number; harvestMode?: 'partial' | 'complete'; releasePlot?: boolean
+  heightCm?: number; state?: PlantState; growthStage?: GrowthStage; visualProfile?: PlantVisualProfile; destinationPlot?: number; harvestMode?: 'partial' | 'complete'; releasePlot?: boolean
   sowingMethod?: SowingMethod; harvestedPart?: HarvestPart; traditionalTemperature?: 'hot' | 'cold' | 'unknown'
   sourceHarvestId?: string; postharvestStep?: PostHarvestStep; batchCode?: string; packageDate?: string; expiryDate?: string
   storagePlace?: string; storageLabel?: string
@@ -47,7 +48,7 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if (plant?.plantedOn && activity.date < plant.plantedOn) return 'La actividad no puede ser anterior a la siembra registrada.'
   if (activity.type === 'sowing' && plant?.plantedOn && plant.plantedOn !== activity.date) return 'La fecha debe coincidir con la siembra de la ficha. Corrige la ficha si es necesario.'
   const detail = activity.details
-  if ((detail.heightCm !== undefined || detail.state !== undefined || detail.growthStage !== undefined) && activity.type !== 'observation') return 'Las medidas y el estado se documentan mediante una actividad de seguimiento.'
+  if ((detail.heightCm !== undefined || detail.state !== undefined || detail.growthStage !== undefined || detail.visualProfile !== undefined) && activity.type !== 'observation') return 'Las medidas y el estado se documentan mediante una actividad de seguimiento.'
   if (detail.destinationPlot !== undefined && activity.type !== 'replanting') return 'El cambio de espacio corresponde a un replante.'
   if (detail.harvestMode !== undefined && activity.type !== 'harvest') return 'El tipo de cosecha corresponde a una actividad de cosecha.'
   if (detail.sowingMethod !== undefined && activity.type !== 'sowing') return 'El método de propagación corresponde a la siembra.'
@@ -68,6 +69,7 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if (detail.quantity !== undefined && (!detail.unit || !['L', 'kg', 'g', 'unidades'].includes(detail.unit))) return 'Indica la unidad de la cantidad.'
   if (detail.state !== undefined && !Object.hasOwn(PLANT_STATES, detail.state)) return 'Selecciona un estado documentado válido.'
   if (detail.growthStage !== undefined && !isGrowthStage(detail.growthStage)) return 'Selecciona una etapa de crecimiento válida.'
+  if (detail.visualProfile !== undefined && (!isPlantVisualProfile(detail.visualProfile) || !activity.photoIds.length)) return 'El perfil visual necesita una fotografía de seguimiento válida.'
   if (activity.type === 'observation' && detail.growthStage !== undefined && detail.growthStage !== plant?.growthStage && !activity.photoIds.length) return 'Añade una foto real para documentar el cambio de etapa.'
   if ((detail.material?.length ?? 0) > 100 || (detail.method?.length ?? 0) > 100) return 'Describe el método o material en hasta 100 caracteres.'
   for (const value of [detail.batchCode, detail.storagePlace, detail.storageLabel, detail.sourceHarvestId]) {

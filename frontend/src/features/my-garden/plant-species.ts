@@ -1,4 +1,5 @@
 import type { GrowthStage } from './growth-stages'
+import type { PlantVisualProfile } from './plant-visual-profile'
 
 // Existing demonstration catalogue. Selection is supplied by the user, never inferred from a photo.
 export const PLANT_SPECIES = [
@@ -22,6 +23,7 @@ export type PlantRegistration = {
   requestId?: string
   recordSowing?: boolean
   growthStage?: GrowthStage
+  visualProfile?: PlantVisualProfile
   responsible?: string
 }
 

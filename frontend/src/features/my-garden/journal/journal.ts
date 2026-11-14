@@ -2,6 +2,7 @@ import type { Community } from '../../communities/communities'
 import type { RealGarden } from '../../real-gardens/real-garden'
 import { PLANT_STATES, type GardenPlant } from '../garden'
 import { isGrowthStage } from '../growth-stages'
+import { isPlantVisualProfile } from '../plant-visual-profile'
 import { recordId, validDate, validatePlantUpdate, type PlantUpdate } from '../plant-record'
 import { activityKey, validateActivity, type GardenActivity } from './activities'
 
@@ -27,9 +28,9 @@ export function validateJournal(value: unknown): asserts value is GardenJournal 
   if (data.appliedCommands.some(id => typeof id !== 'string' || !id)) return invalid()
   const ids = new Set<string>()
   for (const plant of data.plants) {
-    if (!plant || typeof plant.id !== 'string' || !plant.id || ids.has(plant.id) || typeof plant.name !== 'string' || typeof plant.latin !== 'string' || !Number.isInteger(plant.plot) || plant.plot < 0 || plant.plot >= 6 || (plant.photoId !== undefined && typeof plant.photoId !== 'string') || (plant.state !== undefined && !Object.hasOwn(PLANT_STATES, plant.state)) || (plant.growthStage !== undefined && !isGrowthStage(plant.growthStage)) || (plant.evidences !== undefined && !Array.isArray(plant.evidences))) return invalid()
+    if (!plant || typeof plant.id !== 'string' || !plant.id || ids.has(plant.id) || typeof plant.name !== 'string' || typeof plant.latin !== 'string' || !Number.isInteger(plant.plot) || plant.plot < 0 || plant.plot >= 6 || (plant.photoId !== undefined && typeof plant.photoId !== 'string') || (plant.state !== undefined && !Object.hasOwn(PLANT_STATES, plant.state)) || (plant.growthStage !== undefined && !isGrowthStage(plant.growthStage)) || (plant.visualProfile !== undefined && !isPlantVisualProfile(plant.visualProfile)) || (plant.evidences !== undefined && !Array.isArray(plant.evidences))) return invalid()
     ids.add(plant.id)
-    for (const evidence of plant.evidences ?? []) if (!evidence || typeof evidence.id !== 'string' || !validDate(evidence.date) || typeof evidence.notes !== 'string' || (evidence.growthStage !== undefined && !isGrowthStage(evidence.growthStage))) return invalid()
+    for (const evidence of plant.evidences ?? []) if (!evidence || typeof evidence.id !== 'string' || !validDate(evidence.date) || typeof evidence.notes !== 'string' || (evidence.growthStage !== undefined && !isGrowthStage(evidence.growthStage)) || (evidence.visualProfile !== undefined && !isPlantVisualProfile(evidence.visualProfile))) return invalid()
   }
   ids.clear()
   for (const activity of data.activities) {
@@ -77,8 +78,8 @@ export function applyJournalCommand(current: GardenJournal, command: JournalComm
         if (invalid) throw new Error(invalid)
         const evidences = plant.evidences ?? [{ id: `initial-${plant.id}`, date: plant.createdAt?.slice(0, 10) ?? command.draft.date, notes: 'Fotografía de registro', photoId: plant.photoId }]
         next.plants[index] = { ...plant, name: command.draft.name.trim(), latin: command.draft.latin.trim(), plot: command.draft.plot, plantedOn: command.draft.plantedOn || undefined,
-          observations: command.draft.observations.trim(), state: command.draft.state, ...(command.draft.growthStage !== undefined ? { growthStage: command.draft.growthStage } : {}), updatedAt: command.at, photoId: command.photoId ?? command.retainedPhotoId ?? visible.photoId, photo: '',
-          evidences: [...evidences, { id: command.evidenceId, date: command.draft.date, notes: command.draft.observations.trim() || 'Actualización de ficha', state: command.draft.state, ...(command.draft.growthStage !== undefined ? { growthStage: command.draft.growthStage } : {}), ...(command.draft.heightCm !== undefined ? { heightCm: command.draft.heightCm } : {}), ...(command.photoId ? { photoId: command.photoId } : {}) }],
+          observations: command.draft.observations.trim(), state: command.draft.state, ...(command.draft.growthStage !== undefined ? { growthStage: command.draft.growthStage } : {}), ...(command.draft.visualProfile ? { visualProfile: command.draft.visualProfile } : {}), updatedAt: command.at, photoId: command.photoId ?? command.retainedPhotoId ?? visible.photoId, photo: '',
+          evidences: [...evidences, { id: command.evidenceId, date: command.draft.date, notes: command.draft.observations.trim() || 'Actualización de ficha', state: command.draft.state, ...(command.draft.growthStage !== undefined ? { growthStage: command.draft.growthStage } : {}), ...(command.draft.heightCm !== undefined ? { heightCm: command.draft.heightCm } : {}), ...(command.draft.visualProfile ? { visualProfile: command.draft.visualProfile } : {}), ...(command.photoId ? { photoId: command.photoId } : {}) }],
         }
       } else if (command.type === 'plant-archive') next.plants[index] = { ...plant, plot: visible.plot, state: visible.state, photoId: visible.photoId, plantedOn: visible.plantedOn, updatedAt: command.at, archivedAt: command.at }
       else if (command.type === 'plant-restore') {
@@ -111,8 +112,9 @@ export function projectPlants(journal: GardenJournal): GardenPlant[] {
       if (activity.type === 'observation') {
         if (details.state && currentEffect) plant.state = details.state
         if (details.growthStage && currentEffect) plant.growthStage = details.growthStage
+        if (details.visualProfile && currentEffect && activity.photoIds.length) plant.visualProfile = details.visualProfile
         if (activity.photoIds[0] && currentEffect) { plant.photoId = activity.photoIds[0]; plant.photo = activity.photos?.[0] ?? '' }
-        plant.evidences.push({ id: activity.id, date: activity.date, notes: activity.notes, ...(details.state ? { state: details.state } : {}), ...(details.growthStage ? { growthStage: details.growthStage } : {}), ...(details.heightCm !== undefined ? { heightCm: details.heightCm } : {}), ...(activity.photoIds[0] ? { photoId: activity.photoIds[0], photo: activity.photos?.[0] } : {}) })
+        plant.evidences.push({ id: activity.id, date: activity.date, notes: activity.notes, ...(details.state ? { state: details.state } : {}), ...(details.growthStage ? { growthStage: details.growthStage } : {}), ...(details.heightCm !== undefined ? { heightCm: details.heightCm } : {}), ...(details.visualProfile ? { visualProfile: details.visualProfile } : {}), ...(activity.photoIds[0] ? { photoId: activity.photoIds[0], photo: activity.photos?.[0] } : {}) })
       }
       if (activity.type === 'replanting' && details.destinationPlot !== undefined && currentEffect) plant.plot = details.destinationPlot
       if (activity.type === 'harvest' && details.harvestMode === 'complete' && currentEffect) { plant.state = 'harvested'; plant.growthStage = 'harvested'; if (details.releasePlot) plant.archivedAt = activity.createdAt }

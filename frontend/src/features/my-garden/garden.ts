@@ -1,4 +1,5 @@
 import type { GrowthStage } from './growth-stages'
+import type { PlantVisualProfile } from './plant-visual-profile'
 
 export const PLOT_COUNT = 6
 
@@ -8,7 +9,7 @@ export const PLANT_STATES = {
 export type PlantState = keyof typeof PLANT_STATES
 export type PlantEvidence = {
   id: string; date: string; notes: string; photo?: string; photoId?: string
-  state?: PlantState; heightCm?: number; growthStage?: GrowthStage
+  state?: PlantState; heightCm?: number; growthStage?: GrowthStage; visualProfile?: PlantVisualProfile
 }
 
 export type GardenPlant = {
@@ -25,6 +26,7 @@ export type GardenPlant = {
   observations?: string
   state?: PlantState
   growthStage?: GrowthStage
+  visualProfile?: PlantVisualProfile
   evidences?: PlantEvidence[]
   archivedAt?: string
 }

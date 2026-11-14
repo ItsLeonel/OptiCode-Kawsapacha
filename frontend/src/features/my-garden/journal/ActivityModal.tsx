@@ -5,7 +5,8 @@ import { GROWTH_STAGES, type GrowthStage } from '../growth-stages'
 import { localDate, recordId } from '../plant-record'
 import { useGardenDialog } from '../useGardenDialog'
 import { useJournalPhoto } from './useJournalPhoto'
-import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails } from './activities'
+import { ACTIVITY_TYPES, validateActivity, type ActivityDraft, type ActivityTarget, type ActivityType, type ActivityDetails, type GardenActivity } from './activities'
+import { isPostharvestStep, listHarvestLots, statusForHarvestLot, validatePostharvestDraft } from './postharvest'
 import wateringArt from './activity-art/watering.png'
 import sowingArt from './activity-art/sowing.png'
 import fertilizingArt from './activity-art/fertilizing.png'
@@ -13,7 +14,7 @@ import harvestArt from './activity-art/harvest.png'
 import '../garden-journal.css'
 import './activity-modal-v2.css'
 
-type Category = 'all' | 'cultivo' | 'cuidado' | 'seguimiento' | 'cosecha'
+type Category = 'all' | 'cultivo' | 'cuidado' | 'seguimiento' | 'cosecha' | 'poscosecha'
 
 type ActivityCard = {
   short: string
@@ -31,6 +32,13 @@ const ACTIVITY_CARDS: Record<ActivityType, ActivityCard> = {
   weeding: { emoji: '🌿', short: 'Deshierbe', category: 'cuidado' },
   hilling: { emoji: '⛰️', short: 'Aporque', category: 'cultivo' },
   replanting: { emoji: '🌱', short: 'Replante', category: 'cultivo' },
+  ritualSowing: { emoji: '🌅', short: 'Ritual de siembra', category: 'cultivo' },
+  ritualHarvest: { emoji: '🤲', short: 'Ritual de gratitud', category: 'cosecha' },
+  signage: { emoji: '🏷️', short: 'Señalética', category: 'cultivo' },
+  cleaning: { emoji: '🧼', short: 'Limpieza', category: 'poscosecha' },
+  drying: { emoji: '☀️', short: 'Secado', category: 'poscosecha' },
+  packaging: { emoji: '📦', short: 'Empaquetado', category: 'poscosecha' },
+  storage: { emoji: '🏠', short: 'Almacenaje', category: 'poscosecha' },
 }
 const FEATURED: ActivityType[] = ['watering', 'sowing', 'fertilizing', 'observation', 'harvest']
 const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
@@ -39,14 +47,16 @@ const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
   { id: 'cuidado', label: 'Cuidados', symbol: '🍃' },
   { id: 'seguimiento', label: 'Crecimiento', symbol: '🌿' },
   { id: 'cosecha', label: 'Cosecha', symbol: '🧺' },
+  { id: 'poscosecha', label: 'Poscosecha', symbol: '📦' },
 ]
 
 export default function ActivityModal({
-  plants, gardenId, responsible, initialPlant, initialPlot, initialDate, initialActivityType,
+  plants, gardenId, activities = [], responsible, initialPlant, initialPlot, initialDate, initialActivityType,
   onSave, onRegister, onClose, growthStageEnabled = true,
 }: {
   plants: GardenPlant[]
   gardenId: string
+  activities?: GardenActivity[]
   responsible: string
   initialPlant?: GardenPlant
   initialPlot?: number | null
@@ -79,12 +89,14 @@ export default function ActivityModal({
   const photo = useJournalPhoto()
 
   const plant = targetId.startsWith('plant:') ? plants.find(item => item.id === targetId.slice(6)) : undefined
-  const target: ActivityTarget = plant
+  const postharvest = isPostharvestStep(type)
+  const harvestLots = listHarvestLots(activities, gardenId)
+  const target: ActivityTarget = postharvest ? { kind: 'garden' } : plant
     ? { kind: 'plant', plantId: plant.id, plot: plant.plot }
     : targetId.startsWith('plot:')
       ? { kind: 'plot', plot: Number(targetId.slice(5)) }
       : { kind: 'garden' }
-  const needsPlant = ['sowing', 'hilling', 'replanting', 'observation', 'harvest'].includes(type)
+  const needsPlant = ['sowing', 'hilling', 'replanting', 'observation', 'harvest', 'signage'].includes(type)
   const types = category === 'all'
     ? (FEATURED.includes(type) ? FEATURED : [...FEATURED.slice(0, 4), type])
     : (Object.keys(ACTIVITY_TYPES) as ActivityType[]).filter(item => ACTIVITY_CARDS[item].category === category)
@@ -99,7 +111,8 @@ export default function ActivityModal({
 
   function chooseType(next: ActivityType) {
     setType(next)
-    setDetails(next === 'harvest' ? { harvestMode: 'partial' } : {})
+    setDetails(next === 'harvest' ? { harvestMode: 'partial' } : next === 'packaging' ? { packagedOn: date } : {})
+    if (isPostharvestStep(next)) setShowTargetPicker(false)
     setError('')
   }
   function chooseCategory(next: Category) {
@@ -121,9 +134,10 @@ export default function ActivityModal({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (sending.current || photo.reading || photo.error) return
-    const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details, photo: photo.photo }
+    const draft: ActivityDraft = { id: id.current, type, date, responsible: person, target, notes, details: type === 'packaging' ? { ...details, packagedOn: date } : details, photo: photo.photo }
     const invalid = validateActivity({ ...draft, gardenId, createdAt: new Date().toISOString(), photoIds: photo.photo ? ['pending-photo'] : [], validation: 'local-v1' }, plants)
-    if (invalid) { setError(invalid); return }
+    const invalidStep = invalid ?? validatePostharvestDraft(draft, gardenId, activities)
+    if (invalidStep) { setError(invalidStep); return }
     sending.current = true
     setBusy(true)
     setError('')
@@ -156,7 +170,7 @@ export default function ActivityModal({
 
       <form onSubmit={submit} aria-busy={busy} className="activity-garden-form">
         <section className="activity-garden-plant-section" aria-label="Planta o lugar de la actividad">
-          <div className="activity-garden-section-label"><GardenIcon name="seed" /> Planta seleccionada</div>
+          <div className="activity-garden-section-label"><GardenIcon name="seed" /> {postharvest ? 'Lote de cosecha' : 'Planta seleccionada'}</div>
           <div className="activity-garden-plant-card">
             {plant?.photo
               ? <img src={plant.photo} alt={`Fotografía de ${plant.name}`} />
@@ -166,11 +180,11 @@ export default function ActivityModal({
               <span>{plant ? (plant.latin || `Espacio ${plant.plot + 1}`) : 'Puedes seleccionar una planta o parcela.'}</span>
               {plant && <small><GardenIcon name="leaf" /> Planta vinculada · Espacio {plant.plot + 1}</small>}
             </div>
-            <button type="button" className="activity-garden-change" disabled={busy} aria-expanded={showTargetPicker} onClick={() => setShowTargetPicker(current => !current)}>
+            {!postharvest && <button type="button" className="activity-garden-change" disabled={busy} aria-expanded={showTargetPicker} onClick={() => setShowTargetPicker(current => !current)}>
               <GardenIcon name="seed" /> {plant ? 'Cambiar planta' : 'Elegir ubicación'}
-            </button>
+            </button>}
           </div>
-          {showTargetPicker && (
+          {!postharvest && showTargetPicker && (
             <div className="activity-garden-picker-popover">
               <label className="activity-garden-field activity-garden-target">
                 <span>Planta o ubicación</span>
@@ -253,6 +267,52 @@ export default function ActivityModal({
               </select>
             </label>
           </>}
+
+          {postharvest && <div className="activity-garden-field">
+            <label htmlFor="postharvest-lot">Cosecha real de origen *</label>
+            <select id="postharvest-lot" required disabled={busy} value={details.sourceHarvestId ?? ''} onChange={e => detail('sourceHarvestId', e.target.value || undefined)}>
+              <option value="">Selecciona una cosecha de la Bitácora</option>
+              {harvestLots.map(lot => <option key={lot.id} value={lot.id}>{lot.label} · {lot.responsible}</option>)}
+            </select>
+            {!harvestLots.length && <small>Registra primero una cosecha. No se crearán lotes ficticios.</small>}
+            {details.sourceHarvestId && <small>Siguiente etapa sin registrar: {statusForHarvestLot(details.sourceHarvestId, activities) ? ACTIVITY_TYPES[statusForHarvestLot(details.sourceHarvestId, activities)!] : 'Todas documentadas'}</small>}
+          </div>}
+          {(type === 'preparation' || type === 'sowing') && <label className="activity-garden-field">
+            <span>Técnica de terreno <em>(opcional)</em></span>
+            <select disabled={busy} value={details.groundTechnique ?? ''} onChange={e => detail('groundTechnique', (e.target.value || undefined) as ActivityDetails['groundTechnique'])}>
+              <option value="">No especificada</option><option value="furrows">Surcos</option><option value="beds">Camadas</option><option value="raisedBeds">Camellones</option><option value="terraces">Terrazas</option>
+            </select>
+          </label>}
+          {type === 'sowing' && <label className="activity-garden-field">
+            <span>Material de siembra</span><select disabled={busy} value={details.sowingMaterial ?? ''} onChange={e => detail('sowingMaterial', (e.target.value || undefined) as ActivityDetails['sowingMaterial'])}>
+              <option value="">Sin documentar</option><option value="seed">Semillas</option><option value="stake">Estacas</option><option value="cutting">Esquejes</option><option value="seedling">Plántulas</option>
+            </select>
+          </label>}
+          {type === 'signage' && <>
+            <label className="activity-garden-field"><span>Nombre común de la señal</span><input disabled={busy} maxLength={300} value={details.labelCommonName ?? plant?.name ?? ''} onChange={e => detail('labelCommonName', e.target.value)} /></label>
+            <label className="activity-garden-field"><span>Nombre científico</span><input disabled={busy} maxLength={300} value={details.labelScientificName ?? plant?.latin ?? ''} onChange={e => detail('labelScientificName', e.target.value)} /></label>
+            <label className="activity-garden-field"><span>Clasificación tradicional indicada</span><select disabled={busy} value={details.traditionalType ?? 'unknown'} onChange={e => detail('traditionalType', e.target.value as ActivityDetails['traditionalType'])}>
+              <option value="unknown">Sin clasificar</option><option value="hot">Caliente · rojo</option><option value="cool">Fresca · verde/blanco</option>
+            </select></label>
+            <small>Los datos de señalética son declaraciones del usuario y no equivalen a validación oficial.</small>
+          </>}
+          {(type === 'ritualSowing' || type === 'ritualHarvest') && <p className="activity-postharvest-tip">Describe la práctica cultural realmente realizada. El calendario lunar orienta, pero no valida ni impide registrar actividades.</p>}
+          {type === 'harvest' && <label className="activity-garden-field"><span>Parte recolectada</span><select disabled={busy} value={details.plantPart ?? ''} onChange={e => detail('plantPart', (e.target.value || undefined) as ActivityDetails['plantPart'])}>
+            <option value="">Sin documentar</option><option value="leaves">Hojas</option><option value="flowers">Flores</option><option value="fruits">Frutos</option><option value="seeds">Semillas</option><option value="roots">Raíces</option><option value="other">Otra parte</option>
+          </select></label>}
+          {type === 'cleaning' && <label className="activity-garden-field"><span>Procedimiento de limpieza</span><input disabled={busy} maxLength={100} value={details.method ?? ''} onChange={e => detail('method',e.target.value)} placeholder="Describe la limpieza realizada"/></label>}
+          {type === 'drying' && <p className="activity-postharvest-tip">Según la referencia MSP: secado a la sombra durante 10–15 días. Documenta el proceso real; esta app no certifica la inocuidad del lote.</p>}
+          {type === 'packaging' && <>
+            <label className="activity-garden-field"><span>Nombre común de la etiqueta *</span><input required disabled={busy} maxLength={300} value={details.labelCommonName ?? ''} onChange={e => detail('labelCommonName',e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Nombre científico *</span><input required disabled={busy} maxLength={300} value={details.labelScientificName ?? ''} onChange={e => detail('labelScientificName',e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Uso indicado (de fuente confiable)</span><input disabled={busy} maxLength={300} value={details.labelUse ?? ''} onChange={e => detail('labelUse',e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Contraindicaciones declaradas</span><input disabled={busy} maxLength={300} value={details.labelWarnings ?? ''} onChange={e => detail('labelWarnings',e.target.value)}/></label>
+            <label className="activity-garden-field"><span>Dosificación de referencia validada (opcional)</span><input disabled={busy} maxLength={300} value={details.labelDose ?? ''} onChange={e => detail('labelDose',e.target.value)} placeholder="No se genera automáticamente"/></label>
+            <label className="activity-garden-field"><span>Caducidad declarada *</span><input required disabled={busy} type="date" min={date} value={details.expiryDate ?? ''} onChange={e => detail('expiryDate',e.target.value || undefined)}/></label>
+            <small>Fecha de empaquetado: {date}. La app no calcula ni certifica la caducidad.</small>
+          </>}
+          {type === 'storage' && <label className="activity-garden-field"><span>Ubicación de almacenaje *</span><input required disabled={busy} maxLength={300} value={details.storageLocation ?? ''} onChange={e => detail('storageLocation',e.target.value)} placeholder="Bodega / estante ventilado y seco"/></label>}
+
           {type === 'watering' && <label className="activity-garden-field activity-garden-field-method"><span>¿Cómo realizaste el riego? <em>(opcional)</em></span><input maxLength={100} disabled={busy} value={details.method ?? ''} onChange={event => detail('method', event.target.value)} placeholder="Ej. Con regadera, manguera…" /></label>}
           {type === 'fertilizing' && <label className="activity-garden-field activity-garden-field-method"><span>Abono utilizado <em>(opcional)</em></span><input maxLength={100} disabled={busy} value={details.material ?? ''} onChange={event => detail('material', event.target.value)} placeholder="Ej. Compost orgánico" /></label>}
           {type === 'replanting' && <label className="activity-garden-field activity-garden-field-method"><span>Espacio de destino</span><select required aria-label="Espacio de destino" disabled={busy} value={details.destinationPlot ?? ''} onChange={event => detail('destinationPlot', event.target.value === '' ? undefined : Number(event.target.value))}><option value="" disabled>Selecciona un espacio libre</option>{Array.from({ length: 6 }, (_, plot) => <option key={plot} value={plot} disabled={plants.some(item => !item.archivedAt && item.plot === plot)}>Espacio {plot + 1}</option>)}</select></label>}

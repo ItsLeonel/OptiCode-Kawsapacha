@@ -6,6 +6,8 @@ import { PLANT_SPECIES, type PlantSpecies, type PlantRegistration, type PlantReg
 import { usePlantCamera } from './usePlantCamera'
 import './plant-registration.css'
 import { localDate, recordId, validDate } from './plant-record'
+import { usePlantVisualAnalysis } from './usePlantVisualAnalysis'
+import PlantVisualAnalysis from './PlantVisualAnalysis'
 
 // Held only in App memory while the visitor sets up their real garden.
 export type PlantRegistrationDraft = {
@@ -77,6 +79,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   const [speciesName, setSpeciesName] = useState(() => speciesOptions.some(option => option.name === initialSpecies) ? initialSpecies : speciesOptions[0]?.name ?? initialSpecies)
   const [plantedOn, setPlantedOn] = useState(initialPlantedOn)
   const [photo, setPhoto] = useState<Blob | null>(initialPhoto)
+  const analysis = usePlantVisualAnalysis(photo)
   const [preview, setPreview] = useState('')
   const [mode, setMode] = useState<'gallery' | 'camera'>('gallery')
   const [error, setError] = useState('')
@@ -187,7 +190,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     event.preventDefault()
     if (saving.current) return
     if (!ready) { setError('Primero registra tu huerto'); return }
-    if (!photo || !species || !available.includes(plot) || reading || cameraActive) {
+    if (!photo || !species || !available.includes(plot) || reading || cameraActive || analysis.status === 'analyzing') {
       setError('Selecciona una fotografía, una especie y un espacio disponible.')
       return
     }
@@ -197,7 +200,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     setBusy(true)
     try {
       camera.stop()
-      const result = await onConfirm({ photo, species, plot, requestId: requestId.current, recordSowing, responsible, ...(growthStageEnabled && growthStage ? { growthStage } : {}), ...(plantedOn ? { plantedOn } : {}) })
+      const result = await onConfirm({ photo, species, plot, requestId: requestId.current, recordSowing, responsible, ...(analysis.status === 'ready' && analysis.profile ? { visualProfile: analysis.profile } : {}), ...(growthStageEnabled && growthStage ? { growthStage } : {}), ...(plantedOn ? { plantedOn } : {}) })
       if (!result.ok) { saving.current = false; setBusy(false); setError(result.error) }
     } catch {
       saving.current = false
@@ -246,6 +249,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
         <section className="plant-details-panel" aria-label="Datos de la planta">
           <h3>Vista previa</h3>
           <div className="plant-selected-species">{preview ? <img src={preview} alt="Fotografía seleccionada"/> : <span className="plant-preview-placeholder" aria-hidden="true"><GardenIcon name="seed"/></span>}<div><strong>{species?.name ?? 'Tu planta'}</strong>{species && <em>{species.latin}</em>}</div></div>
+          <PlantVisualAnalysis analysis={analysis}/>
           <label className="plant-registration-field" htmlFor="plant-species">Especie medicinal<select id="plant-species" value={speciesName} onChange={event => setSpeciesName(event.target.value)} required>{speciesOptions.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label>
           <label className="plant-registration-field" htmlFor="plant-position">Posición de cultivo<select id="plant-position" value={plot} onChange={event => setPlot(Number(event.target.value))} required disabled={!available.length}>{!available.length && <option value={-1}>Sin espacios disponibles</option>}{Array.from({ length: PLOT_COUNT }, (_, index) => <option key={index} value={index} disabled={!available.includes(index)}>Espacio {index + 1}{!available.includes(index) ? ' · ocupado' : ''}</option>)}</select></label>
           <label className="plant-registration-field" htmlFor="plant-sowing-date">Fecha de siembra <span>(opcional)</span><input type="date" id="plant-sowing-date" max={localDate()} value={plantedOn} onChange={event => setPlantedOn(event.target.value)}/></label>
@@ -276,7 +280,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
               )}
             </div>
           )}
-          <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" disabled={busy} onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={busy || !ready || !available.length || !photo || reading || cameraActive}><GardenIcon name="seed"/>{busy ? 'Guardando…' : 'Añadir a mi huerto'}</button></div>
+          <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" disabled={busy} onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={busy || !ready || !available.length || !photo || reading || cameraActive || analysis.status === 'analyzing'}><GardenIcon name="seed"/>{busy ? 'Guardando…' : 'Añadir a mi huerto'}</button></div>
           <small className="plant-registration-temporary">Se guardan la ficha y la fotografía en este navegador.</small>
         </section>
       </div>

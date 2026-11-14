@@ -72,9 +72,3 @@ export const PROP_FRAMES = {
   fence: [15, 675, 495, 320], wall: [520, 560, 505, 435], pergola: [1025, 575, 510, 425],
 } as const
 
-export function photoTextureKey(id: string, url: string) {
-  // URLs may change while the plant id stays stable (and may contain private data).
-  let hash = 2166136261
-  for (let index = 0; index < url.length; index++) hash = Math.imul(hash ^ url.charCodeAt(index), 16777619)
-  return `evidence-${id}-${hash >>> 0}`
-}

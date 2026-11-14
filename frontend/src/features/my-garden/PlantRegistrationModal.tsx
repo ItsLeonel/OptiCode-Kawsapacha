@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react'
 import GardenIcon from './GardenIcon'
 import { PLOT_COUNT, type GardenPlant } from './garden'
-import { PLANT_SPECIES, type PlantRegistration, type PlantRegistrationResult } from './plant-species'
+import { PLANT_SPECIES, type PlantSpecies, type PlantRegistration, type PlantRegistrationResult } from './plant-species'
 import { usePlantCamera } from './usePlantCamera'
 import './plant-registration.css'
 import { localDate, recordId, validDate } from './plant-record'
@@ -52,8 +52,9 @@ async function optimizeImage(file: File | Blob): Promise<File | Blob> {
   }
 }
 
-export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialResponsible = '', initialRequestId }: {
+export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
   plants: GardenPlant[]
+  speciesOptions?: PlantSpecies[]
   initialPlot: number | null
   initialSpecies: string
   initialPhoto: Blob | null
@@ -69,7 +70,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
 }) {
   const available = Array.from({ length: PLOT_COUNT }, (_, index) => index).filter(plot => !plants.some(plant => plant.plot === plot))
   const [plot, setPlot] = useState(initialPlot !== null && available.includes(initialPlot) ? initialPlot : available[0] ?? -1)
-  const [speciesName, setSpeciesName] = useState(initialSpecies)
+  const [speciesName, setSpeciesName] = useState(() => speciesOptions.some(option => option.name === initialSpecies) ? initialSpecies : speciesOptions[0]?.name ?? initialSpecies)
   const [plantedOn, setPlantedOn] = useState(initialPlantedOn)
   const [photo, setPhoto] = useState<Blob | null>(initialPhoto)
   const [preview, setPreview] = useState('')
@@ -87,7 +88,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   const selection = useRef(0)
   const saving = useRef(false)
   const camera = usePlantCamera()
-  const species = PLANT_SPECIES.find(item => item.name === speciesName)
+  const species = speciesOptions.find(item => item.name === speciesName)
   const cameraActive = camera.state !== 'idle'
 
   useEffect(() => {
@@ -240,7 +241,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
         <section className="plant-details-panel" aria-label="Datos de la planta">
           <h3>Vista previa</h3>
           <div className="plant-selected-species">{preview ? <img src={preview} alt="Fotografía seleccionada"/> : <span className="plant-preview-placeholder" aria-hidden="true"><GardenIcon name="seed"/></span>}<div><strong>{species?.name ?? 'Tu planta'}</strong>{species && <em>{species.latin}</em>}</div></div>
-          <label className="plant-registration-field" htmlFor="plant-species">Especie medicinal<select id="plant-species" value={speciesName} onChange={event => setSpeciesName(event.target.value)} required>{PLANT_SPECIES.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label>
+          <label className="plant-registration-field" htmlFor="plant-species">Especie medicinal<select id="plant-species" value={speciesName} onChange={event => setSpeciesName(event.target.value)} required>{speciesOptions.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label>
           <label className="plant-registration-field" htmlFor="plant-position">Posición de cultivo<select id="plant-position" value={plot} onChange={event => setPlot(Number(event.target.value))} required disabled={!available.length}>{!available.length && <option value={-1}>Sin espacios disponibles</option>}{Array.from({ length: PLOT_COUNT }, (_, index) => <option key={index} value={index} disabled={!available.includes(index)}>Espacio {index + 1}{!available.includes(index) ? ' · ocupado' : ''}</option>)}</select></label>
           <label className="plant-registration-field" htmlFor="plant-sowing-date">Fecha de siembra <span>(opcional)</span><input type="date" id="plant-sowing-date" max={localDate()} value={plantedOn} onChange={event => setPlantedOn(event.target.value)}/></label>
           <label className="journal-check"><input type="checkbox" checked={recordSowing} onChange={event => setRecordSowing(event.target.checked)}/>Registrar también la actividad de siembra realizada</label>

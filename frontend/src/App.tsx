@@ -1137,6 +1137,7 @@ export default function App({
         <PlantEditor
           plant={editingPlant}
           plants={plants}
+          growthStageEnabled={!user}
           onSave={updatePlant}
           onClose={() => {
             setEditingId(null)

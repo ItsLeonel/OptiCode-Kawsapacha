@@ -38,6 +38,7 @@ const MAIN_FILTERS: { key: ActivityFilter; title: string; icon: BitacoraIconName
   { key: 'fertilizing', title: 'Abonado', icon: 'fertilizing' },
   { key: 'observation', title: 'Seguimiento', icon: 'observation' },
   { key: 'harvest', title: 'Cosecha', icon: 'harvest' },
+  { key: 'postharvest', title: 'Poscosecha', icon: 'harvest' },
 ]
 
 const OTHER_FILTERS: { key: ActivityFilter; title: string }[] = [

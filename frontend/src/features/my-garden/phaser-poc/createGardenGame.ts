@@ -2,7 +2,7 @@ import { coastalFootprintRatio } from './coastal-terrain'
 import { COASTAL_RELIEF_ART, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import Phaser from 'phaser'
 import { GardenSceneBridge, type SceneCommand } from './bridge'
-import { REGIONAL_POTS_ART, REGIONAL_PAD_ART, REGIONAL_BASKETS_ART, REGIONAL_TROUGHS_ART, REGIONAL_SUPPORTS_ART, BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
+import { REGIONAL_POTS_ART, REGIONAL_PAD_ART, REGIONAL_BASKETS_ART, REGIONAL_TROUGHS_ART, REGIONAL_SUPPORTS_ART, BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, WORLD } from './assets'
 import { LAYOUT_PROFILES } from './layouts'
 import { GardenScenePainter } from './scene-painter'
 import type { SlotId } from './model'
@@ -160,9 +160,6 @@ class ModularGardenScene extends Phaser.Scene {
     }
     if (model.characteristics.naturalFertilizers.some(value => value !== 'fallow') || model.characteristics.irrigationMethods.some(value => value === 'manual' || value === 'hose' || value === 'sprinkler')) needed.push(['garden-supplies', SUPPLIES_ART])
     if (model.characteristics.fences.some(value => value !== 'natural') || model.characteristics.waterSources.some(value => value === 'well' || value === 'mains')) needed.push(['garden-infrastructure', INFRASTRUCTURE_ART])
-    model.slots.forEach(slot => {
-      if (slot.plant) needed.push([photoTextureKey(slot.plant.id, slot.plant.photo), slot.plant.photo])
-    })
     needed.forEach(([key, url]) => {
       if (!this.textures.exists(key) && !this.failedAssets.has(key) && !this.requestedAssets.has(key)) {
         this.requestedAssets.add(key)

@@ -22,6 +22,15 @@ export async function analyzePlantPhoto(photo: Blob): Promise<PlantVisualProfile
     if (!context) return null
     context.drawImage(image, 0, 0, width, height)
     const rgba = context.getImageData(0, 0, width, height).data
+    return analyzePlantPixels(rgba, width, height)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+/** Parte determinista, comprobable con matrices de píxeles sin cámara ni red. */
+export function analyzePlantPixels(rgba: Uint8ClampedArray, width: number, height: number): PlantVisualProfile | null {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || rgba.length !== width * height * 4) return null
     const count = width * height
     const mask = new Uint8Array(count)
     for (let i = 0; i < count; i++) {
@@ -107,7 +116,4 @@ export async function analyzePlantPhoto(photo: Blob): Promise<PlantVisualProfile
       orientation,
       floweringHint: highlights > best.length * .03 && highlights >= 7 ? 'possible' : 'not-detected',
     }
-  } finally {
-    URL.revokeObjectURL(url)
-  }
 }

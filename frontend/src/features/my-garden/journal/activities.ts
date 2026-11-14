@@ -5,12 +5,21 @@ import { validDate } from '../plant-record'
 export const ACTIVITY_TYPES = {
   preparation: 'Preparación del terreno', weeding: 'Limpieza y deshierbe', sowing: 'Siembra', watering: 'Riego',
   fertilizing: 'Abonado', hilling: 'Aporque', replanting: 'Replante', observation: 'Seguimiento del crecimiento', harvest: 'Cosecha',
+  ritualSowing: 'Ritual de siembra', ritualHarvest: 'Ritual de gratitud antes de cosechar', signage: 'Señalética de la planta',
+  cleaning: 'Limpieza de la cosecha', drying: 'Secado a la sombra', packaging: 'Empaquetado y etiquetado', storage: 'Almacenaje de la cosecha',
 } as const
 export type ActivityType = keyof typeof ACTIVITY_TYPES
 export type ActivityTarget = { kind: 'garden' } | { kind: 'plot'; plot: number } | { kind: 'plant'; plantId: string; plot: number }
 export type ActivityDetails = {
   method?: string; material?: string; quantity?: number; unit?: 'L' | 'kg' | 'g' | 'unidades'
   heightCm?: number; state?: PlantState; growthStage?: GrowthStage; destinationPlot?: number; harvestMode?: 'partial' | 'complete'; releasePlot?: boolean
+  // Metadatos declarados por quien realiza la labor; nunca son inferidos ni recomendaciones clínicas.
+  sowingMaterial?: 'seed' | 'stake' | 'cutting' | 'seedling'
+  groundTechnique?: 'furrows' | 'beds' | 'raisedBeds' | 'terraces'
+  sourceHarvestId?: string; plantPart?: 'leaves' | 'flowers' | 'fruits' | 'seeds' | 'roots' | 'other'
+  packagedOn?: string; expiryDate?: string; storageLocation?: string
+  labelCommonName?: string; labelScientificName?: string; labelUse?: string; labelWarnings?: string; labelDose?: string
+  traditionalType?: 'hot' | 'cool' | 'unknown'
 }
 export type GardenActivity = {
   id: string; gardenId: string; type: ActivityType; date: string; responsible: string; target: ActivityTarget
@@ -45,6 +54,10 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if ((detail.heightCm !== undefined || detail.state !== undefined || detail.growthStage !== undefined) && activity.type !== 'observation') return 'Las medidas y el estado se documentan mediante una actividad de seguimiento.'
   if (detail.destinationPlot !== undefined && activity.type !== 'replanting') return 'El cambio de espacio corresponde a un replante.'
   if (detail.harvestMode !== undefined && activity.type !== 'harvest') return 'El tipo de cosecha corresponde a una actividad de cosecha.'
+  if (detail.sowingMaterial !== undefined && activity.type !== 'sowing') return 'El material de siembra solo se registra durante la siembra.'
+  if (detail.groundTechnique !== undefined && !['sowing', 'preparation'].includes(activity.type)) return 'La técnica de terreno corresponde a preparación o siembra.'
+  if (detail.sourceHarvestId !== undefined && !['cleaning', 'drying', 'packaging', 'storage'].includes(activity.type)) return 'El lote de cosecha solo corresponde a la poscosecha.'
+  if (detail.plantPart !== undefined && !['harvest', 'packaging'].includes(activity.type)) return 'Indica la parte cosechada durante la cosecha o empaquetado.'
   for (const value of [detail.quantity, detail.heightCm]) if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1000000)) return 'Revisa las cantidades y medidas registradas.'
   if (detail.quantity !== undefined && detail.quantity === 0) return 'La cantidad debe ser mayor que cero.'
   if (detail.quantity !== undefined && (!detail.unit || !['L', 'kg', 'g', 'unidades'].includes(detail.unit))) return 'Indica la unidad de la cantidad.'
@@ -52,6 +65,12 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if (detail.growthStage !== undefined && !isGrowthStage(detail.growthStage)) return 'Selecciona una etapa de crecimiento válida.'
   if (activity.type === 'observation' && detail.growthStage !== undefined && detail.growthStage !== plant?.growthStage && !activity.photoIds.length) return 'Añade una foto real para documentar el cambio de etapa.'
   if ((detail.material?.length ?? 0) > 100 || (detail.method?.length ?? 0) > 100) return 'Describe el método o material en hasta 100 caracteres.'
+  for (const value of [detail.storageLocation, detail.labelCommonName, detail.labelScientificName, detail.labelUse, detail.labelWarnings, detail.labelDose]) if ((value?.length ?? 0) > 300) return 'Los campos de etiquetado y almacenamiento permiten hasta 300 caracteres.'
+  if (detail.packagedOn && !validDate(detail.packagedOn)) return 'Indica una fecha válida de empaquetado.'
+  if (detail.expiryDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(detail.expiryDate)) return 'Indica una fecha de caducidad válida.'
+  if (detail.packagedOn && detail.expiryDate && detail.expiryDate < detail.packagedOn) return 'La caducidad debe ser posterior al empaquetado.'
+  if (activity.type === 'packaging' && (!detail.labelCommonName?.trim() || !detail.labelScientificName?.trim() || !detail.packagedOn || !detail.expiryDate)) return 'Para etiquetar indica nombre común, científico, fecha de empaque y caducidad real declarada.'
+  if (activity.type === 'storage' && !detail.storageLocation?.trim()) return 'Indica dónde almacenaste el lote.'
   if (activity.type === 'observation' && !activity.notes.trim() && !activity.photoIds.length && detail.heightCm === undefined && detail.state === undefined && detail.growthStage === undefined) return 'Añade una observación, fotografía, medida o estado documentado.'
   if (activity.type === 'replanting') {
     if (!Number.isInteger(detail.destinationPlot) || detail.destinationPlot! < 0 || detail.destinationPlot! >= 6 || detail.destinationPlot === plant?.plot) return 'Elige un espacio de destino distinto y válido.'

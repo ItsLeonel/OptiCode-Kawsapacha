@@ -6,7 +6,7 @@ import { makeMaterials, paintFence, paintMeadow, paintPlot, paintStone, paintSup
 import type { GardenVisualModel, SlotId, VisualSlot } from './model'
 import { POT_GEOMETRY, VERTICAL_GROUPS, HANGING_GROUPS, COASTAL_HANGING_GROUPS, hangingGeometry } from './layouts'
 import { paintCourtyard } from './courtyard'
-import { documentedGrowthStage } from '../growth-stages'
+import { documentedGrowthStage, isChamomile } from '../growth-stages'
 import { paintObservedPlant } from './plant-illustration'
 import { paintCoastalOriginalBed, paintCoastalStandaloneRelief } from './coastal-bed'
 import { coastalReliefFrame, coastalReliefGeometry, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
@@ -1001,9 +1001,13 @@ export class GardenScenePainter {
       // Sin observación explícita, se dibuja una señal sin crecimiento inventado.
       const stage = documentedGrowthStage(slot.plant)
       const illustration = this.graphics('plants', slot.depth * 10 + 2).setPosition(x, y)
+      // La planta nace del centro del recipiente; sus hojas permanecen dentro
+      // de la parcela/maceta incluso al documentar floración.
+      const scale = model.kind === 'ground' ? 1 : model.kind === 'pots' ? .83 : .72
+      illustration.setScale(scale)
       paintObservedPlant(illustration, stage, slot.plant.name, slot.plant.latin)
       this.components.add('plant-stage:' + (stage ?? 'unrecorded'))
-
+      if (isChamomile(slot.plant.name, slot.plant.latin)) this.components.add('plant-art:chamomile')
     }
     this.components.add('slot:' + slot.id)
   }

@@ -3,7 +3,7 @@ import type { GardenPlant } from './garden'
 import { PLANT_STATES } from './garden'
 import type { GardenActivity, ActivityType, ActivityDetails } from './journal/activities'
 import { ACTIVITY_TYPES } from './journal/activities'
-import { careApi, getToken, type CareLog } from '../../services/api'
+import { careApi, getToken, harvestApi, type CareLog, type HarvestRecord } from '../../services/api'
 import { regionalLandscapes } from '../../shared/regional-landscapes'
 import { useGardenDialog } from './useGardenDialog'
 import BitacoraIcon, { type BitacoraIconName } from './BitacoraIcons'
@@ -28,7 +28,7 @@ type FeedItem = {
   details: ActivityDetails
   photos: string[]
   photoIds: string[]
-  source: 'journal' | 'care'
+  source: 'journal' | 'care' | 'harvest'
   voidedAt?: string
   voidReason?: string
 }
@@ -112,6 +112,16 @@ function normalizeCare(log: CareLog, plant: GardenPlant): FeedItem {
   }
 }
 
+function normalizeHarvest(harvest: HarvestRecord): FeedItem {
+  return {
+    key: 'harvest:' + harvest.id, id: harvest.id, type: 'harvest', title: 'Cosecha',
+    date: harvest.harvestDate.slice(0, 10), createdAt: harvest.harvestDate,
+    responsible: harvest.harvestedBy?.name ?? 'Integrante de la comunidad',
+    targetName: harvest.speciesName, notes: [harvest.notes, 'Cantidad registrada: ' + harvest.quantity].filter(Boolean).join('\n'),
+    details: {}, photos: [], photoIds: [], source: 'harvest',
+  }
+}
+
 function EntryVisual({ item, plant }: { item: FeedItem; plant?: GardenPlant }) {
   const photo = item.photos[0] || plant?.photo
   const isEvidence = item.photos.length > 0
@@ -145,7 +155,7 @@ function EntryDetails({ item, plant, sourcePlant, onSelect, onVoid, onClose }: {
         <div><dt>Fecha</dt><dd><BitacoraIcon name="calendar" size={16}/>{displayDate(item.date)}</dd></div>
         <div><dt>Responsable</dt><dd><BitacoraIcon name="person" size={16}/>{item.responsible}</dd></div>
         <div><dt>Ubicación</dt><dd><BitacoraIcon name="pin" size={16}/>{item.targetName}{item.plot !== undefined ? ` · Espacio ${item.plot + 1}` : ''}</dd></div>
-        <div><dt>Guardado</dt><dd><BitacoraIcon name={item.source === 'care' ? 'check' : 'file'} size={16}/>{item.source === 'care' ? 'Registro de cuidados del servidor' : 'Registro de la bitácora local'}</dd></div>
+        <div><dt>Guardado</dt><dd><BitacoraIcon name={item.source === 'care' ? 'check' : 'file'} size={16}/>{item.source === 'care' ? 'Registro de cuidados del servidor' : item.source === 'harvest' ? 'Registro de cosecha del servidor' : 'Registro de la bitácora local'}</dd></div>
       </dl>
       {item.notes && <section className="bv-detail-section"><h3>Observaciones</h3><p>{item.notes}</p></section>}
       {Object.keys(item.details).length > 0 && <section className="bv-detail-section"><h3>Detalles de la actividad</h3><dl className="bv-detail-extras">
@@ -179,7 +189,7 @@ function EntryDetails({ item, plant, sourcePlant, onSelect, onVoid, onClose }: {
   </dialog>
 }
 
-export default function GardenHistory({ plants, onRegister, onSelect, activities = [], onActivity, onVoid }: {
+export default function GardenHistory({ plants, onRegister, onSelect, activities = [], onActivity, onVoid, authenticated = Boolean(getToken()), gardenId, refreshKey = 0 }: {
   plants: GardenPlant[]
   onRegister: () => void
   onSelect: (plant: GardenPlant) => void
@@ -187,6 +197,9 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   activities?: GardenActivity[]
   onActivity?: () => void
   onVoid?: (id: string, reason: string) => Promise<void>
+  authenticated?: boolean
+  gardenId?: string | null
+  refreshKey?: number
 }) {
   const [filter, setFilter] = useState<ActivityFilter>('all')
   const [plantFilter, setPlantFilter] = useState('all')
@@ -195,26 +208,38 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   const [allPlants, setAllPlants] = useState(false)
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [care, setCare] = useState<FeedItem[]>([])
+  const [harvests, setHarvests] = useState<FeedItem[]>([])
   const [loadingCare, setLoadingCare] = useState(false)
   const activityAnchor = useRef<HTMLElement>(null)
 
   useEffect(() => {
     let cancelled = false
-    if (!getToken() || !plants.length) { setCare([]); setLoadingCare(false); return }
+    if (!authenticated || !plants.length) { setCare([]); setLoadingCare(false); return }
     setLoadingCare(true)
     void Promise.all(plants.map(async plant => {
       try { const logs = await careApi.list(plant.id); return logs.map(log => normalizeCare(log, plant)) }
       catch { return [] as FeedItem[] }
     })).then(results => { if (!cancelled) setCare(results.flat()) }).finally(() => { if (!cancelled) setLoadingCare(false) })
     return () => { cancelled = true }
-  }, [plants])
+  }, [plants, authenticated, refreshKey])
+
+  useEffect(() => {
+    let active = true
+    setHarvests([])
+    if (!authenticated || !gardenId) return () => { active = false }
+    void harvestApi.listByGarden(gardenId).then(records => {
+      if (active) setHarvests(records.map(normalizeHarvest))
+    }).catch(() => { if (active) setHarvests([]) })
+    return () => { active = false }
+  }, [authenticated, gardenId, refreshKey])
 
   const entries = useMemo(() => {
     const local = activities.map(activity => normalizeActivity(activity, plants))
     const merged = [...local]
     for (const backend of care) if (!merged.some(existing => isTheSameCare(existing, backend))) merged.push(backend)
+    merged.push(...harvests)
     return merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
-  }, [activities, plants, care])
+  }, [activities, plants, care, harvests])
   const activeEntries = entries.filter(item => !item.voidedAt)
   const activePlants = plants.filter(p => !p.archivedAt)
   const shownPlants = plants.filter(p => Boolean(p.archivedAt) === includeArchived)
@@ -230,7 +255,7 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
     if (!filtered.length) return
     const rows = filtered.map(item => ({
       id: item.id, date: item.date, name: item.title, responsible: item.responsible,
-      target: item.targetName, notes: item.notes, source: item.source === 'care' ? 'server' as const : 'local' as const,
+      target: item.targetName, notes: item.notes, source: item.source === 'journal' ? 'local' as const : 'server' as const,
       photoCount: item.photos.length, voided: Boolean(item.voidedAt), details: JSON.stringify(item.details),
     }))
     const file = new Blob([createActivityCsv(rows)], { type: 'text/csv;charset=utf-8' })
@@ -299,7 +324,7 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
         })}</div> : <div className="bv-plant-empty"><BitacoraIcon name="sprout" size={34}/><p>{includeArchived ? 'Todavía no hay plantas archivadas.' : 'Todavía no has registrado plantas en tu huerto.'}</p>{!includeArchived && <button type="button" className="bv-primary-button" onClick={onRegister}>Registrar una planta</button>}</div>}
         {shownPlants.length > 3 && <div className="bv-more-row"><button type="button" className="bv-more-button" onClick={() => setAllPlants(!allPlants)}>{allPlants ? 'Ver menos plantas' : `Ver todas mis plantas (${shownPlants.length})`} <BitacoraIcon name="right" size={17}/></button></div>}
       </section>
-      <p className="bv-honesty-note"><BitacoraIcon name="info" size={15}/> Las fotografías y las actividades se muestran según su origen. Los registros locales todavía no están sincronizados como bitácora general con el backend.</p>
+      <p className="bv-honesty-note"><BitacoraIcon name="info" size={15}/> {authenticated ? 'Se muestran únicamente cuidados y cosechas básicos recuperados de SQLite. La Bitácora fotográfica avanzada requiere la API #43; no se mezclan datos de visitante.' : 'Los registros de esta bitácora se guardan solo en tu navegador. No están sincronizados con el servidor.'}</p>
     </div>
     {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} sourcePlant={sourcePlant} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
   </section>

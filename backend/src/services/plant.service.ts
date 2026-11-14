@@ -19,6 +19,36 @@ export async function registerPlant(input: RegisterPlantInput) {
     throw Object.assign(new Error(`La parcela debe estar entre 0 y ${MAX_PLOTS - 1}.`), { code: 'INVALID_PLOT' })
   }
 
+  // Verificar que el huerto existe
+  const garden = await prisma.realGarden.findUnique({ where: { id: input.realGardenId } })
+  if (!garden) throw Object.assign(new Error('El huerto no existe.'), { code: 'GARDEN_NOT_FOUND' })
+
+  // Verificar que la especie existe
+  const species = await prisma.medicinalCatalog.findUnique({ where: { id: input.speciesId } })
+  if (!species) throw Object.assign(new Error('La especie no está en el catálogo.'), { code: 'SPECIES_NOT_FOUND' })
+
+  // Una ficha no es autorización agrícola. Rechazar registros fuera de región
+  // o fichas únicamente informativas; mantener el historial preexistente intacto.
+  const regionCodes: Record<string, string> = {
+    '01':'sierra','02':'sierra','03':'sierra','04':'sierra','05':'sierra','06':'sierra',
+    '07':'costa','08':'costa','09':'costa','10':'sierra','11':'sierra','12':'costa',
+    '13':'costa','14':'oriente','15':'oriente','16':'oriente','17':'sierra',
+    '18':'sierra','19':'oriente','20':'galapagos','21':'oriente','22':'oriente',
+    '23':'costa','24':'costa',
+  }
+  const region = regionCodes[garden.provinceCode]
+  let speciesRegions: string[] = []
+  try {
+    const parsed: unknown = JSON.parse(species.regions)
+    if (Array.isArray(parsed)) speciesRegions = parsed.filter((value): value is string => typeof value === 'string')
+  } catch { /* los datos antiguos no son una autorización regional */ }
+  if (species.registerStatus === 'INFORMATIVA') {
+    throw Object.assign(new Error('Esta ficha es solo informativa y no permite el registro de cultivo.'), { code: 'SPECIES_INFORMATION_ONLY' })
+  }
+  if (region && !speciesRegions.includes(region)) {
+    throw Object.assign(new Error('La especie no está documentada para la región de este huerto.'), { code: 'SPECIES_REGION_MISMATCH' })
+  }
+
   // Verificar que la parcela esté libre (si estaba cosechada, liberar la parcela automáticamente)
   const existing = await prisma.cultivatedPlant.findUnique({
     where: { realGardenId_plotIndex: { realGardenId: input.realGardenId, plotIndex: input.plotIndex } },
@@ -32,13 +62,6 @@ export async function registerPlant(input: RegisterPlantInput) {
     }
   }
 
-  // Verificar que el huerto existe
-  const garden = await prisma.realGarden.findUnique({ where: { id: input.realGardenId } })
-  if (!garden) throw Object.assign(new Error('El huerto no existe.'), { code: 'GARDEN_NOT_FOUND' })
-
-  // Verificar que la especie existe
-  const species = await prisma.medicinalCatalog.findUnique({ where: { id: input.speciesId } })
-  if (!species) throw Object.assign(new Error('La especie no está en el catálogo.'), { code: 'SPECIES_NOT_FOUND' })
 
   // Construir URL pública de la foto
   const filename = path.basename(input.file.path)

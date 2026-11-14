@@ -454,6 +454,47 @@ export interface CatalogSpecies {
   preparation: string
   contraindications: string
   defaultPhotoUrl: string
+  photoSourceUrl: string
+  photoCredit: string
+  family: string
+  otherNames: string[]
+  regions: string[]
+  usageTags: string[]
+  altitude: string
+  provinces: string
+  cycleCategory: string
+  traditionalClassification: string
+  careNotes: string
+  sourceLabel: string
+  sourceUrl: string
+  regionalNote: string
+  registerStatus: string
+  wateringFrequencyDays: number
+  fertilizerFrequencyDays: number
+  growthCycleDays: number
+  bestPlantingSeason: string
+  lunarPhaseTip: string
+}
+
+function catalogArray(input: string | string[]): string[] {
+  if (Array.isArray(input)) return input
+  try {
+    const parsed: unknown = JSON.parse(input)
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+  } catch { return [] }
+}
+
+export function normalizeCatalogSpecies<T extends {
+  regions: string | string[]
+  otherNames: string | string[]
+  usageTags: string | string[]
+}>(plant: T): CatalogSpecies {
+  return {
+    ...plant,
+    regions: catalogArray(plant.regions),
+    otherNames: catalogArray(plant.otherNames),
+    usageTags: catalogArray(plant.usageTags),
+  } as unknown as CatalogSpecies
 }
 
 export interface CalendarTips {
@@ -465,15 +506,18 @@ export interface CalendarTips {
 }
 
 export const catalogApi = {
-  async list(query?: string): Promise<CatalogSpecies[]> {
-    const q = query ? `?q=${encodeURIComponent(query)}` : ''
-    const data = await request<{ species: CatalogSpecies[] }>(`/api/catalog${q}`)
-    return data.species
+  async list(query?: string, region?: 'costa' | 'sierra' | 'oriente' | 'galapagos'): Promise<CatalogSpecies[]> {
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    if (region) params.set('region', region)
+    const suffix = params.size ? `?${params.toString()}` : ''
+    const data = await request<{ species: CatalogSpecies[] }>(`/api/catalog${suffix}`)
+    return data.species.map(normalizeCatalogSpecies)
   },
 
   async getById(id: string): Promise<CatalogSpecies> {
     const data = await request<{ species: CatalogSpecies }>(`/api/catalog/${id}`)
-    return data.species
+    return normalizeCatalogSpecies(data.species)
   },
 
   async getCalendarTips(speciesId: string): Promise<CalendarTips> {

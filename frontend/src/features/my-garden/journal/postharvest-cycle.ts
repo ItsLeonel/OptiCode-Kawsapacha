@@ -24,7 +24,7 @@ export type HarvestPart = keyof typeof HARVEST_PARTS
 const dateValue = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return NaN
   const date = new Date(value + 'T00:00:00Z')
-  return date.toISOString().slice(0, 10) === value ? date.getTime() : NaN
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value ? date.getTime() : NaN
 }
 
 export function completedPostharvestSteps(events: readonly GardenActivity[], harvestId: string) {

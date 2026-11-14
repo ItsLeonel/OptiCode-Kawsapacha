@@ -10,6 +10,8 @@ import PlantEditor from './features/my-garden/PlantEditor'
 import GardenPlants from './features/my-garden/GardenPlants'
 import PlantRegistrationModal, { type PlantRegistrationDraft } from './features/my-garden/PlantRegistrationModal'
 import { PLANT_SPECIES as SPECIES, type PlantRegistration, type PlantRegistrationResult } from './features/my-garden/plant-species'
+import RegionalCatalog from './features/medicinal-catalog/RegionalCatalog'
+import regionalSpecies from './features/medicinal-catalog/regional-species.json'
 import CommunitiesPage, { type CommunityEntryAction } from './features/communities/CommunitiesPage'
 import type { Community } from './features/communities/communities'
 import RealGardenPage from './features/real-gardens/RealGardenPage'
@@ -29,6 +31,8 @@ import {
   getUser,
   type UserSession,
   type CommunityInvitationItem,
+  type CatalogSpecies,
+  normalizeCatalogSpecies,
 } from './services/api'
 import { regionForProvince } from './features/real-gardens/garden-region'
 import { matchesCommunityLocation, withCommunityLocation } from './features/real-gardens/garden-community-location'
@@ -58,6 +62,7 @@ const SCREEN_PATHS: Record<Screen, string> = {
 }
 
 function currentScreen(): Screen {
+  if (window.location.hash.startsWith('#plantas/')) return 'Plantas medicinales'
   if (window.location.hash === '#huerto-real') return 'Mi terreno'
   return (Object.keys(SCREEN_PATHS) as Screen[]).find(key => SCREEN_PATHS[key] === window.location.hash) ?? 'Bienvenida'
 }
@@ -89,7 +94,8 @@ export default function App({
   const [backendPlants, setBackendPlants] = useState<GardenPlant[]>([])
   const [pendingInvitations, setPendingInvitations] = useState<CommunityInvitationItem[]>([])
   const [isNotificationsOpen, setNotificationsOpen] = useState(false)
-  const [speciesCatalog, setSpeciesCatalog] = useState<Array<{ name: string; latin: string; icon: string }>>(() => [...SPECIES])
+  const [speciesCatalog, setSpeciesCatalog] = useState<CatalogSpecies[]>(() => regionalSpecies.map(normalizeCatalogSpecies))
+  const [catalogServerLoaded, setCatalogServerLoaded] = useState(false)
 
   // Selección unificada de datos según modo (Backend o Visitante)
   const communityRecord = user ? backendCommunity : journal.data.community
@@ -108,7 +114,6 @@ export default function App({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [activityForm, setActivityForm] = useState<{ plantId?: string; plot?: number | null } | null>(null)
   const [feedback, setFeedback] = useState<{ id: string; type: ActivityType; plot: number | null } | null>(null)
-  const [query, setQuery] = useState('')
   const [notice, setNotice] = useState('')
   const [selectedPlot, setSelectedPlot] = useState<number | null>(null)
 
@@ -116,16 +121,19 @@ export default function App({
   const editingPlant = plants.find(plant => plant.id === editingId)
   const progress = useMemo(() => calculateProgress(journal.data, communityRecord?.responsible), [journal.data, communityRecord?.responsible])
 
-  // Cargar catálogo de especies
+  // El API es la fuente de verdad; la lista local solo permite consultar en ausencia de servidor.
   useEffect(() => {
-    catalogApi
-      .list()
+    let mounted = true
+    catalogApi.list()
       .then(items => {
+        if (!mounted) return
         if (items && items.length > 0) {
-          setSpeciesCatalog(items.map(s => ({ name: s.name, latin: s.latinName, icon: s.icon || '🌿' })))
+          setSpeciesCatalog(items.map(normalizeCatalogSpecies))
+          setCatalogServerLoaded(true)
         }
       })
-      .catch(() => {})
+      .catch(() => { if (mounted) setCatalogServerLoaded(false) })
+    return () => { mounted = false }
   }, [])
 
   // Resolver rol del usuario y miembros de la comunidad activa
@@ -552,7 +560,7 @@ export default function App({
         })
         const apiPlant = await plantApi.register(activeGardenId, {
           file,
-          speciesId: input.species.name,
+          speciesId: input.species.id ?? input.species.name,
           plotIndex: input.plot,
           customName: input.species.name,
           notes: input.plantedOn ? `Sembrada el ${input.plantedOn}` : 'Registrada con cámara Kawsapacha',
@@ -821,8 +829,6 @@ export default function App({
       : 'garden'
 
   const immersiveGarden = screen === 'Inicio' && Boolean(realGarden)
-  const visible = speciesCatalog.filter(species => `${species.name} ${species.latin}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-
   if (screen === 'Bienvenida' || screen === 'Usuarios') {
     return (
       <AuthPage
@@ -963,16 +969,14 @@ export default function App({
                 Guardado en este navegador · No sincronizado con otras personas ni con una cuenta.
               </div>
             )}
-            <div className="heading">
+            {screen !== 'Plantas medicinales' && <div className="heading">
               <div>
                 <span className="eyebrow">
                   Kawsapacha ·{' '}
                   {screen === 'Mi historia' || screen === 'Mi camino verde' ? 'Mi camino verde' : 'Mi Huerto Vivo'}
                 </span>
                 <h1 tabIndex={-1} data-screen-heading>
-                  {screen === 'Plantas medicinales'
-                    ? 'Catálogo de plantas medicinales'
-                    : screen === 'Bitácora'
+                  {screen === 'Bitácora'
                     ? 'Bitácora agrícola'
                     : screen === 'Mi historia' || screen === 'Mi camino verde'
                     ? 'Mi camino verde'
@@ -982,9 +986,9 @@ export default function App({
               <button className="cta small" onClick={() => goto('Inicio')}>
                 Volver a Mi Huerto Vivo <span aria-hidden>↗</span>
               </button>
-            </div>
+            </div>}
 
-            {(screen === 'Plantas medicinales' || screen === 'Mis plantas' || screen === 'Bitácora') && (
+            {(screen === 'Mis plantas' || screen === 'Bitácora') && (
               <nav className="garden-internal-nav" aria-label="Secciones de Mi Huerto Vivo">
                 <button type="button" onClick={() => goto('Inicio')}>
                   Jardín
@@ -994,7 +998,7 @@ export default function App({
                 </button>
                 <button
                   type="button"
-                  aria-current={screen === 'Plantas medicinales' ? 'page' : undefined}
+                  aria-label="Abrir catálogo medicinal"
                   onClick={() => goto('Plantas medicinales')}
                 >
                   Catálogo
@@ -1037,39 +1041,13 @@ export default function App({
               />
             )}
             {screen === 'Plantas medicinales' && (
-              <section className="section">
-                <div className="catalog-header">
-                  <div>
-                    <span className="eyebrow">BOTÁNICA</span>
-                    <h2>Explora las especies</h2>
-                    <p>Catálogo botánico medicinal tradicional andino conectado con la base de datos.</p>
-                  </div>
-                  <label className="search-label">
-                    <span>⌕</span>
-                    <input
-                      value={query}
-                      onChange={event => setQuery(event.target.value)}
-                      placeholder="Buscar por nombre…"
-                      aria-label="Buscar plantas"
-                    />
-                  </label>
-                </div>
-                <div className="catalog-grid">
-                  {visible.map((species, index) => (
-                    <article className="species-card" key={species.name}>
-                      <div className={`species-art tone-${index % 4}`}>
-                        <span>{species.icon}</span>
-                      </div>
-                      <div className="species-copy">
-                        <strong>{species.name}</strong>
-                        <em>{species.latin}</em>
-                        <button onClick={() => registerInPlot(undefined, species.name)}>Registrar en mi huerto ↗</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-                {!visible.length && <p>No se encontraron especies con ese nombre.</p>}
-              </section>
+              <RegionalCatalog
+                species={speciesCatalog}
+                province={realGarden?.location?.province ?? communityRecord?.province ?? null}
+                serverLoaded={catalogServerLoaded}
+                onRegister={name => registerInPlot(undefined, name)}
+                onHome={() => goto('Inicio')}
+              />
             )}
           </div>
         </main>
@@ -1078,6 +1056,11 @@ export default function App({
       {registration && (
         <PlantRegistrationModal
           plants={activePlants}
+          speciesOptions={speciesCatalog.filter(plant => {
+            const currentProvince = realGarden?.location?.province ?? communityRecord?.province
+            const currentRegion = currentProvince ? regionForProvince(currentProvince) : null
+            return plant.registerStatus !== 'INFORMATIVA' && (!currentRegion || plant.regions.includes(currentRegion))
+          }).map(plant => ({ id: plant.id, name: plant.name, latin: plant.latinName, icon: plant.icon }))}
           initialPlot={registration.plot}
           initialSpecies={registration.species}
           initialPhoto={registration.photo}

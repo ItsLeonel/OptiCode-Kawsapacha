@@ -32,6 +32,7 @@ export async function register(req: AuthRequest, res: Response): Promise<void> {
     if (e.code === 'INVALID_PLOT') return void fail(res, 'INVALID_PLOT', e.message, 400)
     if (e.code === 'GARDEN_NOT_FOUND') return void fail(res, 'GARDEN_NOT_FOUND', e.message, 404)
     if (e.code === 'SPECIES_NOT_FOUND') return void fail(res, 'SPECIES_NOT_FOUND', e.message, 404)
+    if (e.code === 'SPECIES_REGION_MISMATCH' || e.code === 'SPECIES_INFORMATION_ONLY') return void fail(res, e.code, e.message, 400)
     fail(res, 'INTERNAL_ERROR', 'Error al registrar la planta.', 500)
   }
 }

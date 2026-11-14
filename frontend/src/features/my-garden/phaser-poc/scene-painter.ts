@@ -8,6 +8,7 @@ import { POT_GEOMETRY, VERTICAL_GROUPS, HANGING_GROUPS, COASTAL_HANGING_GROUPS, 
 import { paintCourtyard } from './courtyard'
 import { documentedGrowthStage, isChamomile } from '../growth-stages'
 import { paintObservedPlant } from './plant-illustration'
+import { feedbackMotion, hasIllustratedFeedback, paintActivityFeedback } from './activity-feedback-art'
 import { paintCoastalOriginalBed, paintCoastalStandaloneRelief } from './coastal-bed'
 import { coastalReliefFrame, coastalReliefGeometry, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import { gardenFeaturePlacements } from './garden-feature-placements'
@@ -1031,21 +1032,51 @@ export class GardenScenePainter {
     }
   }
 
-  /** Feedback is transient and cannot create or validate an agricultural record. */
+  /** Animación efímera después de GUARDAR una actividad; jamás adelanta la etapa. */
   feedback(model: GardenVisualModel, type: ActivityType, plot: number | null, reducedMotion: boolean) {
     this.clear('feedback')
-    for (const slot of model.slots.filter(item => plot === null || item.plot === plot)) {
-      const point = slot.anchor
-      const count = type === 'watering' && !reducedMotion ? 9 : 1
+    // Una actividad a nivel de todo el huerto se ilustra en el centro, sin
+    // señalar falsamente que cada una de las seis plantas fue intervenida.
+    const targets = plot === null
+      ? [{ x: WORLD.centerX, y: WORLD.centerY }]
+      : model.slots.filter(slot => slot.plot === plot).map(slot => slot.anchor)
+    for (const point of targets) {
+      const illustrated = hasIllustratedFeedback(type)
+      const count = illustrated && !reducedMotion ? feedbackMotion(type, 0).count : 1
       for (let index = 0; index < count; index++) {
-        const node = this.graphics('feedback', 5).setPosition(point.x + (index % 3 - 1) * 22, point.y - (type === 'watering' ? 65 : 0))
-        const color = type === 'watering' ? 0x80d9eb : type === 'fertilizing' ? 0xe5c671 : 0xf5df9e
-        if (type === 'watering' && !reducedMotion) node.fillStyle(color, .9).fillCircle(0, 0, 5).fillTriangle(-4, 0, 4, 0, 0, -9)
-        else node.lineStyle(3, color, .9).strokeEllipse(0, 0, 140, 65)
-        const destroy = () => { this.nodes.feedback.delete(node); node.destroy() }
-        if (reducedMotion) this.scene.time.delayedCall(750, destroy)
-        else this.scene.tweens.add({ targets: node, y: point.y + 20, alpha: 0, duration: type === 'watering' ? 650 : 1000, delay: index * 65, onComplete: destroy })
+        const motion = illustrated
+          ? feedbackMotion(type, index)
+          : { fromY: 0, toY: 0, duration: 650, delay: 0 }
+        const delta = index - (count - 1) / 2
+        const horizontal = illustrated && type === 'watering' ? delta * 13
+          : illustrated && type === 'fertilizing' ? delta * 17
+          : illustrated && type === 'weeding' ? delta * 22 : 0
+        const node = this.graphics('feedback', 5)
+          .setPosition(point.x + horizontal, point.y + (reducedMotion ? -29 : motion.fromY))
+        if (illustrated) paintActivityFeedback(node, type, index)
+        else node.lineStyle(3, 0xf5df9e, .94).strokeEllipse(0, 0, 120, 50)
+
+        const destroy = () => {
+          if (!this.nodes.feedback.has(node)) return
+          this.nodes.feedback.delete(node)
+          node.destroy()
+        }
+        if (reducedMotion) {
+          // Motion preference: static illustration, no tweening or looping.
+          this.scene.time.delayedCall(800, destroy)
+        } else {
+          this.scene.tweens.add({
+            targets: node,
+            y: point.y + motion.toY,
+            alpha: 0,
+            duration: motion.duration,
+            delay: motion.delay,
+            ease: type === 'weeding' || type === 'harvest' ? 'Sine.easeOut' : 'Sine.easeIn',
+            onComplete: destroy,
+          })
+        }
       }
     }
   }
+
 }

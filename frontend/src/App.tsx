@@ -816,7 +816,10 @@ export default function App({
     } else {
       setNotice('Actividad guardada solo en este dispositivo. La Bitácora general todavía no está sincronizada con el servidor.')
     }
-    if (screen === 'Inicio') {
+    // Visitante: efecto tras persistir en IndexedDB.
+    // Usuario autenticado: el efecto de éxito solo se muestra si el servidor
+    // confirmó la operación básica. El resto espera la API unificada #43.
+    if (screen === 'Inicio' && (!user || basicApiState === 'saved')) {
       setFeedback({ id: actual.id, type: actual.type, plot: actual.details.destinationPlot ?? (actual.target.kind === 'garden' ? null : actual.target.plot) })
     }
   }

@@ -8,7 +8,7 @@ Se inspeccionó `docs/diseno/referencia-mi-jardin-v2.png` antes de modificar el 
 - `frontend/src/assets/cama-cultivo-v2.png`: una cama vacía, con tierra, marco bajo de madera y sombra de contacto. Es un PNG RGBA con transparencia real, verificada antes de usarlo. Se reutiliza como capa decorativa dentro de los seis botones HTML; no contiene plantas, etiquetas ni controles dibujados.
 - `my-garden.css` ajusta encuadre, fundido inferior, sombras de contacto, focos y superficies verdes. Las camas permanecen apoyadas durante hover; solo cambian su iluminación y el realce de los controles.
 - El encuadre se adapta para mantener las camas sobre el césped. En móvil se prioriza el terreno y se recorta parte del paisaje superior, sin deformar el recurso. La composición se extiende con scroll natural.
-- No se instalaron dependencias ni se usó CLI de generación. Los originales V1 y el fondo de bienvenida se conservan.
+- No se instalaron dependencias ni se usó CLI de generación. El paisaje V1 quedó documentado aquí, pero su copia binaria fue eliminada por no tener consumidores de ejecución. El fondo de bienvenida se conserva.
 
 ### Prompt final del paisaje V2
 
@@ -16,7 +16,7 @@ Se inspeccionó `docs/diseno/referencia-mi-jardin-v2.png` antes de modificar el 
 Use case: lighting-weather and stylized-concept refinement. Edit the supplied independent Andean garden background, preserving its Ecuadorian identity, adobe cottage on the left, snow-capped volcano in the right upper distance, valley, rustic fence, stepping stone path and broad open central grassy terrace. This remains a production 2.5D cozy medicinal gardening GAME BACKGROUND, NOT a UI image. Refine toward a lush, colorful late-afternoon golden hour: rich warm golden light, subtle peach and pink clouds in the blue sky, inviting cottage window/lantern glow, flowering purple and magenta bougainvillea hanging from the top-left leafy canopy, beautiful natural green medicinal foliage and small flowers along outer borders, more tactile painterly details and pleasing depth. Retain a wide 16:9 composition. Keep the middle and foreground terrace uncluttered and reasonably level so six separate interactive soil beds can be rendered on it later. Keep the cottage on the left edge and the volcano visible, with no new central buildings. A small metal watering can and basket of herbs can sit at an outer foreground edge, with a discreet Ecuadorian woven textile; no commercial agricultural crops or farms. IMPORTANT INVARIANTS: NO planting beds, NO registered plants or crop rows in the open lawn, NO labels, text, logos, numbers, signs, avatars, progress bars, menus, panels, UI, drawn controls, watermarks, people, or fake account details. Preserve open space for real HTML controls and planting beds. This is only the scenic layer.
 ```
 
-Entrada: `frontend/src/assets/jardin-andino-v1.png`. Salida: `frontend/src/assets/jardin-andino-v2.png`.
+Entrada histórica: paisaje andino V1 (retirado del árbol de trabajo durante la auditoría del 14/11/2026; recuperable desde Git). Salida actual: `frontend/src/assets/jardin-andino-v2.png`.
 
 ### Prompt final de la cama V2
 
@@ -32,7 +32,7 @@ Se inspeccionaron `referencia-mi-jardin.png` y `gamificacion-v1.md` antes de imp
 
 ### Fondo independiente
 
-- Archivo final: `frontend/src/assets/jardin-andino-v1.png`.
+- Archivo final histórico: paisaje andino V1, retirado del árbol vigente por estar reemplazado por V2 (recuperable desde el historial Git).
 - Generado con la herramienta integrada `image_gen`, en modo de generación nueva; no se usó CLI ni se instalaron dependencias.
 - Paisaje ilustrado andino con casa, volcán, vegetación, camino y detalles textiles. No representa coordenadas ni una ubicación verificada del usuario.
 - No contiene textos, menús, parcelas dibujadas, controles, avatares ni datos de una cuenta. Las seis parcelas, sus etiquetas y todas las acciones se implementan en React y CSS.

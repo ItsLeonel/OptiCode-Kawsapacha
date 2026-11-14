@@ -3,8 +3,6 @@ import AuthForm from './AuthForm'
 import AuthIcon from './AuthIcon'
 import PlantIllustration from './PlantIllustration'
 import { AUTH_FIELDS, type AuthMode, type AuthSubmitHandler } from './auth'
-import welcomeGuideSierra from '../../assets/welcome/guide-sierra.png'
-import welcomeGuideAmazonia from '../../assets/welcome/guide-amazonia.png'
 import welcomeFlowers from '../../assets/welcome/flower-cluster.png'
 import welcomeFlag from '../../assets/welcome/woven-flag.png'
 import './auth.css'
@@ -22,6 +20,8 @@ export default function AuthPage({ onExploreDemo, onSubmit, onAuthenticated }: {
   const totalFields = AUTH_FIELDS[mode].length
   const stage = validFields === totalFields ? 2 : validFields > 0 ? 1 : 0
   const stageNames = ['Semilla', 'Brote', 'Planta']
+  const welcomeGuideSierra = new URL('../../shared/assets/comunidad-v3/personajes/personaje_sierra_v3.png', import.meta.url).href
+  const welcomeGuideAmazonia = new URL('../../shared/assets/comunidad-v3/personajes/personaje_oriente_v3.png', import.meta.url).href
 
   function selectMode(next: AuthMode) {
     if (next === mode) return

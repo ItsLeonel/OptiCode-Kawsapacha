@@ -9,8 +9,10 @@ Los PNG conservan su transparencia original. Los seis controles y las fotografí
 | Archivo | Pieza decorativa |
 | --- | --- |
 | macetas-v3.png | Atlas de seis recipientes artesanales vacíos |
-| pared-vertical-v3.png | Pared de madera, seis jardineras y dos apoyos anclados |
 | pergola-v3.png | Pérgola firme con seis cestas y cuatro apoyos |
+
+La ilustración antigua `pared-vertical-v3.png` fue retirada en la auditoría del 14/11/2026:
+el render actual utiliza `bastidor-vertical-abierto-v4.png` y `jardinera-vertical-profunda-v4.png`.
 | terreno-v3.png | Terreno continuo de tierra fina, piedras y hierba perimetral |
 | bordes-regionales-v3.png | Atlas de detalles de Sierra, Costa, Amazonía y Galápagos |
 

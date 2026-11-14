@@ -13,6 +13,7 @@ import {
   type UserSession,
 } from '../../services/api'
 import './garden-journal.css'
+import BotanicalSignage from './BotanicalSignage'
 
 // ─── Badge de salud ──────────────────────────────────────────────────────────
 

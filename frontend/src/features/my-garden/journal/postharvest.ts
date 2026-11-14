@@ -36,6 +36,8 @@ export function validatePostharvestStep(
   const harvest = history.find(a => a.id === lotId && a.gardenId === activity.gardenId && a.type === 'harvest' && !a.voidedAt)
   if (!harvest) return 'La cosecha de origen no está registrada o fue anulada.'
   if (activity.date < harvest.date) return 'La poscosecha no puede ocurrir antes de la cosecha documentada.'
+  if (activity.type === 'drying' && activity.details.dryingStartOn && activity.details.dryingStartOn < harvest.date) return 'El secado no puede empezar antes de la cosecha de origen.'
+  if (activity.type === 'drying' && activity.details.dryingEndOn && activity.details.dryingEndOn < harvest.date) return 'El secado no puede terminar antes de la cosecha de origen.'
   const index = POSTHARVEST_STEPS.indexOf(activity.type)
   const earlier = history.filter(a => a.gardenId === activity.gardenId && a.details.sourceHarvestId === lotId
     && isPostharvestStep(a.type) && !a.voidedAt)

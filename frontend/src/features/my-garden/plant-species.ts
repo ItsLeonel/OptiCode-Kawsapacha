@@ -10,9 +10,11 @@ export const PLANT_SPECIES = [
   { name: 'Llantén', latin: 'Plantago major', icon: '🌾' },
 ] as const
 
+export type PlantSpecies = { id?: string; name: string; latin: string; icon: string }
+
 export type PlantRegistration = {
   photo: Blob
-  species: typeof PLANT_SPECIES[number]
+  species: PlantSpecies
   plot: number
   plantedOn?: string
   requestId?: string

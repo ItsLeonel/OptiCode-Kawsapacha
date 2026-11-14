@@ -6,7 +6,8 @@ import {
   toGardenFeatures,
   toggleGardenFeature,
 } from '../src/features/real-gardens/garden-characteristics'
-import { toGardenDraft, type RealGarden } from '../src/features/real-gardens/real-garden'
+import type { RealGarden } from '../src/features/real-gardens/real-garden'
+import { legacyGardenCoordinates } from '../src/features/real-gardens/legacy-coordinates'
 import { buildGardenVisualModel } from '../src/features/my-garden/phaser-poc/model'
 
 const base: RealGarden = {
@@ -34,8 +35,8 @@ test('no permite seleccionar aspersión para nuevos huertos, conserva el valor l
 })
 
 test('no pierde coordenadas válidas de latitud cero al cargar datos heredados', () => {
-  const legacy = { ...base, latitude: 0, longitude: -78.45 } as RealGarden & { latitude: number; longitude: number }
-  expect(toGardenDraft(legacy).coordinates).toEqual({ latitude: 0, longitude: -78.45 })
+  expect(legacyGardenCoordinates({ latitude: 0, longitude: -78.45 })).toEqual({ latitude: 0, longitude: -78.45 })
+  expect(legacyGardenCoordinates({ latitude: null, longitude: -78.45 })).toBeNull()
 })
 
 test('configuración seleccionada se propaga sin inventar plantas a las 16 combinaciones región/modalidad', () => {

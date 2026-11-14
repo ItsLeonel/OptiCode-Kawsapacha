@@ -1,6 +1,6 @@
 # Kawsapacha — Despliegue reproducible Docker + HTTPS (preparación de #49)
 
-**Estado:** archivos configurados para pruebas de integración; **no se ha publicado un servidor real ni se ha validado con un teléfono físico**. Responsable de despliegue y evidencias: @TonyTiago (issue #49); integración backend: @Rodni15; aprobación de PM: @ItsLeonel.
+**Estado:** infraestructura reproducible, con CI configurado para construir las imágenes y comprobar la API/SQLite y el frontend a través del proxy Caddy. **La aprobación de ese CI debe verificarse en cada PR**. No se ha publicado un servidor real ni validado con un teléfono físico. Responsable de despliegue y evidencias: @TonyTiago (issue #49); integración backend: @Rodni15; aprobación de PM: @ItsLeonel.
 
 ## Arquitectura
 

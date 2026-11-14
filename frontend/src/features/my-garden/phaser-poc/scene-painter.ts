@@ -973,6 +973,23 @@ export class GardenScenePainter {
       badge.lineStyle(2, 0xffe3a0).strokeCircle(x + 38, y + 25, 7)
       this.components.add('activity:fertilized')
     }
+    // Son marcas de eventos en la bitácora, nunca una inferencia sobre
+    // humedad actual, malezas ni crecimiento biológico.
+    if (slot.lastWateredAt) {
+      const badge = this.graphics('plants', slot.depth * 10 + 4)
+      badge.fillStyle(0x287f9e, .95).fillCircle(x - 47, y + 24, 8)
+      badge.fillStyle(0xc5f1fa, .97).fillTriangle(x - 47, y + 9, x - 53, y + 25, x - 41, y + 25)
+      this.components.add('activity:watered')
+    }
+    if (slot.lastWeededAt) {
+      const badge = this.graphics('plants', slot.depth * 10 + 4)
+      badge.fillStyle(0x4b8b4b, .95).fillCircle(x + 56, y + 23, 8)
+      badge.lineStyle(2.5, 0xe6f2b4, .95)
+      badge.lineBetween(x + 56, y + 27, x + 56, y + 17)
+      badge.lineBetween(x + 56, y + 21, x + 51, y + 18)
+      badge.lineBetween(x + 56, y + 21, x + 61, y + 18)
+      this.components.add('activity:weeded')
+    }
     if (!slot.plant) {
       // A tiny warm glint suggests interactivity without a sign, number or fake crop.
       const g = this.graphics('plants', slot.depth * 10 + 1)

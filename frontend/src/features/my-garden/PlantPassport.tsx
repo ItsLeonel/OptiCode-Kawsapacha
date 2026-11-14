@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import GardenIcon from './GardenIcon'
 import { PLANT_STATES, type GardenPlant } from './garden'
 import { GROWTH_STAGES, documentedGrowthStage } from './growth-stages'
+import { compareVisualProfiles } from './plant-visual-profile'
 import type { ActivityType } from './journal/activities'
 import {
   careApi,
@@ -132,6 +133,10 @@ export default function PlantPassport({
   const isRegrowing = growth?.lifecycleStatus === 'REGROWING'
   const hasStress = growth?.overWatered || growth?.overFertilized || growth?.overPruned
   const isResponsible = !user || currentCommunityRole === 'RESPONSABLE'
+  const visualEvidence = (plant?.evidences ?? []).filter(item => item.visualProfile)
+  const previousProfile = visualEvidence.length > 1 ? visualEvidence[visualEvidence.length - 2].visualProfile : undefined
+  const currentProfile = visualEvidence.length ? visualEvidence[visualEvidence.length - 1].visualProfile : undefined
+  const visualChanges = compareVisualProfiles(previousProfile, currentProfile)
 
   return (
     <dialog
@@ -194,6 +199,23 @@ export default function PlantPassport({
           </div>
 
           <BotanicalSignage plant={plant}/>
+          <section aria-label="Espejo Digital Evolutivo" style={{ border: '1px solid #c6dfc6', background: '#f6fbf4', borderRadius: 12, padding: 14, marginBottom: 18 }}>
+            <h3 style={{ margin: '0 0 8px', color: '#28513d', fontSize: '0.98rem' }}>🌱 Espejo Digital Evolutivo</h3>
+            {plant.visualProfile
+              ? <p style={{ fontSize: '0.82rem', margin: '0 0 6px' }}>
+                  Perfil fotográfico: follaje {plant.visualProfile.densityLevel}/5 · amplitud {plant.visualProfile.spreadLevel}/5 · tono {plant.visualProfile.leafTone === 'light' ? 'claro' : plant.visualProfile.leafTone === 'dark' ? 'oscuro' : 'medio'}.
+                  {plant.visualProfile.confidence === 'low' ? ' · Confianza baja' : ''}
+                </p>
+              : <p style={{ fontSize: '0.82rem', margin: '0 0 6px' }}>Aún no hay un perfil visual automático fiable asociado a esta planta.</p>}
+            {visualChanges.length > 0 && <p style={{ fontSize: '0.82rem', margin: '0 0 6px' }}><strong>Cambios aparentes entre fotos:</strong> {visualChanges.join(' · ')}.</p>}
+            {visualEvidence.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0' }}>
+              {visualEvidence.map(item => <div key={item.id} style={{ minWidth: 85, maxWidth: 120, fontSize: '0.73rem' }}>
+                {item.photo && <img src={item.photo} alt={'Evidencia fotográfica del ' + item.date} style={{ width: 85, height: 85, objectFit: 'cover', borderRadius: 7 }} />}
+                <div>{item.date}</div><div>Cobertura: {item.visualProfile!.densityLevel}/5</div>
+              </div>)}
+            </div>}
+            <small style={{ color: '#506357' }}>Las comparaciones dependen del encuadre y la iluminación; no prueban crecimiento real ni diagnóstico. {user ? 'La persistencia entre dispositivos de este perfil requiere integrar la API de evidencias #35/#43.' : 'Este historial está guardado solo en este navegador.'}</small>
+          </section>
 
           {message && (
             <div style={{ background: '#e6fffa', border: '1px solid #38b2ac', color: '#234e52', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>

@@ -1,3 +1,9 @@
+> **ARCHIVO HISTÓRICO (V1, 10/11/2026) — NO USAR COMO CONTRATO ACTUAL.**
+> En V1 se representaba una fotografía circular por parcela y se documentaban estimaciones de crecimiento. **Desde PR #55/#56 el Espejo Digital V2 utiliza ilustraciones según etapas observadas con evidencias reales; nunca modifica el crecimiento automáticamente.** La bitácora de V2 y la poscosecha ampliada tienen frontend local, pero la API persistente para usuarios autenticados está **pendiente de Ronny #35/#43**.
+> Para integrar V2 consulte [contrato de ciclo agrícola pendiente](contrato-ciclo-agricola-v2-pendiente.md) y [matriz de QA](../casos-prueba/matriz-ciclo-integral-v2.md). No usar las rutas/fotos públicas de esta propuesta histórica como una garantía de seguridad.
+
+---
+
 # Arquitectura del Ciclo de Planta y Espejo Documental del Huerto (V1)
 
 **Hito:** V1 - Entrega y Demostración (10/11/2026)  

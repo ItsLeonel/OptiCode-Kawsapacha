@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import GardenIcon from './GardenIcon'
 import { PLANT_STATES, type GardenPlant } from './garden'
+import { GROWTH_STAGES, documentedGrowthStage } from './growth-stages'
 import {
   careApi,
   catalogApi,
@@ -267,6 +268,12 @@ export default function PlantPassport({
               <div style={{ marginTop: '6px' }}>
                 <HealthBadge status={growth?.healthStatus} />
               </div>
+              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#276749', margin: '9px 0 0' }}>
+                Etapa reflejada en Mi Jardín: {documentedGrowthStage(plant) ? GROWTH_STAGES[documentedGrowthStage(plant)!] : 'Sin observación visual documentada'}
+              </p>
+              <small style={{ color: '#718096' }}>
+                {user ? 'La sincronización de etapas observadas está pendiente de la API.' : 'La etapa cambia solamente con fotografías registradas en este navegador.'}
+              </small>
             </div>
           </div>
 
@@ -297,7 +304,7 @@ export default function PlantPassport({
           <section style={{ background: isRegrowing ? '#fffff0' : '#f0fff4', border: `1px solid ${isRegrowing ? '#fefcbf' : '#c6f6d5'}`, borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
-                Etapa: {growth?.stage || 'Calculando...'}
+                Estimación agronómica: {growth?.stage || 'Sin estimación'}
               </strong>
               <span style={{ fontWeight: 'bold', color: isRegrowing ? '#d69e2e' : '#2f855a', fontSize: '1.1rem' }}>
                 {growth ? `${growth.percentage}%` : '0%'}
@@ -607,7 +614,7 @@ export default function PlantPassport({
             <GardenIcon name="book" /> Ver Bitácora general de cultivo
           </button>
           {/* Evidencias de main */}
-          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={evidence.photo} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
+          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.growthStage && <p><strong>Etapa documentada: {GROWTH_STAGES[evidence.growthStage]}</strong></p>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={evidence.photo} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
           {activityItems}
         </div>
       )}

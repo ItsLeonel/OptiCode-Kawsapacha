@@ -2,6 +2,7 @@ import { provinces } from '../../EcuadorMap'
 import { officialCantons, officialParishes, provinceForName, territoryLabel } from './territory'
 import { GARDEN_FEATURE_OPTIONS, toGardenFeatures, type GardenFeatures } from './garden-characteristics'
 import { validatePhoto } from '../../shared/photo-validation'
+import { legacyGardenCoordinates } from './legacy-coordinates'
 
 export const GARDEN_KINDS = {
   ground: { label: 'En tierra', description: 'Cultivo directo en el suelo.' },
@@ -75,7 +76,7 @@ export function toGardenDraft(garden: RealGarden | null): RealGardenDraft {
     province: loc.province ?? (garden as any).province ?? '',
     cantonCode: loc.cantonCode ?? (garden as any).cantonCode ?? '',
     parishCode: loc.parishCode ?? (garden as any).parishCode ?? '',
-    coordinates: loc.coordinates ?? (Number.isFinite((garden as any).latitude) && Number.isFinite((garden as any).longitude) ? { latitude: (garden as any).latitude, longitude: (garden as any).longitude } : null),
+    coordinates: loc.coordinates ?? legacyGardenCoordinates(garden as { latitude?: number | null; longitude?: number | null }),
     reference: loc.reference ?? (garden as any).reference ?? '',
     areaM2: String(garden.areaM2 ?? ''),
     irrigationAvailability: garden.irrigationAvailability ?? '',

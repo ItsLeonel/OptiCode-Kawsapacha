@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 import { analyzePlantPixels } from '../src/features/my-garden/plant-photo-analysis'
+import { applyJournalCommand, emptyJournal, projectPlants } from '../src/features/my-garden/journal/journal'
+import { localDate } from '../src/features/my-garden/plant-record'
+import type { RealGarden } from '../src/features/real-gardens/real-garden'
+import type { GardenActivity } from '../src/features/my-garden/journal/activities'
 import { compareVisualProfiles, isPlantVisualProfile, visualLevel, type PlantVisualProfile } from '../src/features/my-garden/plant-visual-profile'
 
 const observation: PlantVisualProfile = {
@@ -52,4 +56,32 @@ test('fondo enteramente verde se considera dudoso y ausencia vegetal no crea per
   expect(analyzePlantPixels(pixels, 32, 32)?.confidence).toBe('low')
   for (let i = 0; i < pixels.length; i += 4) { pixels[i] = 155; pixels[i+1] = 85; pixels[i+2] = 70 }
   expect(analyzePlantPixels(pixels, 32, 32)).toBeNull()
+})
+
+test('dos observaciones actualizan sprite por perfil y anular B recupera A', () => {
+  const terrain: RealGarden = { name: 'Huerto', kind: 'ground', areaM2: 10,
+    location: { province: 'Pichincha', provinceCode: '17', canton: '', cantonCode: null, parish: '', parishCode: null, reference: '', coordinates: null },
+    soilType: 'loam', irrigationAvailability: 'available', communityName: 'Comunidad' }
+  let journal = applyJournalCommand(emptyJournal(), { id: 'community', type: 'community',
+    community: { name: 'Comunidad', responsible: 'Responsable de prueba', location: 'Pichincha', description: '' } })
+  journal = applyJournalCommand(journal, { id: 'terrain', type: 'terrain', terrain })
+  journal = applyJournalCommand(journal, { id: 'plant', type: 'plant-add',
+    plant: { id: 'herb-a', name: 'Manzanilla', latin: 'Matricaria chamomilla', plot: 0,
+      date: localDate(), photo: '', photoId: 'photo-a', growthStage: 'seedling',
+      visualProfile: observation,
+      evidences: [{ id: 'initial-a', date: localDate(), notes: 'Inicio', photoId: 'photo-a', growthStage: 'seedling', visualProfile: observation }] } })
+  const next: PlantVisualProfile = { ...observation, coverage: .32, heightRatio: .72, densityLevel: 5, heightLevel: 4, foliageColor: '#238b38' }
+  const activity: GardenActivity = { id: 'photo-b', gardenId: journal.gardenId,
+    type: 'observation', date: localDate(), responsible: 'Responsable de prueba',
+    target: { kind: 'plant', plantId: 'herb-a', plot: 0 }, notes: 'Segunda foto',
+    details: { visualProfile: next }, photoIds: ['new-photo'], createdAt: new Date().toISOString(), validation: 'local-v1' }
+  const saved = applyJournalCommand(journal, { id: 'observe-b', type: 'activity', activity })
+  expect(projectPlants(saved)[0].visualProfile).toEqual(next)
+  expect(projectPlants(saved)[0].growthStage).toBe('seedling')
+  expect(projectPlants(saved)[0].evidences).toHaveLength(2)
+  const canceled = applyJournalCommand(saved, { id: 'revert-b', type: 'activity-void', activityId: activity.id,
+    reason: 'Foto incorrecta en seguimiento', at: new Date().toISOString() })
+  expect(projectPlants(canceled)[0].visualProfile).toEqual(observation)
+  expect(canceled.activities[0].voidedAt).toBeTruthy()
+  expect(projectPlants(canceled)[0].evidences).toHaveLength(1)
 })

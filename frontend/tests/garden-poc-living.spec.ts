@@ -143,7 +143,7 @@ test('digital mirror: edit a real photo and observations, move, archive and rest
   await page.getByLabel('Estado documentado', { exact: true }).selectOption('observed')
   await page.getByLabel('Altura medida', { exact: false }).fill('23.5')
   await page.getByLabel('Nueva fotografía', { exact: false }).setInputFiles('src/features/real-gardens/assets/macetas-v1.jpg')
-  await page.getByLabel('Observaciones', { exact: true }).fill('Altura medida con regla; nueva fotografía del follaje.')
+  await page.getByLabel('Observaciones', { exact: false }).fill('Altura medida con regla; nueva fotografía del follaje.')
   await editor.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
   const passport = page.getByRole('dialog', { name: 'Romero del patio', exact: true })
   await expect(passport).toBeVisible()

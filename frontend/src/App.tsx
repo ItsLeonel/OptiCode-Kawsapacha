@@ -24,8 +24,6 @@ import {
   gardenApi,
   catalogApi,
   plantApi,
-  careApi,
-  harvestApi,
   activityApi,
   invitationApi,
   notificationApi,

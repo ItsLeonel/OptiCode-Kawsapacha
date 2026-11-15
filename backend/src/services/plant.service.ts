@@ -39,7 +39,7 @@ export async function registerPlant(input: RegisterPlantInput) {
     } else if (existing.reviewStatus === 'PENDING' || existing.reviewStatus === 'NEEDS_CHANGES') {
       throw Object.assign(
         new Error(
-          `El Espacio ${input.plotIndex + 1} ya tiene una planta pendiente de revisión por el MSP (${existing.customName || 'siembra en espera'}). No se puede utilizar hasta que sea aprobada o rechazada.`
+          `El Espacio ${input.plotIndex + 1} ya tiene sembrada la planta «${existing.customName || 'sin nombre'}». Puedes registrar sus cuidados mientras el MSP revisa su evidencia, pero no sembrar otra planta en esa parcela.`
         ),
         { code: 'PLOT_OCCUPIED' }
       )

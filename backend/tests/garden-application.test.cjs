@@ -17,7 +17,7 @@ function setup(existing=null,authorized=true) {
   async findLatestByCreator(id){calls.push('creator:'+id);return existing},
   async findById(id){calls.push('find:'+id);return existing},
   async create(data){calls.push(['create',data]);return {...fixture(),...data}},
-  async update(id,data){calls.push(['update',id,data]);return {...existing,...data}},
+  async update(id,data){calls.push(['update',id,data]);return {...existing,...Object.fromEntries(Object.entries(data).filter(([,value])=>value!==undefined))}},
   async listAccessible(id,community){calls.push(['list',id,community]);return []},
   async getDetails(id){calls.push('details:'+id);return existing},
  }

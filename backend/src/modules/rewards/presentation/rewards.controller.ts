@@ -3,7 +3,7 @@ import type { Response } from 'express'
 import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
 import { getUserRewardsSummary } from '../rewards.module'
-import { syncUserMissionsAndBadges } from '../application/missions.service'
+import { syncUserMissionsAndBadges } from '../missions.module'
 
 export async function getMyRewards(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user?.userId

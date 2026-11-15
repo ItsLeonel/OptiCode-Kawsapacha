@@ -1,5 +1,9 @@
 # Evidencias de pruebas
 
+> **Estado del repositorio — 15/11/2026:** esta rama **no contiene los PNG** citados más abajo: solo se incorporaron este índice y `.gitkeep` en `evidencias/`. Por ello, las referencias visuales enumeradas **no se pueden abrir en GitHub**. Se indica que hay capturas insertadas en `../casos-prueba-v1.docx`, pero aquí no se han exportado ni verificado individualmente. **Pendiente de Santiago:** exportar los archivos de captura originales, conservar el nombre/caso/fecha, subirlos a esta carpeta y verificar cada enlace. No se interpreta un nombre de imagen como evidencia de una prueba adicional.
+>
+
+
 Guardar aquí las capturas y videos reales de cada ejecución. Nombre: `P-XXX-descripcion-AAAA-MM-DD.png` (por ejemplo `P-003-comunidad-creacion-2026-11-08.png`).
 
 **Antes de subir:** ocultar contraseñas, tokens, correos personales y ubicaciones exactas; usar solo datos ficticios. Si una captura muestra la pestaña de red o la base de datos, tapar los datos sensibles.

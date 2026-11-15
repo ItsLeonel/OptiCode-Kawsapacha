@@ -1,6 +1,6 @@
 import { test, expect, type Page } from './e2e'
 import { registerGround, expectReady, canvasSlot, slots, scene } from './garden-helpers'
-import { navigateModule } from './community-helpers'
+import { mainNavigation, navigateModule } from './community-helpers'
 
 // The SVG renderer was replaced by the interactive Phaser renderer. Keep the
 // region/modality matrix and navigation/accessibility checks against real UI.
@@ -25,6 +25,23 @@ test('bienvenida sin registros exige comunidad y mantiene las seis acciones real
   await expect(page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button')).toHaveCount(6)
   await page.getByRole('button', { name: 'Crear mi comunidad', exact: true }).click()
   await expect(page.getByRole('form', { name: 'Crear comunidad', exact: true })).toBeVisible()
+})
+
+test('menú principal agrupa las funciones del huerto en tres módulos públicos', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Descubrir Kawsapacha' }).click()
+  const nav = mainNavigation(page)
+  await expect(nav.getByRole('button')).toHaveCount(3)
+  for (const name of ['Mi Huerto', 'Comunidad', 'Mi Camino Verde']) {
+    await expect(nav.getByRole('button', { name, exact: true })).toBeVisible()
+  }
+  for (const oldLink of ['Mi terreno', 'Catálogo medicinal', 'Mis plantas', 'Bitácora general']) {
+    await expect(nav.getByRole('button', { name: oldLink, exact: true })).toHaveCount(0)
+  }
+  const quickActions = page.getByRole('navigation', { name: 'Acciones de tu jardín' })
+  await expect(quickActions.getByRole('button', { name: 'Catálogo medicinal', exact: true })).toBeVisible()
+  await expect(quickActions.getByRole('button', { name: 'Mis plantas', exact: true })).toBeVisible()
+  await expect(quickActions.getByRole('button', { name: 'Bitácora', exact: true })).toBeVisible()
 })
 
 for (const kind of kinds) for (const [region, province] of Object.entries(regions)) {

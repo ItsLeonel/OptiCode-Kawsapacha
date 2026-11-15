@@ -408,6 +408,19 @@ class ModularGardenScene extends Phaser.Scene {
         (minY + maxY) / 2,
       )
       this.clampMobileCamera()
+      if (kind === 'pots') {
+        // Además del ancla interactiva, cada recipiente ocupa anchura visual.
+        // Mantener la última columna dentro de la pantalla sin cambiar su posición real.
+        const camera = this.cameras.main
+        const origin = camera.getWorldPoint(0, 0)
+        const lastX = (maxX - origin.x) * zoom
+        const rightPadding = Math.min(55, this.scale.width * .15)
+        const excess = lastX + rightPadding - this.scale.width
+        if (excess > 0) {
+          camera.setScroll(camera.scrollX + excess / zoom, camera.scrollY)
+          this.clampMobileCamera()
+        }
+      }
       return
     }
     const ground = this.bridge.snapshot.model.kind === 'ground'

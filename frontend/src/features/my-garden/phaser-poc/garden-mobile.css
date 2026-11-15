@@ -171,6 +171,7 @@
     bottom: calc(200px + env(safe-area-inset-bottom));
     left: 8px;
     right: auto;
+    transform: none;
     width: max-content;
     max-width: min(160px, calc(50vw - 14px));
     padding: 6px 8px;

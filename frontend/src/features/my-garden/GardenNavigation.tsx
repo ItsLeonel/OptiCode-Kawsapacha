@@ -5,22 +5,10 @@ import { useEffect, useRef, useState } from 'react'
 import './garden-navigation-v3.css'
 
 type PrimaryDestination = 'garden' | 'community' | 'progress'
-type SidebarProgress = {
-  points: number
-  level: string
-  progressPercent: number
-  nextLevel?: string
-  badges: { id: string; label: string; earned: boolean }[]
-}
-
-const ITEMS: { destination: GardenDestination; label: string; icon: 'garden' | 'map' | 'community' | 'leaf' | 'pot' | 'book' | 'target' }[] = [
-  { destination: 'garden', label: 'Mi Huerto Vivo', icon: 'garden' },
-  { destination: 'real-garden', label: 'Mi terreno', icon: 'map' },
+const ITEMS: { destination: GardenDestination; label: string; icon: 'garden' | 'community' | 'target' }[] = [
+  { destination: 'garden', label: 'Mi Huerto', icon: 'garden' },
   { destination: 'community', label: 'Comunidad', icon: 'community' },
-  { destination: 'plants', label: 'Catálogo medicinal', icon: 'leaf' },
-  { destination: 'my-plants', label: 'Mis plantas', icon: 'pot' },
-  { destination: 'history', label: 'Bitácora general', icon: 'book' },
-  { destination: 'progress', label: 'Mi camino verde', icon: 'target' },
+  { destination: 'progress', label: 'Mi Camino Verde', icon: 'target' },
 ]
 
 export default function GardenNavigation({
@@ -28,29 +16,24 @@ export default function GardenNavigation({
   onNavigate,
   onWelcome,
   demo = true,
-  progress,
   user,
   onLogout,
   pendingInvitationsCount = 0,
   onOpenNotifications,
   region: _region,
   overlayMode = false,
-  onRetryRewards,
 }: {
   active: GardenDestination | PrimaryDestination
   onNavigate: (destination: GardenDestination) => void
   onWelcome: () => void
   demo?: boolean
-  progress?: SidebarProgress
   user?: { name: string; role: string } | null
   onLogout?: () => void
   pendingInvitationsCount?: number
   onOpenNotifications?: () => void
   region?: string
   overlayMode?: boolean
-  onRetryRewards?: () => void
 }) {
-  const earnedBadges = progress?.badges.filter(badge => badge.earned) ?? []
   const [open, setOpen] = useState(false)
   const sidebarRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -160,74 +143,7 @@ export default function GardenNavigation({
         )}
       </nav>
 
-      {progress && (
-        <button
-          className="garden-path-preview"
-          type="button"
-          onClick={() => onNavigate('progress')}
-          aria-label={`Ver Mi camino verde: ${progress.points} Semillas de vida, nivel ${progress.level}`}
-        >
-          <span className="garden-progress-heading">
-            <GardenIcon name="seed" />
-            <strong>Mi progreso</strong>
-          </span>
-          <span className="garden-progress-level">
-            <strong>{progress.level}</strong>
-            <output>{progress.points} Semillas</output>
-          </span>
-          <progress aria-label="Avance al siguiente nivel" max={100} value={progress.progressPercent} />
-          <span className="garden-progress-next">
-            {progress.nextLevel ? `Siguiente: ${progress.nextLevel}` : 'Nivel Maestro'}
-          </span>
-          <span className="garden-progress-badges" aria-label={`${earnedBadges.length} insignias obtenidas`}>
-            {earnedBadges.length ? (
-              earnedBadges.map(badge => (
-                <span key={badge.id} title={badge.label} aria-label={badge.label}>
-                  ✦
-                </span>
-              ))
-            ) : (
-              <small>Sin insignias obtenidas</small>
-            )}
-          </span>
-        </button>
-      )}
-
-      {!progress && user && (
-        <div className="garden-path-preview" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <button type="button" onClick={() => onNavigate('progress')} style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', color: 'inherit', width: '100%' }}>
-            <span className="garden-progress-heading"><GardenIcon name="seed" /><strong>Mi progreso</strong></span>
-            <span className="garden-progress-level"><strong>Sin sincronizar</strong></span>
-            <span className="garden-progress-next">Recompensas pendientes del servidor</span>
-          </button>
-          {onRetryRewards && (
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation()
-                onRetryRewards()
-              }}
-              style={{
-                marginTop: '4px',
-                fontSize: '0.78rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                background: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                color: 'inherit',
-                cursor: 'pointer',
-                width: 'fit-content',
-              }}
-              title="Reintentar conexión con el servidor"
-            >
-              🔄 Reintentar
-            </button>
-          )}
-        </div>
-      )}
+      {/* El progreso y las insignias se consultan dentro de Mi Camino Verde. */}
       <div className="garden-sidebar-footer">
         {user ? (
           <>

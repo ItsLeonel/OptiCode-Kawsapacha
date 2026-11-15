@@ -1304,7 +1304,7 @@ export default function App({
             </span>
           </header>
           <div className="page">
-            {screen !== 'Plantas medicinales' && (user ? (
+            {screen !== 'Plantas medicinales' && screen !== 'Mis plantas' && (user ? (
               <div
                 className="prototype-alert"
                 style={{ background: 'rgba(56, 161, 105, 0.15)', borderColor: '#38a169', color: '#2f855a' }}
@@ -1335,7 +1335,7 @@ export default function App({
               </button>
             </div>}
 
-            {(screen === 'Mis plantas' || screen === 'Bitácora') && (
+            {screen === 'Bitácora' && (
               <nav className="garden-internal-nav" aria-label="Secciones de Mi Huerto Vivo">
                 <button type="button" onClick={() => goto('Inicio')}>
                   Jardín

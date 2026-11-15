@@ -3,7 +3,6 @@ import type { Response } from 'express'
 import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
 import * as harvestService from '../harvest.module'
-import { prisma } from '../../../infrastructure/database/prisma'
 import { assertGardenAccess } from '../../gardens/garden-access.module'
 
 export async function harvestPlant(req: AuthRequest, res: Response): Promise<void> {
@@ -14,9 +13,9 @@ export async function harvestPlant(req: AuthRequest, res: Response): Promise<voi
   if (!quantity?.trim()) return void fail(res, 'VALIDATION_ERROR', 'quantity es obligatorio.', 400)
 
   try {
-    const plant = await prisma.cultivatedPlant.findUnique({ where: { id: plantId }, select: { realGardenId: true } })
-    if (!plant) return void fail(res, 'NOT_FOUND', 'Planta no encontrada.', 404)
-    await assertGardenAccess(plant.realGardenId, req.user.userId)
+    const gardenId = await harvestService.findHarvestPlantGardenId(plantId)
+    if (!gardenId) return void fail(res, 'NOT_FOUND', 'Planta no encontrada.', 404)
+    await assertGardenAccess(gardenId, req.user.userId)
     const harvest = await harvestService.harvestPlant(plantId, quantity.trim(), notes ?? '', req.user.userId)
     ok(res, { harvest }, 'Cosecha registrada.', 201)
   } catch (err: any) {
@@ -43,13 +42,9 @@ export async function listByCommunity(req: AuthRequest, res: Response): Promise<
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
   try {
     const communityId = String(req.params['id'] ?? '')
-    const community = await prisma.community.findUnique({ where: { id: communityId }, select: { creatorId: true } })
-    if (!community) return void fail(res, 'NOT_FOUND', 'Comunidad no encontrada.', 404)
-    const member = await prisma.communityMember.findUnique({
-      where: { communityId_userId: { communityId, userId: req.user.userId } },
-      select: { status: true },
-    })
-    if (community.creatorId !== req.user.userId && member?.status !== 'ACCEPTED') {
+    const access = await harvestService.checkCommunityHarvestAccess(communityId, req.user.userId)
+    if (access === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', 'Comunidad no encontrada.', 404)
+    if (access === 'FORBIDDEN') {
       return void fail(res, 'FORBIDDEN', 'No tienes acceso a las cosechas de esta comunidad.', 403)
     }
     const harvests = await harvestService.listHarvestsByCommunity(communityId)

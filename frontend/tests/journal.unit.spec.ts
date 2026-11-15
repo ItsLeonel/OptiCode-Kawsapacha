@@ -77,12 +77,19 @@ test('a new photo with the same observation keeps both evidences with one daily 
   expect(calculateProgress(state).points).toBe(12)
 })
 
-test('spaces and plants pending MSP approval block all activities including sowing and plot targeting', () => {
+test('un estado MSP heredado pendiente no bloquea riego ni observación; la parcela sigue ocupada', () => {
   const state = setup()
   const pendingPlants = state.plants.map(p => ({ ...p, reviewStatus: 'PENDING' }))
-  expect(validateActivity(activity(state.gardenId, { type: 'watering' }), pendingPlants)).toContain('pendiente de revisión por el MSP')
-  expect(validateActivity(activity(state.gardenId, { type: 'sowing', target: { kind: 'plot', plot: 0 } }), pendingPlants)).toContain('pendiente de revisión por el MSP')
-  expect(validateActivity(activity(state.gardenId, { type: 'observation', target: { kind: 'plot', plot: 0 }, details: { state: 'observed' } }), pendingPlants)).toContain('pendiente de revisión por el MSP')
+  const watering = activity(state.gardenId, { type: 'watering' })
+  expect(validateActivity(watering, pendingPlants)).toBeNull()
+  expect(validateActivity(activity(state.gardenId, {
+    type: 'observation',
+    details: { state: 'observed' },
+  }), pendingPlants)).toBeNull()
+  expect(validateActivity(activity(state.gardenId, {
+    type: 'sowing',
+    target: { kind: 'plot', plot: 0 },
+  }), pendingPlants)).toContain('ocupado')
 })
 
 test('mobile photo normalization accepts image/jpg and extension fallback for phone uploads', async () => {

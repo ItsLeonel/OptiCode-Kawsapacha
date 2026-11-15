@@ -51,6 +51,13 @@ function checkFeature(file){
    if(target.startsWith(path.join(root,'app')+path.sep)){
      errors.push(path.relative(root,file)+': features no puede importar app: '+spec)
    }
+   const featuresRoot=path.join(root,'features')
+   const fromFeature=path.relative(featuresRoot,file).split(path.sep)[0]
+   const targetRelative=path.relative(featuresRoot,target)
+   if(!targetRelative.startsWith('..'+path.sep)&&targetRelative!=='..'&&!path.isAbsolute(targetRelative)){
+     const toFeature=targetRelative.split(path.sep)[0]
+     if(toFeature!==fromFeature) errors.push(path.relative(root,file)+': una feature no puede importar otra feature: '+spec)
+   }
  }
 }
 walk(shared)
@@ -62,4 +69,4 @@ console.log('Archivos compartidos inspeccionados: '+count)
 if(errors.length){
  console.error('Violaciones de arquitectura frontend:\n'+errors.join('\n'))
  process.exitCode=1
-}else console.log('OK: shared no importa features ni app.')
+}else console.log('OK: shared y features respetan fronteras sin imports entre funcionalidades.')

@@ -1,16 +1,11 @@
-import { prisma } from '../../../infrastructure/database/prisma'
-import path from 'path'
-import { assertGardenAccess } from '../../gardens/garden-access.module'
-import { evaluateActivityReward } from '../../rewards/rewards.module'
-import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
+import type { PlantWriteRepository, PlantWriteServices } from './ports/plant-write.repository'
 import { extractGrowthStage } from '../domain/plant-rules'
 import type { UpdatePlantInput } from './plant-input'
 
-export async function updatePlantDetails(input: UpdatePlantInput) {
-  const plant = await prisma.cultivatedPlant.findUnique({
-    where: { id: input.plantId },
-    include: { realGarden: true, species: true },
-  })
+export function createPlantUpdateService<T extends {id:string}, U extends {plotIndex:number|null;photoUrl:string|null}>(repository:PlantWriteRepository<T,U>, services:PlantWriteServices) {
+const { assertGardenAccess, evaluateActivityReward, syncUserMissionsAndBadges, basename } = services
+async function updatePlantDetails(input: UpdatePlantInput) {
+  const plant = await repository.getPlantForUpdate(input.plantId)
   if (!plant) throw Object.assign(new Error('Planta no encontrada.'), { code: 'NOT_FOUND' })
   await assertGardenAccess(plant.realGardenId, input.requestingUserId)
   // La planta ya sembrada puede editarse y documentar fotos nuevas aunque MSP aún revise la siembra.
@@ -22,11 +17,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
       throw Object.assign(new Error('Adjunta una fotografía real para cambiar el estado observado.'), { code: 'EVIDENCE_REQUIRED' })
     }
     if (input.growthStage) {
-      const tracked = await prisma.gardenActivity.findMany({
-        where: { plantId: plant.id, voidedAt: null },
-        orderBy: { createdAt: 'desc' },
-        select: { details: true, type: true, reviewStatus: true },
-      })
+      const tracked = await repository.getGrowthActivities(plant.id)
       const currentStage = extractGrowthStage(tracked)
       if (input.growthStage !== currentStage) {
         throw Object.assign(new Error('Adjunta una fotografía real para documentar una nueva etapa de crecimiento.'), { code: 'EVIDENCE_REQUIRED' })
@@ -58,27 +49,21 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
     }
   }
   if (input.plotIndex !== undefined && Number.isInteger(input.plotIndex) && input.plotIndex >= 0 && input.plotIndex <= 5 && input.plotIndex !== plant.plotIndex) {
-    const existing = await prisma.cultivatedPlant.findUnique({
-      where: { realGardenId_plotIndex: { realGardenId: plant.realGardenId, plotIndex: input.plotIndex } },
-    })
+    const existing = await repository.findPlot(plant.realGardenId, input.plotIndex)
     if (existing && existing.id !== plant.id) {
       throw Object.assign(new Error('Esa parcela ya está ocupada por otra planta.'), { code: 'PLOT_OCCUPIED' })
     }
     data.plotIndex = input.plotIndex
   }
   if (input.file) {
-    const filename = path.basename(input.file.path)
+    const filename = basename(input.file.path)
     data.photoUrl = `/uploads/plants/${filename}`
     data.photoPath = input.file.path
     data.photoMime = input.file.mimetype
     data.photoSize = input.file.size
   }
 
-  const updated = await prisma.cultivatedPlant.update({
-    where: { id: input.plantId },
-    data,
-    include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },
-  })
+  const updated = await repository.updatePlant(input.plantId, data)
 
   // Documentar observaciones reales como actividades válidas y recompensables.
   const hasObservation = Boolean(
@@ -94,8 +79,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
     if (input.growthStage) detailsObj.growthStage = input.growthStage
     if (input.heightCm !== undefined) detailsObj.heightCm = input.heightCm
 
-    const activity = await prisma.gardenActivity.create({
-      data: {
+    const activity = await repository.createActivity({
         gardenId: plant.realGardenId,
         actorUserId: input.requestingUserId,
         type: 'observation',
@@ -106,18 +90,15 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
         notes: input.notes || `Observación actualizada: ${input.observedState || 'seguimiento'}`,
         details: JSON.stringify(detailsObj),
         reviewStatus: 'APPROVED',
-      },
     })
 
     if (input.file) {
-      await prisma.activityEvidence.create({
-        data: {
+      await repository.createEvidence({
           activityId: activity.id,
           filePath: input.file.path,
           fileUrl: updated.photoUrl,
           mimeType: input.file.mimetype,
           fileSize: input.file.size,
-        },
       })
     }
 
@@ -139,4 +120,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
     ...updated,
     ...(input.growthStage ? { growthStage: input.growthStage } : {}),
   }
+}
+
+return {updatePlantDetails}
 }

@@ -44,7 +44,7 @@ let featureCount=0
 function checkFeature(file){
  featureCount++
  const source=fs.readFileSync(file,'utf8')
- for(const match of source.matchAll(/(?:\\bfrom\\s*|\\brequire\\s*\\(|\\bimport\\s*\\()\\s*['"]([^'"]+)['"]/g)){
+ for(const match of source.matchAll(/(?:\bfrom\s*|\brequire\s*\(|\bimport\s*\()\s*['"]([^'"]+)['"]/g)){
    const spec=match[1]
    if(!spec.startsWith('.'))continue
    const target=path.resolve(path.dirname(file),spec)

@@ -1,46 +1,89 @@
-# Kawsapacha — Arquitectura objetivo (TO-BE)
+# Kawsapacha — Arquitectura implementada
 
-## Contexto
+## Contexto y límites
 
-Un solo repositorio: `frontend/` (React + Vite + TypeScript + Phaser) y `backend/` (Node.js + Express + Prisma). El backend continúa siendo **un único proceso desplegable**; la migración no introduce microservicios.
+Repositorio único con `frontend/` (React, Vite, TypeScript, Phaser 3) y `backend/` (Express, Prisma, SQLite).
+El backend se despliega como **un monolito modular**, en un solo proceso, no como microservicios.
+La rama de refactorización no cambia contratos REST, reglas agrícolas, esquema Prisma ni rutas de fotografías.
 
-## Módulos de negocio
+## Mapa de componentes y dependencias
 
-- Identidad: `auth`, `users`.
-- Trabajo agrícola: `communities`, `gardens`, `plants`, `activities`, `harvest`, `lunar-calendar`, `catalog`.
-- Institucional y experiencia: `administration` (MSP/técnico), `rewards`, `notifications`, `media`.
-
-Las áreas visibles de la web (Mi Huerto, Comunidad, Mi Camino Verde, Notificaciones) **no** tienen por qué coincidir con estos límites internos.
-
-## Capas y regla de dependencias
+```mermaid
+flowchart TB
+  UI["Navegador: React + Vite"] --> SH["shared/api: contratos y cliente HTTP"]
+  UI --> APP["app: composición, sesión, navegación"]
+  APP --> FEAT["features: comunidad, huerto, plantas, bitácora, MSP"]
+  FEAT --> SH
+  FEAT --> ADAPTER["Adaptador del modelo visual del jardín"]
+  ADAPTER --> BRIDGE["GardenSceneBridge: comandos y eventos"]
+  BRIDGE --> PHASER["Phaser: presentación del jardín"]
+  SH --> REST["Express /api"]
+  REST --> ROUTER["app/router.ts: composición HTTP"]
+  ROUTER --> MODULES["13 módulos de negocio"]
+  MODULES --> PORTS["Casos de uso, dominio y puertos"]
+  ADAPTERS["Infraestructura Prisma / fotos / JWT"] -. "Implementa puertos" .-> PORTS
+  ADAPTERS --> SQLITE[("SQLite y almacenamiento /uploads")]
+```
 
 ```mermaid
 flowchart LR
-  P[Presentación: rutas y controladores] --> A[Aplicación: casos de uso]
-  A --> D[Dominio: reglas puras]
-  A --> I[Puertos: contratos]
-  E[Infraestructura: Prisma, fotografías] -. implementa .-> I
+  Auth["auth + users"] --> Community["communities"]
+  Gardens["gardens"] --> Community
+  Plants["plants"] --> Gardens
+  Activities["activities"] --> Gardens
+  Activities --> Harvest["harvest"]
+  Activities --> Rewards["rewards"]
+  Rewards --> Lunar["lunar-calendar"]
+  Admin["administration"] --> Activities
+  Admin --> Rewards
+  Admin --> Notifications["notifications"]
+  Community --> Media["media"]
+  Gardens --> Media
+  Catalog["catalog"] --- Plants
 ```
 
-La composición HTTP vive en `backend/src/app/router.ts`. Las reglas puras no deben importar Express, Prisma ni archivos. Los casos de uso nuevos recibirán contratos inyectados por su módulo. `backend/src/infrastructure/` aporta configuración y la instancia Prisma; `backend/src/shared/` aporta utilidades técnicas realmente compartidas.
+El segundo diagrama **resume colaboraciones relevantes**; no representa exhaustivamente todos los imports o rutas. No se debe interpretar como secuencia de transacciones.
 
-**Estado verificado:** la capa `application/` de los 13 módulos no importa Prisma, Express ni infraestructura, y los archivos `domain/` son independientes de infraestructura y HTTP. Los adaptadores de persistencia, fotografías y tokens están en `infrastructure/`, y las dependencias se ensamblan en archivos `*.module.ts`. El control estático obligatorio del CI rechaza importaciones indebidas y dependencias circulares; el último reporte confirmó **0 ciclos**.
+## Inventario de módulos backend
 
-## Invariantes que no se deben romper
+| Área | Módulos |
+| --- | --- |
+| Identidad | `auth`, `users` |
+| Comunidad y cultivo | `communities`, `gardens`, `plants`, `activities`, `harvest` |
+| Apoyo agronómico | `catalog`, `lunar-calendar` |
+| Institucional y transversal | `administration`, `rewards`, `notifications`, `media` |
 
-- Misma interfaz, navegación, mapas, escenas Phaser, fotografías y bitácora.
-- Mismos nombres, métodos, rutas y respuestas de la API REST.
-- Mismas reglas existentes del MSP, recompensas, cosechas, misiones y comunidades; los cambios de producto se harán en PR distintos.
-- Sin reescribir ni eliminar migraciones Prisma, datos reales, archivos de usuarios, evidencias o credenciales de despliegue.
-- Preservar `/uploads`, su volumen Docker y la compatibilidad de scripts y CI.
+Los 13 módulos están bajo `backend/src/modules/` con subcarpetas `domain/`, `application/`, `application/ports/`, `infrastructure/` y `presentation/` según su responsabilidad.
 
-## Revisión y excepciones
+## Convenciones y reglas de dependencia
 
-- [ADR-0001: decisión de monolito modular](ADR-0001-monolito-modular.md)
-- [ADR-0002: límites transaccionales y excepciones](ADR-0002-limites-transaccionales.md)
-- [Auditoría de fronteras](auditoria-fronteras-2026-11-15.md)
-- [Ejecución de la Fase 1](../quality/fase-1-arquitectura-pr72.md)
+- `domain/`: reglas puras, sin Express, HTTP, Prisma ni almacenamiento.
+- `application/`: casos de uso y puertos; las operaciones se prueban con repositorios simulados.
+- `infrastructure/`: adaptadores Prisma, archivos, autenticación y detalles externos.
+- `presentation/`: controladores, middlewares de borde y rutas; no deben consultar Prisma directamente.
+- `*.module.ts`: punto de composición de dependencias. El router principal solo monta endpoints.
+- `backend/src/shared/`: tipos y utilidades técnicas; no introducir reglas de negocio de módulos específicos.
+- `frontend/src/app/`: navegación, sesión, ensamblaje y coordinación entre capacidades.
+- `frontend/src/features/`: pantallas y operaciones por capacidad, incluidos `my-garden/plant-actions.ts` y `my-garden/journal/activity-actions.ts`.
+- `frontend/src/shared/`: contrato y transporte HTTP, geografía y componentes compartidos; no importa `features/` ni `app/`.
+- Phaser recibe snapshots, comandos y eventos por `adapter.ts`, `model.ts` y `bridge.ts`, sin acceso directo al cliente HTTP.
+- Las cuatro fachadas de entrada antiguas se conservan **porque aún tienen consumidores comprobados**; no retirar reexportaciones sin auditoría.
 
-Las transacciones actuales de anulación y revisión MSP se mantienen; los flujos multioperación de actividades, cosechas e inventario todavía requieren pruebas de rollback para justificar una nueva unidad de trabajo. La fase arquitectónica no debe afirmar atomicidad que no existe.
+El CI comprueba importaciones entre capas, ciclos backend, reglas frontend `shared → features/app` y `features → app`, y que el código de Phaser no importe el cliente HTTP. Las pruebas estáticas no equivalen a ausencia de todo acoplamiento semántico.
 
-Consultar también [arquitectura histórica](../arquitectura/backend.md), [frontend](../arquitectura/frontend.md) y [contratos](../arquitectura/contratos-api.md).
+## Límites y excepciones documentadas
+
+- Existen **78 imports directos entre funcionalidades frontend** (conteo de referencias, no de pares únicos), con dependencias en ambas direcciones entre algunas capacidades del jardín y comunidades. La capa `shared` mantiene 0 imports inversos; eliminar todas las colaboraciones `feature → feature` requeriría otro cambio de alcance.
+- Las secuencias de cosecha, inventario, evidencia, puntos y misiones no son íntegramente atómicas; ver [ADR-0002](ADR-0002-limites-transaccionales.md).
+- La regresión automatizada y persistencia con SQLite temporal aprobó; las pruebas **con la instalación y datos privados reales** requieren revisión del equipo.
+- No cambiar ni regenerar bases reales, ni reinicializar `/uploads`. Conservar los volúmenes de Docker.
+
+## Decisiones y verificación
+
+- [ADR-0001 — monolito modular y Clean Architecture](ADR-0001-monolito-modular.md)
+- [ADR-0002 — límites transaccionales](ADR-0002-limites-transaccionales.md)
+- [Métricas antes/después y resultados](../quality/evaluacion-mantenibilidad-pr72.md)
+- [Matriz de regresión y aceptación manual](../quality/regresion-arquitectura.md)
+- [Contratos API previos](../arquitectura/contratos-api.md)
+
+La implementación y sus cuatro workflows terminaron en éxito en el commit funcional `5e024893`, previo a este cambio documental. Ningún commit de documentación altera la lógica o los datos.

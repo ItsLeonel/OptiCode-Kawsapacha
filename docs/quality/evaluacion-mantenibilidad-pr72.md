@@ -1,40 +1,51 @@
 # Evaluación de mantenibilidad — PR #72
 
-## Alcance y metodología
+## Método y referencias
 
-La migración conserva un solo backend Express/Prisma/SQLite y un frontend React/Vite/Phaser en el mismo repositorio. Se establecieron módulos funcionales con dominio, aplicación, puertos, infraestructura y presentación, así como composición explícita por módulo. No existen microservicios.
+Comparación entre la base original `main` (`e9ef2a6d`) y el commit funcional `5e024893`. Los recuentos de archivos y tamaños son de los árboles Git completos `backend/src` y `frontend/src`; los tamaños son **bytes de archivos TS/TSX versionados**, no memoria, binarios ni LOC. Las líneas de los archivos clave provienen de su contenido. El análisis de módulos/importaciones se obtuvo con `node tools/maintainability-report.cjs` en [CI Backend #43733059733](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059733).
 
-Los indicadores proceden del análisis estático `node tools/maintainability-report.cjs` y `npm run check:architecture` ejecutados en la [Action backend #43727049446](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43727049446), commit `dabd7121`, el 15/11/2026. Los valores incluyen líneas físicas, comentarios y vacías y **no** miden por sí solos complejidad cognitiva, cobertura ni eficacia funcional.
+| Métrica comparable | Antes (`main`) | Después (PR) |
+| --- | ---: | ---: |
+| Archivos TS/TSX backend | 67 | **181** |
+| Tamaño fuente TS/TSX backend | 233.746 bytes | **294.313 bytes** |
+| Módulos bajo `backend/src/modules/` | 0 | **13** |
+| Archivos TS/TSX frontend | 143 | **171** |
+| Tamaño fuente TS/TSX frontend | 1.036.958 bytes | **1.054.981 bytes** |
+| Módulos bajo `frontend/src/features/` | 7 | **7** |
+| Componente raíz `App.tsx` | 1.545 líneas | **833 líneas** |
+| Servicio principal de actividad (archivo) | 534 líneas | **253 líneas** en el caso de uso extraído |
 
-| Indicador | Resultado |
+`App.tsx` se redujo en **712 líneas (46,1 %)**. Backend creció en archivos y bytes por interfaces, adaptadores, composición y separación de responsabilidades; estas cifras **no prueban** por sí solas mejoras de rendimiento o complejidad ciclomática. El servicio de actividades original se subdividió entre módulos, por lo que comparar solo dos archivos **no mide todo el código transferido**.
+
+## Indicadores estructurales actuales (CI)
+
+| Indicador | Valor |
 | --- | ---: |
-| Módulos de negocio del backend | 13 |
-| Archivos TS del backend | 167 |
-| Líneas físicas TS del backend | 7.036 |
-| Referencias directas entre módulos backend | 23 |
-| Grupos circulares entre módulos backend | **0** |
-| Archivos `application/` que importan Prisma directamente | **0** |
-| Archivos en `domain/` verificados por reglas de dependencia | 12 |
-| Archivos TS/TSX del frontend | 164 |
-| Líneas físicas TS/TSX frontend | 19.423 |
-| Módulos `features/` del frontend | 7 |
-| Referencias entre funcionalidades frontend | 74 |
-| Archivos `shared/` que importan `features/` | **0** |
-| Pruebas Node del backend | 73 aprobadas, 0 fallidas |
+| Archivos backend / líneas físicas TS | 181 / 7.131 |
+| Módulos backend / ciclos intermodulares | 13 / **0** |
+| Referencias directas entre módulos backend | 24 |
+| `application/` con imports directos Prisma | **0** |
+| Archivos frontend / líneas físicas TS/TSX | 171 / 19.627 |
+| Funcionalidades frontend | 7 |
+| Imports directos entre funcionalidades frontend | **78** |
+| `shared/` importando `features/` | **0** |
 
-### Evaluación de los requisitos de calidad
+Los contadores de importaciones son referencias, no relaciones únicas. Los valores de dependencia antes del cambio no se presentan como si fueran comparables: la estructura previa **no tenía** `backend/src/modules/` y la herramienta agrupa por carpetas `modules/`/`features/`. No hay medición de complejidad cognitiva/SonarQube ni cobertura porcentual.
 
-- **Modularidad:** los 13 módulos backend agrupan lógica por capacidad y compilan mediante un mismo entrypoint; no hay ciclos intermodulares.
-- **Bajo acoplamiento:** dominio/aplicación no importan persistencia, y `shared` frontend no importa `features`. Persisten llamadas legítimas entre módulos a través de fachadas, cuantificadas en el reporte.
-- **Reusabilidad:** funciones puras y componentes compartidos; contratos y utilidades se consumen sin duplicar infraestructura.
-- **Analizabilidad:** estructura homogénea, ADR, documentación de contratos y reporte ejecutable en CI.
-- **Modificabilidad:** puertos/repositorios permiten cambiar infraestructura sin modificar casos de uso; controles bloquean regresiones arquitectónicas.
-- **Capacidad de prueba:** tests de dominio, aplicación con repositorios falsos, API/integración con SQLite y E2E Playwright.
+## Contratos, compatibilidad y calidad comprobadas
 
-### Verificaciones y límites de la afirmación
+- [Backend #43733059733](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059733): 82 tests Node, integración de roles MSP, actividades, migración sobre SQLite heredada y reconciliación idempotente.
+- [Docker #43733059756](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059756): build, healthcheck, Caddy y persistencia de comunidad SQLite y fotografía tras reiniciar API.
+- [Regresión crítica #43733059887](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059887): 4 escenarios críticos aprobados.
+- [Frontend #43733059738](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059738): TypeScript, build, 82 unitarias, 32 Playwright de jardín y flujos de UI aprobados.
+- Contratos backend fijados con 20 montajes, 47 rutas/métodos en 16 subrouters, y rutas de cosecha/plantas; no se modificaron esquema ni migraciones Prisma.
+- Cuatro fachadas históricas verificadas con consumidores: `src/App` (3), `src/EcuadorMap` (3), `src/utils/reviewStatus` (2), `src/services/api` (16). Mantenerlas es obligatorio mientras se usen.
 
-La ejecución citada aprobó compilación, análisis estático, pruebas de backend y reconciliación sobre SQLite heredada; Docker también aprobó [Action #43727049467](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43727049467). Los workflows visuales pueden tardar más que backend/Docker y **solo su resultado completo del último SHA** permite valorar la regresión.
+## Excepciones y límite de la certificación
 
-No se modificó `backend/prisma/schema.prisma`, ni las migraciones ni los archivos de usuario en `uploads/`. No puede sustituirse la inspección de fotografías y sesiones reales de una instalación desplegada por una prueba con datos simulados.
+1. Los flujos de cosecha/inventario y actividades/evidencias/recompensas mantienen escrituras separadas y requieren una evolución transaccional independiente; no afirmar atomicidad integral. [ADR-0002](../architecture/ADR-0002-limites-transaccionales.md).
+2. Los 78 imports entre funcionalidades frontend muestran acoplamientos residuales; la refactorización priorizó preservar comportamiento y evitar ciclos de backend.
+3. La **prueba manual sobre la instalación real** con cuentas, SQLite y fotografías existentes continúa a cargo del equipo. Los tests usan datos aislados y no sustituyen la aceptación de producción.
+4. Las cifras de líneas incluyen comentarios y líneas vacías. El resultado de CI puede certificarse; la equivalencia funcional absoluta con datos privados no.
 
-**Criterio de entrega:** no fusionar con regresiones nuevas ni marcar evidencia manual como aprobada sin ejecutarla; actualizar las ejecuciones a la SHA final de la rama después de cualquier commit documental.
+El commit final de documentación puede diferir de `5e024893` sin cambiar ningún archivo de aplicación. La rama se deja **lista para revisión, sin merge**.

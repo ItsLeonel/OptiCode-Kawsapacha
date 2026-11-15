@@ -1,27 +1,40 @@
 # ADR-0001 — Monolito modular + Clean Architecture
 
-**Estado:** Implementación estructural y fronteras de aplicación/dominio verificadas en CI. Integración de despliegue y regresión visual sujetas al último commit.
+**Estado:** decisión adoptada e implementación estructural verificada mediante GitHub Actions.  
+**PR:** [#72](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/72) · destino: `main` · **no fusionado**.
 
 ## Contexto
 
-La cliente exige modularidad, bajo acoplamiento, reutilización, analizabilidad, modificabilidad y facilidad de prueba. La aplicación existente usa React/Phaser y Express/Prisma/SQLite.
+Kawsapacha partía de un backend Express/Prisma/SQLite con servicios y controladores ampliamente agrupados y un frontend React/Phaser cuyo `App.tsx` concentraba la coordinación de múltiples flujos. Se pidió mejorar modularidad, analizabilidad, modificabilidad y capacidad de prueba **sin alterar ningún comportamiento observable**.
 
 ## Decisión
 
-Mantener frontend y backend en el mismo repositorio y un único proceso backend desplegable. Separar capacidades de negocio en backend/src/modules con domain, application, infrastructure y presentation. Mantener src/app/router.ts como composición HTTP. Frontend organizado con src/app, src/features y src/shared.
+Mantener un backend desplegable único y organizarlo en 13 módulos por capacidad de negocio; aplicar dependencias hacia dominio y puertos, implementados por adaptadores Prisma y de archivos, con composición en `*.module.ts` y `app/router.ts`. Organizar el frontend en `app/`, `features/`, `shared/`, y adaptar el estado del jardín al puente Phaser, sin conexión del renderizador al backend.
 
-## Reglas
+## Convenciones obligatorias
 
-- Dominio sin dependencias de Express, Prisma, HTTP ni sistema de archivos.
-- Aplicación usa interfaces/puertos; adaptadores concretos en infraestructura.
-- Preservar rutas API, esquema de datos, migraciones, fotos, sesiones y funcionamiento.
-- No introducir microservicios ni cambios de reglas de negocio en este PR.
-- Mantener fachadas temporales donde existan consumidores heredados.
+1. El dominio no conoce Prisma, Express, archivos ni HTTP.
+2. Los casos de uso dependen de contratos/puertos; la infraestructura implementa esas interfaces.
+3. El ensamblaje se mantiene en módulos de composición, no dentro de dominio o aplicación.
+4. El frontend compartido no puede importar funcionalidades ni `app`; las funcionalidades no importan `app`.
+5. Las rutas, respuestas, códigos HTTP, permisos, migraciones, fotografías y semántica de las operaciones deben conservarse.
+6. Eliminar fachadas heredadas **solo cuando no queden consumidores**; CI verifica su uso.
+7. Los cambios funcionales y alteraciones de límites ACID se tramitan por separado.
 
-## Consecuencias
+## Consecuencias positivas verificadas
 
-La arquitectura cuenta con repositorios/puertos inyectados y adaptadores Prisma, de fotografía y de JWT. El control `check:architecture` verifica todas las capas `application/` y `domain/`, y rechaza ciclos entre módulos; pruebas con repositorios simulados ejercitan las reglas sin Prisma. El coste de mantenimiento se desplaza a los contratos y módulos de composición. El control estático no demuestra equivalencia visual ni cobertura exhaustiva en ejecución.
+- 13 módulos backend, **0 ciclos intermodulares**, 0 archivos `application/` con import directo a Prisma.
+- Pruebas aisladas de aplicación y dominio más cobertura HTTP y SQLite.
+- `App.tsx` de 1.545 a 833 líneas mediante extracción de registro de plantas, actividades/bitácora, carga de jardín y coordinación de comunidades.
+- 0 dependencias inversas `frontend/src/shared → features` registradas; Phaser desacoplado de HTTP.
+- Rutas de API aseguradas con pruebas de montaje y método; esquema y migraciones de Prisma idénticos a `main`.
 
-## Verificación
+## Costes y excepciones aceptadas
 
-CI sobre último SHA, matriz de regresión, métricas de dependencias y revisión humana antes de fusionar.
+La separación genera más archivos y aumenta la cantidad total de código estructural; **menos líneas por archivo no equivale automáticamente a menor complejidad del sistema**. Persisten referencias `feature → feature` (78 imports directos contabilizados por la herramienta), así como fachadas de compatibilidad necesarias. Las transacciones multioperación de actividades/cosechas permanecen en los límites históricos: ver [ADR-0002](ADR-0002-limites-transaccionales.md). No se asegura atomicidad global ni ausencia de todos los acoplamientos.
+
+## Evidencia de aceptación
+
+En la rama funcional `5e024893`, aprobaron Backend, Docker con datos/fotografías persistentes tras reinicio, regresión crítica y Frontend con Playwright completo, incluidos **82 tests Node backend**, **82 tests unitarios frontend**, **32 pruebas Playwright de jardín** y **4 pruebas críticas**. Véanse [métricas](../quality/evaluacion-mantenibilidad-pr72.md) y [matriz](../quality/regresion-arquitectura.md).
+
+**Fuera de la certificación automática:** aceptación manual sobre una copia de la instalación con usuarios, SQLite y fotografías reales. No se hizo merge.

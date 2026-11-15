@@ -1,31 +1,38 @@
-# Matriz de regresión de arquitectura — Kawsapacha
+# Matriz de regresión arquitectónica — Kawsapacha
 
-Objetivo: comprobar que la reorganización conserva cada comportamiento y dato.
+## Criterio de ejecución
 
-## Antes de las pruebas
+Proteger datos reales antes de cualquier prueba: respaldar SQLite y `/uploads`; **no** ejecutar `prisma migrate reset` sobre instalaciones de usuarios. Comparar misma cuenta, jardín, ruta y evidencia entre `main` y la rama sobre un entorno controlado.
 
-- Respaldar SQLite y backend/uploads. No ejecutar resets sobre datos reales.
-- Comparar el mismo escenario en main y en la rama del PR, registrando SHA y capturas.
-- Ejecutar typecheck, build, pruebas unitarias, integración, MSP, recompensas, Playwright y Docker.
+## Resultado automatizado comprobado (`5e024893`)
 
-## Casos de verificación manual (no sustituidos por CI)
-
-| Funcionalidad | Escenario obligatorio | Estado |
+| Comprobación | Evidencia | Resultado |
 | --- | --- | --- |
-| Autenticación | Registro, login, cierre de sesión, autorización por rol | Pendiente |
-| Comunidades | Creación, miembros, invitaciones y estados MSP | Pendiente |
-| Mi Huerto | Región, modalidad, configuración y persistencia | Pendiente |
-| Mi Jardín | Phaser: cuatro regiones, cuatro modalidades y seis parcelas | Pendiente |
-| Plantas | Registrar con cámara, actualizar foto, pasaporte e historial | Pendiente |
-| Bitácora | Riego, siembra, observación y evidencias asociadas | Pendiente |
-| Actividades | Cosecha, poscosecha, calendario lunar y seguimiento | Pendiente |
-| Camino verde | Puntos, misiones, insignias y ledger | Pendiente |
-| MSP | Revisiones, auditoría, informes y moderación | Pendiente |
-| Notificaciones | Listado, contador, lectura y limpieza | Pendiente |
-| Invitado | IndexedDB local sin mezclar datos autenticados | Pendiente |
-| Archivos | Rutas de fotos, recursos regionales, uploads y licencias | Pendiente |
-| Despliegue | API, Caddy, volúmenes, healthcheck, Docker | Pendiente |
+| Backend: dominio, servicios, permisos, API, roles MSP | [Backend CI](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059733) | 82 tests Node + integración, aprobado |
+| Contratos API y arquitectura | Backend CI | 20 puntos de montaje, 47 rutas/métodos y controles de dependencias, aprobado |
+| Migración SQLite heredada y puntos/reconciliación | Backend CI | Aprobado; sin duplicar puntos en segundo pase |
+| Frontend: TypeScript, build y pruebas unitarias | [Frontend CI](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059738) | 82 unitarias, aprobado |
+| Navegación, Pasaporte, edición y render regional | Frontend CI | Aprobado |
+| Suite completa jardín Phaser | Frontend CI | 32 Playwright, aprobado |
+| Espejo digital, fotos, cosecha y persistencia | [Regresión crítica](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059887) | 4 Playwright, aprobado |
+| Docker, Caddy, API y `/uploads` tras reinicio | [Docker CI](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059756) | Aprobado |
+| Consumidores de cuatro fachadas históricas | Frontend CI, job `compatibilidad` | Aprobado; 3, 3, 2 y 16 usos |
 
-## Condiciones de aceptación
+Los tres fallos Playwright documentados en la [línea base histórica](regresion-baseline-2026-11-15.md) **no aparecen** en esta ejecución, que terminó con 32/32. La prueba automatizada actual no sustituye una inspección manual de fotografías reales.
 
-Los checks automatizados deben estar verdes sobre el último commit y los escenarios relevantes deben ejecutarse con resultados y evidencias. No fusionar con regresiones abiertas. CI exitoso NO demuestra por sí solo equivalencia funcional completa.
+## Matriz de aceptación manual (no ejecutada sobre datos privados)
+
+| Área | Verificación pendiente en entorno real | Estado |
+| --- | --- | --- |
+| Autenticación | Registro, login, logout y permisos por rol | Pendiente de aceptación manual |
+| Comunidades | Crear, editar, invitar, roles de miembros, revisión MSP | Pendiente de aceptación manual |
+| Mi Huerto | Cuatro regiones, cuatro modalidades, configuración y guardado | Pendiente de aceptación manual |
+| Mi Jardín | Phaser: seis parcelas, selección, cámara, persistencia del modelo | Pendiente de aceptación manual |
+| Plantas | Cámara y galería, evidencias antiguas, cambio de foto, pasaporte | Pendiente de aceptación manual |
+| Bitácora y actividades | Registro, lectura, anulación, fotos, cosecha, poscosecha | Pendiente de aceptación manual |
+| Calendario y recompensas | Calendario lunar, puntos, misiones, insignias, ledger | Pendiente de aceptación manual |
+| Administración MSP/técnica | Autorización, revisión, auditoría, contenido y notificaciones | Pendiente de aceptación manual |
+| Modo visitante | IndexedDB aislado de usuarios autenticados | Pendiente de aceptación manual |
+| Despliegue | Copia del SQLite real, `/uploads` histórico y HTTPS | Pendiente de aceptación manual |
+
+**Separación de afirmaciones:** las pruebas automatizadas del commit indicado están aprobadas. Ninguna fila manual se marca aprobada sin observación de la instalación que conserva datos reales. La rama de PR no ha sido fusionada.

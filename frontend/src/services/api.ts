@@ -998,6 +998,23 @@ export interface AuditLogItem {
   }
 }
 
+/** Recorre todas las páginas del backend MSP; nunca ocultar registros posteriores al primero. */
+async function listAllMspRecords<T>(collection: 'communities' | 'activities'): Promise<T[]> {
+  const records: T[] = []
+  let page = 1
+  let totalPages = 1
+  do {
+    const response = await request<Record<string, unknown>>(`/api/admin/msp/${collection}?limit=100&page=${page}`)
+    const items = response[collection]
+    if (!Array.isArray(items)) throw new Error(`Respuesta inválida del listado MSP: ${collection}.`)
+    records.push(...items as T[])
+    totalPages = typeof response.totalPages === 'number' && Number.isFinite(response.totalPages)
+      ? Math.max(1, response.totalPages) : 1
+    page += 1
+  } while (page <= totalPages)
+  return records
+}
+
 export const adminApi = {
   // Técnico
   async listUsers(): Promise<AdminUserItem[]> {
@@ -1027,7 +1044,7 @@ export const adminApi = {
 
   // MSP
   async listCommunities(): Promise<{ communities: any[] }> {
-    return await request<{ communities: any[] }>('/api/admin/msp/communities?limit=100')
+    return { communities: await listAllMspRecords<any>('communities') }
   },
 
   async reviewCommunity(id: string, data: { action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED'; reason?: string }): Promise<{ message: string; community: any }> {
@@ -1038,10 +1055,10 @@ export const adminApi = {
   },
 
   async listActivities(): Promise<{ activities: any[] }> {
-    return await request<{ activities: any[] }>('/api/admin/msp/activities?limit=100')
+    return { activities: await listAllMspRecords<any>('activities') }
   },
 
-  async reviewActivity(id: string, data: { action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED'; reason?: string }): Promise<{ message: string; activity: any; rewardAwarded?: any }> {
+  async reviewActivity(id: string, data: { action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED'; reason?: string }): Promise<{ activity: any; reward?: { pointsAwarded: number } | null }> {
     return await request<{ message: string; activity: any; rewardAwarded?: any }>(`/api/admin/msp/activities/${id}/review`, {
       method: 'POST',
       body: JSON.stringify(data),

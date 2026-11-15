@@ -28,6 +28,25 @@ const TECH_NAV: { key: AdminNavKey; label: string; icon: AdminIconName }[] = [
   { key: 'auditoria', label: 'Registro de actividad', icon: 'clipboard' },
 ]
 
+const DEMO_EVENTS = new Set([
+  'Minga Nacional Agroecológica Kawsapacha',
+  'Feria de Semillas Nativas y Salud Comunitaria',
+  'Taller Provincial de Compostaje y Riego Eficiente',
+])
+const DEMO_RESOURCES = new Set([
+  'Guía Oficial de Cultivo y Propiedades de Plantas Medicinales Andinas',
+  'Manual de Manejo Agroecológico de Suelos y Compostaje Comunitario',
+  'Ficha Técnica: Calendario Agroecológico Lunar Kawsapacha',
+  'Protocolo de Seguridad Alimentaria en Huertos Comunitarios',
+])
+function countBy<T>(items: T[], key: (item: T) => string): Array<[string, number]> {
+  const totals = new Map<string, number>()
+  for (const item of items) {
+    const name = key(item) || 'Sin dato'
+    totals.set(name, (totals.get(name) ?? 0) + 1)
+  }
+  return [...totals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'es'))
+}
 function FormattedCount({ value, suffix = '' }: { value?: number; suffix?: string }) {
   return <>{typeof value === 'number' ? value.toLocaleString('es-EC') + suffix : '—'}</>
 }
@@ -87,10 +106,10 @@ function SectionHead({ title, subtitle, onBack }: { title: string; subtitle: str
 function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: AdminNavKey) => void }) {
   const [province, setProvince] = useState('')
   return <>
-    <div className="kap-section-heading"><div><h2>Panel de gestión institucional</h2><p>Supervisión, acompañamiento y fortalecimiento de Kawsapacha a nivel nacional</p></div><span className="kap-info-chip"><AdminIcon name="clock" size={14}/> Sin actualización oficial</span></div>
+    <div className="kap-section-heading"><div><h2>Panel de gestión institucional</h2><p>Supervisión y acompañamiento de Kawsapacha · simulación académica, no un portal oficial del MSP</p></div><span className="kap-info-chip"><AdminIcon name="shield" size={14}/> Datos del proyecto</span></div>
     <div className="kap-metrics">
       <AdminMetric icon="users" label="Comunidades registradas" value={data?.communitiesTotal}/>
-      <AdminMetric icon="calendar" label="Eventos activos" value={data?.activeEvents} tone="gold"/>
+      <AdminMetric icon="calendar" label="Eventos registrados" value={data?.activeEvents} tone="gold"/>
       <AdminMetric icon="book" label="Recursos educativos" value={data?.educationalResources} tone="brown"/>
       <AdminMetric icon="shield" label="Contenidos en moderación" value={data?.moderationPending} tone="red"/>
     </div>
@@ -116,11 +135,11 @@ function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: Adm
       </AdminPanel>
       <AdminPanel icon="shield" title="Contenidos por moderar" subtitle="Publicaciones y evidencias de revisión" action={<ActionLink onClick={() => setTab('moderacion')}>Revisar</ActionLink>}>
         <div className="kap-review-list">
-          {([['Comunidades','users'], ['Evidencias fotográficas','image'], ['Foros y publicaciones','message']] as [string, AdminIconName][]).map(([label, icon]) => <button type="button" key={label} onClick={() => setTab('moderacion')}><AdminIcon name={icon} size={18}/><span>{label}</span><span className="kap-review-pending">{label === 'Comunidades' ? `${(data?.communities ?? []).filter(c => c.state === 'PENDING').length} pendientes` : label === 'Evidencias fotográficas' ? `${Math.max(0, (data?.moderationPending ?? 0) - (data?.communities ?? []).filter(c => c.state === 'PENDING').length)} pendientes` : 'Sin pendientes'}</span></button>)}
+          {([['Comunidades','users'], ['Actividades y evidencias','image']] as [string, AdminIconName][]).map(([label, icon]) => <button type="button" key={label} onClick={() => setTab('moderacion')}><AdminIcon name={icon} size={18}/><span>{label}</span><span className="kap-review-pending">{label === 'Comunidades' ? `${(data?.communities ?? []).filter(c => c.state === 'PENDING' || c.state === 'NEEDS_CHANGES').length} por revisar` : `${(data?.activities ?? []).filter(a => a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES').length} por revisar`}</span></button>)}
         </div>
       </AdminPanel>
       <AdminPanel icon="chart" title="Reportes rápidos" subtitle="Indicadores del programa" action={<ActionLink onClick={() => setTab('reportes')}>Ver reportes</ActionLink>}>
-        <div className="kap-report-list">{['Actividad de comunidades', 'Resultados de eventos', 'Uso de recursos educativos'].map(label => <button type="button" key={label} onClick={() => setTab('reportes')}><AdminIcon name="chart" size={18}/>{label}<AdminIcon name="right" size={17}/></button>)}</div>
+        <div className="kap-report-list">{['Actividades agrícolas', 'Eventos por provincia', 'Recursos por categoría'].map(label => <button type="button" key={label} onClick={() => setTab('reportes')}><AdminIcon name="chart" size={18}/>{label}<AdminIcon name="right" size={17}/></button>)}</div>
       </AdminPanel>
     </div>
   </>
@@ -149,7 +168,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       const comms = commRes.communities || []
       setAllCommunities(comms)
       setPendingComms(comms.filter((c: any) => c.status === 'PENDING' || c.status === 'NEEDS_CHANGES'))
-      setPendingActs((actRes.activities || []).filter((a: any) => a.reviewStatus === 'PENDING'))
+      setPendingActs((actRes.activities || []).filter((a: any) => a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES'))
     }).catch(err => setModError(err instanceof Error ? err.message : 'No se pudo cargar la bandeja de moderación.'))
       .finally(() => setModLoading(false))
   }, [])
@@ -180,13 +199,13 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
   const loadEvents = useCallback(() => {
     adminApi.listEvents()
       .then(r => setEventsList(r.events || []))
-      .catch(err => console.warn('Error al cargar eventos:', err))
+      .catch(err => setEventError(err instanceof Error ? err.message : 'No se pudieron cargar los eventos.'))
   }, [])
 
   const loadResources = useCallback(() => {
     adminApi.listResources()
       .then(r => setResourcesList(r.resources || []))
-      .catch(err => console.warn('Error al cargar recursos:', err))
+      .catch(err => setResError(err instanceof Error ? err.message : 'No se pudieron cargar los recursos.'))
   }, [])
 
   useEffect(() => {
@@ -215,6 +234,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       setEventDesc('')
       setEventFormOpen(false)
       loadEvents()
+      onRefresh?.()
     } catch (err: unknown) {
       setEventError(err instanceof Error ? err.message : 'Error al crear evento')
     } finally {
@@ -227,8 +247,9 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
     try {
       await adminApi.deleteEvent(id)
       loadEvents()
+      onRefresh?.()
     } catch (err) {
-      console.error(err)
+      setEventError(err instanceof Error ? err.message : 'No se pudo eliminar el evento.')
     }
   }
 
@@ -251,6 +272,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       setResUrl('')
       setResourceFormOpen(false)
       loadResources()
+      onRefresh?.()
     } catch (err: unknown) {
       setResError(err instanceof Error ? err.message : 'Error al crear recurso')
     } finally {
@@ -263,8 +285,9 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
     try {
       await adminApi.deleteResource(id)
       loadResources()
+      onRefresh?.()
     } catch (err) {
-      console.error(err)
+      setResError(err instanceof Error ? err.message : 'No se pudo eliminar el recurso.')
     }
   }
 
@@ -286,7 +309,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
     setModError('')
     try {
       const res = await adminApi.reviewActivity(id, { action, reason })
-      const pts = (res as any)?.reward?.pointsAwarded
+      const pts = res.reward?.pointsAwarded
       setModMsg(`✓ Actividad ${action === 'APPROVED' ? `aprobada${pts ? ` (+${pts} Semillas)` : ''}` : action === 'NEEDS_CHANGES' ? 'requiere correcciones' : 'rechazada'} correctamente.`)
       loadModeration()
       onRefresh?.()
@@ -323,6 +346,14 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
   }
   const definition = definitions[tab] ?? definitions.comunidades
   const communities = (data?.communities ?? []).filter(c => (!province || c.province === province) && `${c.name} ${c.province} ${c.responsibleName ?? ''}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+  const reportGroups: Array<{ title: string; icon: AdminIconName; rows: Array<[string, number]> }> = [
+    { title: 'Comunidades por estado', icon: 'users', rows: countBy(data?.communities ?? [], c => stateLabel(c)) },
+    { title: 'Actividades por estado de revisión', icon: 'shield', rows: countBy(data?.activities ?? [], a => ({ PENDING: 'Pendiente', NEEDS_CHANGES: 'Requiere correcciones', APPROVED: 'Aprobada', REJECTED: 'Rechazada' } as Record<string, string>)[a.reviewStatus] || a.reviewStatus) },
+    { title: 'Actividades por tipo agrícola', icon: 'image', rows: countBy(data?.activities ?? [], a => formatActivityType(a.type)) },
+    { title: 'Actividades por mes', icon: 'calendar', rows: countBy(data?.activities ?? [], a => a.performedDate?.slice(0, 7) || 'Sin fecha') },
+    { title: 'Eventos por provincia', icon: 'calendar', rows: countBy(data?.events ?? [], e => e.province) },
+    { title: 'Recursos por categoría', icon: 'book', rows: countBy(data?.resources ?? [], r => r.kind) },
+  ]
   return <>
     <SectionHead title={definition.title} subtitle={definition.description} onBack={() => setTab('inicio')}/>
 
@@ -373,9 +404,9 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#2d3748' }}>Módulo de Eventos Institucionales del MSP</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#2d3748' }}>Eventos del proyecto gestionados por el rol MSP</h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#718096' }}>
-              Coordinación y difusión oficial de ferias, mingas y capacitaciones agroecológicas para comunidades.
+              Registro y difusión de ferias, mingas y capacitaciones del proyecto para las comunidades.
             </p>
           </div>
           <button
@@ -462,7 +493,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
           </form>
         )}
 
-        <AdminPanel icon="calendar" title={`Eventos oficiales programados (${eventsList.length})`} subtitle="Cronograma de mingas y ferias institucionales">
+        <AdminPanel icon="calendar" title={`Eventos registrados (${eventsList.length})`} subtitle="Cronograma de mingas y ferias institucionales">
           {eventsList.length === 0 ? (
             <EmptyState title="Sin eventos registrados" detail="Aún no se han programado eventos institucionales." illustration={communityEvents} />
           ) : (
@@ -476,6 +507,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <strong style={{ fontSize: '0.98rem', color: '#2d3748' }}>{ev.name}</strong>
+                        {DEMO_EVENTS.has(ev.name) && <ValueBadge tone="gold">Ejemplo académico</ValueBadge>}
                         <ValueBadge>{ev.scope}</ValueBadge>
                       </div>
                       <p style={{ margin: '0.2rem 0', fontSize: '0.82rem', color: '#718096' }}>
@@ -503,9 +535,9 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#2d3748' }}>Biblioteca Educativa Oficial del MSP</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#2d3748' }}>Biblioteca educativa del proyecto Kawsapacha</h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#718096' }}>
-              Guías técnicas, protocolos de bioseguridad y saberes ancestrales avalados para las comunidades.
+              Guías, materiales y saberes compartidos para las comunidades dentro de la simulación académica.
             </p>
           </div>
           <button
@@ -552,7 +584,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
                 </select>
               </label>
               <label style={{ fontSize: '0.83rem', color: '#4a5568', display: 'flex', flexDirection: 'column' }}>
-                Enlace / Archivo (opcional)
+                Enlace al material (opcional; no sube archivos)
                 <input
                   placeholder="https://msp.gob.ec/guias/ejemplo.pdf"
                   value={resUrl}
@@ -606,7 +638,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
                     )}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #edf2f7', paddingTop: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.78rem', color: '#276749', fontWeight: 600 }}>✓ Avalado por MSP</span>
+                    <span style={{ fontSize: '0.78rem', color: '#276749', fontWeight: 600 }}>{DEMO_RESOURCES.has(res.title) ? 'Ejemplo académico · sin aval oficial' : 'Publicado desde el panel MSP del proyecto'}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {res.fileUrl && (
                         <a
@@ -768,14 +800,14 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
                             <span style={{ color: '#4a5568', fontSize: '0.82rem', fontWeight: 500 }}>(Parcela #{a.plotIndex + 1})</span>
                           ) : null}
                         </strong>
-                        <ValueBadge tone="gold">Pendiente de revisión</ValueBadge>
+                        <ValueBadge tone="gold">{a.reviewStatus === 'NEEDS_CHANGES' ? 'Requiere correcciones' : 'Pendiente de revisión'}</ValueBadge>
                       </div>
                       <p style={{ margin: '0.2rem 0 0.1rem', fontSize: '0.8rem', color: '#718096' }}>
                         <AdminIcon name="users" size={13}/> {a.actorUser?.name || '—'} · {a.performedDate ? new Date(a.performedDate).toLocaleDateString('es-EC') : '—'}
                       </p>
                       {a.notes && <p style={{ margin: '0.1rem 0 0.5rem', fontSize: '0.8rem', color: '#4a5568', fontStyle: 'italic' }}>"{a.notes}"</p>}
                       <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                        <button type="button" onClick={() => handleReviewActivity(a.id, 'APPROVED')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: 'none', background: '#276749', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>✓ Aprobar (+5 pts)</button>
+                        <button type="button" onClick={() => handleReviewActivity(a.id, 'APPROVED')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: 'none', background: '#276749', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>✓ Aprobar</button>
                         <button type="button" onClick={() => openReasonModal('activity', a.id, 'NEEDS_CHANGES')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #d69e2e', background: '#fffff0', color: '#744210', cursor: 'pointer' }}>✏️ Pedir corrección</button>
                         <button type="button" onClick={() => openReasonModal('activity', a.id, 'REJECTED')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #c53030', background: '#fff5f5', color: '#c53030', cursor: 'pointer' }}>✗ Rechazar</button>
                       </div>
@@ -789,15 +821,24 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       )
     })()}
 
-    {tab === 'reportes' && <AdminPanel icon="chart" title="Indicadores y reportes" subtitle="Resumen ejecutivo calculado a partir de datos reales del servidor">
-      <div className="kap-metrics" style={{ marginTop: '0.5rem' }}>
-        <AdminMetric icon="users" label="Total comunidades" value={data?.communitiesTotal}/>
-        <AdminMetric icon="shield" label="Comunidades aprobadas" value={data?.communitiesApproved} tone="green"/>
-        <AdminMetric icon="alert" label="Pendientes de revisión" value={data?.moderationPending} tone="red"/>
-        <AdminMetric icon="calendar" label="Eventos activos" value={data?.activeEvents} tone="gold"/>
+    {tab === 'reportes' && <>
+      <AdminPanel icon="chart" title="Indicadores y reportes" subtitle="Datos agregados de comunidades, actividades, eventos y recursos registrados en SQLite">
+        <div className="kap-metrics" style={{ marginTop: '0.5rem' }}>
+          <AdminMetric icon="users" label="Total comunidades" value={data?.communitiesTotal}/>
+          <AdminMetric icon="shield" label="Comunidades aprobadas" value={data?.communitiesApproved} tone="green"/>
+          <AdminMetric icon="alert" label="Pendientes de revisión" value={data?.moderationPending} tone="red"/>
+          <AdminMetric icon="image" label="Actividades registradas" value={data?.activities?.length} tone="brown"/>
+        </div>
+        <p className="kap-table-note">Indicadores académicos de Kawsapacha. No son estadísticas oficiales del Ministerio de Salud Pública.</p>
+      </AdminPanel>
+      <div className="kap-detail-layout">
+        {reportGroups.map(group => <AdminPanel key={group.title} title={group.title} icon={group.icon}>
+          {group.rows.length ? <div className="kap-table-scroll"><table className="kap-table"><thead><tr><th>Categoría</th><th>Registros</th></tr></thead><tbody>
+            {group.rows.map(([label, count]) => <tr key={label}><td>{label}</td><td><FormattedCount value={count}/></td></tr>)}
+          </tbody></table></div> : <EmptyState title="Sin datos registrados" detail="No hay registros para este indicador."/>}
+        </AdminPanel>)}
       </div>
-      {(!data?.communitiesTotal) && <EmptyState title="Sin indicadores oficiales disponibles" detail="Los reportes se habilitarán cuando existan datos agregados y validados por el backend."/>}
-    </AdminPanel>}
+    </>}
   </>
 }
 function stateLabel(c: CommunityRow) {
@@ -1164,12 +1205,13 @@ export default function AdminDashboard({ kind, userName, isPreview = false, onLo
         const events = eventsRes.events || []
         const resources = resRes.resources || []
         const approvedCount = communities.filter((c: any) => c.status === 'APPROVED').length
-        const pendingCommCount = communities.filter((c: any) => c.status === 'PENDING').length
-        const pendingActCount = activities.filter((a: any) => a.reviewStatus === 'PENDING').length
+        const pendingCommCount = communities.filter((c: any) => c.status === 'PENDING' || c.status === 'NEEDS_CHANGES').length
+        const pendingActCount = activities.filter((a: any) => a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES').length
         setRealMspData({
           communitiesTotal: communities.length,
           communitiesApproved: approvedCount,
           moderationPending: pendingCommCount + pendingActCount,
+          activities,
           activeEvents: events.length,
           educationalResources: resources.length,
           events: events.map((e: any) => ({
@@ -1234,6 +1276,11 @@ export default function AdminDashboard({ kind, userName, isPreview = false, onLo
   }, [isMsp])
   useEffect(() => { document.title = `${title} · Kawsapacha`; return () => { document.title = 'Kawsapacha · Mi Huerto Vivo' } }, [title])
 
+  const mspReviewCommunities = (realMspData?.communities ?? mspData?.communities ?? [])
+    .filter(c => c.state === 'PENDING' || c.state === 'NEEDS_CHANGES').length
+  const mspReviewActivities = (realMspData?.activities ?? mspData?.activities ?? [])
+    .filter(a => a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES').length
+
   return <div className={`kap-admin-root kap-admin-${kind}`}>
     {menuOpen && <button aria-label="Cerrar menú" type="button" className="kap-mobile-backdrop" onClick={() => setMenuOpen(false)}/>}
     <aside className={`kap-sidebar${menuOpen ? ' is-open' : ''}`}>
@@ -1254,7 +1301,19 @@ export default function AdminDashboard({ kind, userName, isPreview = false, onLo
         </div>
         <div className="kap-topbar-right">
           {isMsp && <div className="kap-government-mark"><img src={ecuadorInsignia} alt="Insignia ilustrativa del Ecuador"/><span>República<br/>del Ecuador</span><i/><span>Ministerio<br/>de Salud Pública</span></div>}
-          <div className="kap-notification-wrap"><button className="kap-top-icon" type="button" aria-label="Notificaciones" aria-expanded={noticeOpen} onClick={() => setNoticeOpen(open => !open)}><AdminIcon name="bell" size={21}/></button>{noticeOpen && <div className="kap-notification-popover" role="status">Notificaciones administrativas pendientes de integración con el backend.</div>}</div>
+          <div className="kap-notification-wrap">
+            <button className="kap-top-icon" type="button" aria-label={isMsp ? 'Alertas de moderación' : 'Notificaciones'} aria-expanded={noticeOpen} onClick={() => setNoticeOpen(open => !open)}><AdminIcon name="bell" size={21}/></button>
+            {noticeOpen && <div className="kap-notification-popover" role="status">
+              {isMsp ? <>
+                <strong>Alertas de revisión</strong>
+                {loadError ? <p>No se pudo actualizar la bandeja. Reintenta la carga de datos.</p> : <>
+                  <p>Comunidades por revisar: <strong>{mspReviewCommunities}</strong></p>
+                  <p>Actividades y evidencias por revisar: <strong>{mspReviewActivities}</strong></p>
+                  <button type="button" className="kap-text-button" onClick={() => { setActiveTab('moderacion'); setNoticeOpen(false); }}>Abrir bandeja de moderación</button>
+                </>}
+              </> : 'Notificaciones administrativas pendientes de integración con el backend.'}
+            </div>}
+          </div>
           <span className="kap-header-separator"/>
           <div className="kap-identity"><span className="kap-avatar"><AdminIcon name="users" size={19}/></span><span className="kap-identity-label"><strong>{userName || (isMsp ? 'Administrador MSP' : 'Administrador técnico')}</strong><small>{isPreview ? 'Vista previa' : selected}</small></span></div>
           <button type="button" className="kap-top-icon" aria-label="Cerrar sesión de administración" title="Cerrar sesión" onClick={onLogout}><AdminIcon name="logout" size={20}/></button>

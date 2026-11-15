@@ -2,7 +2,7 @@
 import { prisma } from '../config/prisma'
 import { logAudit } from './audit.service'
 import { createNotification } from './notification.service'
-import { evaluateActivityReward } from './rewards.service'
+import { evaluateActivityReward, getUserRewardsSummary } from './rewards.service'
 import { syncUserMissionsAndBadges } from './missions.service'
 import { calculateGrowth } from './care.service'
 
@@ -242,11 +242,39 @@ export async function reviewActivity(
     throw Object.assign(new Error('No se puede revisar una actividad anulada.'), { code: 'ACTIVITY_VOIDED' })
   }
 
+  // Una decisión final no puede convertirse en otra sin una operación explícita
+  // de reversión auditada. Impide conservar puntos después de un rechazo.
+  if ((activity.reviewStatus === 'APPROVED' && action !== 'APPROVED')
+    || (activity.reviewStatus === 'REJECTED' && action !== 'REJECTED')) {
+    throw Object.assign(
+      new Error('Esta actividad ya tiene una resolución definitiva. No se puede cambiar sin un proceso de reversión auditado.'),
+      { code: 'REVIEW_FINALIZED' }
+    )
+  }
+
   if (action !== 'APPROVED' && (!reason || reason.trim().length < 5)) {
     throw Object.assign(
       new Error('Es obligatorio indicar un motivo detallado (mínimo 5 caracteres) para rechazar o solicitar correcciones.'),
       { code: 'VALIDATION_ERROR' }
     )
+  }
+
+  // Reintentos idempotentes: no generar otra notificación ni auditoría por la misma resolución.
+  if (activity.reviewStatus === action && action === 'APPROVED') {
+    const current = await getUserRewardsSummary(activity.actorUserId)
+    return {
+      activity,
+      reward: {
+        awarded: false,
+        pointsAwarded: 0,
+        totalPoints: current.points,
+        level: current.level,
+        reason: 'La actividad ya estaba aprobada.',
+      },
+    }
+  }
+  if (activity.reviewStatus === action && action === 'REJECTED') {
+    return { activity, reward: null }
   }
 
   if (action === 'APPROVED') {
@@ -400,40 +428,8 @@ export async function reviewActivity(
 
 // ─── EVENTOS INSTITUCIONALES DEL MSP ──────────────────────────────────────────
 
-const DEFAULT_MSP_EVENTS = [
-  {
-    name: 'Minga Nacional Agroecológica Kawsapacha',
-    province: 'Pichincha',
-    canton: 'Quito',
-    scope: 'NACIONAL',
-    date: '2026-11-28',
-    description: 'Jornada comunitaria de siembra, intercambio de semillas y capacitaciones en agroecología.',
-  },
-  {
-    name: 'Feria de Semillas Nativas y Salud Comunitaria',
-    province: 'Chimborazo',
-    canton: 'Riobamba',
-    scope: 'PROVINCIAL',
-    date: '2026-12-05',
-    description: 'Exposición de variedades ancestrales y talleres de medicina tradicional avalados por el MSP.',
-  },
-  {
-    name: 'Taller Provincial de Compostaje y Riego Eficiente',
-    province: 'Azuay',
-    canton: 'Cuenca',
-    scope: 'PROVINCIAL',
-    date: '2026-12-12',
-    description: 'Capacitación práctica para promotores y responsables de huertos comunitarios.',
-  },
-]
-
 export async function listInstitutionalEvents() {
-  const count = await prisma.mspInstitutionalEvent.count()
-  if (count === 0) {
-    for (const ev of DEFAULT_MSP_EVENTS) {
-      await prisma.mspInstitutionalEvent.create({ data: ev })
-    }
-  }
+  // No generar eventos ficticios al leer una lista vacía.
   return prisma.mspInstitutionalEvent.findMany({
     orderBy: { date: 'asc' },
   })
@@ -470,57 +466,8 @@ export async function deleteInstitutionalEvent(id: string) {
 
 // ─── RECURSOS EDUCATIVOS DEL MSP ──────────────────────────────────────────────
 
-const DEFAULT_MSP_RESOURCES = [
-  {
-    title: 'Guía Oficial de Cultivo y Propiedades de Plantas Medicinales Andinas',
-    kind: 'GUIA',
-    description: 'Documento técnico del MSP con fichas agroecológicas, propiedades terapéuticas y dosificación tradicional.',
-    fileUrl: '/docs/guia-plantas-medicinales-msp.html',
-    published: true,
-  },
-  {
-    title: 'Manual de Manejo Agroecológico de Suelos y Compostaje Comunitario',
-    kind: 'MANUAL',
-    description: 'Técnicas orgánicas para regeneración del suelo, lombricultura y biofertilizantes locales.',
-    fileUrl: '/docs/manual-compostaje-suelos-msp.html',
-    published: true,
-  },
-  {
-    title: 'Ficha Técnica: Calendario Agroecológico Lunar Kawsapacha',
-    kind: 'FICHA',
-    description: 'Recomendaciones del MSP sobre fases lunares, siembra, labores de cultivo y cosecha oportuna.',
-    fileUrl: '/docs/ficha-calendario-lunar-msp.html',
-    published: true,
-  },
-  {
-    title: 'Protocolo de Seguridad Alimentaria en Huertos Comunitarios',
-    kind: 'GUIA',
-    description: 'Normativa sanitaria básica para la manipulación, lavado y consumo seguro de hortalizas.',
-    fileUrl: '/docs/protocolo-seguridad-alimentaria.html',
-    published: true,
-  },
-]
-
 export async function listEducationalResources() {
-  const count = await prisma.mspEducationalResource.count()
-  if (count === 0) {
-    for (const res of DEFAULT_MSP_RESOURCES) {
-      await prisma.mspEducationalResource.create({ data: res })
-    }
-  } else {
-    // Migración automática: sincronizar URLs previas con extensión .pdf a .html
-    const pdfResources = await prisma.mspEducationalResource.findMany({
-      where: { fileUrl: { contains: '.pdf' } },
-    })
-    for (const item of pdfResources) {
-      if (item.fileUrl) {
-        await prisma.mspEducationalResource.update({
-          where: { id: item.id },
-          data: { fileUrl: item.fileUrl.replace(/\.pdf$/i, '.html') },
-        })
-      }
-    }
-  }
+  // Leer no debe insertar demos ni cambiar URLs legítimas de PDF.
   return prisma.mspEducationalResource.findMany({
     orderBy: { createdAt: 'desc' },
   })
@@ -535,13 +482,25 @@ export async function createEducationalResource(input: {
   createdById?: string
 }) {
   if (!input.title?.trim()) throw new Error('El título del recurso es obligatorio.')
+  const fileUrl = input.fileUrl?.trim()
+  if (fileUrl) {
+    const internalDoc = /^\/docs\/[a-zA-Z0-9/_-]+\.html$/.test(fileUrl) && !fileUrl.includes('..')
+    let externalLink = false
+    try {
+      const parsed = new URL(fileUrl)
+      externalLink = (parsed.protocol === 'https:' || parsed.protocol === 'http:') && !parsed.username && !parsed.password
+    } catch { /* Ruta relativa: solo permitir documentos internos conocidos. */ }
+    if (!internalDoc && !externalLink) {
+      throw new Error('El enlace debe utilizar HTTPS/HTTP o apuntar a un documento interno /docs/*.html.')
+    }
+  }
 
   return prisma.mspEducationalResource.create({
     data: {
       title: input.title.trim(),
       kind: input.kind?.trim() || 'GUIA',
       description: input.description?.trim() || '',
-      fileUrl: input.fileUrl?.trim() || null,
+      fileUrl: fileUrl || null,
       published: input.published ?? true,
       createdById: input.createdById || null,
     },

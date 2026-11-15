@@ -97,7 +97,7 @@ export async function postReviewActivity(req: AuthRequest, res: Response): Promi
       fail(res, 'VALIDATION_ERROR', e.message, 400)
     } else if (e.code === 'NOT_FOUND') {
       fail(res, 'NOT_FOUND', e.message, 404)
-    } else if (e.code === 'ACTIVITY_VOIDED') {
+    } else if (e.code === 'ACTIVITY_VOIDED' || e.code === 'REVIEW_FINALIZED' || e.code === 'COMMUNITY_NOT_APPROVED') {
       fail(res, 'CONFLICT', e.message, 409)
     } else {
       fail(res, 'INTERNAL_ERROR', e.message || 'Error al revisar actividad.', 500)

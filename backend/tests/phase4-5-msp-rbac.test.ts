@@ -13,6 +13,12 @@ import {
   reviewCommunity,
   listActivitiesForMsp,
   reviewActivity,
+  listInstitutionalEvents,
+  createInstitutionalEvent,
+  deleteInstitutionalEvent,
+  listEducationalResources,
+  createEducationalResource,
+  deleteEducationalResource,
 } from '../src/services/admin-msp.service'
 import { createGardenActivity } from '../src/services/activity.service'
 import { getUserRewardsSummary } from '../src/services/rewards.service'
@@ -238,6 +244,14 @@ export async function runPhase45MspRbacTests() {
   const afterReApprove = await getUserRewardsSummary(registrationResult.user.id)
   assert.equal(afterReApprove.points, 5)
 
+  // Una aprobación ya acreditada no puede pasar a REJECTED y dejar puntos inconsistentes
+  await assert.rejects(
+    () => reviewActivity(act1Result.activity!.id, 'REJECTED', mspUser.id, 'Rechazo posterior a aprobación'),
+    { code: 'REVIEW_FINALIZED' }
+  )
+  const afterBlockedRejection = await getUserRewardsSummary(registrationResult.user.id)
+  assert.equal(afterBlockedRejection.points, 5, 'No se deben perder ni conservar saldos inconsistentes tras una revisión inválida')
+
   // El usuario debe tener la notificación de actividad aprobada
   const notifsAfterApprove = await listUserNotifications(registrationResult.user.id)
   assert.ok(notifsAfterApprove.notifications.some(n => n.type === 'ACTIVITY_APPROVED'))
@@ -414,6 +428,41 @@ export async function runPhase45MspRbacTests() {
   assert.ok(successfulPrep.activity)
   assert.equal(successfulPrep.activity.reviewStatus, 'PENDING')
   console.log('   ✓ Actividades bloqueadas antes de la aprobación y desbloqueadas exitosamente tras aval del MSP.')
+
+  // ─── 10. PERSISTENCIA MSP Y AUSENCIA DE SIEMBRA AUTOMÁTICA DE DEMOS ──────
+  console.log('🔟  Prueba: eventos, recursos y enlaces educativos persistentes...')
+  const eventsBefore = await prisma.mspInstitutionalEvent.count()
+  const resourcesBefore = await prisma.mspEducationalResource.count()
+  await listInstitutionalEvents()
+  await listEducationalResources()
+  assert.equal(await prisma.mspInstitutionalEvent.count(), eventsBefore, 'Consultar eventos no debe crear ejemplos ficticios')
+  assert.equal(await prisma.mspEducationalResource.count(), resourcesBefore, 'Consultar recursos no debe crear ejemplos ficticios')
+
+  const testEvent = await createInstitutionalEvent({
+    name: `Evento MSP QA ${timestamp}`,
+    date: '2026-12-05',
+    province: 'Pichincha',
+    createdById: mspUser.id,
+  })
+  assert.ok((await listInstitutionalEvents()).some(event => event.id === testEvent.id))
+  await deleteInstitutionalEvent(testEvent.id)
+  assert.equal(await prisma.mspInstitutionalEvent.count(), eventsBefore)
+
+  const testResource = await createEducationalResource({
+    title: `Recurso MSP QA ${timestamp}`,
+    kind: 'GUIA',
+    fileUrl: '/docs/guia-plantas-medicinales-msp.html',
+    createdById: mspUser.id,
+  })
+  assert.ok((await listEducationalResources()).some(resource => resource.id === testResource.id))
+  await deleteEducationalResource(testResource.id)
+  assert.equal(await prisma.mspEducationalResource.count(), resourcesBefore)
+
+  await assert.rejects(
+    () => createEducationalResource({ title: 'URL insegura', fileUrl: 'javascript:alert(1)' }),
+    /El enlace debe utilizar HTTPS\/HTTP/
+  )
+  console.log('   ✓ CRUD persistente, consulta sin ejemplos nuevos y URLs validadas.')
 
   // ─── LIMPIEZA AUTOMÁTICA DE DATOS DE PRUEBA ──────────────────────────────────
   try {

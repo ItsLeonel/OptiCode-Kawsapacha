@@ -348,7 +348,7 @@ export async function runPhase45MspRbacTests() {
   console.log('   ✓ Todos los eventos críticos quedaron registrados en AuditLog con actor y timestamp.')
 
   // ─── 9. BLOQUEO DE ACTIVIDADES Y PREPARACIÓN SIN COMUNIDAD APROBADA ─────────
-  console.log('9️⃣  Prueba: Bloqueo estricto de actividades (incluida preparación) sin comunidad aprobada...')
+  console.log('9️⃣  Prueba: Actividades operativas mientras comunidad está pendiente...')
   const pendingComm = await prisma.community.create({
     data: {
       name: `Comunidad Sin Aprobar ${timestamp}`,
@@ -373,58 +373,25 @@ export async function runPhase45MspRbacTests() {
     },
   })
 
-  // Intentar registrar preparación de terreno debe fallar con COMMUNITY_NOT_APPROVED
-  await assert.rejects(
-    async () => {
-      await createGardenActivity({
-        gardenId: pendingGarden.id,
-        actorUserId: registrationResult.user.id,
-        type: 'preparation',
-        performedDate: '2026-11-10',
-        targetKind: 'plot',
-        plotIndex: 1,
-        notes: 'Preparando cama de siembra con abono verde',
-      })
-    },
-    { code: 'COMMUNITY_NOT_APPROVED' }
-  )
-
-  // Intentar aprobar una actividad perteneciente a una comunidad no aprobada debe ser rechazado
-  const unapprovedAct = await prisma.gardenActivity.create({
-    data: {
-      gardenId: pendingGarden.id,
-      actorUserId: registrationResult.user.id,
-      type: 'preparation',
-      performedDate: '2026-11-10',
-      targetKind: 'plot',
-      plotIndex: 2,
-      reviewStatus: 'PENDING',
-    },
-  })
-
-  await assert.rejects(
-    async () => {
-      await reviewActivity(unapprovedAct.id, 'APPROVED', mspUser.id)
-    },
-    { code: 'COMMUNITY_NOT_APPROVED' }
-  )
-
-  // Ahora el MSP aprueba la comunidad
-  await reviewCommunity(pendingComm.id, 'APPROVED', mspUser.id)
-
-  // Tras la aprobación, la preparación del terreno se registra sin problemas
-  const successfulPrep = await createGardenActivity({
+  // La comunidad PENDING funciona sin bloquear el cultivo ni su historial.
+  const provisionalPrep = await createGardenActivity({
     gardenId: pendingGarden.id,
     actorUserId: registrationResult.user.id,
     type: 'preparation',
     performedDate: '2026-11-10',
     targetKind: 'plot',
     plotIndex: 1,
-    notes: 'Preparación autorizada tras aprobación de la comunidad',
+    notes: 'Preparando cama de siembra antes del aval institucional',
   })
-  assert.ok(successfulPrep.activity)
-  assert.equal(successfulPrep.activity.reviewStatus, 'PENDING')
-  console.log('   ✓ Actividades bloqueadas antes de la aprobación y desbloqueadas exitosamente tras aval del MSP.')
+  assert.equal(provisionalPrep.activity?.reviewStatus, 'PENDING')
+  assert.equal(provisionalPrep.reward?.pointsAwarded, 10)
+  const verifiedPrep = await reviewActivity(provisionalPrep.activity!.id, 'APPROVED', mspUser.id)
+  assert.equal(verifiedPrep.reward?.pointsAwarded, 0)
+  assert.equal(verifiedPrep.activity.reviewStatus, 'APPROVED')
+  // Aprobar la comunidad no altera ni duplica las actividades ya registradas.
+  await reviewCommunity(pendingComm.id, 'APPROVED', mspUser.id)
+  assert.equal((await prisma.gardenActivity.findUnique({ where: { id: provisionalPrep.activity!.id } }))?.reviewStatus, 'APPROVED')
+  console.log('   ✓ Comunidad PENDING operativa, actividad provisional y verificación MSP sin duplicar puntos.')
 
   // ─── 10. PERSISTENCIA MSP Y AUSENCIA DE SIEMBRA AUTOMÁTICA DE DEMOS ──────
   console.log('🔟  Prueba: eventos, recursos y enlaces educativos persistentes...')

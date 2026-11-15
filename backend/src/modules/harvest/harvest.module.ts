@@ -7,3 +7,6 @@ export const { harvestPlant, listHarvestsByGarden, listHarvestsByCommunity } =
  createHarvestService(prismaHarvestRepository)
 
 export const { findHarvestPlantGardenId, checkCommunityHarvestAccess } = createHarvestAccessService(prismaHarvestAccessRepository)
+
+import { createHarvestRoleService } from './application/harvest-role.service'
+export const checkHarvestPermission = createHarvestRoleService(prismaHarvestAccessRepository)

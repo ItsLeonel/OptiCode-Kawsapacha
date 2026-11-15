@@ -20,4 +20,16 @@ export const prismaHarvestAccessRepository: HarvestAccessRepository = {
     })
     return member?.status ?? null
   },
+  findHarvestGarden(gardenId) {
+    return prisma.realGarden.findUnique({
+      where: { id: gardenId }, select: { communityId: true, createdById: true },
+    })
+  },
+  async findAcceptedHarvestRole(communityId, userId) {
+    const member = await prisma.communityMember.findFirst({
+      where: { communityId, userId, status: 'ACCEPTED' },
+      select: { roleInCommunity: true },
+    })
+    return member?.roleInCommunity ?? null
+  },
 }

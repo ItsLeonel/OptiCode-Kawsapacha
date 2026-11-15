@@ -11,7 +11,7 @@ El objetivo de la refactorización es mejorar las subcaracterísticas de manteni
 
 ## Evidencia pendiente
 
-- `node tools/maintainability-report.cjs` entrega métricas reproducibles en CI; consultar la [evaluación de mantenibilidad](evaluacion-mantenibilidad-pr72.md).
+- `node tools/maintainability-report.cjs` entrega métricas reproducibles en CI; consultar los [resultados de regresión](regresion-arquitectura.md).
 - Comparar ese reporte contra la rama `main` usando el mismo comando; después medir complejidad, duplicación y cobertura con herramientas específicas.
 - Mantener la restricción de 0 ciclos y 0 dependencias de infraestructura en la capa de aplicación; la cobertura de pruebas E2E debe revisarse en la ejecución final.
 - Ejecutar regresión manual con cuentas existentes, fotos históricas, MSP, comunidad y todas las modalidades/regiones Phaser.

@@ -33,7 +33,7 @@ OptiCode-Kawsapacha/
 
 **Criterios ejecutables:** `cd backend && npm run check:architecture` impide que dominio/aplicación dependan de infraestructura o HTTP y rechaza ciclos de módulos; `node tools/check-frontend-architecture.cjs` comprueba que `frontend/src/shared` no importa áreas de negocio. Los tests unitarios, de integración y la regresión Playwright son independientes de estas comprobaciones estructurales.
 
-La [decisión arquitectónica](docs/architecture/ADR-0001-monolito-modular.md), [visión de módulos](docs/architecture/README.md) y [evaluación de mantenibilidad](docs/quality/evaluacion-mantenibilidad-pr72.md) documentan la implementación y sus límites. **La rama de trabajo y el PR no implican una fusión a `main`.**
+La [decisión arquitectónica](docs/architecture/ADR-0001-monolito-modular.md), [visión de módulos](docs/architecture/README.md) y [evidencia de regresión](docs/quality/regresion-arquitectura.md) documentan la implementación y sus límites. **La rama de trabajo y el PR no implican una fusión a `main`.**
 
 Kawsapacha es una aplicación web educativa para que comunidades del Ecuador registren **huertos medicinales reales** y los representen en un **huerto virtual interactivo**. Cada planta podrá asociarse con su especie, una fotografía real y una ficha (*Pasaporte Vivo*).
 

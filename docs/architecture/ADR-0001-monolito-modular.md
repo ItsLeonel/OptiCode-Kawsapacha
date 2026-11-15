@@ -35,6 +35,6 @@ La separación genera más archivos y aumenta la cantidad total de código estru
 
 ## Evidencia de aceptación
 
-En la rama funcional `5e024893`, aprobaron Backend, Docker con datos/fotografías persistentes tras reinicio, regresión crítica y Frontend con Playwright completo, incluidos **82 tests Node backend**, **82 tests unitarios frontend**, **32 pruebas Playwright de jardín** y **4 pruebas críticas**. Véanse [métricas](../quality/evaluacion-mantenibilidad-pr72.md) y [matriz](../quality/regresion-arquitectura.md).
+En la rama funcional `5e024893`, aprobaron Backend, Docker con datos/fotografías persistentes tras reinicio, regresión crítica y Frontend con Playwright completo, incluidos **82 tests Node backend**, **82 tests unitarios frontend**, **32 pruebas Playwright de jardín** y **4 pruebas críticas**. Véanse la [matriz y resultados de regresión](../quality/regresion-arquitectura.md).
 
 **Fuera de la certificación automática:** aceptación manual sobre una copia de la instalación con usuarios, SQLite y fotografías reales. No se hizo merge.

@@ -82,7 +82,7 @@ El CI comprueba importaciones entre capas, ciclos backend, reglas frontend `shar
 
 - [ADR-0001 — monolito modular y Clean Architecture](ADR-0001-monolito-modular.md)
 - [ADR-0002 — límites transaccionales](ADR-0002-limites-transaccionales.md)
-- [Métricas antes/después y resultados](../quality/evaluacion-mantenibilidad-pr72.md)
+- [Pruebas y resultados de regresión](../quality/regresion-arquitectura.md)
 - [Matriz de regresión y aceptación manual](../quality/regresion-arquitectura.md)
 - [Contratos API previos](../arquitectura/contratos-api.md)
 

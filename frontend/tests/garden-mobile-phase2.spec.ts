@@ -139,6 +139,13 @@ for (const province of ['Pichincha', 'Guayas', 'Napo', 'Galápagos'] as const) {
       await registerGround(page, '/', province, kind)
       await expectReady(page)
       await sixVisible(page)
+      if (kind === 'pots') {
+        const framing = await camera(page)
+        const centers = framing.points.map(point => (point.x - framing.left) * framing.zoom)
+        // Reservar espacio para la maceta y su pedestal, no solo su ancla.
+        expect(Math.min(...centers), 'Maceta izquierda con margen visible').toBeGreaterThan(44)
+        expect(Math.max(...centers), 'Maceta derecha con margen visible').toBeLessThan(framing.width - 44)
+      }
       await canvasSlot(page, 5, true)
       await expect(page.locator('#plant-photo')).toBeAttached()
       await page.getByRole('button', { name: 'Cerrar registro de planta' }).click()
@@ -152,6 +159,14 @@ for (const province of ['Pichincha', 'Guayas', 'Napo', 'Galápagos'] as const) {
         return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
       })
       expect(obstruction, 'Aviso de guardado no puede tapar los accesos de parcelas').toBe(false)
+      const statusBounds = await page.locator('.garden-storage-status').evaluate(element => {
+        const r = element.getBoundingClientRect()
+        return { x: r.left, right: r.right, viewport: window.innerWidth }
+      }).catch(() => null)
+      if (statusBounds) {
+        expect(statusBounds.x, 'Aviso visible desde el borde izquierdo').toBeGreaterThanOrEqual(0)
+        expect(statusBounds.right, 'Aviso visible hasta el borde derecho').toBeLessThanOrEqual(statusBounds.viewport)
+      }
     })
   }
 }

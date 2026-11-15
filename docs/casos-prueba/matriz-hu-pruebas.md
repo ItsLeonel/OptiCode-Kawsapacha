@@ -1,5 +1,11 @@
 # Matriz de trazabilidad HU ↔ casos ↔ resultado — Kawsapacha V1
 
+> **Lectura vigente — 15/11/2026:** esta matriz refleja exclusivamente los resultados reportados el **08/11** (P-001 a P-017) y **no acredita** pruebas sobre el `main` actual ni las modificaciones del [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74). Mantener los veredictos originales como histórico hasta nueva ejecución identificada con SHA.
+>
+> **Cobertura por añadir a solicitud del PM:** HU-020–HU-023; flujo completo de evidencia fotográfica/actividades, pasaporte y bitácora del corte actual; regresión móvil regional/multimodal; verificación HTTPS y persistencia cruzada (#49/#75). Los módulos de foro/eventos/ranking (#48) se prueban **solo cuando estén implementados**. Santiago define casos/resultados y Leonardo comprueba la correspondencia con historias y alcance.
+>
+
+
 **Responsables:** Santiago Guamán (casos y resultados) y Leonardo Lugmaña (historias de usuario) · **Actualizada:** 08/11/2026
 Fuente de las HU: `docs/historias-usuario/historias-usuario-v1.md` (HU-001 a HU-023).
 

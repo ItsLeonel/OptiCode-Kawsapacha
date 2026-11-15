@@ -2,7 +2,7 @@
 import { prisma } from '../config/prisma'
 import { logAudit } from './audit.service'
 import { createNotification } from './notification.service'
-import { evaluateActivityReward } from './rewards.service'
+import { evaluateActivityReward, getUserRewardsSummary } from './rewards.service'
 import { syncUserMissionsAndBadges } from './missions.service'
 import { calculateGrowth } from './care.service'
 
@@ -259,6 +259,24 @@ export async function reviewActivity(
     )
   }
 
+  // Reintentos idempotentes: no generar otra notificación ni auditoría por la misma resolución.
+  if (activity.reviewStatus === action && action === 'APPROVED') {
+    const current = await getUserRewardsSummary(activity.actorUserId)
+    return {
+      activity,
+      reward: {
+        awarded: false,
+        pointsAwarded: 0,
+        totalPoints: current.points,
+        level: current.level,
+        reason: 'La actividad ya estaba aprobada.',
+      },
+    }
+  }
+  if (activity.reviewStatus === action && action === 'REJECTED') {
+    return { activity, reward: null }
+  }
+
   if (action === 'APPROVED') {
     if (activity.garden?.community && activity.garden.community.status !== 'APPROVED') {
       throw Object.assign(
@@ -464,13 +482,25 @@ export async function createEducationalResource(input: {
   createdById?: string
 }) {
   if (!input.title?.trim()) throw new Error('El título del recurso es obligatorio.')
+  const fileUrl = input.fileUrl?.trim()
+  if (fileUrl) {
+    const internalDoc = /^\/docs\/[a-zA-Z0-9/_-]+\.html$/.test(fileUrl) && !fileUrl.includes('..')
+    let externalLink = false
+    try {
+      const parsed = new URL(fileUrl)
+      externalLink = (parsed.protocol === 'https:' || parsed.protocol === 'http:') && !parsed.username && !parsed.password
+    } catch { /* Ruta relativa: solo permitir documentos internos conocidos. */ }
+    if (!internalDoc && !externalLink) {
+      throw new Error('El enlace debe utilizar HTTPS/HTTP o apuntar a un documento interno /docs/*.html.')
+    }
+  }
 
   return prisma.mspEducationalResource.create({
     data: {
       title: input.title.trim(),
       kind: input.kind?.trim() || 'GUIA',
       description: input.description?.trim() || '',
-      fileUrl: input.fileUrl?.trim() || null,
+      fileUrl: fileUrl || null,
       published: input.published ?? true,
       createdById: input.createdById || null,
     },

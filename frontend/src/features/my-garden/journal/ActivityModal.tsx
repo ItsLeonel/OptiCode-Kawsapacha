@@ -181,9 +181,10 @@ export default function ActivityModal({
     return () => URL.revokeObjectURL(url)
   }, [photo.photo])
 
-  // Cargar estado de crecimiento real de la planta para validar cosecha
+  // Cargar estado de crecimiento real de la planta para validar cosecha (solo con sesión autenticada en servidor)
   useEffect(() => {
-    if (!plant?.id) {
+    const hasToken = typeof window !== 'undefined' && Boolean(window.localStorage.getItem('kawsapacha_token'))
+    if (!plant?.id || !hasToken || plant.id.startsWith('plant-')) {
       setGrowthData(null)
       return
     }
@@ -201,12 +202,7 @@ export default function ActivityModal({
       })
       .catch(() => {
         if (active) {
-          const isMature = plant.state === 'observed'
-          setGrowthData({
-            percentage: isMature ? 80 : 45,
-            daysUntilHarvest: isMature ? 0 : 15,
-            stage: isMature ? 'Madura' : 'En crecimiento',
-          })
+          setGrowthData(null)
         }
       })
     return () => {
@@ -214,13 +210,13 @@ export default function ActivityModal({
     }
   }, [plant?.id, plant?.state])
 
-  // Validaciones de sobrecuidado
+  // Validaciones de sobrecuidado (sobre actividades aprobadas oficialmente en la misma fecha)
   const isOverWatered =
     type === 'watering' &&
     Boolean(plant) &&
     Boolean(
       existingActivities?.some(
-        a => !a.voidedAt && a.type === 'watering' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
+        a => !a.voidedAt && a.reviewStatus === 'APPROVED' && a.type === 'watering' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
       )
     )
 
@@ -229,7 +225,7 @@ export default function ActivityModal({
     Boolean(plant) &&
     Boolean(
       existingActivities?.some(
-        a => !a.voidedAt && a.type === 'fertilizing' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
+        a => !a.voidedAt && a.reviewStatus === 'APPROVED' && a.type === 'fertilizing' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
       )
     )
 
@@ -469,7 +465,7 @@ export default function ActivityModal({
                         const isPending = occupant.reviewStatus === 'PENDING' || occupant.reviewStatus === 'NEEDS_CHANGES'
                         return (
                           <option key={plot} value={`plant:${occupant.id}`}>
-                            Espacio {plot + 1} · {occupant.name} {isPending ? '(⏳ Pendiente MSP)' : '(Ocupado)'}
+                            {occupant.name} · Espacio {plot + 1}{isPending ? ' (⏳ Pendiente MSP)' : ''}
                           </option>
                         )
                       }

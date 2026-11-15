@@ -63,15 +63,15 @@ export function buildGardenVisualModel(garden: RealGarden, plants: readonly Gard
       const plant = plants.find(record => record.plot === plot && !record.archivedAt)
       // Multiple recorded designs are shown schematically; no physical plot assignment is saved.
       const designs = garden.kind === 'ground' ? characteristics.groundDesigns : []
-      // Marcas de cuidado: solo cuando hay una planta activa en este espacio
-      // y la actividad afecta exactamente esa planta (no residuos de plantas anteriores)
+      // Marcas de cuidado (riego, abono, deshierbe): solo cuando hay una planta activa en este espacio;
+      // la preparación del terreno sí se refleja en espacios vacíos antes de sembrar.
       const latest = (type: GardenActivity['type']) => {
-        if (!plant) return undefined
+        if (!plant && type !== 'preparation') return undefined
         return activities
           ?.filter(activity =>
             activity.type === type &&
             activityAffectsPlot(activity, plot) &&
-            (activity.target.kind !== 'plant' || activity.target.plantId === plant.id)
+            (activity.target.kind !== 'plant' || activity.target.plantId === plant?.id)
           )
           .map(activity => activity.date)
           .sort()

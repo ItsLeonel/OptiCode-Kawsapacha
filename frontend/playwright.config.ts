@@ -10,7 +10,7 @@ export default defineConfig({
   outputDir: 'test-results/application',
   use: {
     baseURL: `http://127.0.0.1:${port}`,
-    channel: 'chrome',
+    channel: (process.env.PLAYWRIGHT_CHANNEL as 'chrome' | 'msedge') ?? 'chrome',
     viewport: { width: 1440, height: 1000 },
     screenshot: 'only-on-failure',
     trace: { mode: 'retain-on-failure', screenshots: false, snapshots: true, sources: true },

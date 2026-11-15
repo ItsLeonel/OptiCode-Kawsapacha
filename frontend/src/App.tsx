@@ -1065,12 +1065,16 @@ export default function App({
       validation: 'local-v1',
       photoIds: photoId ? [photoId] : [],
     }
-    await journal.commit({ id: draft.id, type: 'activity', activity }, draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [])
-
+    const saved = await journal.commit({ id: draft.id, type: 'activity', activity }, draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [])
+    const actual = saved.activities.find(item => item.id === draft.id)
     setActivityForm(null)
+    if (!actual) {
+      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este navegador.')
+      return
+    }
     setNotice('Actividad guardada en este navegador.')
     if (screen === 'Inicio') {
-      setFeedback({ id: draft.id, type: draft.type, plot: draft.details.destinationPlot ?? (draft.target.kind === 'garden' ? null : draft.target.plot) })
+      setFeedback({ id: actual.id, type: actual.type, plot: actual.details.destinationPlot ?? (actual.target.kind === 'garden' ? null : actual.target.plot) })
     }
   }
 

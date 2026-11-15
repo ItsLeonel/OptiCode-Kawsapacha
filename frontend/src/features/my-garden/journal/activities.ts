@@ -14,7 +14,7 @@ import {
 
 export const ACTIVITY_TYPES = {
   preparation: 'Preparación del terreno',
-  weeding: 'Limpieza y mantenimiento',
+  weeding: 'Limpieza y deshierbe',
   sowing: 'Siembra',
   watering: 'Riego',
   fertilizing: 'Abonado',

@@ -21,7 +21,7 @@ import {
   deleteEducationalResource,
 } from '../src/modules/administration/application/admin-msp.service'
 import { createGardenActivity } from '../src/modules/activities/application/activity.service'
-import { getUserRewardsSummary } from '../src/modules/rewards/application/rewards.service'
+import { getUserRewardsSummary } from '../src/modules/rewards/rewards.module'
 import {
   listUserNotifications,
   markNotificationAsRead,

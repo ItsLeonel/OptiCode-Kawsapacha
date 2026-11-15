@@ -4,7 +4,7 @@
  * Nunca borra ledger, evidencias ni actividad y respeta límites diarios.
  */
 import { prisma } from '../src/infrastructure/database/prisma'
-import { BASE_POINTS, evaluateActivityReward } from '../src/modules/rewards/application/rewards.service'
+import { BASE_POINTS, evaluateActivityReward } from '../src/modules/rewards/rewards.module'
 import { syncUserMissionsAndBadges } from '../src/modules/rewards/application/missions.service'
 
 async function main() {

@@ -1,7 +1,7 @@
 import { prisma } from '../../../infrastructure/database/prisma'
 import path from 'path'
 import { assertGardenAccess } from '../../gardens/garden-access.module'
-import { evaluateActivityReward } from '../../rewards/application/rewards.service'
+import { evaluateActivityReward } from '../../rewards/rewards.module'
 import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 import { extractGrowthStage } from '../domain/plant-rules'
 import type { UpdatePlantInput } from './plant-input'

@@ -2,7 +2,7 @@
 import type { Response } from 'express'
 import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
-import { getUserRewardsSummary } from '../application/rewards.service'
+import { getUserRewardsSummary } from '../rewards.module'
 import { syncUserMissionsAndBadges } from '../application/missions.service'
 
 export async function getMyRewards(req: AuthRequest, res: Response): Promise<void> {

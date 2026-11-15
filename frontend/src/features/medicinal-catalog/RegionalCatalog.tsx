@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import GardenIcon from '../my-garden/GardenIcon'
-import { regionForProvince, type GardenRegion } from '../real-gardens/garden-region'
+import GardenIcon from '../../shared/components/GardenIcon'
+import { regionForProvince, type GardenRegion } from '../../shared/geo/region'
 import type { CatalogSpecies } from '../../services/api'
 import mortar from './botanical-mortar.svg'
 import botanicalFallback from './botanical-placeholder.svg'

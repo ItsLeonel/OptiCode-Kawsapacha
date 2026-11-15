@@ -1,8 +1,8 @@
 import EcuadorMap, { provinces } from '../../EcuadorMap'
 import { GamePanel, gameRegionAssets } from '../../shared/ui/game-ui/GameUI'
-import TerritorySelect from '../real-gardens/TerritorySelect'
-import { cantonsForProvince, parishesForCanton, provinceForName } from '../real-gardens/territory'
-import { regionForProvince } from '../real-gardens/garden-region'
+import TerritorySelect from '../../shared/components/TerritorySelect'
+import { cantonsForProvince, parishesForCanton, provinceForName } from '../../shared/geo/territory'
+import { regionForProvince } from '../../shared/geo/region'
 import { communityTerritoryLabels, type CommunityTerritory } from './community-territory'
 import GameDecoration from '../../shared/ui/game-ui/GameDecoration'
 

@@ -1,4 +1,4 @@
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import CommunityIcon from './CommunityIcon'
 import forumImage from './assets/foro-v2.jpg'
 import learningImage from './assets/aprender-v2.jpg'

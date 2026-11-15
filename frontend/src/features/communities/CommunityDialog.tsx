@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import GameTitle from '../../shared/ui/game-ui/GameTitle'
 
 export default function CommunityDialog({ title, description, onClose, children, className = '', artwork }: {

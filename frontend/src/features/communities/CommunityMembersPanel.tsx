@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import { memberApi, type CommunityMember, type UserSession } from '../../services/api'
 
 interface Props {

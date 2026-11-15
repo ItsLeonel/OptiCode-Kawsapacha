@@ -26,9 +26,12 @@ for(const file of all){
   if(target.has(pathWithoutExt))target.get(pathWithoutExt).push(path.relative(project,file))
  }
 }
+const obsolete=[]
 for(const [f,importers] of target){
  const relative=path.relative(project,f)
  const unique=[...new Set(importers)].sort()
+ if(!unique.length)obsolete.push(relative)
  console.log(relative+': '+unique.length+' consumidores estáticos'+(unique.length?' ('+unique.slice(0,8).join(', ')+')':' [candidato a revisión manual]'))
 }
 console.log('Archivos inspeccionados: '+all.length)
+if(obsolete.length){console.error('Fachadas sin consumidores que deben depurarse: '+obsolete.join(', '));process.exitCode=1}

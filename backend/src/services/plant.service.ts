@@ -320,12 +320,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
   })
   if (!plant) throw Object.assign(new Error('Planta no encontrada.'), { code: 'NOT_FOUND' })
   await assertGardenAccess(plant.realGardenId, input.requestingUserId)
-  if (plant.reviewStatus !== 'APPROVED') {
-    throw Object.assign(
-      new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se puede editar ni documentar hasta su aprobación oficial.'),
-      { code: 'PLANT_NOT_APPROVED' }
-    )
-  }
+  // La planta ya sembrada puede editarse y documentar fotos nuevas aunque MSP aún revise la siembra.
 
   // La etapa y el estado observados no pueden evolucionar sin evidencia fotográfica nueva.
   // No se bloquea una edición de nombre o notas que conserve la misma etapa.

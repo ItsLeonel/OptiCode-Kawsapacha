@@ -1058,8 +1058,8 @@ export const adminApi = {
     return { activities: await listAllMspRecords<any>('activities') }
   },
 
-  async reviewActivity(id: string, data: { action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED'; reason?: string }): Promise<{ activity: any; reward?: { pointsAwarded: number } | null }> {
-    return await request<{ message: string; activity: any; rewardAwarded?: any }>(`/api/admin/msp/activities/${id}/review`, {
+  async reviewActivity(id: string, data: { action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED'; reason?: string }): Promise<{ activity: any; reward?: { pointsAwarded: number } | null; pointsReverted?: number }> {
+    return await request<{ activity: any; reward?: { pointsAwarded: number } | null; pointsReverted?: number }>(`/api/admin/msp/activities/${id}/review`, {
       method: 'POST',
       body: JSON.stringify(data),
     })

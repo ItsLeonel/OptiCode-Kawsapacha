@@ -7,12 +7,9 @@ import { prisma } from '../config/prisma'
 import { assertGardenAccess } from '../services/activity.service'
 
 async function requirePlantAccess(plantId: string, userId: string, approved: boolean): Promise<void> {
-  const plant = await prisma.cultivatedPlant.findUnique({ where: { id: plantId }, select: { realGardenId: true, reviewStatus: true } })
+  const plant = await prisma.cultivatedPlant.findUnique({ where: { id: plantId }, select: { realGardenId: true } })
   if (!plant) throw Object.assign(new Error('Planta no encontrada.'), { code: 'NOT_FOUND' })
   await assertGardenAccess(plant.realGardenId, userId, { requireApproved: approved })
-  if (approved && plant.reviewStatus !== 'APPROVED') {
-    throw Object.assign(new Error('Esta planta todavía requiere aprobación MSP para registrar cuidados.'), { code: 'PLANT_NOT_APPROVED' })
-  }
 }
 
 function careFailure(res: Response, err: unknown, fallback: string): void {

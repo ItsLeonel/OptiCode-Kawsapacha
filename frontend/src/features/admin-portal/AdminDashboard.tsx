@@ -297,7 +297,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
     setModError('')
     try {
       await adminApi.reviewCommunity(id, { action, reason })
-      setModMsg(`✓ Comunidad ${action === 'APPROVED' ? 'aprobada' : action === 'NEEDS_CHANGES' ? 'requiere correcciones' : `invalidada (${Math.abs(reverted)} Semillas revertidas)`} correctamente.`)
+      setModMsg(`✓ Comunidad ${action === 'APPROVED' ? 'aprobada' : action === 'NEEDS_CHANGES' ? 'requiere correcciones' : 'rechazada'} correctamente.`)
       loadModeration()
       onRefresh?.()
     } catch (err: unknown) {
@@ -311,7 +311,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
     try {
       const res = await adminApi.reviewActivity(id, { action, reason })
       const reverted = res.pointsReverted ?? 0
-      setModMsg(`✓ Actividad ${action === 'APPROVED' ? 'verificada (sin duplicar puntos)' : action === 'NEEDS_CHANGES' ? 'requiere correcciones' : 'rechazada'} correctamente.`)
+      setModMsg(`✓ Actividad ${action === 'APPROVED' ? 'verificada (sin duplicar puntos)' : action === 'NEEDS_CHANGES' ? 'requiere correcciones' : `invalidada (${Math.abs(reverted)} Semillas revertidas)`} correctamente.`)
       loadModeration()
       onRefresh?.()
     } catch (err: unknown) {

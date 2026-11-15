@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './e2e'
-import { registerGround, expectReady, scene } from './garden-helpers'
+import { registerGround, expectReady, scene, canvasSlot } from './garden-helpers'
 import { navigateModule } from './community-helpers'
 import type { GardenKind } from '../src/features/real-gardens/real-garden'
 
@@ -130,3 +130,28 @@ test('tableta: conserva la interfaz sin habilitar el zoom móvil', async ({ page
   await navigateModule(page, 'Mi Camino Verde')
   await expect(page.getByRole('navigation', { name: 'Módulos principales' })).toBeVisible()
 })
+
+/* Cobertura completa: las 16 combinaciones deben permitir tocar la parcela P6
+ * directamente en Phaser y abrir el registro fotográfico, no solo el acceso HTML. */
+for (const province of ['Pichincha', 'Guayas', 'Napo', 'Galápagos'] as const) {
+  for (const kind of ['ground', 'pots', 'vertical', 'hanging'] as const) {
+    test(`matriz táctil: ${province} / ${kind} / P6`, async ({ page }) => {
+      await registerGround(page, '/', province, kind)
+      await expectReady(page)
+      await sixVisible(page)
+      await canvasSlot(page, 5, true)
+      await expect(page.locator('#plant-photo')).toBeAttached()
+      await page.getByRole('button', { name: 'Cerrar registro de planta' }).click()
+
+      const obstruction = await page.evaluate(() => {
+        const badge = document.querySelector<HTMLElement>('.garden-storage-status')
+        const shortcuts = document.querySelector<HTMLElement>('.garden-poc-mobile-plots')
+        if (!badge || !shortcuts) return false
+        const a = badge.getBoundingClientRect()
+        const b = shortcuts.getBoundingClientRect()
+        return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+      })
+      expect(obstruction, 'Aviso de guardado no puede tapar los accesos de parcelas').toBe(false)
+    })
+  }
+}

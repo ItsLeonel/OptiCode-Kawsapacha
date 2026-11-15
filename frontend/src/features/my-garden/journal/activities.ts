@@ -41,6 +41,8 @@ export type GardenActivity = {
   notes: string; photoIds: string[]; photos?: string[]; details: ActivityDetails; createdAt: string
   validation: 'local-v1'; voidedAt?: string; voidReason?: string
   reviewStatus?: string; reviewedById?: string; reviewReason?: string; reviewedAt?: string
+  /** Enlaces únicos a registros SQLite: permiten evitar actividades duplicadas en Bitácora. */
+  careLogId?: string | null; harvestRecordId?: string | null
 }
 export type ActivityDraft = Omit<GardenActivity, 'gardenId' | 'createdAt' | 'validation' | 'photoIds' | 'photos'> & { photo?: Blob }
 

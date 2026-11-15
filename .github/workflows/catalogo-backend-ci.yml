@@ -40,3 +40,5 @@ jobs:
         run: node --test tests/catalog-regional.test.cjs
       - name: Pruebas API y migraciones previas
         run: npm test
+      - name: Integración actividades, MSP, permisos y recompensas
+        run: npm run test:activities

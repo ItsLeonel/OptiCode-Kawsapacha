@@ -55,11 +55,13 @@ Desde `OptiCode-Kawsapacha/backend`:
 ```powershell
 # Windows PowerShell
 Copy-Item prisma/kawsapacha.db prisma/kawsapacha.db.bak
+Copy-Item uploads uploads-backup -Recurse
 ```
 
 ```bash
 # Linux / macOS
 cp prisma/kawsapacha.db prisma/kawsapacha.db.bak
+cp -a uploads uploads-backup
 ```
 
 ### Escenario A: Tu base anterior usaba migraciones estándar de Prisma (V1 o anterior)
@@ -79,21 +81,15 @@ Qué hace este proceso:
 
 > **Importante sobre datos migrados desde V1:** Las comunidades, plantas y actividades antiguas creadas antes de Fase 4.5 recibirán por defecto `status = 'PENDING'` o `reviewStatus = 'PENDING'`. Puedes revisarlas y aprobarlas ingresando al panel `#admin-msp` con una cuenta `ADMIN_MSP` o `ADMIN_TECNICO`.
 
-### Escenario B: Tu base local se había actualizado antes con `prisma db push` (sin registro en `_prisma_migrations`)
+### Escenario B: Base modificada anteriormente con `prisma db push`
 
-Si al ejecutar `npx prisma migrate deploy` aparece un error indicando que una columna ya existe (por ejemplo `duplicate column name: otherNames` o `isActive`), significa que el esquema ya había sido empujado con `prisma db push`. En ese caso:
+Si aparece `duplicate column name`, **no marques automáticamente las dos migraciones como aplicadas**. Podrías saltarte tablas, índices y columnas que todavía faltan.
 
-1. Marca como aplicadas las migraciones que ya existen en el archivo SQLite local:
-   ```bash
-   npx prisma migrate resolve --applied 20261114044500_catalogo_medicinal_regional
-   npx prisma migrate resolve --applied 20261114190000_fase4_5_msp_moderacion_auditoria_y_espejo_v2
-   ```
-2. Verifica el estado y sincroniza cliente + semillas:
-   ```bash
-   npx prisma migrate status
-   npx prisma generate
-   npm run prisma:seed
-   ```
+1. Detén el backend y conserva el respaldo de `prisma/kawsapacha.db` y el directorio `uploads/`.
+2. Ejecuta `npx prisma migrate status` y comprueba la tabla `_prisma_migrations` y el esquema en **una copia** de la base de datos.
+3. Compara cada migración pendiente con los cambios realmente existentes. Solo si **todos** los cambios de una migración concreta están presentes, un responsable técnico podrá marcar **esa migración** con `prisma migrate resolve --applied <nombre-exacto>`.
+4. Si detectas diferencias, no ejecutes `migrate reset` ni sigas con `migrate deploy` sobre la BD original. Restaura la copia o prepara una migración correctiva comprobada sobre un respaldo.
+5. Una vez reconciliado el historial, aplica `npx prisma migrate deploy`, después `npx prisma generate` y `npm run prisma:seed`.
 
 ### Escenario C: Instalación limpia desde cero (sin conservar datos viejos)
 

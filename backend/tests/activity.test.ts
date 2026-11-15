@@ -6,7 +6,9 @@ import {
   listGardenActivities,
   getGardenActivityDetail,
   voidGardenActivity,
+  VALID_ACTIVITY_TYPES,
 } from '../src/services/activity.service'
+import { listPlantsByGarden, getPlantPassport, updatePlantDetails } from '../src/services/plant.service'
 
 export async function runActivityTests() {
   console.log('🧪 Iniciando pruebas de Bitácora Viva y Actividades Agrícolas...')
@@ -112,6 +114,37 @@ export async function runActivityTests() {
       data: { reviewStatus: 'APPROVED' },
     })
 
+    // Seguridad de extremo a extremo: una cuenta ajena no debe leer ni editar
+    // plantas o fotos del huerto de otra comunidad.
+    const outsider = await prisma.user.create({
+      data: {
+        name: 'Usuario fuera del huerto',
+        email: `no-miembro-${Date.now()}@kawsapacha.org`,
+        passwordHash: 'dummyhash',
+        role: 'USUARIO',
+      },
+    })
+    try {
+      await assert.rejects(() => listPlantsByGarden(garden.id, outsider.id), { code: 'FORBIDDEN' })
+      await assert.rejects(() => getPlantPassport(plant.id, outsider.id), { code: 'FORBIDDEN' })
+      await assert.rejects(
+        () => updatePlantDetails({ plantId: plant.id, requestingUserId: outsider.id, notes: 'Cambio no autorizado' }),
+        { code: 'FORBIDDEN' }
+      )
+    } finally {
+      await prisma.user.delete({ where: { id: outsider.id } })
+    }
+    assert.ok(!(VALID_ACTIVITY_TYPES as readonly string[]).includes('replanting'), 'Replante debe permanecer retirado del backend')
+
+    await assert.rejects(
+      () => createGardenActivity({
+        gardenId: garden.id, actorUserId: user.id, type: 'observation',
+        performedDate: '2026-11-02', targetKind: 'plant', plantId: plant.id,
+        details: { growthStage: 'flowering' },
+      }),
+      { code: 'EVIDENCE_REQUIRED' }
+    )
+
     // 1. Crear actividad de nivel huerto: preparación de terreno (preparation)
     const prepResult = await createGardenActivity({
       gardenId: garden.id,
@@ -176,6 +209,20 @@ export async function runActivityTests() {
     assert.equal(retryResult.isDuplicate, true)
     assert.ok(retryResult.activity)
     assert.equal(retryResult.activity!.id, waterAct.id)
+
+    // El mismo ID enviado desde otro huerto no debe devolver una actividad
+    // (ni fotografías) del primer huerto, aunque sea la misma cuenta.
+    const otherGarden = await prisma.realGarden.create({
+      data: { name: 'Segundo huerto de prueba', kind: 'ground', areaM2: 20,
+        province: 'Imbabura', provinceCode: '10', createdById: user.id },
+    })
+    await assert.rejects(
+      () => createGardenActivity({
+        gardenId: otherGarden.id, actorUserId: user.id, type: 'preparation',
+        performedDate: '2026-11-02', targetKind: 'garden', clientActivityId: clientOpId,
+      }),
+      { code: 'ACTIVITY_ID_CONFLICT' }
+    )
 
     // 4. Listar actividades del huerto en orden descendente
     const list = await listGardenActivities(garden.id, user.id, {})

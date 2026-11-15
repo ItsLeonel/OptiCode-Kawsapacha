@@ -808,7 +808,7 @@ export default function PlantPassport({
                       <time dateTime={evidence.date}>{evidence.date}</time>
                       <p>{evidence.notes}</p>
                       {evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}
-                      {evidence.growthStage && <p><strong>Etapa documentada: {GROWTH_STAGES[evidence.growthStage]}</strong></p>}
+                      {evidence.growthStage && <p><strong>Etapa declarada: {GROWTH_STAGES[evidence.growthStage]}</strong>{evidence.reviewStatus === 'PENDING' && <small> · Pendiente de revisión MSP</small>}</p>}
                       {evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}
                       {evidence.photo && <img src={resolveMediaUrl(evidence.photo)} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}
                     </li>

@@ -2,13 +2,13 @@
 
 **Proyecto:** Huertos Medicinales Comunitarios — ISWD652 Calidad de Software, 2026B · **Equipo:** OptiCode
 **Responsable:** Leonardo Lugmaña (Analista) · **Revisor:** Leonel Morales (PM) · **Issue:** #2 ANA-001
-**Versión del documento:** 1.1 — 08/11/2026 (actualizada tras la integración del backend, PR #30 y #31) · **Plantilla:** Historias de Usuario (aula virtual)
+**Versión del documento:** 2.0 — 15/11/2026 · **Plantilla:** Historias de Usuario (aula virtual)
 
-> **Fuentes:** definición del proyecto «Huertos Medicinales Comunitarios»; [lineamientos MSP 2017 aplicados](../analisis/lineamientos-msp-aplicados.md); [alcance V1](../analisis/alcance-v1.md); [arquitectura del backend](../arquitectura/backend.md) y [contratos de API](../arquitectura/contratos-api.md) de Ronny; [README del frontend](../../frontend/README.md); [informe de implementación](../mi-jardin-vivo-implementacion.md) y documentos de `docs/diseno/`.
+> **Fuentes:** definición del proyecto «Huertos Medicinales Comunitarios»; [lineamientos MSP 2017 aplicados](../analisis/lineamientos-msp-aplicados.md); [alcance V1](../analisis/alcance-v1.md); [flujo MSP no bloqueante](../analisis/flujo-msp-v1-no-bloqueante.md); [arquitectura implementada](../architecture/README.md) y [contratos de API](../arquitectura/contratos-api.md); [README del frontend](../../frontend/README.md); código del backend (`backend/src/modules/`, `backend/prisma/schema.prisma`).
 >
 > **Estimaciones:** las horas son una **estimación del analista**, pendiente de validar con Leonel (frontend) y Ronny (backend). No son horas registradas.
 >
-> **Estado V1** (fuera de la plantilla, solo para trazabilidad): 🟢 implementada según código y documentación del equipo (**pendiente de verificación por QA**) · ⚠️ parcial · ❌ no implementada. Ningún estado equivale a «prueba aprobada»; eso lo determina Santiago con evidencias.
+> **Estado** (fuera de la plantilla, solo para trazabilidad): 🟢 implementada según el código (**pendiente de verificación por QA**) · ⚠️ parcial · ❌ no implementada. Ningún estado equivale a «prueba aprobada»; eso lo determina Santiago con evidencias.
 >
 > **Modo híbrido:** con sesión iniciada, los datos se guardan en el servidor (SQLite); en modo visitante se conservan en el navegador (IndexedDB).
 
@@ -17,14 +17,17 @@
 | Actor | Descripción |
 |---|---|
 | Visitante | Persona sin cuenta que explora Kawsapacha; sus registros se guardan solo en su navegador. |
-| Participante | Integrante con cuenta que pertenece a una comunidad; registra plantas, actividades y cosechas. |
-| Responsable de comunidad | Integrante que crea y actualiza la comunidad, invita integrantes, asigna roles y registra el huerto real. |
-| Cuidador | Rol intermedio presente en el modelo de datos con permisos sobre el almacén. Pendiente de confirmar (D-11). |
-| Moderador / Administrador MSP | Previsto en la definición (foro, ranking). **Fuera del alcance V1.** |
+| Participante | Integrante con cuenta (rol global `USUARIO`) que pertenece a una comunidad; registra plantas, actividades y cosechas. |
+| Cuidador | Integrante de la comunidad con permiso para registrar y modificar los recursos de la bodega y registrar cosechas. Alcance exacto por confirmar (D-11). |
+| Responsable de comunidad | Integrante que crea y actualiza la comunidad, invita integrantes, asigna roles, registra el huerto real y archiva plantas. |
+| Funcionario MSP | Cuenta institucional (`ADMIN_MSP`) que revisa comunidades y actividades sin bloquearlas, y publica eventos y recursos educativos. |
+| Administrador técnico | Cuenta (`ADMIN_TECNICO`) que crea las cuentas MSP, activa o desactiva usuarios y consulta la auditoría. |
+
+Los roles Participante, Cuidador y Responsable son roles **dentro de cada comunidad**; una misma persona puede tener roles distintos en comunidades distintas.
 
 ## Backlog priorizado
 
-| Nro | Título | Módulo | Prioridad | Estimación | Estado V1 |
+| Nro | Título | Módulo | Prioridad | Estimación | Estado |
 |---|---|---|---|---:|---|
 | HU-001 | Registrar una cuenta | Usuarios | Alta | 15 h | 🟢 |
 | HU-002 | Iniciar sesión | Usuarios | Alta | 11 h | 🟢 |
@@ -32,26 +35,36 @@
 | HU-004 | Explorar Kawsapacha como visitante | Usuarios | Media | 7 h | 🟢 |
 | HU-005 | Registrar una comunidad de siembra | Comunidades | Alta | 13 h | 🟢 |
 | HU-006 | Actualizar la comunidad | Comunidades | Alta | 7 h | 🟢 |
-| HU-007 | Invitar integrantes y gestionar sus roles | Comunidades | Alta | 14 h | ⚠️ Invitación y roles sí; datos personales del integrante no se guardan en el servidor |
-| HU-008 | Registrar el huerto real eligiendo la provincia en el mapa | Huertos reales | Alta | 13 h | 🟢 |
-| HU-009 | Detallar la ubicación del huerto | Huertos reales | Media | 13 h | 🟢 |
-| HU-010 | Registrar las características del huerto | Huertos reales | Alta | 12 h | ⚠️ Faltan suelos gredoso y pantanoso (MSP) |
-| HU-011 | Actualizar el huerto real | Huertos reales | Alta | 6 h | 🟢 |
-| HU-012 | Consultar el catálogo de plantas medicinales | Catálogo | Alta | 9 h | 🟢 8 especies con búsqueda |
-| HU-013 | Consultar la ficha botánica de una especie | Catálogo | Media | 15 h | ⚠️ Descripción, usos, preparación y contraindicaciones; sin fotos ni fuentes |
-| HU-014 | Visualizar mi huerto virtual | Huerto virtual | Alta | 24 h | 🟢 |
-| HU-015 | Registrar una planta con fotografía real | Huerto virtual | Alta | 12 h | 🟢 |
-| HU-016 | Consultar y actualizar el Pasaporte Vivo | Huerto virtual | Alta | 12 h | 🟢 |
-| HU-017 | Registrar actividades de cultivo | Huerto virtual | Media | 13 h | 🟢 |
-| HU-018 | Consultar mi progreso (Mi camino verde) | Huerto virtual | Media | 12 h | ⚠️ Cálculo local en el navegador |
-| HU-019 | Conservar mis registros | Transversal | Alta | 11 h | 🟢 Servidor con sesión · navegador como visitante |
+| HU-007 | Invitar integrantes y gestionar sus roles | Comunidades | Alta | 14 h | ⚠️ Datos personales del integrante no se guardan en el servidor |
 | HU-020 | Responder invitaciones a una comunidad | Comunidades | Media | 8 h | 🟢 |
 | HU-021 | Gestionar el almacén comunitario (bodega) | Comunidades | Baja | 12 h | 🟢 |
-| HU-022 | Registrar la cosecha de una planta | Huerto virtual | Media | 10 h | 🟢 |
-| HU-023 | Consultar el calendario de siembra de una especie | Catálogo | Baja | 7 h | 🟢 |
-| | **Total** | | | **271 h** | |
+| HU-008 | Registrar el huerto real eligiendo la provincia en el mapa | Huertos reales | Alta | 13 h | 🟢 |
+| HU-009 | Detallar la ubicación del huerto | Huertos reales | Media | 13 h | 🟢 |
+| HU-010 | Registrar las características del huerto | Huertos reales | Alta | 12 h | 🟢 |
+| HU-011 | Actualizar el huerto real | Huertos reales | Alta | 6 h | 🟢 |
+| HU-012 | Consultar el catálogo de plantas medicinales | Catálogo | Alta | 9 h | 🟢 30 especies por región |
+| HU-013 | Consultar la ficha botánica de una especie | Catálogo | Media | 15 h | ⚠️ Cualidad caliente/fría por documentar; 13 de 30 con foto |
+| HU-023 | Consultar el calendario de siembra y la fase lunar | Catálogo | Baja | 7 h | 🟢 |
+| HU-014 | Visualizar mi huerto virtual | Mi Huerto | Alta | 24 h | 🟢 |
+| HU-015 | Registrar una planta con fotografía real | Mi Huerto | Alta | 12 h | 🟢 |
+| HU-016 | Consultar y actualizar el Pasaporte Vivo | Mi Huerto | Alta | 12 h | 🟢 |
+| HU-027 | Reflejar en el Espejo Digital la etapa real de mi planta | Mi Huerto | Alta | 14 h | 🟢 |
+| HU-017 | Registrar actividades de cultivo | Ciclo agrícola | Media | 13 h | 🟢 |
+| HU-022 | Registrar la cosecha de una planta | Ciclo agrícola | Media | 10 h | 🟢 |
+| HU-024 | Registrar la poscosecha | Ciclo agrícola | Media | 12 h | 🟢 |
+| HU-025 | Registrar los rituales de siembra y de gratitud | Ciclo agrícola | Baja | 6 h | 🟢 |
+| HU-026 | Imprimir la señalética botánica de una planta | Ciclo agrícola | Media | 8 h | 🟢 |
+| HU-018 | Consultar mi progreso (Mi Camino Verde) | Mi Camino Verde | Media | 12 h | 🟢 |
+| HU-028 | Consultar mis notificaciones | Notificaciones | Media | 6 h | 🟢 |
+| HU-029 | Revisar comunidades y actividades sin bloquear a las comunidades | Administración | Alta | 16 h | 🟢 |
+| HU-030 | Publicar eventos y recursos educativos del MSP | Administración | Baja | 10 h | 🟢 |
+| HU-031 | Administrar las cuentas institucionales | Administración | Media | 12 h | 🟢 |
+| HU-019 | Conservar mis registros | Transversal | Alta | 11 h | 🟢 Servidor con sesión · navegador como visitante |
+| | **Total** | | | **345 h** | |
 
-> HU-020 a HU-023 se añadieron al incorporar el backend integrado (PR #30). Amplían el alcance inicial de cinco módulos con funciones de la definición del proyecto (bodega, calendario lunar, cosecha); el PM debe confirmarlas como parte de la V1 (D-12).
+El backlog se ordena por módulo. Los números identifican cada historia de forma estable y no indican orden de desarrollo.
+
+**Fuera del alcance de esta versión:** ranking nacional o provincial entre comunidades y entrega de premios, foro con moderación, certificación de talentos, retos y misiones definidos por el cliente, videos y exportación de reportes. Se planifican para la versión 2 ([alcance V1](../analisis/alcance-v1.md)).
 
 ---
 
@@ -80,7 +93,7 @@
 4. Integrar el formulario con la API y manejar los errores por campo (3 horas).
 5. Probar con datos válidos, inválidos y correo duplicado (2 horas).
 
-> *Estado V1:* 🟢 `POST /api/auth/register` aplica las mismas reglas en el servidor, guarda la contraseña con bcrypt y responde `409 EMAIL_IN_USE` si el correo existe. Casos sugeridos: P-002, P-010.
+> *Estado:* 🟢 `POST /api/auth/register` aplica las mismas reglas en el servidor, guarda la contraseña con bcrypt y responde `409 EMAIL_IN_USE` si el correo existe. Casos sugeridos: P-002, P-010.
 
 ---
 
@@ -106,7 +119,7 @@
 4. Integrar el inicio de sesión con la navegación a Mi Huerto (2 horas).
 5. Probar accesos correctos, incorrectos y repetidos (2 horas).
 
-> *Estado V1:* 🟢 `POST /api/auth/login` devuelve un token JWT (vigencia configurable, 7 días por defecto) y el mensaje genérico «Correo o contraseña incorrectos» (`401`). Casos sugeridos: P-002, P-010, P-011.
+> *Estado:* 🟢 `POST /api/auth/login` devuelve un token JWT (vigencia configurable, 7 días por defecto) y el mensaje genérico «Correo o contraseña incorrectos» (`401`). Casos sugeridos: P-002, P-010, P-011.
 
 ---
 
@@ -130,7 +143,7 @@
 3. Invalidar la sesión en el backend (1 hora).
 4. Probar cierre, reingreso y regreso con el navegador (1 hora).
 
-> *Estado V1:* 🟢 El cierre de sesión descarta el token en el frontend. Al ser JWT sin estado, el servidor no invalida el token antes de su vencimiento (tarea 3 queda como mejora). Casos sugeridos: P-010, P-013.
+> *Estado:* 🟢 El cierre de sesión descarta el token en el frontend. Al ser JWT sin estado, el servidor no invalida el token antes de su vencimiento (tarea 3 queda como mejora). Casos sugeridos: P-010, P-013.
 
 ---
 
@@ -154,7 +167,7 @@
 3. Identificar visualmente el modo visitante (1 hora).
 4. Probar el recorrido de visitante (1 hora).
 
-> *Estado V1:* 🟢 En modo visitante los datos se guardan solo en IndexedDB del navegador. Caso sugerido: P-001.
+> *Estado:* 🟢 En modo visitante los datos se guardan solo en IndexedDB del navegador. Caso sugerido: P-001.
 
 ---
 
@@ -182,7 +195,7 @@
 4. Codificar la persistencia local y el servicio de comunidades en el backend (3 horas).
 5. Probar el registro con datos válidos e inválidos (2 horas).
 
-> *Estado V1:* 🟢 `POST /api/communities` guarda nombre, responsable, ubicación, descripción y tipo; quien la crea queda como Responsable. Validaciones exactas de contacto por confirmar con Leonel (D-06). Caso sugerido: P-003.
+> *Estado:* 🟢 `POST /api/communities` guarda nombre, responsable, ubicación, descripción, tipo y foto opcional; quien la crea queda como Responsable. La comunidad nace pendiente de revisión del MSP y funciona desde el primer momento (HU-029). Validaciones exactas de contacto por confirmar con Leonel (D-06). Caso sugerido: P-003.
 
 ---
 
@@ -208,7 +221,7 @@
 4. Codificar la actualización en el almacenamiento y en el backend (2 horas).
 5. Probar edición, cancelación, recarga y permisos (1 hora).
 
-> *Estado V1:* 🟢 `PUT /api/communities/:id` exige rol Responsable. Casos sugeridos: P-004, P-011.
+> *Estado:* 🟢 `PUT /api/communities/:id` exige rol Responsable. Casos sugeridos: P-004, P-011.
 
 ---
 
@@ -237,7 +250,58 @@
 5. Incluir validaciones de correo, duplicados y rol (1 hora).
 6. Probar invitaciones, permisos y cambios de rol (2 horas).
 
-> *Estado V1:* ⚠️ Criterios 1–5 implementados (`POST /api/communities/:id/members/invite`, `PATCH …/:userId/role`, `DELETE …/:userId`, solo Responsable). **Criterio 6 parcial:** la interfaz tiene esos campos, pero el modelo `CommunityMember` del servidor no los guarda (D-05). La certificación de talentos y el ascenso de nivel quedan para incrementos posteriores (C-03). Casos sugeridos: P-003, P-011.
+> *Estado:* ⚠️ Criterios 1–5 implementados (`POST /api/communities/:id/members/invite`, `PATCH …/:userId/role`, `DELETE …/:userId`, solo Responsable). **Criterio 6 parcial:** el modelo `CommunityMember` del servidor no guarda fecha de nacimiento, género ni talentos (D-05). La certificación de talentos y el ascenso de nivel quedan para una versión posterior (C-03). Casos sugeridos: P-003, P-011.
+
+---
+
+| **Nro:** HU-020 | **Título:** Responder invitaciones a una comunidad | **Prioridad:** Media<br>**Estimación:** 8 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** persona registrada **quiero** ver las invitaciones que recibo y aceptarlas o rechazarlas, **para** unirme solo a las comunidades en las que deseo participar.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Notificación:** **Dado** que tengo invitaciones pendientes, **cuando** inicio sesión, **entonces** la campana de notificaciones muestra cuántas son.
+2. **Aceptar:** **Dado** que abro una invitación pendiente, **cuando** la acepto, **entonces** paso a ser integrante de la comunidad con el rol indicado y puedo seleccionarla como comunidad activa.
+3. **Rechazar:** **Dado** que abro una invitación pendiente, **cuando** la rechazo, **entonces** no me uno a la comunidad y la invitación deja de estar pendiente.
+4. **Invitación ya procesada:** **Dado** que la invitación ya fue aceptada o rechazada, **cuando** intento responderla otra vez, **entonces** se informa que ya fue procesada.
+
+**Tareas de implementación:**
+
+1. Diseñar la campana y el modal de notificaciones (2 horas).
+2. Codificar la consulta de invitaciones del usuario (1 hora).
+3. Codificar aceptar y rechazar en backend y frontend (3 horas).
+4. Probar aceptación, rechazo y doble respuesta (2 horas).
+
+> *Estado:* 🟢 `GET /api/users/me/invitations`, `POST /api/invitations/:id/accept` y `…/reject` (`ALREADY_PROCESSED`). Caso sugerido: por definir con Santiago.
+
+---
+
+| **Nro:** HU-021 | **Título:** Gestionar el almacén comunitario (bodega) | **Prioridad:** Baja<br>**Estimación:** 12 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** responsable o cuidador de una comunidad **quiero** registrar las herramientas, insumos y semillas de la bodega con su cantidad y estado, **para** saber con qué recursos cuenta el huerto.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Registrar recurso:** **Dado** que tengo rol Responsable o Cuidador, **cuando** registro un recurso con nombre, categoría (herramienta, insumo o semilla), cantidad y unidad, **entonces** aparece en el inventario de la comunidad.
+2. **Actualizar estado:** **Dado** que existe un recurso, **cuando** cambio su cantidad o su estado (disponible, en uso, mantenimiento o agotado), **entonces** el inventario refleja el cambio.
+3. **Sin permiso:** **Dado** que soy Participante, **cuando** intento registrar, modificar o eliminar un recurso, **entonces** el sistema rechaza la acción.
+4. **Eliminar:** **Dado** que soy Responsable, **cuando** elimino un recurso, **entonces** deja de mostrarse en el inventario.
+
+**Tareas de implementación:**
+
+1. Diseñar la vista del almacén (2 horas).
+2. Codificar el modelo y los servicios de recursos (4 horas).
+3. Codificar el control de permisos por rol (2 horas).
+4. Codificar la vista de inventario en el frontend (2 horas).
+5. Probar altas, cambios, bajas y permisos (2 horas).
+
+> *Estado:* 🟢 `/api/communities/:id/resources` (crear y modificar: Responsable o Cuidador; eliminar: solo Responsable). Corresponde al «espacio de bodega» de la definición y del MSP (p. 24). Caso sugerido: por definir con Santiago.
 
 ---
 
@@ -265,7 +329,7 @@
 4. Incluir la validación de provincia obligatoria (1 hora).
 5. Probar el mapa con ratón, toque y teclado (2 horas).
 
-> *Estado V1:* 🟢 Las 24 provincias. Con sesión, el huerto se guarda con `POST /api/gardens` (provincia y código oficial). Caso sugerido: P-005.
+> *Estado:* 🟢 Las 24 provincias. Con sesión, el huerto se guarda con `POST /api/gardens` (provincia y código oficial). Caso sugerido: P-005.
 
 ---
 
@@ -291,7 +355,7 @@
 4. Codificar el mapa detallado con marcador arrastrable (4 horas).
 5. Probar selección, cambios y fallos de carga (2 horas).
 
-> *Estado V1:* 🟢 El servidor guarda cantón, parroquia, códigos INEC, referencia y coordenadas opcionales. La aplicación nunca solicita la ubicación del dispositivo. Caso sugerido: P-005.
+> *Estado:* 🟢 El servidor guarda cantón, parroquia, códigos INEC, referencia y coordenadas opcionales. La aplicación nunca solicita la ubicación del dispositivo. Caso sugerido: P-005.
 
 ---
 
@@ -318,7 +382,7 @@
 4. Codificar la persistencia local y el servicio de huertos en el backend (2 horas).
 5. Probar combinaciones válidas e inválidas (2 horas).
 
-> *Estado V1:* ⚠️ Criterios 1–4 implementados y guardados en el servidor con sesión. **Criterio 5 parcial:** el backend admite franco (`loam`), arcilloso, arenoso, limoso, otro y desconocido; faltan gredoso y pantanoso (hallazgo M-01). Caso sugerido: P-006.
+> *Estado:* 🟢 Criterios 1–5 implementados y guardados en el servidor con sesión. El selector de suelo ofrece arcilloso, limoso, arenoso, margoso, gredoso y pantanoso (MSP 2017, Tabla 1), además de franco, otro y «por determinar». Caso sugerido: P-006.
 
 ---
 
@@ -343,11 +407,11 @@
 4. Codificar la actualización en el almacenamiento y en el backend (1 hora).
 5. Probar edición, cancelación y conservación de plantas (1 hora).
 
-> *Estado V1:* 🟢 Con sesión, `PUT /api/gardens/:id`. Caso sugerido: P-007.
+> *Estado:* 🟢 Con sesión, `PUT /api/gardens/:id`. Caso sugerido: P-007.
 
 ---
 
-## Módulo 4 — Catálogo de plantas medicinales
+## Módulo 4 — Catálogo de plantas medicinales y calendario
 
 | **Nro:** HU-012 | **Título:** Consultar el catálogo de plantas medicinales | **Prioridad:** Alta<br>**Estimación:** 9 horas |
 |---|---|---|
@@ -369,7 +433,7 @@
 3. Codificar el listado y el filtro (3 horas).
 4. Probar listado, filtro y búsqueda sin resultados (1 hora).
 
-> *Estado V1:* 🟢 `GET /api/catalog?q=` (público) con **8 especies**: romero, manzanilla, menta, toronjil, hierbabuena, lavanda, orégano y llantén. Siete de ellas figuran entre las sugeridas por el MSP para la Sierra (p. 20). El mensaje del criterio 3 está por confirmar. Caso sugerido: por definir con Santiago.
+> *Estado:* 🟢 `GET /api/catalog?q=` (público) con **30 especies** organizadas por región (Sierra, Costa, Amazonía y Galápagos), entre ellas las siete sugeridas por el MSP para la Sierra (p. 20). El mensaje del criterio 3 está por confirmar. Caso sugerido: por definir con Santiago.
 
 ---
 
@@ -394,11 +458,36 @@
 4. Codificar el servicio de consulta del catálogo en el backend (3 horas).
 5. Probar fichas completas e incompletas (1 hora).
 
-> *Estado V1:* ⚠️ **Parcial.** `GET /api/catalog/:id` devuelve nombre común, nombre científico, descripción, propiedades medicinales, preparación y contraindicaciones. **Faltan** otros nombres, familia, altitud, provincias, ciclo, cualidad caliente/fría, fotografías y fuentes. La cualidad y el ciclo de 7 especies pueden tomarse del MSP 2017 (hallazgo M-02). Criterio 2 por verificar en la interfaz. Ver [dudas y decisiones pendientes](../analisis/dudas-y-decisiones-pendientes.md) (D-01).
+> *Estado:* ⚠️ **Parcial.** `GET /api/catalog/:id` devuelve nombre común y científico, otros nombres, familia, altitud, provincias, regiones, ciclo, usos, cuidados, contraindicaciones y la fuente de cada ficha. **Pendiente:** la cualidad caliente/fría figura como «Por documentar» en las 30 fichas (la señalética sí usa el Anexo 5 del MSP para siete especies, HU-026), y 13 de las 30 especies tienen fotografía con crédito. Criterio 2 por verificar en la interfaz. Ver [dudas y decisiones](../analisis/dudas-y-decisiones-pendientes.md) (D-01).
 
 ---
 
-## Módulo 5 — Huerto virtual
+| **Nro:** HU-023 | **Título:** Consultar el calendario de siembra y la fase lunar | **Prioridad:** Baja<br>**Estimación:** 7 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** integrante de comunidad **quiero** consultar la temporada, la frecuencia de riego y abono, el ciclo de crecimiento y la fase lunar recomendada de cada especie, **para** cuidar mis plantas según los saberes ancestrales.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Consulta de la especie:** **Dado** que abro la ficha de una especie, **cuando** consulto su calendario, **entonces** veo su mejor temporada de siembra, frecuencia de riego y abono, ciclo de crecimiento y consejo de fase lunar.
+2. **Fase lunar del día:** **Dado** que abro el calendario lunar, **cuando** elijo un día o un mes, **entonces** veo la fase lunar y las labores aconsejadas, como orientación y no como una actividad realizada.
+3. **Alerta de exceso:** **Dado** que registro un riego o abono antes de la frecuencia recomendada, **cuando** guardo, **entonces** el sistema advierte del exceso.
+4. **Especie inexistente:** **Dado** que la especie no existe, **cuando** consulto su calendario, **entonces** se informa que no fue encontrada.
+
+**Tareas de implementación:**
+
+1. Definir los datos de calendario por especie con fuentes (MSP 2017) (2 horas).
+2. Codificar el servicio de calendario (2 horas).
+3. Mostrar el calendario en la interfaz (2 horas).
+4. Probar consulta y alertas (1 hora).
+
+> *Estado:* 🟢 Los datos de calendario forman parte de la ficha (`GET /api/catalog/:id`) y la fase lunar se consulta en `GET /api/lunar-calendar?date=` o `?month=`; el exceso de cuidados responde `CARE_OVERUSE`. Los consejos lunares deben alinearse con el MSP 2017 (p. 69; hallazgo M-03). Caso sugerido: por definir con Santiago.
+
+---
+
+## Módulo 5 — Mi Huerto (huerto virtual)
 
 | **Nro:** HU-014 | **Título:** Visualizar mi huerto virtual | **Prioridad:** Alta<br>**Estimación:** 24 horas |
 |---|---|---|
@@ -422,7 +511,7 @@
 4. Adaptar el escenario a la región, la modalidad y las instalaciones declaradas (4 horas).
 5. Probar escenarios, navegación y accesibilidad (3 horas).
 
-> *Estado V1:* 🟢 4 regiones × 4 modalidades; con sesión, las parcelas se cargan desde `GET /api/gardens/:gardenId/plants`. Caso sugerido: P-014.
+> *Estado:* 🟢 Cuatro regiones (Costa, Sierra, Amazonía y Galápagos) por cuatro modalidades (en tierra, macetas, vertical y colgante); con sesión, las parcelas se cargan desde `GET /api/gardens/:gardenId/plants`. Mi Huerto agrupa el terreno, el catálogo, las plantas y la Bitácora. Caso sugerido: P-014.
 
 ---
 
@@ -448,7 +537,7 @@
 4. Codificar el almacenamiento de la fotografía (2 horas).
 5. Probar con fotos válidas, inválidas y espacios ocupados (2 horas).
 
-> *Estado V1:* 🟢 Con sesión, `POST /api/gardens/:gardenId/plants` (multipart) valida tipo y tamaño (`INVALID_FILE_TYPE`, `FILE_TOO_LARGE`), parcela 0–5 (`INVALID_PLOT`) y ocupación (`409 PLOT_OCCUPIED`). La especie la elige el usuario; no se identifica automáticamente desde la foto. Caso sugerido: P-014.
+> *Estado:* 🟢 Con sesión, `POST /api/gardens/:gardenId/plants` (multipart) valida tipo y tamaño (`INVALID_FILE_TYPE`, `FILE_TOO_LARGE`), parcela 0–5 (`INVALID_PLOT`) y ocupación (`409 PLOT_OCCUPIED`). La especie la elige el usuario; no se identifica automáticamente desde la foto. Caso sugerido: P-014.
 
 ---
 
@@ -475,9 +564,37 @@
 4. Codificar el archivo y la restauración con control de ocupación (2 horas).
 5. Probar consulta, edición, archivo y restauración (2 horas).
 
-> *Estado V1:* 🟢 Con sesión, `GET /api/plants/:id/passport` y `PATCH /api/plants/:id/archive`. Caso sugerido: P-014.
+> *Estado:* 🟢 Con sesión, `GET /api/plants/:id/passport`, `PATCH /api/plants/:id` y `PATCH /api/plants/:id/archive`. El archivo lo autoriza el servidor al Responsable o a quien creó la comunidad o el huerto. Caso sugerido: P-014.
 
 ---
+
+| **Nro:** HU-027 | **Título:** Reflejar en el Espejo Digital la etapa real de mi planta | **Prioridad:** Alta<br>**Estimación:** 14 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** integrante de comunidad **quiero** que mi planta virtual muestre la etapa que observé en mi planta real, junto con su fotografía, **para** que el huerto virtual sea un espejo fiel de mi huerto.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Etapa observada:** **Dado** que registro un seguimiento con foto e indico la etapa que observo (por ejemplo, brote), **cuando** vuelvo a Mi Huerto, **entonces** la planta virtual se muestra en esa etapa.
+2. **Sin crecimiento ficticio:** **Dado** que solo registro riegos o pasan los días, **cuando** abro Mi Huerto, **entonces** la etapa de la planta no cambia por sí sola.
+3. **Antes y después:** **Dado** que la planta tiene fotos de varias etapas, **cuando** abro su Pasaporte Vivo, **entonces** puedo comparar su evolución con las fotos registradas.
+4. **Sin etapa documentada:** **Dado** que aún no registro ninguna observación, **cuando** veo la planta, **entonces** se indica que su etapa no está documentada.
+
+**Tareas de implementación:**
+
+1. Definir las etapas visuales y su correspondencia con las observaciones (3 horas).
+2. Diseñar las ilustraciones de cada etapa (3 horas).
+3. Codificar el cambio de etapa a partir de la observación registrada (4 horas).
+4. Codificar la comparación de fotos en el Pasaporte Vivo (2 horas).
+5. Probar que solo las observaciones cambian la etapa (2 horas).
+
+> *Estado:* 🟢 El campo `observedState` de la planta guarda la etapa declarada por la persona; el sistema no identifica la especie ni la etapa automáticamente a partir de la foto. Corresponde al «espejo virtual que refleja la realidad» de la definición (p. 2). Caso del plan manual: CP-AG-14.
+
+---
+
+## Módulo 6 — Ciclo agrícola y Bitácora
 
 | **Nro:** HU-017 | **Título:** Registrar actividades de cultivo | **Prioridad:** Media<br>**Estimación:** 13 horas |
 |---|---|---|
@@ -488,10 +605,12 @@
 
 **Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
 
-1. **Registro exitoso:** **Dado** que tengo un huerto registrado, **cuando** registro una actividad con tipo, fecha, responsable, destino, notas y, si lo deseo, una foto, **entonces** la actividad aparece en «Mi historia».
+1. **Registro exitoso:** **Dado** que tengo un huerto registrado, **cuando** registro una actividad con tipo, fecha, responsable, destino, notas y, si lo deseo, una foto, **entonces** la actividad aparece en la Bitácora de Mi Huerto.
 2. **Datos incompletos:** **Dado** que dejé vacío un dato obligatorio, **cuando** intento guardar la actividad, **entonces** se muestra el error y no se registra.
 3. **Anular actividad:** **Dado** que registré una actividad por error, **cuando** la anulo, **entonces** se conserva en el historial como anulada, con su evidencia, y se revierten sus efectos.
 4. **Conflicto de ocupación:** **Dado** que intento un replante hacia un espacio ocupado, **cuando** guardo, **entonces** el sistema lo rechaza y no desplaza a otra planta.
+5. **Exceso de cuidados:** **Dado** que registro un riego o un abono antes de la frecuencia recomendada para la especie, **cuando** guardo, **entonces** el sistema advierte del exceso.
+6. **Sin esperar revisión:** **Dado** que mi comunidad aún no ha sido revisada por el MSP, **cuando** registro una actividad, **entonces** se guarda de inmediato y queda válida.
 
 **Tareas de implementación:**
 
@@ -501,11 +620,116 @@
 4. Codificar la anulación conservando el historial (2 horas).
 5. Probar cada tipo de actividad y su anulación (2 horas).
 
-> *Estado V1:* 🟢 Con sesión, riego, abonado y poda se registran en `POST /api/plants/:id/care`, que valida exceso de riego y abono; la cosecha se detalla en HU-022. Los rituales de la definición quedan para incrementos posteriores. Caso sugerido: P-014.
+> *Estado:* 🟢 Con sesión, `POST /api/gardens/:gardenId/activities` (multipart, con foto opcional) y `POST …/:activityId/void` para anular; un identificador de reintento evita registros duplicados. El exceso de cuidados responde `CARE_OVERUSE` y la ocupación `PLOT_OCCUPIED`. La cosecha, la poscosecha, los rituales y la señalética se detallan en HU-022, HU-024, HU-025 y HU-026. Casos sugeridos: P-014; plan manual CP-AG-01 y CP-AG-02.
 
 ---
 
-| **Nro:** HU-018 | **Título:** Consultar mi progreso (Mi camino verde) | **Prioridad:** Media<br>**Estimación:** 12 horas |
+| **Nro:** HU-022 | **Título:** Registrar la cosecha de una planta | **Prioridad:** Media<br>**Estimación:** 10 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** integrante de comunidad **quiero** registrar la cosecha de una planta lista, indicando la cantidad obtenida, **para** llevar el control de lo producido y sumarlo al almacén comunitario.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Cosecha exitosa:** **Dado** que una planta está lista para cosechar, **cuando** registro la cosecha con su cantidad, **entonces** se guarda el registro y la cantidad se suma al almacén de la comunidad.
+2. **Rebrote:** **Dado** que coseché una planta medicinal perenne, **cuando** vuelvo al huerto, **entonces** la planta sigue en su parcela en estado de rebrote, sin liberar el espacio.
+3. **Historial:** **Dado** que la comunidad tiene cosechas, **cuando** consulto el historial, **entonces** veo especie, cantidad, fecha y quién cosechó.
+4. **Planta inexistente:** **Dado** que la planta ya no existe, **cuando** intento cosecharla, **entonces** se informa que no fue encontrada.
+
+**Tareas de implementación:**
+
+1. Diseñar el formulario de cosecha (1 hora).
+2. Codificar el registro de cosecha y su vínculo con la comunidad (3 horas).
+3. Codificar la suma automática al almacén (2 horas).
+4. Codificar el cambio de estado a rebrote (2 horas).
+5. Probar cosecha, rebrote e historial (2 horas).
+
+> *Estado:* 🟢 `POST /api/plants/:id/harvest` y consultas por huerto y comunidad; la cantidad se suma al almacén como recurso «Cosecha: especie». El MSP recomienda cosechar tomando solo las partes necesarias (p. 49), coherente con el rebrote. Caso del plan manual: CP-AG-05.
+
+---
+
+| **Nro:** HU-024 | **Título:** Registrar la poscosecha | **Prioridad:** Media<br>**Estimación:** 12 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** integrante de comunidad **quiero** registrar la limpieza, el secado, el empaquetado y el almacenamiento de lo que coseché, **para** conservar las plantas secas en buen estado y saber de qué cosecha proviene cada lote.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Etapas en orden:** **Dado** que registré una cosecha, **cuando** documento la limpieza, el inicio del secado a la sombra, el fin del secado, el empaquetado y el almacenamiento, **entonces** cada etapa queda en la Bitácora con su fecha y responsable, en ese orden.
+2. **Sin cosecha previa:** **Dado** que la planta no tiene una cosecha registrada, **cuando** intento registrar una etapa de poscosecha, **entonces** el formulario bloquea la operación y explica que primero debo registrar la cosecha.
+3. **Fechas incoherentes:** **Dado** que indico un fin de secado anterior a su inicio, **cuando** guardo, **entonces** el registro se rechaza sin alterar las etapas anteriores.
+4. **Aviso de secado:** **Dado** que registro el secado, **cuando** consulto la etapa, **entonces** se muestra el aviso orientativo de 10 a 15 días de secado.
+5. **Lote y caducidad:** **Dado** que empaqueto sin indicar lote o con una fecha de caducidad inválida, **cuando** guardo, **entonces** el registro se rechaza.
+6. **Registro documental:** **Dado** que registro cualquier etapa de poscosecha, **cuando** consulto Mi Camino Verde, **entonces** esa etapa no suma puntos.
+
+**Tareas de implementación:**
+
+1. Diseñar el formulario de las cinco etapas (2 horas).
+2. Codificar el registro de cada etapa como actividad de la Bitácora (3 horas).
+3. Codificar las validaciones de orden, fechas, lote y caducidad (3 horas).
+4. Mostrar el ciclo completo en la Bitácora (2 horas).
+5. Probar el orden de etapas, fechas inválidas y anulación (2 horas).
+
+> *Estado:* 🟢 Actividad de tipo `postharvest` en `POST /api/gardens/:gardenId/activities` (0 puntos base). La definición del proyecto (p. 2) pide limpieza, secado de 10 a 15 días, empaquetado con etiqueta y almacenamiento. Casos del plan manual: CP-AG-06 a CP-AG-11.
+
+---
+
+| **Nro:** HU-025 | **Título:** Registrar los rituales de siembra y de gratitud | **Prioridad:** Baja<br>**Estimación:** 6 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** integrante de comunidad **quiero** registrar los rituales de siembra y de agradecimiento que realizamos en el huerto, **para** conservar la memoria de nuestras prácticas ancestrales junto al registro agrícola.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Registro exitoso:** **Dado** que tengo un huerto, **cuando** registro un ritual de siembra o de gratitud con su fecha, notas y, si lo deseo, una foto, **entonces** aparece en la Bitácora identificado como ritual.
+2. **Sin puntos:** **Dado** que registré un ritual, **cuando** consulto Mi Camino Verde, **entonces** el ritual no suma puntos ni avanza misiones.
+3. **Datos incompletos:** **Dado** que dejé vacía la fecha, **cuando** intento guardar, **entonces** se muestra el error y no se registra.
+
+**Tareas de implementación:**
+
+1. Agregar los dos tipos de ritual al formulario de actividades (2 horas).
+2. Codificar su registro en la Bitácora sin efecto en las recompensas (2 horas).
+3. Probar el registro, la fecha obligatoria y la ausencia de puntos (2 horas).
+
+> *Estado:* 🟢 Tipos `sowing_ritual` y `gratitude_ritual` con 0 puntos base. Corresponde a los «rituales de siembra y gratitud» de la definición del proyecto (p. 2). Caso del plan manual: CP-AG-03.
+
+---
+
+| **Nro:** HU-026 | **Título:** Imprimir la señalética botánica de una planta | **Prioridad:** Media<br>**Estimación:** 8 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** responsable de comunidad **quiero** imprimir una etiqueta para cada planta con su nombre común, nombre científico, familia y cualidad tradicional, **para** señalizar el huerto real como recomienda el MSP.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Etiqueta:** **Dado** que abro el Pasaporte Vivo de una planta, **cuando** elijo «Imprimir señalética», **entonces** se genera una etiqueta imprimible con nombre común, nombre científico y familia.
+2. **Cualidad documentada:** **Dado** que la especie figura en el Anexo 5 de los lineamientos MSP 2017, **cuando** genero la etiqueta, **entonces** muestra su cualidad (caliente o fresca) y cita esa fuente.
+3. **Cualidad sin fuente:** **Dado** que la especie no tiene una clasificación documentada, **cuando** genero la etiqueta, **entonces** se indica «No documentada», sin inventar la cualidad.
+4. **Sin indicaciones médicas:** **Dado** que genero la etiqueta, **cuando** la reviso, **entonces** no contiene dosis ni recetas.
+5. **Instalación:** **Dado** que coloqué la etiqueta en el huerto, **cuando** registro la actividad de señalética, **entonces** queda en la Bitácora sin sumar puntos.
+
+**Tareas de implementación:**
+
+1. Diseñar la etiqueta imprimible (2 horas).
+2. Codificar la clasificación según el Anexo 5 del MSP (2 horas).
+3. Codificar la impresión desde el Pasaporte Vivo (2 horas).
+4. Probar especies con y sin clasificación (2 horas).
+
+> *Estado:* 🟢 La etiqueta usa la clasificación de las siete especies del Anexo 5 del MSP 2017 ([lineamientos MSP aplicados](../analisis/lineamientos-msp-aplicados.md)); para las demás muestra «No documentada». El registro de instalación es la actividad `signage` (0 puntos). Caso del plan manual: CP-AG-04.
+
+---
+
+## Módulo 7 — Mi Camino Verde y notificaciones
+
+| **Nro:** HU-018 | **Título:** Consultar mi progreso (Mi Camino Verde) | **Prioridad:** Media<br>**Estimación:** 12 horas |
 |---|---|---|
 
 **Historia de usuario:**
@@ -514,21 +738,132 @@
 
 **Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
 
-1. **Puntos por actividad:** **Dado** que registro una actividad válida, **cuando** consulto «Mi camino verde», **entonces** veo los puntos correspondientes: preparación 10, limpieza 8, siembra 20, riego 5, abonado 8, aporque 8, replante 10, seguimiento 12 y cosecha 20.
+1. **Puntos por actividad:** **Dado** que registro una actividad válida, **cuando** consulto Mi Camino Verde, **entonces** veo los puntos correspondientes: preparación 10, limpieza 8, siembra 20, riego 5, abonado 8, aporque 8, replante 10, seguimiento 12 y cosecha 20.
 2. **Niveles:** **Dado** que acumulo puntos, **cuando** alcanzo 100 o 300, **entonces** paso a nivel Oficial o Maestro respectivamente (Aprendiz desde 0).
 3. **Sin duplicados:** **Dado** que registro otra actividad con el mismo tipo, fecha, destino y responsable, **cuando** se recalcula el progreso, **entonces** esa actividad suma 0 puntos.
 4. **Actividad anulada:** **Dado** que anulo una actividad, **cuando** se recalcula el progreso, **entonces** sus puntos dejan de sumar.
-5. **Insignias:** **Dado** que registro una siembra con foto, riego en tres fechas, seguimiento fotográfico en tres fechas o una cosecha con foto, **cuando** consulto mi progreso, **entonces** obtengo la insignia correspondiente.
+5. **Insignias:** **Dado** que registro una siembra con foto, riego en tres fechas, seguimiento fotográfico en tres fechas o una cosecha con foto, **cuando** consulto mi progreso, **entonces** obtengo la insignia correspondiente; también obtengo «Ciclo lunar consciente» al documentar tres actividades guiadas por las recomendaciones lunares.
+6. **Límite diario:** **Dado** que ya alcancé el límite diario de puntos de un tipo de actividad, **cuando** registro otra del mismo tipo ese día, **entonces** se guarda en la Bitácora pero no suma más puntos.
+7. **Invalidación del MSP:** **Dado** que el MSP invalida una de mis actividades, **cuando** consulto mi progreso, **entonces** sus puntos se descuentan una sola vez y mis misiones se recalculan.
 
 **Tareas de implementación:**
 
 1. Definir las reglas de puntos, niveles e insignias (2 horas).
 2. Codificar el cálculo de progreso a partir de los registros (4 horas).
-3. Diseñar la vista «Mi camino verde» (2 horas).
+3. Diseñar la vista Mi Camino Verde (2 horas).
 4. Codificar la vista de progreso (2 horas).
 5. Probar puntos, niveles, duplicados y anulaciones (2 horas).
 
-> *Estado V1:* ⚠️ Puntos, niveles e insignias se calculan **en el navegador** (regla local V1); el servidor no los valida ni los guarda (D-07). El ranking entre comunidades queda fuera de V1. Caso sugerido: P-014.
+> *Estado:* 🟢 Los puntos se acreditan en el servidor en un libro de movimientos (`GET /api/users/me/rewards`), sin duplicados por actividad; misiones e insignias también se guardan en el servidor. El ranking entre comunidades no forma parte de esta versión. Caso sugerido: P-014.
+
+---
+
+| **Nro:** HU-028 | **Título:** Consultar mis notificaciones | **Prioridad:** Media<br>**Estimación:** 6 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** persona registrada **quiero** recibir avisos sobre las revisiones que el MSP hace de mis registros, **para** enterarme si debo corregir algo.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Aviso de revisión:** **Dado** que el MSP comprobó, pidió corregir o invalidó una de mis actividades, **cuando** abro Notificaciones, **entonces** veo el aviso con su motivo.
+2. **Contador:** **Dado** que tengo avisos sin leer, **cuando** inicio sesión, **entonces** la barra lateral muestra cuántos son.
+3. **Marcar como leídas:** **Dado** que tengo avisos, **cuando** marco uno o todos como leídos, **entonces** el contador se actualiza.
+4. **Limpiar:** **Dado** que tengo avisos leídos, **cuando** elijo limpiarlos, **entonces** dejan de mostrarse.
+
+**Tareas de implementación:**
+
+1. Diseñar la vista de notificaciones (1 hora).
+2. Codificar la creación de avisos al revisar registros (2 horas).
+3. Codificar la consulta, la lectura y la limpieza (2 horas).
+4. Probar el contador y los cambios de estado (1 hora).
+
+> *Estado:* 🟢 `GET /api/notifications`, `PATCH …/:id/read`, `PATCH …/read-all` y `DELETE …/read`. Las invitaciones a comunidades se responden según HU-020.
+
+---
+
+## Módulo 8 — Administración institucional
+
+| **Nro:** HU-029 | **Título:** Revisar comunidades y actividades sin bloquear a las comunidades | **Prioridad:** Alta<br>**Estimación:** 16 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** funcionario del MSP **quiero** revisar las comunidades y las actividades registradas, comprobarlas, pedir correcciones o invalidarlas, **para** asegurar que la información institucional sea confiable sin detener el trabajo de las comunidades.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Trabajo sin espera:** **Dado** que una comunidad está pendiente de revisión o con correcciones solicitadas, **cuando** sus integrantes crean huertos, siembran o registran actividades, **entonces** los registros se guardan de inmediato, sin esperar la revisión del MSP.
+2. **Filtrar:** **Dado** que estoy en el panel MSP, **cuando** filtro por comunidad y estado, **entonces** distingo las actividades válidas aún no auditadas de las ya comprobadas por un funcionario.
+3. **Comprobar:** **Dado** que una actividad es válida, **cuando** la compruebo, **entonces** se registran mi nombre y la fecha, sin duplicar sus puntos.
+4. **Pedir corrección:** **Dado** que una actividad tiene un problema, **cuando** solicito su corrección con un motivo, **entonces** sigue visible en el historial y su autor recibe el aviso.
+5. **Invalidar:** **Dado** que una actividad no es válida, **cuando** la invalido con un motivo, **entonces** sus puntos se revierten una sola vez, se recalculan misiones e insignias, y la evidencia se conserva en el historial.
+6. **Comunidad rechazada o suspendida:** **Dado** que rechazo o suspendo una comunidad, **cuando** sus integrantes intentan registrar nuevas actividades agrícolas, **entonces** el sistema lo impide y conserva todo su historial.
+7. **Sin permiso:** **Dado** que soy un usuario común, **cuando** intento entrar al panel MSP, **entonces** el sistema rechaza el acceso.
+
+**Tareas de implementación:**
+
+1. Diseñar el panel MSP con filtros por comunidad y estado (3 horas).
+2. Codificar la revisión de comunidades con sus cinco estados (3 horas).
+3. Codificar la comprobación, corrección e invalidación de actividades (4 horas).
+4. Codificar la reversión de puntos y el recálculo de misiones (3 horas).
+5. Registrar cada decisión en la auditoría (1 hora).
+6. Probar permisos, reversiones y comunidades rechazadas (2 horas).
+
+> *Estado:* 🟢 `/api/admin/msp/communities` y `/api/admin/msp/activities`, con revisión en `…/:id/review`, solo para `ADMIN_MSP` y `ADMIN_TECNICO`. Las actividades nuevas quedan válidas de inmediato y la revisión es posterior ([flujo MSP no bloqueante](../analisis/flujo-msp-v1-no-bloqueante.md)). Caso del plan manual: CP-AG-15.
+
+---
+
+| **Nro:** HU-030 | **Título:** Publicar eventos y recursos educativos del MSP | **Prioridad:** Baja<br>**Estimación:** 10 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** funcionario del MSP **quiero** publicar eventos institucionales y recursos educativos, **para** acompañar a las comunidades con información oficial.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Publicar evento:** **Dado** que estoy en el panel MSP, **cuando** registro un evento con nombre, fecha y ámbito (nacional, provincial o cantonal), **entonces** queda publicado en la lista de eventos.
+2. **Publicar recurso:** **Dado** que estoy en el panel MSP, **cuando** publico un recurso con título y tipo (guía, manual, ficha o video), **entonces** queda disponible en la lista de recursos.
+3. **Eliminar:** **Dado** que un evento o recurso ya no aplica, **cuando** lo elimino, **entonces** deja de mostrarse.
+4. **Sin permiso:** **Dado** que soy un usuario común, **cuando** intento publicar o eliminar, **entonces** el sistema rechaza la acción.
+
+**Tareas de implementación:**
+
+1. Diseñar los formularios de eventos y recursos (2 horas).
+2. Codificar los servicios de eventos y recursos (4 horas).
+3. Codificar las listas y la eliminación en el panel (2 horas).
+4. Probar la publicación, la eliminación y los permisos (2 horas).
+
+> *Estado:* 🟢 `/api/admin/msp/events` y `/api/admin/msp/resources` (consultar, crear y eliminar).
+
+---
+
+| **Nro:** HU-031 | **Título:** Administrar las cuentas institucionales | **Prioridad:** Media<br>**Estimación:** 12 horas |
+|---|---|---|
+
+**Historia de usuario:**
+
+**Como** administrador técnico **quiero** crear las cuentas de los funcionarios del MSP, activar o desactivar usuarios y consultar la auditoría, **para** controlar quién accede a las funciones institucionales.
+
+**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
+
+1. **Crear cuenta MSP:** **Dado** que soy administrador técnico, **cuando** creo una cuenta con nombre, correo y contraseña, **entonces** se registra con el rol de funcionario MSP.
+2. **Correo repetido:** **Dado** que el correo ya pertenece a una cuenta, **cuando** intento crearla, **entonces** se informa que ya existe y no se duplica.
+3. **Desactivar usuario:** **Dado** que desactivo una cuenta, **cuando** esa persona intenta iniciar sesión, **entonces** se le informa que su cuenta está desactivada.
+4. **Auditoría:** **Dado** que se revisaron registros o se cambiaron cuentas, **cuando** consulto la auditoría, **entonces** veo quién hizo cada acción y cuándo.
+5. **Sin permiso:** **Dado** que no soy administrador técnico, **cuando** intento entrar al panel técnico, **entonces** el sistema rechaza el acceso.
+
+**Tareas de implementación:**
+
+1. Diseñar el panel técnico de usuarios (2 horas).
+2. Codificar la creación de cuentas MSP (3 horas).
+3. Codificar la activación y desactivación de cuentas (2 horas).
+4. Codificar la consulta de la auditoría (3 horas).
+5. Probar los permisos y los correos repetidos (2 horas).
+
+> *Estado:* 🟢 `/api/admin/technical/msp-users`, `…/users`, `…/users/:id/status` y `…/audit-logs`, solo para `ADMIN_TECNICO`. Las cuentas `admin1@mail.com` y `admin2@mail.com` se crean al cargar los datos iniciales (ver [credenciales](../CREDENCIALES-Y-ACTUALIZACION-BD.md)); la contraseña de ejemplo es solo para desarrollo.
 
 ---
 
@@ -556,116 +891,15 @@
 4. Codificar la sincronización entre pestañas (1 hora).
 5. Probar recarga, fallos y varias pestañas (2 horas).
 
-> *Estado V1:* 🟢 Con sesión, los datos y fotos se guardan en SQLite y en `backend/uploads/plants/` (criterio 4). En modo visitante se aplican los criterios 1–3 con IndexedDB. Casos sugeridos: P-008, P-012, P-013.
+> *Estado:* 🟢 Con sesión, los datos se guardan en SQLite y las fotos de plantas, actividades y comunidades en `backend/uploads/` (criterio 4). En modo visitante se aplican los criterios 1–3 con IndexedDB. Casos sugeridos: P-008, P-012, P-013; plan manual CP-AG-12 y CP-AG-13.
 
 ---
 
-## Funciones añadidas con el backend integrado
+## Trazabilidad con los casos de prueba
 
-| **Nro:** HU-020 | **Título:** Responder invitaciones a una comunidad | **Prioridad:** Media<br>**Estimación:** 8 horas |
-|---|---|---|
+**Casos del plan de QA de Santiago** ([casos de prueba](../casos-prueba/README.md)):
 
-**Historia de usuario:**
-
-**Como** persona registrada **quiero** ver las invitaciones que recibo y aceptarlas o rechazarlas, **para** unirme solo a las comunidades en las que deseo participar.
-
-**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
-
-1. **Notificación:** **Dado** que tengo invitaciones pendientes, **cuando** inicio sesión, **entonces** la campana de notificaciones muestra cuántas son.
-2. **Aceptar:** **Dado** que abro una invitación pendiente, **cuando** la acepto, **entonces** paso a ser integrante de la comunidad con el rol indicado y puedo seleccionarla como comunidad activa.
-3. **Rechazar:** **Dado** que abro una invitación pendiente, **cuando** la rechazo, **entonces** no me uno a la comunidad y la invitación deja de estar pendiente.
-4. **Invitación ya procesada:** **Dado** que la invitación ya fue aceptada o rechazada, **cuando** intento responderla otra vez, **entonces** se informa que ya fue procesada.
-
-**Tareas de implementación:**
-
-1. Diseñar la campana y el modal de notificaciones (2 horas).
-2. Codificar la consulta de invitaciones del usuario (1 hora).
-3. Codificar aceptar y rechazar en backend y frontend (3 horas).
-4. Probar aceptación, rechazo y doble respuesta (2 horas).
-
-> *Estado V1:* 🟢 `GET /api/users/me/invitations`, `POST /api/invitations/:id/accept` y `…/reject` (`ALREADY_PROCESSED`). Caso sugerido: por definir con Santiago.
-
----
-
-| **Nro:** HU-021 | **Título:** Gestionar el almacén comunitario (bodega) | **Prioridad:** Baja<br>**Estimación:** 12 horas |
-|---|---|---|
-
-**Historia de usuario:**
-
-**Como** responsable o cuidador de una comunidad **quiero** registrar las herramientas, insumos y semillas de la bodega con su cantidad y estado, **para** saber con qué recursos cuenta el huerto.
-
-**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
-
-1. **Registrar recurso:** **Dado** que tengo rol Responsable o Cuidador, **cuando** registro un recurso con nombre, categoría (herramienta, insumo o semilla), cantidad y unidad, **entonces** aparece en el inventario de la comunidad.
-2. **Actualizar estado:** **Dado** que existe un recurso, **cuando** cambio su cantidad o su estado (disponible, en uso, mantenimiento o agotado), **entonces** el inventario refleja el cambio.
-3. **Sin permiso:** **Dado** que soy Participante, **cuando** intento registrar, modificar o eliminar un recurso, **entonces** el sistema rechaza la acción.
-4. **Eliminar:** **Dado** que soy Responsable, **cuando** elimino un recurso, **entonces** deja de mostrarse en el inventario.
-
-**Tareas de implementación:**
-
-1. Diseñar la vista del almacén (2 horas).
-2. Codificar el modelo y los servicios de recursos (4 horas).
-3. Codificar el control de permisos por rol (2 horas).
-4. Codificar la vista de inventario en el frontend (2 horas).
-5. Probar altas, cambios, bajas y permisos (2 horas).
-
-> *Estado V1:* 🟢 `/api/communities/:id/resources` (crear y modificar: Responsable o Cuidador; eliminar: solo Responsable). Corresponde al «espacio de bodega» de la definición y del MSP (p. 24). Caso sugerido: por definir con Santiago.
-
----
-
-| **Nro:** HU-022 | **Título:** Registrar la cosecha de una planta | **Prioridad:** Media<br>**Estimación:** 10 horas |
-|---|---|---|
-
-**Historia de usuario:**
-
-**Como** integrante de comunidad **quiero** registrar la cosecha de una planta lista, indicando la cantidad obtenida, **para** llevar el control de lo producido y sumarlo al almacén comunitario.
-
-**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
-
-1. **Cosecha exitosa:** **Dado** que una planta está lista para cosechar, **cuando** registro la cosecha con su cantidad, **entonces** se guarda el registro y la cantidad se suma al almacén de la comunidad.
-2. **Rebrote:** **Dado** que coseché una planta medicinal perenne, **cuando** vuelvo al huerto, **entonces** la planta sigue en su parcela en estado de rebrote, sin liberar el espacio.
-3. **Historial:** **Dado** que la comunidad tiene cosechas, **cuando** consulto el historial, **entonces** veo especie, cantidad, fecha y quién cosechó.
-4. **Planta inexistente:** **Dado** que la planta ya no existe, **cuando** intento cosecharla, **entonces** se informa que no fue encontrada.
-
-**Tareas de implementación:**
-
-1. Diseñar el formulario de cosecha (1 hora).
-2. Codificar el registro de cosecha y su vínculo con la comunidad (3 horas).
-3. Codificar la suma automática al almacén (2 horas).
-4. Codificar el cambio de estado a rebrote (2 horas).
-5. Probar cosecha, rebrote e historial (2 horas).
-
-> *Estado V1:* 🟢 `/api/plants/:id/harvest` y consultas por huerto y comunidad. El MSP recomienda cosechar tomando solo las partes necesarias (p. 49), coherente con el rebrote. Caso sugerido: por definir con Santiago.
-
----
-
-| **Nro:** HU-023 | **Título:** Consultar el calendario de siembra de una especie | **Prioridad:** Baja<br>**Estimación:** 7 horas |
-|---|---|---|
-
-**Historia de usuario:**
-
-**Como** integrante de comunidad **quiero** consultar la temporada, la frecuencia de riego y abono, el ciclo de crecimiento y la fase lunar recomendada de cada especie, **para** cuidar mis plantas según los saberes ancestrales.
-
-**Sabré que he terminado cuando se cumplan todos los criterios de aceptación:**
-
-1. **Consulta:** **Dado** que tengo sesión iniciada, **cuando** consulto el calendario de una especie, **entonces** veo su mejor temporada de siembra, frecuencia de riego y abono, ciclo de crecimiento y consejo de fase lunar.
-2. **Alerta de exceso:** **Dado** que registro un riego o abono antes de la frecuencia recomendada, **cuando** guardo, **entonces** el sistema advierte del exceso.
-3. **Especie inexistente:** **Dado** que la especie no existe, **cuando** consulto su calendario, **entonces** se informa que no fue encontrada.
-
-**Tareas de implementación:**
-
-1. Definir los datos de calendario por especie con fuentes (MSP 2017) (2 horas).
-2. Codificar el servicio de calendario (2 horas).
-3. Mostrar el calendario en la interfaz (2 horas).
-4. Probar consulta y alertas (1 hora).
-
-> *Estado V1:* 🟢 `GET /api/catalog/:id/calendar` y validación `CARE_OVERUSE`. Los consejos lunares deben alinearse con el MSP 2017 (p. 69; hallazgo M-03). Caso sugerido: por definir con Santiago.
-
----
-
-## Trazabilidad con los casos de prueba propuestos por QA
-
-| Caso (plan de Santiago) | HU relacionadas |
+| Caso | HU relacionadas |
 |---|---|
 | P-001 Bienvenida y navegación | HU-004 |
 | P-002 Validaciones de registro/login | HU-001, HU-002 |
@@ -682,6 +916,20 @@
 | P-013 Flujo integrado completo | HU-001 a HU-019 (recorrido de la demo) |
 | P-014 Mi Huerto en modo local | HU-014 a HU-018 |
 | P-015 Integración final de Mi Huerto | HU-014 a HU-018, HU-022 |
-| *Sin caso todavía (proponer a Santiago)* | HU-012, HU-013, HU-020, HU-021, HU-022, HU-023 |
 
-*La matriz definitiva HU ↔ caso ↔ resultado la completan Santiago y Leonardo en `docs/casos-prueba/matriz-hu-pruebas.md`.*
+**Casos del plan manual del ciclo agrícola** ([ciclo-agricola-v2-manual.md](../casos-prueba/ciclo-agricola-v2-manual.md)):
+
+| Caso | HU relacionadas |
+|---|---|
+| CP-AG-01, CP-AG-02 Siembra con método y preparación | HU-015, HU-017 |
+| CP-AG-03 Rituales | HU-025 |
+| CP-AG-04 Señalética | HU-026 |
+| CP-AG-05 Cosecha parcial | HU-022 |
+| CP-AG-06 a CP-AG-11 Poscosecha | HU-024 |
+| CP-AG-12, CP-AG-13 Persistencia entre dispositivos y fotos desde el teléfono | HU-019, HU-015 |
+| CP-AG-14 Etapa observada en el Espejo Digital | HU-027 |
+| CP-AG-15 Acceso a fotos ajenas y revisión MSP | HU-029 |
+
+**Sin caso todavía (proponer a Santiago):** HU-012, HU-013, HU-020, HU-021, HU-023, HU-028, HU-030 y HU-031.
+
+*La matriz definitiva HU ↔ caso ↔ resultado la completan Santiago y Leonardo en `docs/casos-prueba/matriz-hu-pruebas.md`. Los casos de la plantilla docente usan el identificador P-NNN.*

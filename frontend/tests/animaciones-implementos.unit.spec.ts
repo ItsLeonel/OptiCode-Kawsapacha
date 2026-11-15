@@ -5,7 +5,7 @@ import { ACTIVITY_TYPES, type ActivityType } from '../src/features/my-garden/jou
 import { playActivityAnimation, type EffectNode, TOOL_ANIMATION_MS } from '../src/features/my-garden/phaser-poc/activity-animations'
 import type { GardenVisualModel } from '../src/features/my-garden/phaser-poc/model'
 
-const folder = 'src/features/my-garden/phaser-poc/art/activity-tools'
+const folder = 'public/activity-tools'
 const keys = {
   watering: 'watering-can.svg',
   fertilizing: 'compost-basket.svg',

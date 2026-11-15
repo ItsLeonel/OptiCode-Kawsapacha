@@ -1,13 +1,13 @@
-// backend/src/controllers/admin-technical.controller.ts
+// backend/src/modules/administration/presentation/admin-technical.controller.ts
 import type { Response } from 'express'
-import { ok, fail } from '../utils/response'
-import type { AuthRequest } from '../types'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../types'
 import {
   provisionMspUser,
   toggleUserStatus,
   listAdministrativeUsers,
-} from '../services/admin-technical.service'
-import { listAuditLogs } from '../services/audit.service'
+} from '../application/admin-technical.service'
+import { listAuditLogs } from '../application/audit.service'
 
 export async function createMspAccount(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

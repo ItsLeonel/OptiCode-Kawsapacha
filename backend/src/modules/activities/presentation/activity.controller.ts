@@ -1,14 +1,14 @@
-// backend/src/controllers/activity.controller.ts
+// backend/src/modules/activities/presentation/activity.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../types'
-import { ok, fail } from '../utils/response'
+import type { AuthRequest } from '../../../types'
+import { ok, fail } from '../../../shared/utils/response'
 import {
   createGardenActivity,
   listGardenActivities,
   getGardenActivityDetail,
   voidGardenActivity,
   type ActivityType,
-} from '../services/activity.service'
+} from '../application/activity.service'
 
 export async function createActivity(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user?.userId

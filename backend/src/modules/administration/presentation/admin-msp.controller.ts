@@ -1,7 +1,7 @@
-// backend/src/controllers/admin-msp.controller.ts
+// backend/src/modules/administration/presentation/admin-msp.controller.ts
 import type { Response } from 'express'
-import { ok, fail } from '../utils/response'
-import type { AuthRequest } from '../types'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../types'
 import {
   listCommunitiesForMsp,
   reviewCommunity,
@@ -13,7 +13,7 @@ import {
   listEducationalResources,
   createEducationalResource,
   deleteEducationalResource,
-} from '../services/admin-msp.service'
+} from '../application/admin-msp.service'
 
 export async function getCommunitiesMsp(req: AuthRequest, res: Response): Promise<void> {
   const page = parseInt(String(req.query['page'] ?? '1'), 10)

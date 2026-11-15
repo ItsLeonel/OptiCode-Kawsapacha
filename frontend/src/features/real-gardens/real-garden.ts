@@ -5,7 +5,6 @@ import { validatePhoto } from '../../shared/photo-validation'
 import { legacyGardenCoordinates } from './legacy-coordinates'
 
 import { GARDEN_KINDS, IRRIGATION_OPTIONS, SOIL_OPTIONS } from '../../shared/contracts/real-garden'
-import type { GardenFeatures } from '../../shared/contracts/garden-features'
 import type { RealGarden, RealGardenDraft, RealGardenErrors, GardenKind, IrrigationAvailability, SoilType } from '../../shared/contracts/real-garden'
 export * from '../../shared/contracts/real-garden'
 

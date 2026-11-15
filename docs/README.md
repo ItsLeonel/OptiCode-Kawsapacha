@@ -1,5 +1,9 @@
 # Documentación del proyecto Kawsapacha
 
+> **Estado editorial 15/11/2026:** [PR #41](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/41) contiene **documentación y capturas de Dylan de una revisión local anterior**, no prueba visual de la última versión pública. La guía indica expresamente sus límites. La nueva adaptación móvil está en [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74) sin fusionar. Leonardo puede utilizar el diseño de escritorio para el informe V1, indicando fecha y commit de cada evidencia, y deberá actualizarlo tras la revisión/merge de las mejoras responsive. Las funciones nuevas de Comunidades se desarrollan aparte en [#48](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/48).
+>
+
+
 **Responsable de consolidación y mantenimiento:** Leonardo Lugmaña.
 
 ## Organización propuesta

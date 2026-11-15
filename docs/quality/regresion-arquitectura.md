@@ -8,7 +8,7 @@ Objetivo: comprobar que la reorganización conserva cada comportamiento y dato.
 - Comparar el mismo escenario en main y en la rama del PR, registrando SHA y capturas.
 - Ejecutar typecheck, build, pruebas unitarias, integración, MSP, recompensas, Playwright y Docker.
 
-## Casos por validar manualmente
+## Casos de verificación manual (no sustituidos por CI)
 
 | Funcionalidad | Escenario obligatorio | Estado |
 | --- | --- | --- |

@@ -6,14 +6,14 @@ El objetivo de la refactorización es mejorar las subcaracterísticas de manteni
 
 - Compilar: `cd backend && npm run typecheck && npm run build`; `cd frontend && npm run typecheck && npm run build`.
 - Pruebas existentes: `npm run test:activities` y `npm test` en backend; `npm run test:unit` y la suite Playwright del jardín en frontend.
-- Reglas estructurales: `cd backend && npm run check:architecture` valida el aislamiento de los dominios ya extraídos y reporta dependencias entre módulos como línea base.
+- Reglas estructurales: `cd backend && npm run check:architecture` valida todos los dominios y casos de uso de `application/` y rechaza dependencias circulares.
 - GitHub Actions: validación de backend, frontend y Docker en cada PR (comprobar ejecución **del último commit**).
 
 ## Evidencia pendiente
 
-- Ejecutar `node tools/maintainability-report.cjs` desde la raíz para contar archivos, líneas, dependencias intermodulares y dependencias directas a Prisma.
+- `node tools/maintainability-report.cjs` entrega métricas reproducibles en CI; consultar la [evaluación de mantenibilidad](evaluacion-mantenibilidad-pr72.md).
 - Comparar ese reporte contra la rama `main` usando el mismo comando; después medir complejidad, duplicación y cobertura con herramientas específicas.
-- Reducir referencias directas entre servicios sin cambiar el contrato.
+- Mantener la restricción de 0 ciclos y 0 dependencias de infraestructura en la capa de aplicación; la cobertura de pruebas E2E debe revisarse en la ejecución final.
 - Ejecutar regresión manual con cuentas existentes, fotos históricas, MSP, comunidad y todas las modalidades/regiones Phaser.
 
 **No afirmar equivalencia funcional al 100 % solo por CI verde**. La documentación histórica de calidad sigue en [casos de prueba](../casos-prueba/README.md).

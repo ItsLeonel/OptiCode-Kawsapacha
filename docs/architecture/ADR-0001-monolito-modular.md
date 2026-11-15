@@ -1,6 +1,6 @@
 # ADR-0001 — Monolito modular + Clean Architecture
 
-**Estado:** Arquitectura objetivo aprobada; migración incremental.
+**Estado:** Implementación estructural y fronteras de aplicación/dominio verificadas en CI. Integración de despliegue y regresión visual sujetas al último commit.
 
 ## Contexto
 
@@ -20,7 +20,7 @@ Mantener frontend y backend en el mismo repositorio y un único proceso backend 
 
 ## Consecuencias
 
-Beneficio esperado: cambios más localizados y pruebas aisladas. Costo: más interfaces y adaptación de código heredado. Trasladar archivos NO implica cumplir Clean Architecture por sí solo; los servicios que aún utilizan Prisma directamente requieren migraciones sucesivas.
+La arquitectura cuenta con repositorios/puertos inyectados y adaptadores Prisma, de fotografía y de JWT. El control `check:architecture` verifica todas las capas `application/` y `domain/`, y rechaza ciclos entre módulos; pruebas con repositorios simulados ejercitan las reglas sin Prisma. El coste de mantenimiento se desplaza a los contratos y módulos de composición. El control estático no demuestra equivalencia visual ni cobertura exhaustiva en ejecución.
 
 ## Verificación
 

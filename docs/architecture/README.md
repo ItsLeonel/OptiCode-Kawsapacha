@@ -24,7 +24,7 @@ flowchart LR
 
 La composición HTTP vive en `backend/src/app/router.ts`. Las reglas puras no deben importar Express, Prisma ni archivos. Los casos de uso nuevos recibirán contratos inyectados por su módulo. `backend/src/infrastructure/` aporta configuración y la instancia Prisma; `backend/src/shared/` aporta utilidades técnicas realmente compartidas.
 
-**Migración en curso:** inicialmente se conservaron servicios existentes bajo `application` para mantener funcionalidad. Algunos todavía llaman a Prisma y a otros servicios directamente. La estructura de carpetas por sí sola **no** demuestra que Clean Architecture esté completada.
+**Estado verificado:** la capa `application/` de los 13 módulos no importa Prisma, Express ni infraestructura, y los archivos `domain/` son independientes de infraestructura y HTTP. Los adaptadores de persistencia, fotografías y tokens están en `infrastructure/`, y las dependencias se ensamblan en archivos `*.module.ts`. El control estático obligatorio del CI rechaza importaciones indebidas y dependencias circulares; el último reporte confirmó **0 ciclos**.
 
 ## Invariantes que no se deben romper
 

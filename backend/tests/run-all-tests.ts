@@ -2,6 +2,7 @@
 import { runLunarTests } from './lunar-calendar.test'
 import { runRewardsAndMissionsTests } from './rewards-missions.test'
 import { runActivityTests } from './activity.test'
+import { runPhase45MspRbacTests } from './phase4-5-msp-rbac.test'
 import { prisma } from '../src/config/prisma'
 
 async function main() {
@@ -15,6 +16,8 @@ async function main() {
     await runRewardsAndMissionsTests()
     console.log('')
     await runActivityTests()
+    console.log('')
+    await runPhase45MspRbacTests()
     console.log('\n==================================================================')
     console.log('🎉 TODAS LAS PRUEBAS AUTOMATIZADAS PASARON SATISFACTORIAMENTE 🎉')
     console.log('==================================================================')

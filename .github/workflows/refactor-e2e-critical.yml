@@ -5,12 +5,22 @@ on:
       - 'frontend/tests/garden-poc-living.spec.ts'
       - 'frontend/tests/garden-poc-production.spec.ts'
       - 'frontend/src/features/my-garden/**'
+      - 'frontend/src/app/**'
+      - 'frontend/src/shared/**'
+      - 'frontend/src/features/real-gardens/**'
+      - 'frontend/src/features/communities/**'
+      - 'frontend/src/features/medicinal-catalog/**'
       - '.github/workflows/refactor-e2e-critical.yml'
   pull_request:
     paths:
       - 'frontend/tests/garden-poc-living.spec.ts'
       - 'frontend/tests/garden-poc-production.spec.ts'
       - 'frontend/src/features/my-garden/**'
+      - 'frontend/src/app/**'
+      - 'frontend/src/shared/**'
+      - 'frontend/src/features/real-gardens/**'
+      - 'frontend/src/features/communities/**'
+      - 'frontend/src/features/medicinal-catalog/**'
       - '.github/workflows/refactor-e2e-critical.yml'
 jobs:
   mirror-regression:

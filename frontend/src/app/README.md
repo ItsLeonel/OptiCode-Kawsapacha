@@ -1,3 +1,12 @@
 # Capa de composición de la aplicación web
 
-`App.tsx` mantiene el comportamiento y navegación actuales del usuario y las cuatro secciones existentes. En nuevas refactorizaciones se irán extrayendo coordinación de estado y flujos a hooks/casos de uso de `features` sin alterar la UI. La raíz `src/App.tsx` es una fachada de compatibilidad. Las peticiones HTTP compartidas viven en `../shared/api/client.ts` y la ruta histórica `../services/api.ts` reexporta su contrato.
+`App.tsx` mantiene la navegación y las operaciones de presentación, mientras que:
+
+- `load-backend-garden.ts` orquesta la lectura de huerto, plantas y bitácora persistidos sin acoplarlos a Phaser.
+- `features/communities/useActiveCommunityMembers.ts` encapsula miembros y roles comunitarios.
+- `features/medicinal-catalog/useSpeciesCatalog.ts` encapsula el catálogo y respaldo regional.
+- `src/App.tsx` conserva la fachada de compatibilidad.
+
+Las llamadas HTTP se realizan mediante `shared/api/client.ts`. La escena Phaser recibe un modelo visual mediante `phaser-poc/adapter.ts` y `bridge.ts`.
+
+La extracción es incremental: aún quedan flujos extensos de registro, edición y bitácora en `App.tsx`. No declararlo completamente descompuesto sin migrarlos y verificar su regresión.

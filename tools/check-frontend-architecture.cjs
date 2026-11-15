@@ -5,11 +5,11 @@ const root=path.resolve(__dirname,'../frontend/src')
 const shared=path.join(root,'shared')
 const errors=[]
 let count=0
-function walk(folder){
+function walk(folder, checker = check){
  for(const ent of fs.readdirSync(folder,{withFileTypes:true})){
   const full=path.join(folder,ent.name)
-  if(ent.isDirectory())walk(full)
-  else if(ent.isFile()&&/\.tsx?$/.test(ent.name))check(full)
+  if(ent.isDirectory())walk(full,checker)
+  else if(ent.isFile()&&/\.tsx?$/.test(ent.name))checker(full)
  }
 }
 function check(file){
@@ -24,7 +24,24 @@ function check(file){
   }
  }
 }
+/** Phaser recibe modelos visuales del puente React, sin llamadas al backend. */
+let phaserCount = 0
+function checkPhaser(file){
+  phaserCount++
+  const source=fs.readFileSync(file,'utf8')
+  for(const match of source.matchAll(/(?:from\s*|require\s*\(|import\s*\()\s*['"]([^'"]+)['"]/g)){
+    const spec=match[1]
+    if (!spec.startsWith('.')) continue
+    const target=path.resolve(path.dirname(file),spec)
+    if(target.startsWith(path.join(root,'shared','api')+path.sep)||
+       target.startsWith(path.join(root,'services')+path.sep)){
+      errors.push(path.relative(root,file)+': Phaser no puede depender del cliente HTTP: '+spec)
+    }
+  }
+}
 walk(shared)
+walk(path.join(root,'features','my-garden','phaser-poc'),checkPhaser)
+console.log('Archivos Phaser inspeccionados: '+phaserCount)
 console.log('Archivos compartidos inspeccionados: '+count)
 if(errors.length){
  console.error('Violaciones de arquitectura frontend:\n'+errors.join('\n'))

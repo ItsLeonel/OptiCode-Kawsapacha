@@ -1,8 +1,12 @@
 # Elementos compartidos de la web
 
-- `components/EcuadorMap.tsx`: selector geográfico reutilizable. Los datos GeoJSON y la licencia MIT se conservan en `src/assets`.
-- `utils/reviewStatus.ts`: presentación común de estados de revisión.
-- `api/transport.ts`: sesión y peticiones HTTP genéricas sin dependencias de vistas.
-- `api/client.ts`: API de aplicación **transicional**; todavía depende de modelos y adaptadores de algunas features. El contrato público no cambia y `src/services/api.ts` lo reexporta por compatibilidad.
+- `api/transport.ts`: sesión y peticiones HTTP genéricas.
+- `api/client.ts`: cliente HTTP y contratos, sin imports desde `features` o `app`.
+- `contracts/`: modelos intercambiados entre capacidades.
+- `geo/`: geografía compartida.
+- `components/EcuadorMap.tsx`: selector geográfico reutilizable.
+- `utils/reviewStatus.ts`: utilidades de estados.
 
-Las rutas anteriores `src/EcuadorMap.tsx` y `src/utils/reviewStatus.ts` se mantienen como fachadas hasta que se ajusten todas las referencias y pruebas. No modificar el comportamiento de las pantallas en esta fase.
+El CI bloquea imports inversos desde `shared` hacia `features` y `app`, y dependencias directas del renderizador Phaser hacia transporte/API.
+
+Las rutas antiguas `src/EcuadorMap.tsx`, `src/utils/reviewStatus.ts` y `src/services/api.ts` son fachadas de compatibilidad mientras se comprueban sus consumidores.

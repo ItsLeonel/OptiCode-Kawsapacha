@@ -4,10 +4,12 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - 'tools/check-frontend-architecture.cjs'
   pull_request:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - 'tools/check-frontend-architecture.cjs'
 jobs:
   frontend:
     runs-on: ubuntu-latest

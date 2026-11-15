@@ -1,13 +1,11 @@
-import { prisma } from '../../../infrastructure/database/prisma'
-import { logAudit } from '../audit.module'
-import { createNotification } from '../../notifications/notification.module'
-import { evaluateActivityReward, getUserRewardsSummary, revertActivityReward } from '../../rewards/rewards.module'
-import { syncUserMissionsAndBadges } from '../../rewards/missions.module'
-import { calculateGrowth } from '../../activities/application/care.service'
+import type { MspActivityRepository, MspActivityServices } from './ports/msp-activity.repository'
+
+export function createMspActivityService<TActivity extends {id:string;actorUserId:string;type:string;performedDate:string;targetKind:string;plantId:string|null;plotIndex:number|null;reviewStatus:string;reviewedAt:Date|null;voidedAt:Date|null},TUpdated>(repository:MspActivityRepository<TActivity,TUpdated>,services:MspActivityServices) {
+const {logAudit,createNotification,evaluateActivityReward,getUserRewardsSummary,syncUserMissionsAndBadges,calculateGrowth}=services
 
 // ─── SUPERVISIÓN DE ACTIVIDADES Y EVIDENCIAS (MSP) ─────────────────────────────
 
-export async function listActivitiesForMsp(options?: {
+async function listActivitiesForMsp(options?: {
   page?: number
   limit?: number
   status?: string
@@ -25,27 +23,7 @@ export async function listActivitiesForMsp(options?: {
   if (options?.gardenId) where['gardenId'] = options.gardenId
   if (options?.type) where['type'] = options.type
 
-  const [total, activities] = await Promise.all([
-    prisma.gardenActivity.count({ where }),
-    prisma.gardenActivity.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-      include: {
-        actorUser: {
-          select: { id: true, name: true, email: true },
-        },
-        garden: {
-          select: { id: true, name: true, province: true, canton: true, communityId: true },
-        },
-        plant: {
-          include: { species: true },
-        },
-        evidences: true,
-      },
-    }),
-  ])
+  const [total, activities] = await Promise.all([repository.count(where),repository.findMany(where,skip,limit)])
 
   return {
     page,
@@ -72,26 +50,13 @@ const ACTIVITY_NAMES_ES: Record<string, string> = {
   postharvest: 'Poscosecha y conservación',
 }
 
-export async function reviewActivity(
+async function reviewActivity(
   activityId: string,
   action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED',
   reviewerId: string,
   reason?: string
 ) {
-  const activity = await prisma.gardenActivity.findUnique({
-    where: { id: activityId },
-    include: {
-      actorUser: true,
-      evidences: true,
-      garden: {
-        include: {
-          community: {
-            select: { id: true, name: true, status: true },
-          },
-        },
-      },
-    },
-  })
+  const activity = await repository.findForReview(activityId)
 
   if (!activity) {
     throw Object.assign(new Error('Actividad no encontrada.'), { code: 'NOT_FOUND' })
@@ -139,26 +104,16 @@ export async function reviewActivity(
     // La verificación de evidencias no depende de que la comunidad PENDING esté aprobada.
 
     // 1. Actualizar actividad a APPROVED
-    const changed = await prisma.gardenActivity.updateMany({
-      where: { id: activityId, reviewStatus: activity.reviewStatus, reviewedAt: activity.reviewedAt },
-      data: {
-        reviewStatus: 'APPROVED',
-        reviewedById: reviewerId,
-        reviewReason: reason || null,
-        reviewedAt: new Date(),
-      },
-    })
-    if (changed.count !== 1) {
+    const changed = await repository.approveIfUnchanged(activityId,activity.reviewStatus,activity.reviewedAt,reviewerId,reason || null)
+
+  if (changed.count !== 1) {
       throw Object.assign(new Error('La actividad ya fue revisada por otra persona.'), { code: 'REVIEW_FINALIZED' })
     }
-    const updated = await prisma.gardenActivity.findUniqueOrThrow({ where: { id: activityId } })
+    const updated = await repository.getUpdated(activityId)
 
     // 1b. Si es actividad de siembra y tiene planta vinculada, aprobar también la planta
     if (activity.type === 'sowing' && activity.plantId) {
-      await prisma.cultivatedPlant.update({
-        where: { id: activity.plantId },
-        data: { reviewStatus: 'APPROVED' },
-      })
+      await repository.updatePlantReview(activity.plantId,'APPROVED')
     }
 
     // 2. No crear nuevos puntos si ya fueron acreditados al registrar.
@@ -212,17 +167,9 @@ export async function reviewActivity(
   }
 
   if (action === 'NEEDS_CHANGES') {
-    const updated = await prisma.gardenActivity.update({
-      where: { id: activityId },
-      data: {
-        reviewStatus: 'NEEDS_CHANGES',
-        reviewedById: reviewerId,
-        reviewReason: reason || null,
-        reviewedAt: new Date(),
-      },
-    })
+    const updated = await repository.requestChanges(activityId,reviewerId,reason || null)
 
-    // Solicitar corrección no elimina la planta ni revierte puntos: solo el rechazo invalida.
+  // Solicitar corrección no elimina la planta ni revierte puntos: solo el rechazo invalida.
 
     await logAudit({
       actorId: reviewerId,
@@ -245,29 +192,8 @@ export async function reviewActivity(
   }
 
   // action === 'REJECTED': estado y reversión deben confirmarse juntos.
-  const { updated, pointsReverted } = await prisma.$transaction(async tx => {
-    const changed = await tx.gardenActivity.updateMany({
-      where: { id: activityId, reviewStatus: activity.reviewStatus, voidedAt: null },
-      data: {
-        reviewStatus: 'REJECTED',
-        reviewedById: reviewerId,
-        reviewReason: reason || null,
-        reviewedAt: new Date(),
-      },
-    })
-    if (changed.count !== 1) {
-      throw Object.assign(new Error('La actividad fue revisada por otra persona. Actualiza la bandeja.'), { code: 'REVIEW_FINALIZED' })
-    }
-    if (activity.type === 'sowing' && activity.plantId) {
-      await tx.cultivatedPlant.update({
-        where: { id: activity.plantId },
-        data: { reviewStatus: 'REJECTED' },
-      })
-    }
-    const pointsReverted = await revertActivityReward(activityId, `Invalidación MSP: ${reason}`, tx)
-    const updated = await tx.gardenActivity.findUniqueOrThrow({ where: { id: activityId } })
-    return { updated, pointsReverted }
-  })
+  const { updated, pointsReverted } = await repository.rejectWithReversal(activityId,activity.reviewStatus,activity.type,activity.plantId,reviewerId,reason || null)
+
   await syncUserMissionsAndBadges(activity.actorUserId)
 
   await logAudit({
@@ -286,4 +212,7 @@ export async function reviewActivity(
     resourceId: activityId,
   })
   return { activity: updated, reward: null, pointsReverted }
+}
+
+return {listActivitiesForMsp,reviewActivity}
 }

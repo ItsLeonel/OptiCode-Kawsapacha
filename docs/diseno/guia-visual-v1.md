@@ -1,5 +1,11 @@
 # Guía visual V1 — Kawsapacha
 
+> **Corte y vigencia — 15/11/2026:** los valores CSS, mediciones y hallazgos en las secciones siguientes corresponden a la inspección **histórica previa a la rama móvil**; se conservan como línea base. La guía sirve para documentar el **diseño de escritorio vigente** únicamente tras contrastar los estilos con el `main` actual (`3f3547b`). El [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74), aún sin fusionar, incorpora `responsive-phase1.css`, `garden-mobile.css`, ajustes en navegación/controles y una cámara móvil adaptable. Por tanto, los hallazgos antiguos como «guía invade acciones», «zoom fijo `0.203`», «solo 390 px revisados» y recomendaciones «no implementadas» **no describen necesariamente la nueva rama**.
+>
+> **Validación posterior requerida a Dylan:** revisar CSS real y contraste/tamaños táctiles; probar 320/360/390/430/768 px más escritorio, recapturar los estados, identificar fallos aún reproducibles y documentar qué cambió efectivamente. Las comprobaciones automatizadas de PR #74 **no prueban accesibilidad con lector de pantalla ni experiencia en Android/iPhone**. No reetiquetar recomendaciones históricas como corregidas sin prueba, ni confundir la documentación con una aprobación del PM.
+
+
+
 **Estado:** referencia retrospectiva de los estilos encontrados en el código, contrastada parcialmente con la aplicación local. Describe el sistema existente; no es una paleta propuesta, una certificación de accesibilidad ni una aprobación oficial del PM.
 
 Esta guía registra estilos y recursos encontrados en el frontend del commit indicado. Las rutas de código son relativas a este documento. Los valores se extrajeron del CSS y de los componentes. La aplicación local se cargó y se recorrió en `1440 × 1000` y `390 × 844`, pero no se verificó su representación en producción. La presencia de un color o estilo en el código no demuestra que se use en todas las pantallas ni que cumpla contraste.

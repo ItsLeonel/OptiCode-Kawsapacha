@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { communityApi, gardenApi, memberApi, type UserSession } from '../../shared/api/client'
-import type { Community } from '../communities/communities'
-import { parseRealGarden, toGardenDraft, type RealGarden, type RealGardenDraft } from './real-garden'
-import { matchesCommunityLocation, withCommunityLocation } from './garden-community-location'
-import { recordId } from '../my-garden/plant-record'
-import { useGardenJournal } from '../my-garden/journal/useGardenJournal'
+import { communityApi, gardenApi, memberApi, type UserSession } from '../shared/api/client'
+import type { Community } from '../features/communities/communities'
+import { parseRealGarden, toGardenDraft, type RealGarden, type RealGardenDraft } from '../features/real-gardens/real-garden'
+import { matchesCommunityLocation, withCommunityLocation } from '../features/real-gardens/garden-community-location'
+import { recordId } from '../features/my-garden/plant-record'
+import { useGardenJournal } from '../features/my-garden/journal/useGardenJournal'
 
 type SetupActionsContext = {
   user: UserSession | null

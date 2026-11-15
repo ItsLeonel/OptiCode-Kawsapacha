@@ -136,6 +136,15 @@ export async function runActivityTests() {
     }
     assert.ok(!(VALID_ACTIVITY_TYPES as readonly string[]).includes('replanting'), 'Replante debe permanecer retirado del backend')
 
+    await assert.rejects(
+      () => createGardenActivity({
+        gardenId: garden.id, actorUserId: user.id, type: 'observation',
+        performedDate: '2026-11-02', targetKind: 'plant', plantId: plant.id,
+        details: { growthStage: 'flowering' },
+      }),
+      { code: 'EVIDENCE_REQUIRED' }
+    )
+
     // 1. Crear actividad de nivel huerto: preparación de terreno (preparation)
     const prepResult = await createGardenActivity({
       gardenId: garden.id,

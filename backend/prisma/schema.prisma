@@ -217,7 +217,8 @@ model CultivatedPlant {
   archivedAt       DateTime?
 
   // Estado de revisión institucional (siembra): PENDING | APPROVED | NEEDS_CHANGES | REJECTED
-  // La siembra inicia en PENDING hasta que el MSP la apruebe formalmente
+  // Default histórico de SQLite; el servicio V1 fija APPROVED al registrar.
+  // reviewedAt de la actividad de siembra distingue auditoría humana posterior.
   reviewStatus     String    @default("PENDING")
 
   registeredById String
@@ -317,7 +318,7 @@ model GardenActivity {
   harvestRecordId  String?
 
   // Estado de auditoría y revisión MSP
-  reviewStatus     String    @default("PENDING") // PENDING | APPROVED | NEEDS_CHANGES | REJECTED
+  reviewStatus     String    @default("PENDING") // Default legado; las altas V1 usan APPROVED. PENDING | APPROVED | NEEDS_CHANGES | REJECTED
   reviewedById     String?
   reviewReason     String?
   reviewedAt       DateTime?

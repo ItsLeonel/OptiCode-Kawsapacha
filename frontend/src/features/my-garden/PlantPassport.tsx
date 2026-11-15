@@ -196,7 +196,7 @@ export default function PlantPassport({
         await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
       }
       const actionName = actionType === 'WATERING' ? 'Riego' : actionType === 'FERTILIZER' ? 'Abono' : 'Limpieza'
-      setMessage(`✅ ${actionName} guardado en Bitácora. La actividad es provisional hasta su revisión MSP.`)
+      setMessage(`✅ ${actionName} guardado en Bitácora. Las recompensas elegibles se acreditan de inmediato.`)
       setTimeout(() => setMessage(''), 5000)
       setActionNotes('')
       await loadPlantData()
@@ -225,7 +225,7 @@ export default function PlantPassport({
           formData.append('details', JSON.stringify({ method: harvestQuantity, harvestMode: 'partial' }))
           await activityApi.create(activeGardenId, formData)
           if (onActivityCreated) onActivityCreated()
-          setMessage('🌾 ¡Cosecha registrada y enviada a revisión MSP! La planta permanece sembrada.')
+          setMessage('🌾 ¡Cosecha registrada en Bitácora! La planta permanece sembrada y el MSP puede auditarla posteriormente.')
         } else {
           await harvestApi.harvest(plant.id, harvestQuantity, actionNotes || 'Cosecha realizada desde Pasaporte Vivo')
           setMessage('🌾 ¡Cosecha recolectada e ingresada al almacén! La planta permanece sembrada y ha iniciado un nuevo ciclo de rebrote.')
@@ -403,10 +403,10 @@ export default function PlantPassport({
               }}
             >
               <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⚠️ Siembra pendiente de aprobación por el MSP
+                ℹ️ Siembra anterior todavía sin revisión institucional
               </div>
               <div style={{ marginTop: '4px', fontSize: '0.85rem', fontWeight: 400, lineHeight: 1.4 }}>
-                Esta siembra ha sido registrada y está en proceso de verificación por el Ministerio de Salud Pública. Todos los miembros de la comunidad pueden observar el cultivo, y sus integrantes pueden registrar cuidados y cosechas sin esperar esa decisión.
+                La planta está registrada y se puede cuidar normalmente. Su evidencia también está disponible para auditoría posterior del MSP.
               </div>
             </div>
           )}

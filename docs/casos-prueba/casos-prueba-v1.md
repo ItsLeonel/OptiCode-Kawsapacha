@@ -1,5 +1,11 @@
 # Casos de prueba — Kawsapacha V1 (con resultados de ejecución)
 
+> **Conservación de evidencia histórica — 15/11/2026:** las descripciones, primeras ejecuciones, reejecuciones y veredictos de P-001–P-017 **corresponden al 08/11/2026**, no se han ejecutado nuevamente como parte de esta actualización. En particular, frases como «en main no hay backend» describen el SHA antiguo **`8066d69`**, no el `main` vigente. La ejecución posterior con backend corresponde a **`de1c6c9`**. Las capturas históricas se reportan insertadas en `casos-prueba-v1.docx`; el PR no contiene aún los PNG externos que enumera `evidencias/README.md`.
+>
+> Para el cierre, **Santiago** debe añadir ejecuciones nuevas, separadas de las originales, sobre el SHA del producto que realmente se entregue y ampliar la cobertura HU-020–HU-023, actividades, roles, regiones/modalidades y móvil/HTTPS si forman parte del alcance. Leonardo consolida; las pruebas automatizadas del PR #74 no sustituyen el registro manual.
+>
+
+
 **Responsable:** Santiago Guamán (`TonyTiago`) — QA · **Issues:** #5 QA-001 y #14 QA-002 · **Ejecución:** 08/11/2026
 **Formato oficial:** `casos-prueba-v1.docx` (plantilla del docente, con capturas). Este archivo es la versión legible en el repositorio.
 

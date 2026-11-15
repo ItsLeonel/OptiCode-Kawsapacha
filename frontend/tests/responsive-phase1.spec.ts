@@ -42,7 +42,7 @@ for (const width of [320, 360, 390, 430, 768, 1024]) {
 
     await openGardenSection(page, 'Mi terreno')
     await expect(page.locator('.real-garden-page')).toBeVisible()
-    await assertNoHorizontalOverflow(page, '.rg-hero h1')
+    await assertNoHorizontalOverflow(page, '.garden-terrain-view .rg-panel-heading h2')
 
     await openGardenSection(page, 'Catálogo medicinal')
     await expect(page.locator('.mc-catalog')).toBeVisible()

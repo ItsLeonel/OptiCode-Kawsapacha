@@ -2,8 +2,7 @@
 // Responsable: Ronny Veloz (Rodni15)
 // Sistema de misiones e insignias funcionales con seguimiento de progreso real
 
-import { prisma } from '../../../infrastructure/database/prisma'
-import { calculateDayLunarInfo } from '../../lunar-calendar/application/lunar-calendar.service'
+import type { MissionRepository, MissionLunarAdvisor } from './ports/mission.repository'
 
 import { BADGE_DEFINITIONS, MISSION_TITLES } from '../domain/mission-rules'
 export { BADGE_DEFINITIONS } from '../domain/mission-rules'
@@ -13,19 +12,10 @@ export type { BadgeDefinition } from '../domain/mission-rules'
  * Evalúa y actualiza de manera idempotente todas las misiones e insignias para un usuario
  * basándose exclusivamente en actividades aprobadas por el MSP (reviewStatus: 'APPROVED', no anuladas).
  */
-export async function syncUserMissionsAndBadges(userId: string) {
+export function createMissionService(repository: MissionRepository, calculateDayLunarInfo: MissionLunarAdvisor) {
+async function syncUserMissionsAndBadges(userId: string) {
   // Obtener únicamente actividades aprobadas por el MSP y no anuladas
-  const activities = await prisma.gardenActivity.findMany({
-    where: {
-      actorUserId: userId,
-      voidedAt: null,
-      reviewStatus: 'APPROVED',
-    },
-    include: {
-      evidences: true,
-    },
-    orderBy: { performedDate: 'asc' },
-  })
+  const activities = await repository.listApprovedActivities(userId)
 
   const desiredBadges = new Set<string>()
 
@@ -89,9 +79,7 @@ export async function syncUserMissionsAndBadges(userId: string) {
     if (desiredBadges.has(badgeId)) {
       await awardBadgeIfMissing(userId, badgeId)
     } else {
-      await prisma.userBadge.deleteMany({
-        where: { userId, badgeId },
-      })
+      await repository.deleteBadge(userId, badgeId)
     }
   }
 
@@ -101,14 +89,9 @@ export async function syncUserMissionsAndBadges(userId: string) {
   }
 
   // Obtener estado final
-  const badges = await prisma.userBadge.findMany({
-    where: { userId },
-    orderBy: { earnedAt: 'asc' },
-  })
+  const badges = await repository.listBadges(userId)
 
-  const missions = await prisma.userMissionProgress.findMany({
-    where: { userId },
-  })
+  const missions = await repository.listMissions(userId)
 
   return {
     badges: badges.map(b => ({
@@ -135,21 +118,10 @@ async function updateMissionProgress(
   const boundedVal = Math.min(targetVal, currentVal)
   const isCompleted = boundedVal >= targetVal
 
-  const existing = await prisma.userMissionProgress.findUnique({
-    where: { userId_missionId: { userId, missionId } },
-  })
+  const existing = await repository.findMission(userId,missionId)
 
   if (!existing) {
-    await prisma.userMissionProgress.create({
-      data: {
-        userId,
-        missionId,
-        currentValue: boundedVal,
-        targetValue: targetVal,
-        completed: isCompleted,
-        completedAt: isCompleted ? new Date() : null,
-      },
-    })
+    await repository.createMission({userId,missionId,currentValue:boundedVal,targetValue:targetVal,completed:isCompleted,completedAt:isCompleted?new Date():null})
   } else {
     // Si ya estaba completado, mantener completedAt salvo si baja por anulación
     let completedAt = existing.completedAt
@@ -159,15 +131,7 @@ async function updateMissionProgress(
       completedAt = null
     }
 
-    await prisma.userMissionProgress.update({
-      where: { id: existing.id },
-      data: {
-        currentValue: boundedVal,
-        targetValue: targetVal,
-        completed: isCompleted,
-        completedAt,
-      },
-    })
+    await repository.updateMission(existing.id,{currentValue:boundedVal,targetValue:targetVal,completed:isCompleted,completedAt})
   }
 }
 
@@ -176,48 +140,27 @@ async function awardMissionBonusIfMissing(userId: string, missionId: string) {
 }
 
 async function reconcileMissionBonus(userId: string, missionId: string, completed: boolean) {
-  const entries = await prisma.rewardLedger.findMany({
-    where: { userId, sourceId: missionId, eventType: { startsWith: 'mission.completed' } },
-    orderBy: { awardedAt: 'asc' },
-  })
+  const entries = await repository.getMissionLedger(userId,missionId)
+
   const reversedIds = new Set(entries.filter(e => e.reversalOfLedgerId).map(e => e.reversalOfLedgerId))
   const current = entries.filter(e => e.pointsDelta > 0 && !reversedIds.has(e.id)).at(-1)
   if (!completed && current) {
-    await prisma.rewardLedger.create({
-      data: {
-        userId, eventType: `${current.eventType}.reversal`,
-        ruleKey: `mission.${missionId}.reversal`, sourceId: missionId,
-        pointsDelta: -current.pointsDelta,
-        reversalOfLedgerId: current.id,
-        reason: 'Misión revertida tras invalidación de evidencia',
-      },
-    })
+    await repository.createLedger({userId,eventType:`${current.eventType}.reversal`,ruleKey:`mission.${missionId}.reversal`,sourceId:missionId,pointsDelta:-current.pointsDelta,reversalOfLedgerId:current.id,reason:'Misión revertida tras invalidación de evidencia'})
   } else if (completed && !current) {
     const title = MISSION_TITLES[missionId] || missionId
     const awardedCount = entries.filter(e => e.pointsDelta > 0).length
-    await prisma.rewardLedger.create({
-      data: {
-        userId,
-        eventType: awardedCount === 0 ? 'mission.completed' : `mission.completed.reactivated.${awardedCount}`,
-        ruleKey: `mission.${missionId}.completed`, sourceId: missionId,
-        pointsDelta: 20,
-        reason: `Misión completada: «${title}» (+20 Semillas de vida)`,
-      },
-    })
+    await repository.createLedger({userId,eventType:awardedCount===0?'mission.completed':`mission.completed.reactivated.${awardedCount}`,ruleKey:`mission.${missionId}.completed`,sourceId:missionId,pointsDelta:20,reason:`Misión completada: «${title}» (+20 Semillas de vida)`})
   }
 }
 
 async function awardBadgeIfMissing(userId: string, badgeId: string) {
-  const existing = await prisma.userBadge.findUnique({
-    where: { userId_badgeId: { userId, badgeId } },
-  })
+  const existing = await repository.findBadge(userId,badgeId)
+
   if (!existing) {
-    await prisma.userBadge.create({
-      data: {
-        userId,
-        badgeId,
-      },
-    })
+    await repository.createBadge(userId,badgeId)
   }
 }
 
+
+return {syncUserMissionsAndBadges}
+}

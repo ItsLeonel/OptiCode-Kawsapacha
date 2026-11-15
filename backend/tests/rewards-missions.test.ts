@@ -7,7 +7,7 @@ import {
   getUserRewardsSummary,
   revertActivityReward,
 } from '../src/modules/rewards/rewards.module'
-import { syncUserMissionsAndBadges } from '../src/modules/rewards/application/missions.service'
+import { syncUserMissionsAndBadges } from '../src/modules/rewards/missions.module'
 import { calculateDayLunarInfo } from '../src/modules/lunar-calendar/application/lunar-calendar.service'
 
 export async function runRewardsAndMissionsTests() {

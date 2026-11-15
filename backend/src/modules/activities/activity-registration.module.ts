@@ -3,7 +3,7 @@ import { prismaActivityRegistrationRepository } from './infrastructure/prisma-ac
 import { assertGardenAccess } from '../gardens/garden-access.module'
 import { harvestPlant } from '../harvest/harvest.module'
 import { evaluateActivityReward } from '../rewards/rewards.module'
-import { syncUserMissionsAndBadges } from '../rewards/application/missions.service'
+import { syncUserMissionsAndBadges } from '../rewards/missions.module'
 
 export const createGardenActivity=createActivityRegistrationService(
  prismaActivityRegistrationRepository,

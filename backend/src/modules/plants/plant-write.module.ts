@@ -4,7 +4,7 @@ import { createPlantRegistrationService } from './application/plant-registration
 import { createPlantUpdateService } from './application/plant-update.service'
 import { assertGardenAccess } from '../gardens/garden-access.module'
 import { evaluateActivityReward } from '../rewards/rewards.module'
-import { syncUserMissionsAndBadges } from '../rewards/application/missions.service'
+import { syncUserMissionsAndBadges } from '../rewards/missions.module'
 const services={assertGardenAccess,evaluateActivityReward,syncUserMissionsAndBadges,basename:path.basename}
 export const {registerPlant}=createPlantRegistrationService(prismaPlantWriteRepository,services)
 export const {updatePlantDetails}=createPlantUpdateService(prismaPlantWriteRepository,services)

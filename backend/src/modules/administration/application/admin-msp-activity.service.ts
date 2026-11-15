@@ -2,7 +2,7 @@ import { prisma } from '../../../infrastructure/database/prisma'
 import { logAudit } from '../audit.module'
 import { createNotification } from '../../notifications/notification.module'
 import { evaluateActivityReward, getUserRewardsSummary, revertActivityReward } from '../../rewards/rewards.module'
-import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
+import { syncUserMissionsAndBadges } from '../../rewards/missions.module'
 import { calculateGrowth } from '../../activities/application/care.service'
 
 // ─── SUPERVISIÓN DE ACTIVIDADES Y EVIDENCIAS (MSP) ─────────────────────────────

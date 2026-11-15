@@ -5,7 +5,7 @@
  */
 import { prisma } from '../src/infrastructure/database/prisma'
 import { BASE_POINTS, evaluateActivityReward } from '../src/modules/rewards/rewards.module'
-import { syncUserMissionsAndBadges } from '../src/modules/rewards/application/missions.service'
+import { syncUserMissionsAndBadges } from '../src/modules/rewards/missions.module'
 
 async function main() {
   const activities = await prisma.gardenActivity.findMany({

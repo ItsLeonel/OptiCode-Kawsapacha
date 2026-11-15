@@ -1,6 +1,6 @@
 // backend/src/modules/communities/presentation/member.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../../../types'
+import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
 import * as memberService from '../application/member.service'
 

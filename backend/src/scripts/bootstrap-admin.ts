@@ -1,6 +1,6 @@
 // backend/src/scripts/bootstrap-admin.ts
 import bcrypt from 'bcryptjs'
-import { prisma } from '../config/prisma'
+import { prisma } from '../infrastructure/database/prisma'
 
 async function bootstrapAdmin() {
   const email = (process.env['BOOTSTRAP_ADMIN_EMAIL'] || process.argv[2] || 'admin.tecnico@kawsapacha.gob.ec').trim().toLowerCase()

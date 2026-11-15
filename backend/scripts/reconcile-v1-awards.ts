@@ -3,9 +3,9 @@
  * Ejecutar después de: npx prisma migrate deploy
  * Nunca borra ledger, evidencias ni actividad y respeta límites diarios.
  */
-import { prisma } from '../src/config/prisma'
-import { BASE_POINTS, evaluateActivityReward } from '../src/services/rewards.service'
-import { syncUserMissionsAndBadges } from '../src/services/missions.service'
+import { prisma } from '../src/infrastructure/database/prisma'
+import { BASE_POINTS, evaluateActivityReward } from '../src/modules/rewards/application/rewards.service'
+import { syncUserMissionsAndBadges } from '../src/modules/rewards/application/missions.service'
 
 async function main() {
   const activities = await prisma.gardenActivity.findMany({

@@ -11,7 +11,7 @@ test('real SQLite migration, uploads, persistence and authorization', async t =>
   process.env.UPLOADS_DIR = database.uploads
   process.env.JWT_SECRET = 'isolated-photo-test-secret-not-a-real-account'
   const app = require('../dist/app').default
-  const { prisma } = require('../dist/config/prisma')
+  const { prisma } = require('../dist/infrastructure/database/prisma')
   const server = app.listen(0, '127.0.0.1')
   await new Promise(resolve => server.once('listening', resolve))
   const base = `http://127.0.0.1:${server.address().port}`
@@ -101,7 +101,7 @@ test('real SQLite migration, uploads, persistence and authorization', async t =>
     assert.equal(await prisma.realGarden.count({ where: { id: 'legacy-garden' } }), 1)
   })
   await t.test('a failed database write removes only the new upload', async () => {
-    const { withEntityPhoto } = require('../dist/services/entity-photo.service')
+    const { withEntityPhoto } = require('../dist/modules/media/application/entity-photo.service')
     const before = fs.readdirSync(path.join(database.uploads, 'gardens'))
     await assert.rejects(withEntityPhoto('gardens', { buffer: png, size: png.length, mimetype: 'image/png' }, false, null, async () => { throw new Error('Simulated database failure') }), /Simulated/)
     assert.deepEqual(fs.readdirSync(path.join(database.uploads, 'gardens')), before)

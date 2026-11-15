@@ -3,7 +3,7 @@ import { runLunarTests } from './lunar-calendar.test'
 import { runRewardsAndMissionsTests } from './rewards-missions.test'
 import { runActivityTests } from './activity.test'
 import { runPhase45MspRbacTests } from './phase4-5-msp-rbac.test'
-import { prisma } from '../src/config/prisma'
+import { prisma } from '../src/infrastructure/database/prisma'
 
 async function main() {
   console.log('==================================================================')

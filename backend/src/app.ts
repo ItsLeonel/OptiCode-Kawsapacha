@@ -2,11 +2,11 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import { env } from './config/env'
-import { prisma } from './config/prisma'
-import routes from './routes'
-import { errorMiddleware } from './middlewares/error.middleware'
-import { uploadsRoot } from './services/entity-photo.service'
+import { env } from './infrastructure/config/env'
+import { prisma } from './infrastructure/database/prisma'
+import routes from './app/router'
+import { errorMiddleware } from './shared/middlewares/error.middleware'
+import { uploadsRoot } from './modules/media/application/entity-photo.service'
 
 const app = express()
 

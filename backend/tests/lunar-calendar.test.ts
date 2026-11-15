@@ -5,7 +5,7 @@ import {
   calculateMonthLunarInfo,
   normalizeTimezone,
   getRecommendationsForPhase,
-} from '../src/services/lunar-calendar.service'
+} from '../src/modules/lunar-calendar/application/lunar-calendar.service'
 
 export async function runLunarTests() {
   console.log('🧪 Iniciando pruebas astronómicas y de calendario lunar MSP...')

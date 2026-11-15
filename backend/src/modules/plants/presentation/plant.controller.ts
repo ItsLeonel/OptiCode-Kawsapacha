@@ -1,7 +1,7 @@
 import type { Response } from 'express'
 import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant, archivePlant, updatePlantDetails } from '../application/plant.service'
 import { ok, fail } from '../../../shared/utils/response'
-import type { AuthRequest } from '../../../types'
+import type { AuthRequest } from '../../../shared/types/index'
 
 export async function register(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

@@ -5,11 +5,13 @@ on:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
       - 'tools/check-frontend-architecture.cjs'
+      - 'tools/check-legacy-facades.cjs'
   pull_request:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
       - 'tools/check-frontend-architecture.cjs'
+      - 'tools/check-legacy-facades.cjs'
 jobs:
   frontend:
     runs-on: ubuntu-latest
@@ -25,6 +27,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verificar dependencias entre capas frontend
         run: node ../tools/check-frontend-architecture.cjs
+      - name: Auditar consumidores de fachadas heredadas
+        run: node ../tools/check-legacy-facades.cjs
       - name: Verificar TypeScript
         run: npm run typecheck
       - name: Compilar

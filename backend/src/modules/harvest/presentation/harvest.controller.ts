@@ -2,7 +2,7 @@
 import type { Response } from 'express'
 import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
-import * as harvestService from '../application/harvest.service'
+import * as harvestService from '../harvest.module'
 import { prisma } from '../../../infrastructure/database/prisma'
 import { assertGardenAccess } from '../../gardens/garden-access.module'
 

@@ -1,5 +1,5 @@
 import { prisma } from '../../../infrastructure/database/prisma'
-import { harvestPlant } from '../../harvest/application/harvest.service'
+import { harvestPlant } from '../../harvest/harvest.module'
 import { evaluateActivityReward } from '../../rewards/application/rewards.service'
 import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 import { validateCareAction } from './care.service'

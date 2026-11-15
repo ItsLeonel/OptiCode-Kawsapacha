@@ -10,7 +10,10 @@ export interface ActivityForCare {
 }
 export interface PersistedActivity {
  id:string;gardenId:string;actorUserId:string;plantId:string|null;plotIndex:number|null;type:string;
- performedDate:string;targetKind:string
+ performedDate:string;targetKind:string;reviewStatus:string;careLogId:string|null
+}
+export interface FullPersistedActivity extends PersistedActivity {
+ evidences:Array<{id:string}>
 }
 export interface ActivityInputData {
  gardenId:string;actorUserId:string;type:ActivityType;performedDate:string;targetKind:string;
@@ -22,7 +25,7 @@ export interface EvidenceInputData {
  activityId:string;filePath:string;fileUrl:string;mimeType:string;fileSize:number
 }
 export interface ActivityRegistrationRepository {
- findClientActivity(clientActivityId:string):Promise<PersistedActivity|null>
+ findClientActivity(clientActivityId:string):Promise<FullPersistedActivity|null>
  findPlantInPlot(gardenId:string,plotIndex:number):Promise<ActivityPlant|null>
  findPlant(id:string):Promise<ActivityPlant|null>
  findPlantForCare(id:string):Promise<ActivityForCare|null>
@@ -30,11 +33,11 @@ export interface ActivityRegistrationRepository {
  findRecentHilling(plantId:string,fromDate:string):Promise<boolean>
  createActivity(input:ActivityInputData):Promise<PersistedActivity>
  createEvidence(input:EvidenceInputData):Promise<void>
- findFullActivity(id:string):Promise<PersistedActivity|null>
+ findFullActivity(id:string):Promise<FullPersistedActivity|null>
 }
 export interface ActivityRegistrationServices {
  assertGardenAccess(gardenId:string,userId:string):Promise<boolean>
  harvestPlant(plantId:string,quantity:string,notes:string,userId:string):Promise<{id:string}>
- evaluateActivityReward(input:{id:string;actorUserId:string;type:string;performedDate:string;targetKind:string;plantId:string|null;plotIndex:number|null}):Promise<unknown>
+ evaluateActivityReward(input:{id:string;actorUserId:string;type:string;performedDate:string;targetKind:string;plantId:string|null;plotIndex:number|null}):Promise<{awarded:boolean;pointsAwarded:number;totalPoints:number;level:string;reason:string}>
  syncUserMissionsAndBadges(userId:string):Promise<unknown>
 }

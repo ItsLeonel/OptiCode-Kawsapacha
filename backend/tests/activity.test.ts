@@ -6,7 +6,9 @@ import {
   listGardenActivities,
   getGardenActivityDetail,
   voidGardenActivity,
+  VALID_ACTIVITY_TYPES,
 } from '../src/services/activity.service'
+import { listPlantsByGarden, getPlantPassport, updatePlantDetails } from '../src/services/plant.service'
 
 export async function runActivityTests() {
   console.log('🧪 Iniciando pruebas de Bitácora Viva y Actividades Agrícolas...')
@@ -111,6 +113,28 @@ export async function runActivityTests() {
       where: { id: plant.id },
       data: { reviewStatus: 'APPROVED' },
     })
+
+    // Seguridad de extremo a extremo: una cuenta ajena no debe leer ni editar
+    // plantas o fotos del huerto de otra comunidad.
+    const outsider = await prisma.user.create({
+      data: {
+        name: 'Usuario fuera del huerto',
+        email: `no-miembro-${Date.now()}@kawsapacha.org`,
+        passwordHash: 'dummyhash',
+        role: 'USUARIO',
+      },
+    })
+    try {
+      await assert.rejects(() => listPlantsByGarden(garden.id, outsider.id), { code: 'FORBIDDEN' })
+      await assert.rejects(() => getPlantPassport(plant.id, outsider.id), { code: 'FORBIDDEN' })
+      await assert.rejects(
+        () => updatePlantDetails({ plantId: plant.id, requestingUserId: outsider.id, notes: 'Cambio no autorizado' }),
+        { code: 'FORBIDDEN' }
+      )
+    } finally {
+      await prisma.user.delete({ where: { id: outsider.id } })
+    }
+    assert.ok(!(VALID_ACTIVITY_TYPES as readonly string[]).includes('replanting'), 'Replante debe permanecer retirado del backend')
 
     // 1. Crear actividad de nivel huerto: preparación de terreno (preparation)
     const prepResult = await createGardenActivity({

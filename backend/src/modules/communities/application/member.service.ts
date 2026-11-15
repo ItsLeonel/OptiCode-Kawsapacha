@@ -1,5 +1,5 @@
-// backend/src/services/member.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/communities/application/member.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 
 export type CommunityRole = 'RESPONSABLE' | 'PARTICIPANTE'
 

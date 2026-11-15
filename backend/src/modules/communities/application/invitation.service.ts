@@ -1,5 +1,5 @@
-// backend/src/services/invitation.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/communities/application/invitation.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 
 export async function getPendingInvitationsForEmail(email: string) {
   const cleanEmail = email.trim().toLowerCase()

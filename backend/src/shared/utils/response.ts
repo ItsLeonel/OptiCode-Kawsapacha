@@ -1,5 +1,5 @@
 import type { Response } from 'express'
-import type { ApiSuccess, ApiError } from '../types'
+import type { ApiSuccess, ApiError } from '../types/index'
 
 export function ok<T>(res: Response, data: T, message = 'OK', status = 200): void {
   const body: ApiSuccess<T> = { ok: true, message, data }

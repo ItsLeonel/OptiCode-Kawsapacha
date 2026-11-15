@@ -1,9 +1,9 @@
-// backend/src/services/missions.service.ts
+// backend/src/modules/rewards/application/missions.service.ts
 // Responsable: Ronny Veloz (Rodni15)
 // Sistema de misiones e insignias funcionales con seguimiento de progreso real
 
-import { prisma } from '../config/prisma'
-import { calculateDayLunarInfo } from './lunar-calendar.service'
+import { prisma } from '../../../infrastructure/database/prisma'
+import { calculateDayLunarInfo } from '../../lunar-calendar/application/lunar-calendar.service'
 
 export interface BadgeDefinition {
   id: string

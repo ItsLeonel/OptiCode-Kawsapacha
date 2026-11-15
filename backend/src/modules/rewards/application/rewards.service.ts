@@ -1,8 +1,8 @@
-// backend/src/services/rewards.service.ts
+// backend/src/modules/rewards/application/rewards.service.ts
 // Responsable: Ronny Veloz (Rodni15)
 // Motor de recompensas centralizado "Semillas de vida" con Ledger inmutable
 
-import { prisma } from '../config/prisma'
+import { prisma } from '../../../infrastructure/database/prisma'
 import { Prisma } from '@prisma/client'
 
 export type ActivityType =

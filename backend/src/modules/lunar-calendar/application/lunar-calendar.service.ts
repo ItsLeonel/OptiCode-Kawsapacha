@@ -1,4 +1,4 @@
-// backend/src/services/lunar-calendar.service.ts
+// backend/src/modules/lunar-calendar/application/lunar-calendar.service.ts
 // Responsable: Ronny Veloz (Rodni15)
 // Cálculo astronómico dinámico de fases lunares y recomendaciones MSP 2017
 

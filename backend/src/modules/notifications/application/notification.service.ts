@@ -1,5 +1,5 @@
-// backend/src/services/notification.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/notifications/application/notification.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 
 export interface CreateNotificationInput {
   userId: string

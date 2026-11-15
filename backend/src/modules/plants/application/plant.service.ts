@@ -1,8 +1,8 @@
-import { prisma } from '../config/prisma'
+import { prisma } from '../../../infrastructure/database/prisma'
 import path from 'path'
-import { assertGardenAccess } from './activity.service'
-import { evaluateActivityReward } from './rewards.service'
-import { syncUserMissionsAndBadges } from './missions.service'
+import { assertGardenAccess } from '../../activities/application/activity.service'
+import { evaluateActivityReward } from '../../rewards/application/rewards.service'
+import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 
 const MAX_PLOTS = 6
 

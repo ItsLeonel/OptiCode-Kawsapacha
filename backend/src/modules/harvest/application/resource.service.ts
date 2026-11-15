@@ -1,5 +1,5 @@
-// backend/src/services/resource.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/harvest/application/resource.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 
 export async function listResources(communityId: string) {
   return prisma.communityResource.findMany({

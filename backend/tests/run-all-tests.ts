@@ -1,4 +1,5 @@
 // backend/tests/run-all-tests.ts
+import { runCatalogArchitectureTests } from './catalog-architecture.test'
 import { runLunarTests } from './lunar-calendar.test'
 import { runRewardsAndMissionsTests } from './rewards-missions.test'
 import { runActivityTests } from './activity.test'
@@ -11,6 +12,8 @@ async function main() {
   console.log('==================================================================\n')
 
   try {
+    await runCatalogArchitectureTests()
+    console.log('')
     await runLunarTests()
     console.log('')
     await runRewardsAndMissionsTests()

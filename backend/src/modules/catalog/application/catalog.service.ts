@@ -1,15 +1,21 @@
-import { CATALOG_REGIONS, serializeSpecies, type CatalogRegion } from '../domain/catalog-species'
-import type { CatalogRepository } from './catalog.repository'
+import { CATALOG_REGIONS, serializeCatalogSpecies, type CatalogRegion, type CatalogStoredSpecies } from '../domain/catalog-species'
+import type { CatalogRepository } from './ports/catalog.repository'
 
 export { CATALOG_REGIONS } from '../domain/catalog-species'
 export type { CatalogRegion } from '../domain/catalog-species'
 
-export async function listCatalog(query: string | undefined, region: CatalogRegion | undefined, repository: CatalogRepository) {
-  const plants = await repository.findAll(query)
-  return plants.map(serializeSpecies).filter(plant => !region || plant.regions.includes(region))
-}
-
-export async function getCatalogById(id: string, repository: CatalogRepository) {
-  const plant = await repository.findById(id)
-  return plant ? serializeSpecies(plant) : null
+/** Casos de uso del catálogo; repositorio inyectable para pruebas aisladas. */
+export function createCatalogService<T extends CatalogStoredSpecies>(repository: CatalogRepository<T>) {
+  return {
+    async listCatalog(query?: string, region?: CatalogRegion) {
+      const plants = await repository.findMany(query)
+      return plants
+        .map(serializeCatalogSpecies)
+        .filter(plant => !region || plant.regions.includes(region))
+    },
+    async getCatalogById(id: string) {
+      const plant = await repository.findById(id)
+      return plant ? serializeCatalogSpecies(plant) : null
+    },
+  }
 }

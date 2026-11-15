@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express'
-import { CATALOG_REGIONS, listCatalog, getCatalogById, type CatalogRegion } from '../application/catalog.service'
+import { CATALOG_REGIONS, type CatalogRegion } from '../domain/catalog-species'
+import { listCatalog, getCatalogById } from '../catalog.module'
 import { prismaCatalogRepository } from '../infrastructure/prisma-catalog.repository'
 import { ok, fail } from '../../../shared/utils/response'
 

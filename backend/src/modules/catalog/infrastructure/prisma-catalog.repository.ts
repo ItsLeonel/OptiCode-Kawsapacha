@@ -1,9 +1,8 @@
 import { prisma } from '../../../infrastructure/database/prisma'
-import type { CatalogRepository } from '../application/catalog.repository'
 
-/** Adaptador Prisma que conserva la búsqueda y el orden de la API existente. */
-export const prismaCatalogRepository: CatalogRepository = {
-  async findAll(query) {
+/** Adaptador Prisma. Mantiene las mismas consultas, orden y filtros del servicio original. */
+export const prismaCatalogRepository = {
+  async findMany(query?: string) {
     return prisma.medicinalCatalog.findMany({
       where: query
         ? { OR: [
@@ -16,7 +15,7 @@ export const prismaCatalogRepository: CatalogRepository = {
       orderBy: { name: 'asc' },
     })
   },
-  async findById(id) {
+  async findById(id: string) {
     return prisma.medicinalCatalog.findUnique({ where: { id } })
   },
 }

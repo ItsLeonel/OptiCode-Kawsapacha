@@ -16,8 +16,7 @@
     "prisma:studio": "prisma studio",
     "prisma:reset": "prisma migrate reset --force",
     "test": "npm run build && node --test tests/entity-photos.test.cjs tests/catalog-domain.test.cjs",
-    "check:architecture": "node scripts/check-architecture.cjs",
-    "test:architecture": "node scripts/check-architecture.cjs"
+    "check:architecture": "node scripts/check-architecture.cjs"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

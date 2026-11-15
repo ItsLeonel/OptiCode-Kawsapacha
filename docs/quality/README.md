@@ -6,7 +6,7 @@ El objetivo de la refactorización es mejorar las subcaracterísticas de manteni
 
 - Compilar: `cd backend && npm run typecheck && npm run build`; `cd frontend && npm run typecheck && npm run build`.
 - Pruebas existentes: `npm run test:activities` y `npm test` en backend; `npm run test:unit` y la suite Playwright del jardín en frontend.
-- Reglas estructurales: `cd backend && npm run test:architecture` valida el aislamiento de los dominios ya extraídos y reporta dependencias entre módulos como línea base.
+- Reglas estructurales: `cd backend && npm run check:architecture` valida el aislamiento de los dominios ya extraídos y reporta dependencias entre módulos como línea base.
 - GitHub Actions: validación de backend, frontend y Docker en cada PR (comprobar ejecución **del último commit**).
 
 ## Evidencia pendiente

@@ -1,6 +1,6 @@
-// backend/src/routes/lunar-calendar.routes.ts
+// backend/src/modules/lunar-calendar/presentation/lunar-calendar.routes.ts
 import { Router } from 'express'
-import { getLunarCalendar } from '../controllers/lunar-calendar.controller'
+import { getLunarCalendar } from './lunar-calendar.controller'
 
 const router = Router()
 

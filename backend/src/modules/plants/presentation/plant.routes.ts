@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { passport, remove, archive, update } from '../controllers/plant.controller'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { uploadPlantPhoto } from '../middlewares/upload.middleware'
+import { passport, remove, archive, update } from './plant.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { uploadPlantPhoto } from '../../../shared/middlewares/upload.middleware'
 
 const router = Router()
 

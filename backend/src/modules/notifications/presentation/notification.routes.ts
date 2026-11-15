@@ -1,12 +1,12 @@
-// backend/src/routes/notification.routes.ts
+// backend/src/modules/notifications/presentation/notification.routes.ts
 import { Router } from 'express'
-import { requireAuth } from '../middlewares/auth.middleware'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
 import {
   getNotifications,
   markRead,
   markAllRead,
   clearRead,
-} from '../controllers/notification.controller'
+} from './notification.controller'
 
 const router = Router()
 

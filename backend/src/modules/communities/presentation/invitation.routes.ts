@@ -1,7 +1,7 @@
-// backend/src/routes/invitation.routes.ts
+// backend/src/modules/communities/presentation/invitation.routes.ts
 import { Router } from 'express'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { getMyInvitations, accept, reject } from '../controllers/invitation.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { getMyInvitations, accept, reject } from './invitation.controller'
 
 const router = Router()
 

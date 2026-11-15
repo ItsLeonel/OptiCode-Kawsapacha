@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { create, list, getById, update } from '../controllers/garden.controller'
-import { register as registerPlant, listByGarden } from '../controllers/plant.controller'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { uploadPlantPhoto } from '../middlewares/upload.middleware'
-import { uploadEntityPhoto } from '../middlewares/entity-photo.middleware'
+import { create, list, getById, update } from './garden.controller'
+import { register as registerPlant, listByGarden } from '../../plants/presentation/plant.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { uploadPlantPhoto } from '../../../shared/middlewares/upload.middleware'
+import { uploadEntityPhoto } from '../../../shared/middlewares/entity-photo.middleware'
 
 const router = Router()
 

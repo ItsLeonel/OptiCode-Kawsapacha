@@ -1,8 +1,8 @@
-// backend/src/routes/member.routes.ts
+// backend/src/modules/communities/presentation/member.routes.ts
 import { Router } from 'express'
-import { invite, list, updateRole, remove } from '../controllers/member.controller'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { requireCommunityRole } from '../middlewares/communityRole.middleware'
+import { invite, list, updateRole, remove } from './member.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { requireCommunityRole } from '../../../shared/middlewares/communityRole.middleware'
 
 const router = Router({ mergeParams: true })
 

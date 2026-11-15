@@ -1,7 +1,7 @@
-// backend/src/routes/rewards.routes.ts
+// backend/src/modules/rewards/presentation/rewards.routes.ts
 import { Router } from 'express'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { getMyRewards } from '../controllers/rewards.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { getMyRewards } from './rewards.controller'
 
 const router = Router()
 

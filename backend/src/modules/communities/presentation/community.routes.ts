@@ -1,8 +1,8 @@
 import { Router } from 'express'
-import { create, list, getById, update } from '../controllers/community.controller'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { requireCommunityRole } from '../middlewares/communityRole.middleware'
-import { uploadEntityPhoto } from '../middlewares/entity-photo.middleware'
+import { create, list, getById, update } from './community.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { requireCommunityRole } from '../../../shared/middlewares/communityRole.middleware'
+import { uploadEntityPhoto } from '../../../shared/middlewares/entity-photo.middleware'
 
 const router = Router()
 

@@ -1,8 +1,8 @@
-// backend/src/routes/harvest.routes.ts
+// backend/src/modules/harvest/presentation/harvest.routes.ts
 import { Router } from 'express'
-import { harvestPlant, listByGarden, listByCommunity } from '../controllers/harvest.controller'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { requireHarvestRole } from '../middlewares/harvestRole.middleware'
+import { harvestPlant, listByGarden, listByCommunity } from './harvest.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { requireHarvestRole } from '../../../shared/middlewares/harvestRole.middleware'
 
 // Rutas para plantas: /api/plants/:id/harvest
 export const plantHarvestRouter = Router({ mergeParams: true })

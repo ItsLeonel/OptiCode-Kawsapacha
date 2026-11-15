@@ -1,8 +1,8 @@
-// backend/src/routes/resource.routes.ts
+// backend/src/modules/harvest/presentation/resource.routes.ts
 import { Router } from 'express'
-import { list, create, update, remove } from '../controllers/resource.controller'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { requireCommunityRole } from '../middlewares/communityRole.middleware'
+import { list, create, update, remove } from './resource.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { requireCommunityRole } from '../../../shared/middlewares/communityRole.middleware'
 
 const router = Router({ mergeParams: true })
 

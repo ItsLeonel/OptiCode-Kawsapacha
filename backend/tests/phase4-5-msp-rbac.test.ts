@@ -142,7 +142,7 @@ export async function runPhase45MspRbacTests() {
   console.log('   ✓ Comunidad aprobada por el MSP y notificada al responsable.')
 
   // ─── 4. FLUJO DE ACTIVIDAD AGRÍCOLA: AUDITORÍA MSP Y CRÉDITO DE PUNTOS ───────
-  console.log('4️⃣  Prueba: Registro de actividad (PENDING) -> Auditoría MSP -> Acreditación...')
+  console.log('4️⃣  Prueba: Registro válido y puntos inmediatos -> auditoría MSP...')
   // Crear huerto para el usuario
   const garden = await prisma.realGarden.create({
     data: {
@@ -202,13 +202,14 @@ export async function runPhase45MspRbacTests() {
   })
 
   assert.ok(act1Result.activity)
-  assert.equal(act1Result.activity.reviewStatus, 'PENDING', 'La actividad debe quedar en PENDING')
-  assert.equal(act1Result.reward?.pointsAwarded, 5, 'Se entregan puntos provisionales al registrar')
+  assert.equal(act1Result.activity.reviewStatus, 'APPROVED', 'La actividad debe ser válida desde el registro')
+  assert.equal(act1Result.reward?.pointsAwarded, 5, 'Se acreditan 5 Semillas al registrar')
 
-  // El saldo provisional aparece sin certificar la evidencia.
+  // El saldo acreditado no depende de la auditoría humana.
   const pendingSummary = await getUserRewardsSummary(registrationResult.user.id)
   assert.equal(pendingSummary.points, 5)
-  assert.equal(pendingSummary.review.totals.provisional, 5)
+  assert.equal(pendingSummary.review.totals.confirmed, 5)
+  assert.equal(pendingSummary.review.totals.provisional, 0)
 
   // Una actividad pendiente no bloquea registrar otra acción legítima.
   const signage1 = await createGardenActivity({
@@ -219,19 +220,22 @@ export async function runPhase45MspRbacTests() {
     gardenId: garden.id, actorUserId: registrationResult.user.id,
     type: 'signage', performedDate: '2026-11-11', targetKind: 'plant', plantId: plant.id,
   })
-  assert.equal(signage1.activity?.reviewStatus, 'PENDING')
-  assert.equal(signage2.activity?.reviewStatus, 'PENDING')
+  assert.equal(signage1.activity?.reviewStatus, 'APPROVED')
+  assert.equal(signage2.activity?.reviewStatus, 'APPROVED')
 
-  // MSP consulta la bandeja de actividades pendientes
-  const pendingActivities = await listActivitiesForMsp({ status: 'PENDING' })
-  assert.ok(pendingActivities.activities.some(a => a.id === act1Result.activity!.id))
+  // El MSP consulta también registros válidos todavía sin auditoría humana.
+  const registeredActivities = await listActivitiesForMsp({ status: 'APPROVED' })
+  const beforeHumanAudit = registeredActivities.activities.find(a => a.id === act1Result.activity!.id)
+  assert.ok(beforeHumanAudit)
+  assert.equal(beforeHumanAudit.reviewedAt, null)
 
   // MSP aprueba la actividad
   const reviewResult = await reviewActivity(act1Result.activity!.id, 'APPROVED', mspUser.id)
   assert.equal(reviewResult.activity.reviewStatus, 'APPROVED')
+  assert.equal(reviewResult.activity.reviewedById, mspUser.id)
   assert.equal(reviewResult.reward?.pointsAwarded, 0, 'Verificar no vuelve a otorgar los puntos')
 
-  // Ahora el saldo confirmado del usuario debe reflejar exactamente los 5 puntos
+  // Verificar conserva exactamente los mismos 5 puntos; registra al auditor.
   const approvedSummary = await getUserRewardsSummary(registrationResult.user.id)
   assert.equal(approvedSummary.points, 5, 'El saldo del usuario debe ser exactamente 5 puntos confirmados')
 
@@ -252,7 +256,7 @@ export async function runPhase45MspRbacTests() {
   // El usuario debe tener la notificación de actividad aprobada
   const notifsAfterApprove = await listUserNotifications(registrationResult.user.id)
   assert.ok(notifsAfterApprove.notifications.some(n => n.type === 'ACTIVITY_APPROVED'))
-  console.log('   ✓ Actividad en auditoría aprobada formalmente: +5 puntos acreditados sin duplicidad.')
+  console.log('   ✓ Actividad ya válida auditada por MSP sin duplicar sus 5 puntos.')
 
   // ─── 5. RECHAZO DE ACTIVIDAD POR EL MSP ──────────────────────────────────────
   console.log('5️⃣  Prueba: Rechazo de actividad con motivo obligatorio...')
@@ -271,7 +275,7 @@ export async function runPhase45MspRbacTests() {
       size: 21000,
     },
   })
-  assert.equal(act2Result.activity!.reviewStatus, 'PENDING')
+  assert.equal(act2Result.activity!.reviewStatus, 'APPROVED')
 
   // MSP rechaza la actividad indicando el motivo
   const rejectResult = await reviewActivity(
@@ -283,7 +287,7 @@ export async function runPhase45MspRbacTests() {
   assert.equal(rejectResult.activity.reviewStatus, 'REJECTED')
   assert.equal(rejectResult.reward, null)
 
-  // El abonado también pierde sus puntos provisionales al invalidarse.
+  // El abonado recibió sus puntos y los pierde al invalidarse.
   const afterRejectSummary = await getUserRewardsSummary(registrationResult.user.id)
   assert.equal(afterRejectSummary.points, 0)
 
@@ -348,7 +352,7 @@ export async function runPhase45MspRbacTests() {
   console.log('   ✓ Todos los eventos críticos quedaron registrados en AuditLog con actor y timestamp.')
 
   // ─── 9. BLOQUEO DE ACTIVIDADES Y PREPARACIÓN SIN COMUNIDAD APROBADA ─────────
-  console.log('9️⃣  Prueba: Actividades operativas mientras comunidad está pendiente...')
+  console.log('9️⃣  Prueba: Actividades válidas mientras comunidad está pendiente...')
   const pendingComm = await prisma.community.create({
     data: {
       name: `Comunidad Sin Aprobar ${timestamp}`,
@@ -383,7 +387,7 @@ export async function runPhase45MspRbacTests() {
     plotIndex: 1,
     notes: 'Preparando cama de siembra antes del aval institucional',
   })
-  assert.equal(provisionalPrep.activity?.reviewStatus, 'PENDING')
+  assert.equal(provisionalPrep.activity?.reviewStatus, 'APPROVED')
   assert.equal(provisionalPrep.reward?.pointsAwarded, 10)
   const verifiedPrep = await reviewActivity(provisionalPrep.activity!.id, 'APPROVED', mspUser.id)
   assert.equal(verifiedPrep.reward?.pointsAwarded, 0)
@@ -391,7 +395,7 @@ export async function runPhase45MspRbacTests() {
   // Aprobar la comunidad no altera ni duplica las actividades ya registradas.
   await reviewCommunity(pendingComm.id, 'APPROVED', mspUser.id)
   assert.equal((await prisma.gardenActivity.findUnique({ where: { id: provisionalPrep.activity!.id } }))?.reviewStatus, 'APPROVED')
-  console.log('   ✓ Comunidad PENDING operativa, actividad provisional y verificación MSP sin duplicar puntos.')
+  console.log('   ✓ Comunidad PENDING operativa, actividad válida y verificación MSP sin duplicar puntos.')
 
   // ─── 10. PERSISTENCIA MSP Y AUSENCIA DE SIEMBRA AUTOMÁTICA DE DEMOS ──────
   console.log('🔟  Prueba: eventos, recursos y enlaces educativos persistentes...')

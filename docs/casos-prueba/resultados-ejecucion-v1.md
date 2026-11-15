@@ -1,5 +1,13 @@
 # Resultados de ejecución — Kawsapacha V1
 
+> **Nota de actualización documental — 15/11/2026:** los **17/17 casos aprobados** aquí descritos son resultados **reportados por Santiago para el 08/11/2026**, con dos SHAs históricos (`8066d69`, `de1c6c9`). No son un retest del `main` actual ni del [PR #74 responsive](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74), todavía sin merge. Los resultados y sus fechas **se preservan íntegros**. Falta registrar una nueva ejecución con fecha, versión y evidencia para declarar validado el producto final.
+>
+> **Evidencias:** el PR contiene `casos-prueba-v1.docx` y un índice de capturas, pero **no incorpora los archivos PNG** que enlaza `evidencias/README.md`; por eso el índice no permite visualizar imágenes independientes en GitHub. Santiago debe exportarlas del DOCX si realmente están insertadas y comprobar que corresponden a cada ejecución. El estado «aprobado» se atribuye al informe de Santiago, no a verificación independiente de esas capturas.
+>
+> **Limitaciones nuevas al corte actual:** sin resultados manuales fechados del jardín móvil (320/360/390/430/768 px), cuatro regiones × cuatro modalidades, navegador de Android/iPhone sobre HTTPS, ni los módulos comunitarios pendientes [#48](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/48). La compilación y Playwright de PR #74 fueron aprobados para `6d7750a9`, pero no equivalen a esas pruebas manuales. El [Issue #75](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/75) cubre la actualización del despliegue.
+
+
+
 **Responsable:** Santiago Guamán · **Issue:** #14 QA-002 · **Fecha de ejecución:** 08/11/2026
 
 > Resultados tomados del documento oficial `casos-prueba-v1.docx`. Las capturas están insertadas en cada caso del docx y deben guardarse además en `evidencias/` con el formato `P-XXX-descripcion-AAAA-MM-DD.png`.

@@ -382,6 +382,10 @@ class ModularGardenScene extends Phaser.Scene {
     this.pinch = null
     this.activePointers.clear()
     this.suppressClick = false
+    // Phaser clamps centerOn through its legacy camera bounds independently
+    // of our zoom-aware mobile viewport. Disable only on mobile: our own
+    // clampMobileCamera still keeps panning inside the real world.
+    this.cameras.main.useBounds = !this.isMobileCamera()
     if (this.isMobileCamera()) {
       const anchors = this.bridge.snapshot.model.slots.map(slot => slot.anchor)
       const xs = anchors.map(slot => slot.x)
@@ -403,24 +407,16 @@ class ModularGardenScene extends Phaser.Scene {
       const zoom = contentZoom * (kind === 'pots' ? .86 : kind === 'hanging' || kind === 'vertical' ? .91 : 1)
       this.mobileBaseZoom = zoom
       this.mobileMaxZoom = Math.max(zoom * 3, 1.15)
-      this.cameras.main.setZoom(zoom).centerOn(
-        (minX + maxX) / 2 + (kind === 'pots' ? 340 : 0),
-        (minY + maxY) / 2,
+      const camera = this.cameras.main
+      camera.setZoom(zoom)
+      // Center around the *real plot anchors* using zoom-aware coordinates.
+      // The artwork is wider than the click anchors; the zoom calculation
+      // above provides room for their rims and supports without shifting them.
+      camera.setScroll(
+        (minX + maxX) / 2 - this.scale.width / (2 * zoom),
+        (minY + maxY) / 2 - this.scale.height / (2 * zoom),
       )
       this.clampMobileCamera()
-      if (kind === 'pots') {
-        // Además del ancla interactiva, cada recipiente ocupa anchura visual.
-        // Mantener la última columna dentro de la pantalla sin cambiar su posición real.
-        const camera = this.cameras.main
-        const origin = camera.getWorldPoint(0, 0)
-        const lastX = (maxX - origin.x) * zoom
-        const rightPadding = Math.min(55, this.scale.width * .15)
-        const excess = lastX + rightPadding - this.scale.width
-        if (excess > 0) {
-          camera.setScroll(camera.scrollX + excess / zoom, camera.scrollY)
-          this.clampMobileCamera()
-        }
-      }
       return
     }
     const ground = this.bridge.snapshot.model.kind === 'ground'

@@ -51,6 +51,7 @@ import { type ActivityDraft, type ActivityType, type GardenActivity } from '../f
 import '../features/my-garden/garden-journal.css'
 import GardenProgress from '../features/my-garden/GardenProgress'
 import { calculateProgress } from '../features/my-garden/journal/progress'
+import { attachServerEvidence } from '../features/my-garden/selectors/server-plant-evidence'
 import { currentScreen, SCREEN_PATHS, type Screen } from './navigation'
 import { draftKey } from '../features/real-gardens/draft-key'
 import { photoExtension } from '../shared/utils/photo-extension'
@@ -95,27 +96,7 @@ export default function App({
   const realGarden = user ? backendGarden : journal.data.terrain
   // En la sesión las evidencias reales provienen de la Bitácora SQLite,
   // no de IndexedDB de visitante ni solo de la última foto de la planta.
-  const serverPlantsWithEvidence = useMemo(() => backendPlants.map(plant => {
-    const evidences = backendActivities
-      .filter(activity =>
-        !activity.voidedAt &&
-        activity.gardenId === activeGardenId &&
-        (activity.type === 'sowing' || activity.type === 'observation') &&
-        activity.target.kind === 'plant' && activity.target.plantId === plant.id
-      )
-      .flatMap(activity => (activity.photos ?? []).map((photo, index) => ({
-        id: `${activity.id}-evidence-${index}`,
-        date: activity.date,
-        notes: activity.notes,
-        photo,
-        photoId: activity.photoIds[index],
-        growthStage: isGrowthStage(activity.details.growthStage) ? activity.details.growthStage : undefined,
-        heightCm: typeof activity.details.heightCm === 'number' ? activity.details.heightCm : undefined,
-        reviewStatus: activity.reviewStatus,
-      })))
-      .sort((a, b) => a.date.localeCompare(b.date))
-    return { ...plant, evidences }
-  }), [backendPlants, backendActivities, activeGardenId])
+  const serverPlantsWithEvidence = useMemo(() => attachServerEvidence(backendPlants, backendActivities, activeGardenId), [backendPlants, backendActivities, activeGardenId])
   const plants = user ? serverPlantsWithEvidence : journal.plants
   const activePlants = plants.filter(plant => !plant.archivedAt)
   const activities = user && activeGardenId ? backendActivities : journal.data.activities

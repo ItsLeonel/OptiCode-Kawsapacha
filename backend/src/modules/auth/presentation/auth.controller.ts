@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import { registerUser, loginUser, getUserById } from '../application/auth.service'
+import { registerUser, loginUser, getUserById } from '../auth.module'
 import { ok, fail } from '../../../shared/utils/response'
 import type { AuthRequest } from '../../../shared/types/index'
 

@@ -2,7 +2,7 @@
 import assert from 'assert'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../src/infrastructure/database/prisma'
-import { registerUser, loginUser } from '../src/modules/auth/application/auth.service'
+import { registerUser, loginUser } from '../src/modules/auth/auth.module'
 import {
   provisionMspUser,
   toggleUserStatus,

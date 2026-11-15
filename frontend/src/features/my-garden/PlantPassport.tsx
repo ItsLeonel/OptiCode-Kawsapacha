@@ -369,10 +369,10 @@ export default function PlantPassport({
           </section>
 
           <nav className="passport-toolbar" aria-label="Acciones de la ficha">
-            {onEdit && <button type="button" onClick={onEdit} className="passport-primary-action">Actualizar fotografía</button>}
+            {onEdit && <button type="button" onClick={onEdit} className="passport-primary-action">Actualizar foto y observaciones</button>}
             {onActivity && !plant.archivedAt && <button type="button" onClick={() => onActivity()} className="passport-secondary-action">Registrar actividad</button>}
             {onRestore && plant.archivedAt && <button type="button" onClick={() => void onRestore()} className="passport-secondary-action">Restaurar al espacio</button>}
-            <button type="button" onClick={onHistory} className="passport-link-action"><GardenIcon name="book" /> Ver Bitácora</button>
+            <button type="button" onClick={onHistory} className="passport-link-action"><GardenIcon name="book" /> Ver Bitácora general de cultivo</button>
           </nav>
           {plant.evidences?.length ? (
             <div className="passport-evidence-summary" aria-label="Resumen de evidencias fotográficas">

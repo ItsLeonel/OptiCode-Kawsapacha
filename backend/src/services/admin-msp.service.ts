@@ -242,6 +242,16 @@ export async function reviewActivity(
     throw Object.assign(new Error('No se puede revisar una actividad anulada.'), { code: 'ACTIVITY_VOIDED' })
   }
 
+  // Una decisión final no puede convertirse en otra sin una operación explícita
+  // de reversión auditada. Impide conservar puntos después de un rechazo.
+  if ((activity.reviewStatus === 'APPROVED' && action !== 'APPROVED')
+    || (activity.reviewStatus === 'REJECTED' && action !== 'REJECTED')) {
+    throw Object.assign(
+      new Error('Esta actividad ya tiene una resolución definitiva. No se puede cambiar sin un proceso de reversión auditado.'),
+      { code: 'REVIEW_FINALIZED' }
+    )
+  }
+
   if (action !== 'APPROVED' && (!reason || reason.trim().length < 5)) {
     throw Object.assign(
       new Error('Es obligatorio indicar un motivo detallado (mínimo 5 caracteres) para rechazar o solicitar correcciones.'),
@@ -428,12 +438,7 @@ const DEFAULT_MSP_EVENTS = [
 ]
 
 export async function listInstitutionalEvents() {
-  const count = await prisma.mspInstitutionalEvent.count()
-  if (count === 0) {
-    for (const ev of DEFAULT_MSP_EVENTS) {
-      await prisma.mspInstitutionalEvent.create({ data: ev })
-    }
-  }
+  // No generar eventos ficticios al leer una lista vacía.
   return prisma.mspInstitutionalEvent.findMany({
     orderBy: { date: 'asc' },
   })
@@ -502,25 +507,7 @@ const DEFAULT_MSP_RESOURCES = [
 ]
 
 export async function listEducationalResources() {
-  const count = await prisma.mspEducationalResource.count()
-  if (count === 0) {
-    for (const res of DEFAULT_MSP_RESOURCES) {
-      await prisma.mspEducationalResource.create({ data: res })
-    }
-  } else {
-    // Migración automática: sincronizar URLs previas con extensión .pdf a .html
-    const pdfResources = await prisma.mspEducationalResource.findMany({
-      where: { fileUrl: { contains: '.pdf' } },
-    })
-    for (const item of pdfResources) {
-      if (item.fileUrl) {
-        await prisma.mspEducationalResource.update({
-          where: { id: item.id },
-          data: { fileUrl: item.fileUrl.replace(/\.pdf$/i, '.html') },
-        })
-      }
-    }
-  }
+  // Leer no debe insertar demos ni cambiar URLs legítimas de PDF.
   return prisma.mspEducationalResource.findMany({
     orderBy: { createdAt: 'desc' },
   })

@@ -365,6 +365,18 @@ export default function PlantPassport({
             {onRestore && plant.archivedAt && <button type="button" onClick={() => void onRestore()} className="passport-secondary-action">Restaurar al espacio</button>}
             <button type="button" onClick={onHistory} className="passport-link-action"><GardenIcon name="book" /> Ver Bitácora general de cultivo</button>
           </nav>
+          {!user && onActivity && !plant.archivedAt && (
+            <section className="passport-care-shortcuts" aria-label="Cuidados del huerto">
+              <span>Cuidados realizados</span>
+              <div>
+                <button type="button" onClick={() => onActivity('watering')}>💧 Riego</button>
+                <button type="button" onClick={() => onActivity('fertilizing')}>🌾 Abonado</button>
+                <button type="button" onClick={() => onActivity('weeding')}>🌿 Deshierbe</button>
+                <button type="button" onClick={() => onActivity('harvest')}>🧺 Cosecha</button>
+              </div>
+              <small>Selecciona una actividad para documentar lo que hiciste en el huerto real.</small>
+            </section>
+          )}
           {plant.evidences?.length ? (
             <div className="passport-evidence-summary" aria-label="Resumen de evidencias fotográficas">
               <span className="passport-evidence-count"><strong>{plant.evidences.length}</strong> {plant.evidences.length === 1 ? 'fotografía registrada' : 'fotografías registradas'}</span>

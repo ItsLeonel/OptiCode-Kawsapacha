@@ -1,5 +1,5 @@
 import { prisma } from '../../../infrastructure/database/prisma'
-import { assertGardenAccess } from '../../activities/application/activity-access.service'
+import { assertGardenAccess } from '../../gardens/garden-access.module'
 import { extractGrowthStage } from '../domain/plant-rules'
 
 export async function listPlantsByGarden(gardenId: string, requestingUserId: string) {

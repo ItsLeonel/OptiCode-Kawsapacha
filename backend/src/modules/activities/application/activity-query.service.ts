@@ -1,5 +1,5 @@
 import { prisma } from '../../../infrastructure/database/prisma'
-import { assertGardenAccess } from './activity-access.service'
+import { assertGardenAccess } from '../../gardens/garden-access.module'
 import { VALID_ACTIVITY_TYPES, type ActivityType } from '../domain/activity-types'
 
 export async function listGardenActivities(

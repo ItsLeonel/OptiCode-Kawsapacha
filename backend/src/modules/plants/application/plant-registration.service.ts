@@ -1,6 +1,6 @@
 import { prisma } from '../../../infrastructure/database/prisma'
 import path from 'path'
-import { assertGardenAccess } from '../../activities/application/activity-access.service'
+import { assertGardenAccess } from '../../gardens/garden-access.module'
 import { evaluateActivityReward } from '../../rewards/application/rewards.service'
 import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 import { MAX_PLOTS } from '../domain/plant-rules'

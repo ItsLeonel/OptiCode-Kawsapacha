@@ -3,7 +3,7 @@ import { harvestPlant } from '../../harvest/application/harvest.service'
 import { evaluateActivityReward } from '../../rewards/application/rewards.service'
 import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 import { validateCareAction } from './care.service'
-import { assertGardenAccess } from './activity-access.service'
+import { assertGardenAccess } from '../../gardens/garden-access.module'
 import type { CreateActivityInput } from './activity-input'
 import { VALID_ACTIVITY_TYPES } from '../domain/activity-types'
 

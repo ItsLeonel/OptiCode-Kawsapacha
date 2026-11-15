@@ -4,7 +4,7 @@ import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
 import * as harvestService from '../application/harvest.service'
 import { prisma } from '../../../infrastructure/database/prisma'
-import { assertGardenAccess } from '../../activities/application/activity.service'
+import { assertGardenAccess } from '../../gardens/garden-access.module'
 
 export async function harvestPlant(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

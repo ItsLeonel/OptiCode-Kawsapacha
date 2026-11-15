@@ -1,7 +1,5 @@
 // backend/src/modules/gardens/application/garden.service.ts
-import { prisma } from '../../../infrastructure/database/prisma'
-import { isCommunityResponsable } from '../../communities/application/member.service'
-import { withEntityPhoto } from '../../media/application/entity-photo.service'
+import type { GardenRepository, GardenPhotoStorage, UploadedPhoto } from './ports/garden.repository'
 
 export interface CreateGardenInput {
   name: string
@@ -21,10 +19,11 @@ export interface CreateGardenInput {
   characteristics?: string | null
   communityId: string | null
   createdById: string
-  file?: Express.Multer.File
+  file?: UploadedPhoto
   removePhoto?: boolean
 }
 
+export function createGardenService(repository: GardenRepository, photos: GardenPhotoStorage, isCommunityResponsable: (communityId: string, userId: string) => Promise<boolean>) {
 async function requireTargetCommunity(communityId: string | null | undefined, userId: string) {
   if (communityId && !await isCommunityResponsable(communityId, userId)) {
     throw Object.assign(new Error('Solo el Responsable puede registrar o vincular un huerto en esta comunidad.'), { code: 'FORBIDDEN' })
@@ -37,30 +36,22 @@ async function requireGardenEditor(garden: { createdById: string; communityId: s
   }
 }
 
-export async function createGarden(input: CreateGardenInput) {
+async function createGarden(input: CreateGardenInput) {
   await requireTargetCommunity(input.communityId, input.createdById)
   // Si se especifica comunidad, buscar primero si la comunidad ya tiene un huerto
   let existingGarden = null
   if (input.communityId) {
-    existingGarden = await prisma.realGarden.findFirst({
-      where: { communityId: input.communityId },
-      orderBy: { updatedAt: 'desc' },
-    })
+    existingGarden = await repository.findLatestByCommunity(input.communityId)
   }
 
   // Si no se encontró por comunidad, buscar si el usuario ya creó un huerto
   if (!existingGarden) {
-    existingGarden = await prisma.realGarden.findFirst({
-      where: { createdById: input.createdById },
-      orderBy: { updatedAt: 'desc' },
-    })
+    existingGarden = await repository.findLatestByCreator(input.createdById)
   }
 
   if (existingGarden) {
     await requireGardenEditor(existingGarden, input.createdById)
-    return withEntityPhoto('gardens', input.file, input.removePhoto, existingGarden.photoUrl, photoUrl => prisma.realGarden.update({
-      where: { id: existingGarden.id },
-      data: {
+    return photos.withPhoto( input.file, input.removePhoto, existingGarden.photoUrl, photoUrl => repository.update(existingGarden.id, {
         name: input.name,
         kind: input.kind,
         areaM2: input.areaM2,
@@ -78,12 +69,10 @@ export async function createGarden(input: CreateGardenInput) {
         characteristics: input.characteristics !== undefined ? input.characteristics : existingGarden.characteristics,
         communityId: input.communityId ?? existingGarden.communityId,
         photoUrl,
-      },
     }))
   }
 
-  return withEntityPhoto('gardens', input.file, false, null, photoUrl => prisma.realGarden.create({
-    data: {
+  return photos.withPhoto( input.file, false, null, photoUrl => repository.create({
       name: input.name,
       kind: input.kind,
       areaM2: input.areaM2,
@@ -102,7 +91,6 @@ export async function createGarden(input: CreateGardenInput) {
       communityId: input.communityId,
       createdById: input.createdById,
       photoUrl,
-    },
   }))
 }
 
@@ -112,52 +100,24 @@ export async function createGarden(input: CreateGardenInput) {
  *   - Pertenecen a una comunidad donde el usuario es miembro ACCEPTED.
  * Si se pasa communityId filtra adicionalmente por esa comunidad.
  */
-export async function listGardens(userId: string, communityId?: string) {
-  return prisma.realGarden.findMany({
-    where: {
-      ...(communityId ? { communityId } : {}),
-      OR: [
-        { createdById: userId },
-        {
-          community: {
-            members: {
-              some: {
-                userId,
-                status: 'ACCEPTED',
-              },
-            },
-          },
-        },
-      ],
-    },
-    include: {
-      _count: { select: { plants: true } },
-      community: { select: { id: true, name: true, province: true, location: true } },
-    },
-    orderBy: { updatedAt: 'desc' },
-  })
+async function listGardens(userId: string, communityId?: string) {
+  return repository.listAccessible(userId, communityId)
 }
 
-export async function getGardenById(id: string) {
-  return prisma.realGarden.findUnique({
-    where: { id },
-    include: {
-      plants: {
-        include: { species: true },
-        orderBy: { plotIndex: 'asc' },
-      },
-      community: { select: { id: true, name: true, province: true, location: true } },
-    },
-  })
+async function getGardenById(id: string) {
+  return repository.getDetails(id)
 }
 
-export async function updateGarden(id: string, userId: string, data: Partial<Omit<CreateGardenInput, 'createdById'>>) {
-  const garden = await prisma.realGarden.findUnique({ where: { id } })
+async function updateGarden(id: string, userId: string, data: Partial<Omit<CreateGardenInput, 'createdById'>>) {
+  const garden = await repository.findById(id)
   if (!garden) throw new Error('Huerto no encontrado')
 
   await requireGardenEditor(garden, userId)
   if (data.communityId !== garden.communityId) await requireTargetCommunity(data.communityId, userId)
   const { file, removePhoto, ...fields } = data
-  return withEntityPhoto('gardens', file, removePhoto, garden.photoUrl, photoUrl =>
-    prisma.realGarden.update({ where: { id }, data: { ...fields, photoUrl } }))
+  return photos.withPhoto( file, removePhoto, garden.photoUrl, photoUrl =>
+    repository.update(id, { ...fields, photoUrl }))
+}
+
+return { createGarden, listGardens, getGardenById, updateGarden }
 }

@@ -1,6 +1,6 @@
 // backend/src/modules/gardens/presentation/garden.controller.ts
 import type { Response } from 'express'
-import { createGarden, listGardens, getGardenById, updateGarden } from '../application/garden.service'
+import { createGarden, listGardens, getGardenById, updateGarden } from '../garden.module'
 import { assertGardenAccess } from '../garden-access.module'
 import { ok, fail } from '../../../shared/utils/response'
 import type { AuthRequest } from '../../../shared/types/index'

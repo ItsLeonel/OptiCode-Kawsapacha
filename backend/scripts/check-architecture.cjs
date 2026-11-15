@@ -26,7 +26,7 @@ function analyze(file) {
   const relative = path.relative(modulesRoot, file).replaceAll('\\', '/')
   const moduleName = relative.split('/')[0]
   const domain = relative.includes('/domain/')
-  const isolatedApplication = relative.startsWith('catalog/application/') || relative.startsWith('gardens/application/garden-access') || relative.startsWith('notifications/application/') || relative === 'administration/application/admin-msp-content.service.ts' || relative.startsWith('auth/application/') || relative === 'administration/application/audit.service.ts'
+  const isolatedApplication = relative.startsWith('catalog/application/') || relative.startsWith('gardens/application/') || relative.startsWith('notifications/application/') || relative === 'administration/application/admin-msp-content.service.ts' || relative.startsWith('auth/application/') || relative === 'administration/application/audit.service.ts'
   const matches = content.matchAll(/(?:\bfrom\s*|\brequire\s*\(|\bimport\s*\()\s*['"]([^'"]+)['"]/g)
   for (const match of matches) {
     const spec = match[1]

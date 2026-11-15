@@ -6,7 +6,7 @@ import {
   provisionMspUser,
   toggleUserStatus,
   listAdministrativeUsers,
-} from '../application/admin-technical.service'
+} from '../admin-technical.module'
 import { listAuditLogs } from '../audit.module'
 
 export async function createMspAccount(req: AuthRequest, res: Response): Promise<void> {

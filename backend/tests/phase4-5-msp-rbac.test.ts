@@ -7,7 +7,7 @@ import {
   provisionMspUser,
   toggleUserStatus,
   listAdministrativeUsers,
-} from '../src/modules/administration/application/admin-technical.service'
+} from '../src/modules/administration/admin-technical.module'
 import {
   listCommunitiesForMsp,
   reviewCommunity,

@@ -17,3 +17,7 @@ El objetivo de la refactorización es mejorar las subcaracterísticas de manteni
 - Ejecutar regresión manual con cuentas existentes, fotos históricas, MSP, comunidad y todas las modalidades/regiones Phaser.
 
 **No afirmar equivalencia funcional al 100 % solo por CI verde**. La documentación histórica de calidad sigue en [casos de prueba](../casos-prueba/README.md).
+
+## Línea base existente
+
+Ver [fallos Playwright anteriores a la refactorización](regresion-baseline-2026-11-15.md) para separar defectos funcionales previos de la validación del PR.

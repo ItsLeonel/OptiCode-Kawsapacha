@@ -140,27 +140,14 @@ export default function ActivityModal({
     ? selectedHarvest.target.kind === 'garden' ? { kind: 'garden' } : { kind: 'plot', plot: selectedHarvest.target.plot }
     : originalTarget
 
-  // El estado de revisión informa al usuario, pero no bloquea el cuidado de plantas.
+  // La ocupación física de la parcela sí impide una segunda siembra o preparación.
   const plantInPlot = target.kind === 'plot'
     ? plants.find(p => p.plot === target.plot && !p.archivedAt)
     : undefined
   const effectivePlant = plant || plantInPlot
-  const isTargetPlantPending = Boolean(
-    effectivePlant && (effectivePlant.reviewStatus === 'PENDING' || effectivePlant.reviewStatus === 'NEEDS_CHANGES')
-  )
   const isSpaceBlockedForNewPlantOrPrep = Boolean(
     effectivePlant && (type === 'sowing' || type === 'preparation')
   )
-  const matchesTarget = (a: GardenActivity) => {
-    if (effectivePlant) return a.target.kind === 'plant' && a.target.plantId === effectivePlant.id
-    if (target.kind === 'plot') return a.target.kind === 'plot' && a.target.plot === target.plot
-    return a.target.kind === 'garden'
-  }
-  const pendingActivitiesForTarget = existingActivities.filter(
-    a => !a.voidedAt && (a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES') && matchesTarget(a)
-  )
-  const pendingTypesForTarget = new Set(pendingActivitiesForTarget.map(a => a.type))
-  const pendingSameTypeActivity = pendingActivitiesForTarget.find(a => a.type === type) ?? null
 
   const needsPlant = ['sowing', 'hilling', 'observation', 'harvest', 'signage'].includes(type)
   const types =
@@ -210,13 +197,13 @@ export default function ActivityModal({
     }
   }, [plant?.id, plant?.state])
 
-  // Validaciones de sobrecuidado (sobre actividades aprobadas oficialmente en la misma fecha)
+  // Validaciones de sobrecuidado: cuentan los registros no invalidados del día.
   const isOverWatered =
     type === 'watering' &&
     Boolean(plant) &&
     Boolean(
       existingActivities?.some(
-        a => !a.voidedAt && a.reviewStatus === 'APPROVED' && a.type === 'watering' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
+        a => !a.voidedAt && a.reviewStatus !== 'REJECTED' && a.type === 'watering' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
       )
     )
 
@@ -225,7 +212,7 @@ export default function ActivityModal({
     Boolean(plant) &&
     Boolean(
       existingActivities?.some(
-        a => !a.voidedAt && a.reviewStatus === 'APPROVED' && a.type === 'fertilizing' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
+        a => !a.voidedAt && a.reviewStatus !== 'REJECTED' && a.type === 'fertilizing' && a.target.kind === 'plant' && a.target.plantId === plant?.id && a.date === date
       )
     )
 
@@ -376,11 +363,11 @@ export default function ActivityModal({
         <div className="activity-submitted-notice" style={{ padding: '36px 24px', textAlign: 'center' }}>
           <div style={{ fontSize: '3.2rem', marginBottom: '14px' }}>🕐</div>
           <h3 style={{ margin: '0 0 10px', color: '#276749', fontSize: '1.4rem', fontWeight: 700 }}>
-            Actividad enviada al MSP
+            Actividad registrada
           </h3>
           <p style={{ margin: '0 auto 24px', maxWidth: '440px', color: '#4a5568', fontSize: '0.98rem', lineHeight: '1.6' }}>
-            Tu actividad ha sido registrada y está <strong>pendiente de aprobación por el MSP</strong>.<br />
-            Una vez verificada por el equipo oficial, tus Semillas de vida serán acreditadas y se reflejarán en tu progreso 🌱.
+            Tu actividad ya forma parte de la Bitácora. Las Semillas de vida elegibles se acreditan al registrarla.
+            El MSP puede comprobar la evidencia posteriormente e invalidar registros incorrectos.
           </p>
           <button
             type="button"
@@ -411,16 +398,14 @@ export default function ActivityModal({
                 </strong>
                 <span>
                   {effectivePlant
-                    ? isTargetPlantPending
-                      ? `Espacio ${effectivePlant.plot + 1} · ⏳ Pendiente de aprobación MSP`
-                      : effectivePlant.latin || `Espacio ${effectivePlant.plot + 1}`
+                    ? effectivePlant.latin || `Espacio ${effectivePlant.plot + 1}`
                     : target.kind === 'plot'
                       ? 'Espacio disponible'
                       : 'Puedes seleccionar un espacio o planta.'}
                 </span>
                 {effectivePlant && (
                   <small>
-                    <GardenIcon name="leaf" /> {isTargetPlantPending ? 'Siembra en revisión institucional' : `Planta vinculada · Espacio ${effectivePlant.plot + 1}`}
+                    <GardenIcon name="leaf" /> {`Planta vinculada · Espacio ${effectivePlant.plot + 1}`}
                   </small>
                 )}
               </div>
@@ -453,10 +438,9 @@ export default function ActivityModal({
                     {Array.from({ length: 6 }, (_, plot) => {
                       const occupant = plants.find(item => !item.archivedAt && item.plot === plot)
                       if (occupant) {
-                        const isPending = occupant.reviewStatus === 'PENDING' || occupant.reviewStatus === 'NEEDS_CHANGES'
                         return (
                           <option key={plot} value={`plant:${occupant.id}`}>
-                            {occupant.name} · Espacio {plot + 1}{isPending ? ' (⏳ Pendiente MSP)' : ''}
+                            {occupant.name} · Espacio {plot + 1}
                           </option>
                         )
                       }
@@ -494,25 +478,7 @@ export default function ActivityModal({
                 </button>
               </div>
             )}
-            {isTargetPlantPending && (
-              <div
-                style={{
-                  marginTop: '10px',
-                  background: '#fffbeb',
-                  border: '2px solid #f59e0b',
-                  color: '#92400e',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.86rem',
-                }}
-              >
-                <strong>⚠️ Espacio {(effectivePlant?.plot ?? 0) + 1} pendiente de aprobación por el MSP:</strong>
-                <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
-                  «{effectivePlant?.name}» ya está sembrada. Puedes registrar sus riegos y cuidados; el MSP verificará la evidencia posteriormente.
-                </div>
-              </div>
-            )}
-            {!isTargetPlantPending && isSpaceBlockedForNewPlantOrPrep && (
+            {isSpaceBlockedForNewPlantOrPrep && (
               <div
                 style={{
                   marginTop: '10px',
@@ -527,25 +493,6 @@ export default function ActivityModal({
                 <strong>⚠️ Espacio {(effectivePlant?.plot ?? 0) + 1} ocupado:</strong>
                 <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
                   Ya existe una planta activa («{effectivePlant?.name}») en este espacio. Selecciona otro espacio disponible.
-                </div>
-              </div>
-            )}
-            {!isTargetPlantPending && !isSpaceBlockedForNewPlantOrPrep && pendingSameTypeActivity && (
-              <div
-                role="status"
-                style={{
-                  marginTop: '10px',
-                  background: '#fffbeb',
-                  border: '2px solid #f59e0b',
-                  color: '#92400e',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.86rem',
-                }}
-              >
-                <strong>⏳ Actividad ya realizada · Pendiente de revisión MSP:</strong>
-                <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
-                  <strong>{ACTIVITY_TYPES[type]}</strong> ya fue registrada por <strong>{pendingSameTypeActivity.responsible || 'un integrante'}</strong> el {pendingSameTypeActivity.date} y está en espera de validación. Puedes registrar otra actividad real sin esperar al MSP; las recompensas tienen límites contra duplicados.
                 </div>
               </div>
             )}
@@ -564,29 +511,10 @@ export default function ActivityModal({
                   data-selected={type === item}
                   aria-pressed={type === item}
                   disabled={busy}
-                  title={pendingTypesForTarget.has(item) ? `${ACTIVITY_TYPES[item]} (registro anterior pendiente; puedes documentar otra acción real)` : ACTIVITY_TYPES[item]}
+                  title={ACTIVITY_TYPES[item]}
                   onClick={() => chooseType(item)}
                 >
                   {type === item && <span className="activity-garden-card-check" aria-hidden="true">✓</span>}
-                  {pendingTypesForTarget.has(item) && (
-                    <span
-                      title="Pendiente de revisión MSP"
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        left: '4px',
-                        fontSize: '0.68rem',
-                        background: '#fef3c7',
-                        color: '#92400e',
-                        border: '1px solid #f59e0b',
-                        borderRadius: '6px',
-                        padding: '0 4px',
-                        fontWeight: 700,
-                      }}
-                    >
-                      ⏳
-                    </span>
-                  )}
                   <span className="activity-garden-card-icon" aria-hidden="true">
                     {ACTIVITY_CARDS[item].art ? (
                       <img src={ACTIVITY_CARDS[item].art} alt="" />
@@ -624,7 +552,7 @@ export default function ActivityModal({
                       setShowMore(false)
                     }}
                   >
-                    <span aria-hidden="true">{ACTIVITY_CARDS[item].emoji}</span> {ACTIVITY_TYPES[item]}{pendingTypesForTarget.has(item) ? ' (⏳ En revisión)' : ''}
+                    <span aria-hidden="true">{ACTIVITY_CARDS[item].emoji}</span> {ACTIVITY_TYPES[item]}
                   </button>
                 ))}
               </div>

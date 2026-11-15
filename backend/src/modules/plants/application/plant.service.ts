@@ -4,7 +4,7 @@ import { assertGardenAccess } from '../../activities/application/activity.servic
 import { evaluateActivityReward } from '../../rewards/application/rewards.service'
 import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 
-const MAX_PLOTS = 6
+import { MAX_PLOTS, extractGrowthStage } from '../domain/plant-rules'
 
 export interface RegisterPlantInput {
   realGardenId: string
@@ -144,21 +144,6 @@ export async function registerPlant(input: RegisterPlantInput) {
   }
 }
 
-function extractGrowthStage(activities: Array<{ details: string; type: string; reviewStatus: string }>): string | undefined {
-  for (const act of activities) {
-    // La etapa registrada se refleja de inmediato; una evidencia rechazada no gobierna el espejo.
-    if (act.reviewStatus === 'REJECTED') continue
-    try {
-      const parsed = JSON.parse(act.details || '{}') as { growthStage?: string }
-      if (parsed.growthStage && typeof parsed.growthStage === 'string') {
-        return parsed.growthStage
-      }
-    } catch {
-      // ignorar JSON malformado
-    }
-  }
-  return undefined
-}
 
 export async function listPlantsByGarden(gardenId: string, requestingUserId: string) {
   await assertGardenAccess(gardenId, requestingUserId, { requireApproved: false })

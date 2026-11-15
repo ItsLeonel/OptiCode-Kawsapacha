@@ -15,7 +15,7 @@
     "reconcile:msp-v1": "ts-node scripts/reconcile-v1-awards.ts",
     "prisma:studio": "prisma studio",
     "prisma:reset": "prisma migrate reset --force",
-    "test": "npm run build && node --test tests/entity-photos.test.cjs tests/catalog-domain.test.cjs tests/care-domain.test.cjs",
+    "test": "npm run build && node --test tests/entity-photos.test.cjs tests/catalog-domain.test.cjs tests/care-domain.test.cjs tests/plant-domain.test.cjs",
     "check:architecture": "node scripts/check-architecture.cjs"
   },
   "dependencies": {

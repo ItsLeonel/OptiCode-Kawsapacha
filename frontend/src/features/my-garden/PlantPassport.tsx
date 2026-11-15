@@ -8,7 +8,6 @@ import BotanicalSignage from './BotanicalSignage'
 import {
   careApi,
   catalogApi,
-  harvestApi,
   activityApi,
   resolveMediaUrl,
   type CareLog,
@@ -17,6 +16,7 @@ import {
   type CalendarTips,
   type UserSession,
 } from '../../services/api'
+import { localDate } from './plant-record'
 import './garden-journal.css'
 import './plant-passport-clean.css'
 
@@ -180,11 +180,12 @@ export default function PlantPassport({
     }
 
     try {
-      if (user && activeGardenId && !plant.id.includes('-')) {
+      if (!activeGardenId) throw new Error('No se identificó el huerto activo. Regresa a Mi Huerto antes de guardar el cuidado.')
+      {
         const type = actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
         const formData = new FormData()
         formData.append('type', type)
-        formData.append('performedDate', new Date().toISOString().split('T')[0])
+        formData.append('performedDate', localDate())
         formData.append('targetKind', 'plant')
         formData.append('plantId', plant.id)
         formData.append('plotIndex', String(plant.plot ?? 0))
@@ -192,8 +193,6 @@ export default function PlantPassport({
         formData.append('details', JSON.stringify({ method: 'Acción rápida desde Pasaporte Vivo' }))
 
         await activityApi.create(activeGardenId, formData)
-      } else {
-        await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
       }
       const actionName = actionType === 'WATERING' ? 'Riego' : actionType === 'FERTILIZER' ? 'Abono' : 'Limpieza'
       setMessage(`✅ ${actionName} guardado en Bitácora. Las recompensas elegibles se acreditan de inmediato.`)
@@ -214,22 +213,18 @@ export default function PlantPassport({
     setMessage('')
     try {
       if (user && !plant.id.includes('-')) {
-        if (activeGardenId) {
-          const formData = new FormData()
-          formData.append('type', 'harvest')
-          formData.append('performedDate', new Date().toISOString().split('T')[0])
-          formData.append('targetKind', 'plant')
-          formData.append('plantId', plant.id)
-          formData.append('plotIndex', String(plant.plot ?? 0))
-          formData.append('notes', actionNotes || `Cosecha: ${harvestQuantity}`)
-          formData.append('details', JSON.stringify({ method: harvestQuantity, harvestMode: 'partial' }))
-          await activityApi.create(activeGardenId, formData)
-          if (onActivityCreated) onActivityCreated()
-          setMessage('🌾 ¡Cosecha registrada en Bitácora! La planta permanece sembrada y el MSP puede auditarla posteriormente.')
-        } else {
-          await harvestApi.harvest(plant.id, harvestQuantity, actionNotes || 'Cosecha realizada desde Pasaporte Vivo')
-          setMessage('🌾 ¡Cosecha recolectada e ingresada al almacén! La planta permanece sembrada y ha iniciado un nuevo ciclo de rebrote.')
-        }
+        if (!activeGardenId) throw new Error('No se identificó el huerto activo para registrar esta cosecha.')
+        const formData = new FormData()
+        formData.append('type', 'harvest')
+        formData.append('performedDate', localDate())
+        formData.append('targetKind', 'plant')
+        formData.append('plantId', plant.id)
+        formData.append('plotIndex', String(plant.plot ?? 0))
+        formData.append('notes', actionNotes || `Cosecha: ${harvestQuantity}`)
+        formData.append('details', JSON.stringify({ method: harvestQuantity, harvestMode: 'partial' }))
+        await activityApi.create(activeGardenId, formData)
+        if (onActivityCreated) onActivityCreated()
+        setMessage('🌾 ¡Cosecha registrada en Bitácora! La planta permanece sembrada y el MSP puede auditarla posteriormente.')
       } else {
         setMessage(`🌾 ¡Cosecha de ${harvestQuantity} registrada! La planta sigue en su parcela iniciando rebrote.`)
       }

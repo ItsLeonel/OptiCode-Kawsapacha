@@ -21,6 +21,8 @@ jobs:
           node-version: '22'
       - name: Instalar dependencias
         run: npm ci --no-audit --no-fund
+      - name: Verificar dependencias entre capas frontend
+        run: node ../tools/check-frontend-architecture.cjs
       - name: Verificar TypeScript
         run: npm run typecheck
       - name: Compilar

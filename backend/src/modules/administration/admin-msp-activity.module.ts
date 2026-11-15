@@ -4,7 +4,7 @@ import { logAudit } from './audit.module'
 import { createNotification } from '../notifications/notification.module'
 import { evaluateActivityReward,getUserRewardsSummary } from '../rewards/rewards.module'
 import { syncUserMissionsAndBadges } from '../rewards/missions.module'
-import { calculateGrowth } from '../activities/application/care.service'
+import { calculateGrowth } from '../activities/care.module'
 export const {listActivitiesForMsp,reviewActivity}=createMspActivityService(prismaMspActivityRepository,{
  logAudit,createNotification,evaluateActivityReward,getUserRewardsSummary,syncUserMissionsAndBadges,calculateGrowth,
 })

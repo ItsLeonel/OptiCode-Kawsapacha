@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import GardenTypePicker from './GardenTypePicker'
 import RealGardenField from './RealGardenField'
 import RealGardenIcon from './RealGardenIcon'

@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import { PHOTO_ACCEPT, optimizeMobilePhoto, validatePhoto } from '../../shared/photo-validation'
 
 export default function GardenPhoto({ photo, photoUrl, fallback, disabled = false, onChange }: {

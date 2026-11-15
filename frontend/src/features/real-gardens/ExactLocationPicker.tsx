@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import type { GardenCoordinates } from './real-garden'
 
 const ExactLocationMap = lazy(() => import('./ExactLocationMap'))

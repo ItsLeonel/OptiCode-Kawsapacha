@@ -1375,6 +1375,7 @@ export default function App({
                   authenticated={Boolean(user)}
                   official={serverRewards ? toAuthoritativeRewards(serverRewards) : null}
                   review={serverRewards?.review ?? null}
+                  onRetryRewards={reloadServerRewards}
                   currentUser={user?.name || communityRecord?.responsible}
                 />
               </>

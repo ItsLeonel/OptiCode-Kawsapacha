@@ -66,6 +66,14 @@ export const COSTA_FENCE_ART = {
 export const WORLD = { width: 1920, height: 1500, centerX: 1030, centerY: 875 } as const
 export const SCENE_LAYERS = ['landscape', 'ground', 'structures', 'parcels', 'plants', 'effects', 'feedback'] as const
 
+/** Implementos originales sobre transparencia: nunca incluyen plantas ni parcelas. */
+export const ACTIVITY_TOOL_ASSETS = {
+  watering: '/activity-tools/watering-can.svg',
+  fertilizing: '/activity-tools/compost-basket.svg',
+  weeding: '/activity-tools/hand-rake.svg',
+  harvest: '/activity-tools/harvest-basket.svg',
+} as const
+
 /** Hand calibrated transparent frames. Source files are never modified. */
 export const PROP_FRAMES = {
   house: [0, 80, 550, 420], tank: [600, 75, 370, 425], compost: [1035, 75, 500, 430],

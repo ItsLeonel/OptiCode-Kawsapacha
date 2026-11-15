@@ -2,7 +2,7 @@ import { coastalFootprintRatio } from './coastal-terrain'
 import { COASTAL_RELIEF_ART, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import Phaser from 'phaser'
 import { GardenSceneBridge, type SceneCommand } from './bridge'
-import { REGIONAL_POTS_ART, REGIONAL_PAD_ART, REGIONAL_BASKETS_ART, REGIONAL_TROUGHS_ART, REGIONAL_SUPPORTS_ART, BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, WORLD } from './assets'
+import { ACTIVITY_TOOL_ASSETS, REGIONAL_POTS_ART, REGIONAL_PAD_ART, REGIONAL_BASKETS_ART, REGIONAL_TROUGHS_ART, REGIONAL_SUPPORTS_ART, BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, WORLD } from './assets'
 import { LAYOUT_PROFILES } from './layouts'
 import { GardenScenePainter } from './scene-painter'
 import type { GardenVisualModel, SlotId } from './model'
@@ -99,6 +99,9 @@ class ModularGardenScene extends Phaser.Scene {
     this.publishCamera()
     this.game.canvas.setAttribute('aria-hidden', 'true')
     this.bridge.emit({ type: 'ready', renderer: this.game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas' })
+    // Los implementos opcionales se cargan DESPUÉS de emitir ready.
+    // Un SVG defectuoso jamás bloquea el jardín o sus seis parcelas.
+    this.time.delayedCall(800, () => { if (this.ready) this.loadActivityTools() })
   }
 
   private receive(command: SceneCommand) {
@@ -179,6 +182,21 @@ class ModularGardenScene extends Phaser.Scene {
 
   private syncAssets() {
     this.queueAssets()
+    if (!this.load.isLoading() && this.load.list.size) this.load.start()
+  }
+
+  private loadActivityTools() {
+    for (const [activity, url] of Object.entries(ACTIVITY_TOOL_ASSETS)) {
+      const key = 'activity-tool-' + activity
+      if (this.textures.exists(key) || this.failedAssets.has(key) || this.requestedAssets.has(key)) continue
+      try {
+        this.requestedAssets.add(key)
+        this.load.svg(key, url, { width: 240, height: 220 })
+      } catch (cause) {
+        this.failedAssets.add(key)
+        console.warn('[Kawsapacha] Implemento SVG no disponible; se conserva el efecto vectorial.', activity, cause)
+      }
+    }
     if (!this.load.isLoading() && this.load.list.size) this.load.start()
   }
 

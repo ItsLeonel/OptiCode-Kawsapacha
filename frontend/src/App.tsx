@@ -1149,19 +1149,12 @@ export default function App({
   }
 
   const ready = user ? Boolean(communityRecord && activeGardenId) : Boolean(communityRecord && realGarden)
+  // Las subpantallas del jardín siguen perteneciendo a Mi Huerto.
   const activeNavigation: GardenDestination =
     screen === 'Comunidades'
       ? 'community'
-      : screen === 'Plantas medicinales'
-      ? 'plants'
-      : screen === 'Mis plantas'
-      ? 'my-plants'
-      : screen === 'Mi historia' || screen === 'Bitácora'
-      ? 'history'
-      : screen === 'Mi camino verde'
+      : screen === 'Mi camino verde' || screen === 'Mi historia'
       ? 'progress'
-      : screen === 'Mi terreno'
-      ? 'real-garden'
       : 'garden'
 
   const immersiveGarden = screen === 'Inicio' && Boolean(realGarden)
@@ -1220,50 +1213,6 @@ export default function App({
         pendingInvitationsCount={totalNotificationsCount}
         onOpenNotifications={() => setNotificationsOpen(true)}
         region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')}
-        progress={
-          user
-            ? (serverRewards
-                ? {
-                    points: serverRewards.points,
-                    level: serverRewards.level,
-                    progressPercent: serverRewards.progressPercent,
-                    nextLevel: serverRewards.nextLevel ?? undefined,
-                    badges: (['first-sowing', 'care', 'observer', 'harvest'] as const).map(id => {
-                      const meta: Record<string, { label: string; criterion: string }> = {
-                        'first-sowing': { label: 'La primera semilla', criterion: 'Una siembra registrada con fotografía' },
-                        care: { label: 'Raíces cuidadas', criterion: 'Riego documentado en tres fechas distintas' },
-                        observer: { label: 'Mirada atenta', criterion: 'Seguimiento con foto en tres fechas distintas' },
-                        harvest: { label: 'Cosecha con memoria', criterion: 'Una cosecha registrada con evidencia fotográfica' },
-                      }
-                      const badgeMap: Record<string, string> = {
-                        FIRST_SOWING: 'first-sowing',
-                        'first-sowing': 'first-sowing',
-                        CARE_ROOTS: 'care',
-                        care: 'care',
-                        OBSERVATION_JOURNAL: 'observer',
-                        observer: 'observer',
-                        HARVEST_MEMORY: 'harvest',
-                        harvest: 'harvest',
-                      }
-                      const earned = serverRewards.badges.some(b => badgeMap[(b as any).badgeId || (b as any).code] === id)
-                      return {
-                        id,
-                        label: meta[id].label,
-                        criterion: meta[id].criterion,
-                        earned,
-                      }
-                    }),
-                  }
-                : undefined)
-            : {
-                points: progress.points,
-                level: progress.level,
-                progressPercent: progress.progressPercent,
-                nextLevel: progress.nextLevel,
-                badges: progress.badges,
-              }
-        }
-        onRetryRewards={reloadServerRewards}
       />
 
       {screen === 'Inicio' || screen === 'Mi terreno' ? (

@@ -1,6 +1,6 @@
 import { configureTerrain, confirmTerrain, expectReady, canvasSlot } from './garden-helpers'
 import { test, expect, type Page } from './e2e'
-import { createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo } from './community-helpers'
+import { createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo, navigateModule, openGardenSection } from './community-helpers'
 
 test.setTimeout(60_000)
 const browserErrors = new WeakMap<Page, string[]>()
@@ -91,11 +91,11 @@ test('crear desde Mi Jardín avanza al huerto físico y conserva plantas al volv
 
 test('paisaje explorado y comunidad se conservan al navegar, sin crear un jardín independiente', async ({ page }) => {
   await demo(page)
-  await mainNavigation(page).getByRole('button', { name: 'Descubrir plantas', exact: true }).click()
+  await openGardenSection(page, 'Catálogo medicinal')
   await page.goBack()
   await expect(page.locator('.my-garden-page')).toHaveAttribute('data-region', 'sierra')
   await createCommunity(page, 'Una comunidad que cultiva su territorio', 'Napo')
-  await mainNavigation(page).getByRole('button', { name: 'Mi Jardín', exact: true }).click()
+  await navigateModule(page, 'Mi Huerto')
   await expect(page.locator('.my-garden-page')).toHaveAttribute('data-onboarding', 'real-garden')
   await expect(page.locator('.my-garden-page')).toHaveAttribute('data-region', 'oriente')
   await expect(page.locator('.garden-parcels')).toHaveCount(0)

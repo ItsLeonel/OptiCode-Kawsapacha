@@ -39,7 +39,23 @@ function checkPhaser(file){
     }
   }
 }
+/** Las funcionalidades no deben depender del ensamblaje raíz app. */
+let featureCount=0
+function checkFeature(file){
+ featureCount++
+ const source=fs.readFileSync(file,'utf8')
+ for(const match of source.matchAll(/(?:\\bfrom\\s*|\\brequire\\s*\\(|\\bimport\\s*\\()\\s*['"]([^'"]+)['"]/g)){
+   const spec=match[1]
+   if(!spec.startsWith('.'))continue
+   const target=path.resolve(path.dirname(file),spec)
+   if(target.startsWith(path.join(root,'app')+path.sep)){
+     errors.push(path.relative(root,file)+': features no puede importar app: '+spec)
+   }
+ }
+}
 walk(shared)
+walk(path.join(root,'features'),checkFeature)
+console.log('Archivos de features inspeccionados: '+featureCount)
 walk(path.join(root,'features','my-garden','phaser-poc'),checkPhaser)
 console.log('Archivos Phaser inspeccionados: '+phaserCount)
 console.log('Archivos compartidos inspeccionados: '+count)

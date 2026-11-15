@@ -502,22 +502,25 @@ export async function voidGardenActivity(activityId: string, userId: string, voi
     throw new Error('Solo el autor de la actividad o el responsable del huerto pueden anularla.')
   }
 
-  // Marcar como anulada
-  const updatedActivity = await prisma.gardenActivity.update({
-    where: { id: activityId },
-    data: {
-      voidedAt: new Date(),
-      voidReason,
-      voidedByUserId: userId,
-    },
-    include: {
-      evidences: true,
-      actorUser: { select: { id: true, name: true, email: true } },
-    },
+  // Anulación y reversión forman una sola transacción: nunca descontar puntos a medias.
+  const { updatedActivity, pointsReverted } = await prisma.$transaction(async tx => {
+    const changed = await tx.gardenActivity.updateMany({
+      where: { id: activityId, voidedAt: null },
+      data: { voidedAt: new Date(), voidReason, voidedByUserId: userId },
+    })
+    if (changed.count !== 1) {
+      throw Object.assign(new Error('Esta actividad ya fue anulada.'), { code: 'ACTIVITY_VOIDED' })
+    }
+    const pointsReverted = await revertActivityReward(activityId, voidReason, tx)
+    const updatedActivity = await tx.gardenActivity.findUniqueOrThrow({
+      where: { id: activityId },
+      include: {
+        evidences: true,
+        actorUser: { select: { id: true, name: true, email: true } },
+      },
+    })
+    return { updatedActivity, pointsReverted }
   })
-
-  // Revertir recompensas en el ledger
-  const pointsReverted = await revertActivityReward(activityId, voidReason)
 
   // Re-sincronizar misiones e insignias del usuario autor
   await syncUserMissionsAndBadges(activity.actorUserId)

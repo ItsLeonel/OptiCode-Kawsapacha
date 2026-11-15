@@ -1,11 +1,11 @@
 // Cliente API para conexión con el backend Kawsapacha V1 (Node.js + Express + SQLite)
 // Responsable: Ronny Veloz (#13 INT-001)
 
-import type { AuthSubmission } from '../../features/auth/auth'
-import type { Community } from '../../features/communities/communities'
-import type { RealGarden } from '../../features/real-gardens/real-garden'
-import { toGardenFeatures, type GardenFeatures } from '../../features/real-gardens/garden-characteristics'
-import { communityProvince } from '../../features/communities/community-territory'
+import type { AuthSubmission } from '../contracts/api-models'
+import type { Community } from '../contracts/api-models'
+import type { RealGarden } from '../contracts/api-models'
+import { toGardenFeatures, type GardenFeatures } from '../contracts/garden-features'
+import { communityProvince } from '../geo/community-province'
 import { validatePhoto } from '../photo-validation'
 
 import { request, setToken, setUser, clearSession } from './transport'

@@ -49,9 +49,64 @@ function analyze(file) {
   if (domain) inspected++
 }
 
+
+/** Reporte informativo: componentes fuertemente conexas en el grafo entre módulos. */
+function findModuleCycles(importEdges) {
+  const graph = new Map()
+  for (const edge of importEdges.keys()) {
+    const [from, to] = edge.split(' -> ')
+    if (!graph.has(from)) graph.set(from, new Set())
+    if (!graph.has(to)) graph.set(to, new Set())
+    graph.get(from).add(to)
+  }
+
+  let nextIndex = 0
+  const indices = new Map()
+  const lowest = new Map()
+  const stack = []
+  const active = new Set()
+  const cycles = []
+
+  function visit(node) {
+    indices.set(node, nextIndex)
+    lowest.set(node, nextIndex)
+    nextIndex++
+    stack.push(node)
+    active.add(node)
+
+    for (const next of graph.get(node) || []) {
+      if (!indices.has(next)) {
+        visit(next)
+        lowest.set(node, Math.min(lowest.get(node), lowest.get(next)))
+      } else if (active.has(next)) {
+        lowest.set(node, Math.min(lowest.get(node), indices.get(next)))
+      }
+    }
+
+    if (lowest.get(node) === indices.get(node)) {
+      const group = []
+      let value
+      do {
+        value = stack.pop()
+        active.delete(value)
+        group.push(value)
+      } while (value !== node)
+      if (group.length > 1) cycles.push(group.sort())
+    }
+  }
+
+  for (const moduleName of graph.keys()) {
+    if (!indices.has(moduleName)) visit(moduleName)
+  }
+  return cycles.sort((a, b) => a.join(',').localeCompare(b.join(',')))
+}
+
 walk(modulesRoot)
 console.log('Dominios TypeScript comprobados: ' + inspected)
 console.log('Referencias entre módulos (línea base, no umbral): ' + [...directDependencies.values()].reduce((a,b)=>a+b,0))
+const cycles = findModuleCycles(directDependencies)
+console.log('Grupos de dependencias circulares entre módulos: ' + cycles.length)
+for (const cycle of cycles) console.log('  Ciclo (línea base): ' + cycle.join(' <-> '))
 if (errors.length) {
   console.error('Violaciones de las reglas del dominio:\n' + errors.join('\n'))
   process.exitCode = 1

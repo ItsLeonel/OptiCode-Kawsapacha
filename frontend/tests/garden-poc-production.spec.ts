@@ -64,8 +64,10 @@ test('production: persistent garden, region and kind editing, real progress with
   await expectReady(page)
   await canvasSlot(page, 0)
   await expect(passport.locator('.garden-passport-photo')).toHaveJSProperty('complete', true)
-  await expect(passport).toContainText('Riego')
-  await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
+  // Los cuidados reales están en la Bitácora, no en el resumen compacto del Pasaporte.
+  await passport.getByRole('button', { name: 'Ver Bitácora', exact: true }).click()
+  await expect(page.locator('.bv-entry-card[data-type="watering"]')).toHaveCount(1)
+  await navigateModule(page, 'Mi Huerto Vivo')
   await page.locator('.garden-poc').screenshot({ path: test.info().outputPath('production-amazonia-vertical.png') })
   expect(errors).toEqual([])
 })

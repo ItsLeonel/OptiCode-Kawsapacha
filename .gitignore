@@ -45,3 +45,11 @@ PROMPT_UNICO_CODEX.md
 referencias/PROMPT_CODEX_JARDIN_FASES_1_A_7.md
 referencias/jardin-v1-referencias/
 referencias/jardin-v3/
+
+# Local backups, exploratory references and one-off artifacts
+*.bak
+*.bak-*
+/INSTALAR_FASE4.ps1
+/estructura-proyecto.txt
+/backend/uploads-backup/
+/referencias/

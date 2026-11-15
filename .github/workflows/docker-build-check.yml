@@ -48,6 +48,38 @@ jobs:
           grep -Eq '"status"\s*:\s*"ok"' /tmp/kawsapacha-ci-health.json
           grep -Eq '"db"\s*:\s*"connected"' /tmp/kawsapacha-ci-health.json
           curl --fail --silent --show-error --max-time 6 http://127.0.0.1/ | grep -q 'id="root"'
+      - name: Comprobar SQLite y fotografía tras reiniciar el contenedor
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5N8AAAAASUVORK5CYII=' | base64 -d > /tmp/kawsapacha-ci-photo.png
+          registered=$(curl -fsS --max-time 10 -X POST http://127.0.0.1/api/auth/register -H 'Content-Type: application/json' --data '{"name":"Persistencia CI","email":"persistence-ci@example.test","password":"Preserve2026Photos!"}')
+          token=$(printf '%s' "$registered" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).data.token")
+          test -n "$token"
+          created=$(curl -fsS --max-time 10 -X POST http://127.0.0.1/api/communities \
+            -H "Authorization: Bearer $token" \
+            -F name='Comunidad persistencia CI' -F responsible='Persistencia CI' \
+            -F location='Quito' -F province='Pichincha' -F type=personal \
+            -F 'picture=@/tmp/kawsapacha-ci-photo.png;type=image/png')
+          community_id=$(printf '%s' "$created" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).data.community.id")
+          photo_url=$(printf '%s' "$created" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).data.community.photoUrl")
+          test -n "$community_id"
+          [[ "$photo_url" == /uploads/communities/* ]]
+          curl -fsS --max-time 10 "http://127.0.0.1$photo_url" -o /tmp/kawsapacha-ci-before.png
+          cmp /tmp/kawsapacha-ci-photo.png /tmp/kawsapacha-ci-before.png
+          docker compose restart api
+          healthy=0
+          for i in $(seq 1 45); do
+            if curl -fsS --max-time 4 http://127.0.0.1/api/health | grep -q '"connected"'; then healthy=1; break; fi
+            sleep 2
+          done
+          test "$healthy" = 1
+          curl -fsS --max-time 10 http://127.0.0.1/api/auth/me -H "Authorization: Bearer $token" \
+            | node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync(0,'utf8'));if(!data.ok||data.data.user.email!=='persistence-ci@example.test')process.exit(1)"
+          curl -fsS --max-time 10 http://127.0.0.1/api/communities -H "Authorization: Bearer $token" \
+            | node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync(0,'utf8'));if(!d.data.communities.some(x=>x.id===process.argv[1]&&x.photoUrl===process.argv[2]))process.exit(1)" "$community_id" "$photo_url"
+          curl -fsS --max-time 10 "http://127.0.0.1$photo_url" -o /tmp/kawsapacha-ci-after.png
+          cmp /tmp/kawsapacha-ci-photo.png /tmp/kawsapacha-ci-after.png
       - name: Registrar estado y cerrar contenedores
         if: always()
         run: |

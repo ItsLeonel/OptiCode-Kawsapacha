@@ -27,7 +27,13 @@ test('production: persistent garden, region and kind editing, real progress with
     await form.getByLabel('Ubicación de la actividad', { exact: true }).selectOption({ label: 'Romero · Espacio 1' })
     await form.locator('.activity-garden-field-person input').fill('Ana')
     await form.locator('.activity-garden-observations textarea').fill('Riego manual documentado en producción.')
-    await form.getByRole('button', { name: 'Registrar actividad', exact: true }).click()
+    const submit = form.getByRole('button', { name: 'Registrar actividad', exact: true })
+    if (await submit.isDisabled()) {
+      // Misma planta y fecha: un segundo riego se rechaza; no se duplica la recompensa.
+      await form.getByRole('button', { name: 'Cerrar registro' }).click()
+    } else {
+      await submit.click()
+    }
     await expect(form).toHaveCount(0)
   }
   await water()

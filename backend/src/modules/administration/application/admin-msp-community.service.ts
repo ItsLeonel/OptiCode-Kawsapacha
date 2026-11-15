@@ -1,10 +1,11 @@
-import { prisma } from '../../../infrastructure/database/prisma'
-import { logAudit } from '../audit.module'
-import { createNotification } from '../../notifications/notification.module'
+import type { MspCommunityRepository, MspReviewServices } from './ports/msp-community.repository'
+
+export function createMspCommunityService<C extends { status: string; name: string; creatorId: string }, U, L>(repository: MspCommunityRepository<C,U,L>, services: MspReviewServices) {
+const { logAudit, createNotification } = services
 
 // ─── SUPERVISIÓN DE COMUNIDADES (MSP) ─────────────────────────────────────────
 
-export async function listCommunitiesForMsp(options?: {
+async function listCommunitiesForMsp(options?: {
   page?: number
   limit?: number
   province?: string
@@ -27,37 +28,8 @@ export async function listCommunitiesForMsp(options?: {
   }
 
   const [total, communities] = await Promise.all([
-    prisma.community.count({ where }),
-    prisma.community.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-      include: {
-        creator: {
-          select: { id: true, name: true, email: true },
-        },
-        gardens: {
-          select: {
-            id: true,
-            name: true,
-            province: true,
-            canton: true,
-            parish: true,
-            latitude: true,
-            longitude: true,
-            kind: true,
-            areaM2: true,
-          },
-        },
-        _count: {
-          select: {
-            members: { where: { status: 'ACCEPTED' } },
-            gardens: true,
-          },
-        },
-      },
-    }),
+    repository.count(where),
+    repository.findMany(where, skip, limit),
   ])
 
   return {
@@ -69,16 +41,13 @@ export async function listCommunitiesForMsp(options?: {
   }
 }
 
-export async function reviewCommunity(
+async function reviewCommunity(
   communityId: string,
   action: 'APPROVED' | 'NEEDS_CHANGES' | 'REJECTED' | 'SUSPENDED',
   reviewerId: string,
   reason?: string
 ) {
-  const community = await prisma.community.findUnique({
-    where: { id: communityId },
-    include: { creator: true },
-  })
+  const community = await repository.findForReview(communityId)
 
   if (!community) {
     throw Object.assign(new Error('Comunidad no encontrada.'), { code: 'NOT_FOUND' })
@@ -91,17 +60,11 @@ export async function reviewCommunity(
     )
   }
 
-  const updated = await prisma.community.update({
-    where: { id: communityId },
-    data: {
-      status: action,
-      reviewedById: reviewerId,
-      reviewReason: reason || null,
-      reviewedAt: new Date(),
-    },
-    include: {
-      creator: { select: { id: true, name: true, email: true } },
-    },
+  const updated = await repository.updateReview(communityId, {
+    status: action,
+    reviewedById: reviewerId,
+    reviewReason: reason || null,
+    reviewedAt: new Date(),
   })
 
   await logAudit({
@@ -140,4 +103,7 @@ export async function reviewCommunity(
   })
 
   return updated
+}
+
+return { listCommunitiesForMsp, reviewCommunity }
 }

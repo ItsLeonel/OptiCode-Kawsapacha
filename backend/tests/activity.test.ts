@@ -201,6 +201,20 @@ export async function runActivityTests() {
     assert.ok(retryResult.activity)
     assert.equal(retryResult.activity!.id, waterAct.id)
 
+    // El mismo ID enviado desde otro huerto no debe devolver una actividad
+    // (ni fotografías) del primer huerto, aunque sea la misma cuenta.
+    const otherGarden = await prisma.realGarden.create({
+      data: { name: 'Segundo huerto de prueba', kind: 'ground', areaM2: 20,
+        province: 'Imbabura', provinceCode: '10', createdById: user.id },
+    })
+    await assert.rejects(
+      () => createGardenActivity({
+        gardenId: otherGarden.id, actorUserId: user.id, type: 'preparation',
+        performedDate: '2026-11-02', targetKind: 'garden', clientActivityId: clientOpId,
+      }),
+      { code: 'ACTIVITY_ID_CONFLICT' }
+    )
+
     // 4. Listar actividades del huerto en orden descendente
     const list = await listGardenActivities(garden.id, user.id, {})
     assert.ok(list.length >= 2)

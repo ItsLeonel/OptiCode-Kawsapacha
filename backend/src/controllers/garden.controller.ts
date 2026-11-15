@@ -1,6 +1,7 @@
 // backend/src/controllers/garden.controller.ts
 import type { Response } from 'express'
 import { createGarden, listGardens, getGardenById, updateGarden } from '../services/garden.service'
+import { assertGardenAccess } from '../services/activity.service'
 import { ok, fail } from '../utils/response'
 import type { AuthRequest } from '../types'
 
@@ -62,11 +63,17 @@ export async function list(req: AuthRequest, res: Response): Promise<void> {
 }
 
 export async function getById(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
   try {
-    const garden = await getGardenById(String(req.params['id'] ?? ''))
+    const gardenId = String(req.params['id'] ?? '')
+    await assertGardenAccess(gardenId, req.user.userId, { requireApproved: false })
+    const garden = await getGardenById(gardenId)
     if (!garden) return void fail(res, 'NOT_FOUND', 'Huerto no encontrado.', 404)
     ok(res, { garden }, 'Detalle del huerto.')
-  } catch {
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === 'FORBIDDEN') {
+      return void fail(res, 'FORBIDDEN', 'No tienes acceso a este huerto.', 403)
+    }
     fail(res, 'INTERNAL_ERROR', 'Error al obtener el huerto.', 500)
   }
 }

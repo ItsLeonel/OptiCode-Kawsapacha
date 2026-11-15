@@ -69,7 +69,7 @@ const ACTIVITY_LABELS_ES: Record<string, string> = {
  * Calcula el balance, historial de moderación y nivel de un usuario a partir del ledger y actividades.
  */
 export async function getUserRewardsSummary(userId: string) {
-  const [ledgerEntries, badges, missions, userActivities, activityStatuses] = await Promise.all([
+  const [ledgerEntries, badges, missions, userActivities] = await Promise.all([
     prisma.rewardLedger.findMany({
       where: { userId },
       orderBy: { awardedAt: 'desc' },
@@ -91,7 +91,6 @@ export async function getUserRewardsSummary(userId: string) {
       orderBy: { createdAt: 'desc' },
       take: 100,
     }),
-    prisma.gardenActivity.findMany({ where: { actorUserId: userId }, select: { id: true, reviewStatus: true } }),
   ])
 
   const totalPoints = Math.max(0, ledgerEntries.reduce((sum, entry) => sum + entry.pointsDelta, 0))
@@ -118,24 +117,10 @@ export async function getUserRewardsSummary(userId: string) {
     progressPercent = Math.min(100, Math.max(0, Math.round((totalPoints / 100) * 100)))
   }
 
-  // El saldo incluye puntos provisionales hasta que el MSP los invalide.
-  // Clasificarlos desde movimientos efectivos, no desde puntos hipotéticos.
-  const activityStatus = new Map(activityStatuses.map(a => [a.id, a.reviewStatus]))
-  const reversalAmounts = new Map<string, number>()
-  for (const entry of ledgerEntries) {
-    if (entry.reversalOfLedgerId) {
-      reversalAmounts.set(entry.reversalOfLedgerId, (reversalAmounts.get(entry.reversalOfLedgerId) ?? 0) + entry.pointsDelta)
-    }
-  }
-  let confirmedPoints = 0
-  let provisionalPoints = 0
-  for (const entry of ledgerEntries) {
-    if (entry.pointsDelta <= 0) continue
-    const net = Math.max(0, entry.pointsDelta + (reversalAmounts.get(entry.id) ?? 0))
-    const status = activityStatus.get(entry.sourceId)
-    if (status === 'PENDING' || status === 'NEEDS_CHANGES') provisionalPoints += net
-    else if (status === 'APPROVED' || !status) confirmedPoints += net
-  }
+  // Los puntos del ledger son definitivos al registrarse.
+  // El MSP solo puede descontarlos mediante movimientos negativos auditados.
+  const confirmedPoints = totalPoints
+  const provisionalPoints = 0 // Campo heredado del contrato API: ya no se generan puntos provisionales.
   const revertedPoints = ledgerEntries
     .filter(e => e.pointsDelta < 0)
     .reduce((sum, e) => sum + Math.abs(e.pointsDelta), 0)
@@ -159,15 +144,10 @@ export async function getUserRewardsSummary(userId: string) {
     if (actReverted > 0 && net === 0) {
       effect = 'reverted'
       entryPoints = actReverted
-    } else if (status === 'APPROVED') {
+    } else {
+      // Incluso las actividades heredadas sin auditoría conservan los puntos ya ganados.
       effect = net > 0 ? 'confirmed' : 'none'
       entryPoints = net
-    } else if (status === 'PENDING' || status === 'NEEDS_CHANGES') {
-      effect = net > 0 ? 'provisional' : 'none'
-      entryPoints = net
-    } else {
-      effect = 'none'
-      entryPoints = 0
     }
 
     return {

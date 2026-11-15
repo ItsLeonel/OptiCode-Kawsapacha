@@ -1,5 +1,5 @@
 import type { Response } from 'express'
-import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant, archivePlant, updatePlantDetails } from '../application/plant.service'
+import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant, archivePlant, updatePlantDetails } from '../plant.module'
 import { ok, fail } from '../../../shared/utils/response'
 import type { AuthRequest } from '../../../shared/types/index'
 

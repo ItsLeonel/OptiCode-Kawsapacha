@@ -2,8 +2,8 @@ import { useState } from 'react'
 import AdminIcon, { type AdminIconName } from './AdminIcon'
 import AdminMap from './AdminMap'
 import type { AdminNavKey, MspDashboardData } from './admin-types'
-import communityLearning from '../communities/assets/aprender-v2.jpg'
-import communityEvents from '../communities/assets/eventos-v2.jpg'
+import communityLearning from '../../shared/assets/community-sections/aprender-v2.jpg'
+import communityEvents from '../../shared/assets/community-sections/eventos-v2.jpg'
 import { FormattedCount, AdminMetric, AdminPanel, ActionLink, EmptyState, ValueBadge } from './admin-ui'
 
 export function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: AdminNavKey) => void }) {

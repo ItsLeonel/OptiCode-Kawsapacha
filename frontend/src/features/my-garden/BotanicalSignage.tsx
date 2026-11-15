@@ -1,4 +1,4 @@
-import catalog from '../medicinal-catalog/regional-species.json'
+import catalog from '../../shared/catalog/regional-species.json'
 import type { GardenPlant } from './garden'
 import './botanical-signage.css'
 

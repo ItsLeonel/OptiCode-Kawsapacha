@@ -132,7 +132,7 @@ export default function App({
   const progress = useMemo(() => calculateProgress(effectiveJournal, activeUser), [effectiveJournal, activeUser])
 
   const {
-    currentCommunityRole, setCurrentCommunityRole, activeCommunityMembers,
+    currentCommunityRole, setCurrentCommunityRole,
     acceptedMembersCount, pendingCommunityInvitationsCount, refreshActiveCommunityMembers,
   } = useActiveCommunityMembers({ user, activeCommunityId, communityRecord })
 

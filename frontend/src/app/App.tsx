@@ -11,7 +11,6 @@ import GardenPlants from '../features/my-garden/GardenPlants'
 import PlantRegistrationModal, { type PlantRegistrationDraft } from '../features/my-garden/PlantRegistrationModal'
 import { PLANT_SPECIES as SPECIES, type PlantRegistration, type PlantRegistrationResult } from '../features/my-garden/plant-species'
 import RegionalCatalog from '../features/medicinal-catalog/RegionalCatalog'
-import regionalSpecies from '../features/medicinal-catalog/regional-species.json'
 import CommunitiesPage, { type CommunityEntryAction } from '../features/communities/CommunitiesPage'
 import type { Community } from '../features/communities/communities'
 import RealGardenPage from '../features/real-gardens/RealGardenPage'
@@ -22,7 +21,6 @@ import {
   authApi,
   communityApi,
   gardenApi,
-  catalogApi,
   plantApi,
   activityApi,
   invitationApi,
@@ -32,8 +30,6 @@ import {
   resolveMediaUrl,
   type UserSession,
   type CommunityInvitationItem,
-  type CatalogSpecies,
-  normalizeCatalogSpecies,
   rewardsApi,
   type RewardsSummary,
 } from '../shared/api/client'
@@ -55,6 +51,8 @@ import { attachServerEvidence } from '../features/my-garden/selectors/server-pla
 import { currentScreen, SCREEN_PATHS, type Screen } from './navigation'
 import { draftKey } from '../features/real-gardens/draft-key'
 import { photoExtension } from '../shared/utils/photo-extension'
+import { useSpeciesCatalog } from '../features/medicinal-catalog/useSpeciesCatalog'
+import { useActiveCommunityMembers } from '../features/communities/useActiveCommunityMembers'
 
 
 
@@ -78,8 +76,6 @@ export default function App({
   const [backendCommunity, setBackendCommunity] = useState<Community | null>(null)
   const [activeCommunityId, setActiveCommunityId] = useState<string | null>(null)
   const [userCommunities, setUserCommunities] = useState<Community[]>([])
-  const [currentCommunityRole, setCurrentCommunityRole] = useState<'RESPONSABLE' | 'PARTICIPANTE' | null>(null)
-  const [activeCommunityMembers, setActiveCommunityMembers] = useState<any[]>([])
   const [backendGarden, setBackendGarden] = useState<RealGarden | null>(null)
   const [activeGardenId, setActiveGardenId] = useState<string | null>(null)
   const [backendPlants, setBackendPlants] = useState<GardenPlant[]>([])
@@ -87,8 +83,7 @@ export default function App({
   const [pendingInvitations, setPendingInvitations] = useState<CommunityInvitationItem[]>([])
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
   const [isNotificationsOpen, setNotificationsOpen] = useState(false)
-  const [speciesCatalog, setSpeciesCatalog] = useState<CatalogSpecies[]>(() => regionalSpecies.map(normalizeCatalogSpecies))
-  const [catalogServerLoaded, setCatalogServerLoaded] = useState(false)
+  const { speciesCatalog, catalogServerLoaded } = useSpeciesCatalog()
   const [serverRewards, setServerRewards] = useState<RewardsSummary | null>(null)
 
   // Selección unificada de datos según modo (Backend o Visitante)
@@ -136,48 +131,10 @@ export default function App({
   const activeUser = user?.name || communityRecord?.responsible
   const progress = useMemo(() => calculateProgress(effectiveJournal, activeUser), [effectiveJournal, activeUser])
 
-  // El API es la fuente de verdad; la lista local solo permite consultar en ausencia de servidor.
-  useEffect(() => {
-    let mounted = true
-    catalogApi.list()
-      .then(items => {
-        if (!mounted) return
-        if (items && items.length > 0) {
-          setSpeciesCatalog(items.map(normalizeCatalogSpecies))
-          setCatalogServerLoaded(true)
-        }
-      })
-      .catch(() => { if (mounted) setCatalogServerLoaded(false) })
-    return () => { mounted = false }
-  }, [])
-
-  // Resolver rol del usuario y miembros de la comunidad activa
-  const refreshActiveCommunityMembers = useCallback(async () => {
-    if (!user || !activeCommunityId) {
-      setCurrentCommunityRole(null)
-      setActiveCommunityMembers([])
-      return
-    }
-    try {
-      const members = await memberApi.list(activeCommunityId)
-      setActiveCommunityMembers(members || [])
-      const mine = (members || []).find(m => m.userId === user.id && m.status === 'ACCEPTED')
-      if (mine) {
-        setCurrentCommunityRole(mine.roleInCommunity === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
-      } else if (communityRecord && (communityRecord as any).creatorId === user.id) {
-        setCurrentCommunityRole('RESPONSABLE')
-      } else {
-        setCurrentCommunityRole(user.role === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE')
-      }
-    } catch {
-      setActiveCommunityMembers([])
-      if (communityRecord && (communityRecord as any).creatorId === user.id) {
-        setCurrentCommunityRole('RESPONSABLE')
-      } else {
-        setCurrentCommunityRole(null)
-      }
-    }
-  }, [activeCommunityId, communityRecord, user])
+  const {
+    currentCommunityRole, setCurrentCommunityRole, activeCommunityMembers,
+    acceptedMembersCount, pendingCommunityInvitationsCount, refreshActiveCommunityMembers,
+  } = useActiveCommunityMembers({ user, activeCommunityId, communityRecord })
 
   const refreshCommunities = useCallback(async () => {
     if (!user) return
@@ -195,21 +152,6 @@ export default function App({
     await refreshActiveCommunityMembers()
     await refreshCommunities()
   }, [refreshActiveCommunityMembers, refreshCommunities])
-
-  useEffect(() => {
-    refreshActiveCommunityMembers()
-  }, [refreshActiveCommunityMembers])
-
-  const acceptedMembersCount = useMemo(() => {
-    if (!user) return (communityRecord?.members?.length ?? 0) + 1
-    const accepted = activeCommunityMembers.filter(m => m.status === 'ACCEPTED').length
-    return accepted > 0 ? accepted : (communityRecord ? 1 : 0)
-  }, [user, activeCommunityMembers, communityRecord])
-
-  const pendingCommunityInvitationsCount = useMemo(() => {
-    if (!user) return 0
-    return activeCommunityMembers.filter(m => m.status === 'PENDING').length
-  }, [user, activeCommunityMembers])
 
   // Cargar invitaciones pendientes y notificaciones no leídas
   async function loadPendingInvitations() {

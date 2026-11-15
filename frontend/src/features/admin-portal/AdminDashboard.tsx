@@ -1276,6 +1276,11 @@ export default function AdminDashboard({ kind, userName, isPreview = false, onLo
   }, [isMsp])
   useEffect(() => { document.title = `${title} · Kawsapacha`; return () => { document.title = 'Kawsapacha · Mi Huerto Vivo' } }, [title])
 
+  const mspReviewCommunities = (realMspData?.communities ?? mspData?.communities ?? [])
+    .filter(c => c.state === 'PENDING' || c.state === 'NEEDS_CHANGES').length
+  const mspReviewActivities = (realMspData?.activities ?? mspData?.activities ?? [])
+    .filter(a => a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES').length
+
   return <div className={`kap-admin-root kap-admin-${kind}`}>
     {menuOpen && <button aria-label="Cerrar menú" type="button" className="kap-mobile-backdrop" onClick={() => setMenuOpen(false)}/>}
     <aside className={`kap-sidebar${menuOpen ? ' is-open' : ''}`}>
@@ -1296,7 +1301,19 @@ export default function AdminDashboard({ kind, userName, isPreview = false, onLo
         </div>
         <div className="kap-topbar-right">
           {isMsp && <div className="kap-government-mark"><img src={ecuadorInsignia} alt="Insignia ilustrativa del Ecuador"/><span>República<br/>del Ecuador</span><i/><span>Ministerio<br/>de Salud Pública</span></div>}
-          <div className="kap-notification-wrap"><button className="kap-top-icon" type="button" aria-label="Notificaciones" aria-expanded={noticeOpen} onClick={() => setNoticeOpen(open => !open)}><AdminIcon name="bell" size={21}/></button>{noticeOpen && <div className="kap-notification-popover" role="status">Notificaciones administrativas pendientes de integración con el backend.</div>}</div>
+          <div className="kap-notification-wrap">
+            <button className="kap-top-icon" type="button" aria-label={isMsp ? 'Alertas de moderación' : 'Notificaciones'} aria-expanded={noticeOpen} onClick={() => setNoticeOpen(open => !open)}><AdminIcon name="bell" size={21}/></button>
+            {noticeOpen && <div className="kap-notification-popover" role="status">
+              {isMsp ? <>
+                <strong>Alertas de revisión</strong>
+                {loadError ? <p>No se pudo actualizar la bandeja. Reintenta la carga de datos.</p> : <>
+                  <p>Comunidades por revisar: <strong>{mspReviewCommunities}</strong></p>
+                  <p>Actividades y evidencias por revisar: <strong>{mspReviewActivities}</strong></p>
+                  <button type="button" className="kap-text-button" onClick={() => { setActiveTab('moderacion'); setNoticeOpen(false); }}>Abrir bandeja de moderación</button>
+                </>}
+              </> : 'Notificaciones administrativas pendientes de integración con el backend.'}
+            </div>}
+          </div>
           <span className="kap-header-separator"/>
           <div className="kap-identity"><span className="kap-avatar"><AdminIcon name="users" size={19}/></span><span className="kap-identity-label"><strong>{userName || (isMsp ? 'Administrador MSP' : 'Administrador técnico')}</strong><small>{isPreview ? 'Vista previa' : selected}</small></span></div>
           <button type="button" className="kap-top-icon" aria-label="Cerrar sesión de administración" title="Cerrar sesión" onClick={onLogout}><AdminIcon name="logout" size={20}/></button>

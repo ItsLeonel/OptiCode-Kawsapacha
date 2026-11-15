@@ -425,7 +425,7 @@ export async function reviewActivity(
     message: `Tu actividad de «${actNameEs}» fue invalidada: ${reason}. Ajuste de puntos: ${pointsReverted} Semillas.`,
     resourceId: activityId,
   })
-  return { activity: updated, reward: null }
+  return { activity: updated, reward: null, pointsReverted }
 }
 
 // ─── EVENTOS INSTITUCIONALES DEL MSP ──────────────────────────────────────────
@@ -513,5 +513,3 @@ export async function deleteEducationalResource(id: string) {
   return prisma.mspEducationalResource.delete({ where: { id } })
 }
 
-  return { activity: updated, reward: null, pointsReverted }
-}

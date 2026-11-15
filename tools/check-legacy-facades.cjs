@@ -5,24 +5,24 @@ const sources=[path.join(project,'src'),path.join(project,'tests')]
 const facades=[
  'src/App.tsx','src/EcuadorMap.tsx','src/utils/reviewStatus.ts','src/services/api.ts',
 ]
-const target=new Map(facades.map(p=>[path.resolve(project,p).replace(/\\.(?:tsx?|jsx?)$/,''),[]]))
+const target=new Map(facades.map(p=>[path.resolve(project,p).replace(/\.(?:tsx?|jsx?)$/,''),[]]))
 const all=[]
 function visit(folder){
  if(!fs.existsSync(folder))return
  for(const ent of fs.readdirSync(folder,{withFileTypes:true})){
   const full=path.join(folder,ent.name)
   if(ent.isDirectory()){if(!['node_modules','dist','test-results'].includes(ent.name))visit(full)}
-  else if(ent.isFile()&&/\\.(?:tsx?|jsx?|mjs|cjs)$/.test(ent.name))all.push(full)
+  else if(ent.isFile()&&/\.(?:tsx?|jsx?|mjs|cjs)$/.test(ent.name))all.push(full)
  }
 }
 sources.forEach(visit)
-for(const file of fs.readdirSync(project).filter(n=>/^(?:vite|playwright|vitest).*\\.(?:ts|js|mjs|cjs)$/.test(n))) all.push(path.join(project,file))
+for(const file of fs.readdirSync(project).filter(n=>/^(?:vite|playwright|vitest).*\.(?:ts|js|mjs|cjs)$/.test(n))) all.push(path.join(project,file))
 for(const file of all){
  const source=fs.readFileSync(file,'utf8')
- const specs=[...source.matchAll(/(?:\\bfrom\\s*|\\brequire\\s*\\(|\\bimport\\s*\\(|\\bimport\\s*['"])(?:\\s*['"])?([^'"]+)['"]/g)].map(m=>m[1])
+ const specs=[...source.matchAll(/(?:\bfrom\s*|\brequire\s*\(|\bimport\s*\(|\bimport\s*['"])(?:\s*['"])?([^'"]+)['"]/g)].map(m=>m[1])
  for(const spec of specs){
   if(!spec.startsWith('.'))continue
-  const pathWithoutExt=path.resolve(path.dirname(file),spec).replace(/\\.(?:tsx?|jsx?)$/,'')
+  const pathWithoutExt=path.resolve(path.dirname(file),spec).replace(/\.(?:tsx?|jsx?)$/,'')
   if(target.has(pathWithoutExt))target.get(pathWithoutExt).push(path.relative(project,file))
  }
 }

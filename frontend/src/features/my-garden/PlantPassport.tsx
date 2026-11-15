@@ -125,17 +125,8 @@ export default function PlantPassport({
         setLogs(careLogs)
         setGrowth(growthData)
       } else {
-        // Modo demostración local
-        setGrowth({
-          percentage: 45,
-          stage: 'Brote 🌿',
-          daysUntilHarvest: 25,
-          needsWatering: true,
-          needsFertilizer: false,
-          healthStatus: 'REQUIERE_RIEGO',
-          lifecycleStatus: 'GROWING',
-          plantingDate: new Date().toISOString(),
-        })
+        // No inventar crecimiento ni humedad a partir de una ficha local.
+        setGrowth(null)
       }
 
       try {
@@ -452,7 +443,7 @@ export default function PlantPassport({
           )}
 
           {/* ─── INDICADOR DE CRECIMIENTO DINÁMICO ─── */}
-          <details className="passport-disclosure passport-estimate">
+          {user && growth && <details className="passport-disclosure passport-estimate">
             <summary><span>📊 Información agronómica orientativa</span><small>Consultar estimaciones y alertas de cuidados</small></summary>
             <section style={{ background: isRegrowing ? '#fffff0' : '#f0fff4', border: `1px solid ${isRegrowing ? '#fefcbf' : '#c6f6d5'}`, borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -517,10 +508,10 @@ export default function PlantPassport({
               </div>
             )}
           </section>
-          </details>
+          </details>}
 
-          {/* ─── ACCIONES DE CUIDADO CON ESTADO DINÁMICO ─── */}
-          <section style={{ marginBottom: '18px' }}>
+          {/* Los visitantes registran cuidados mediante el formulario documental único. */}
+          {user && <section style={{ marginBottom: '18px' }}>
             <h3 style={{ fontSize: '0.95rem', color: '#2d3748', marginBottom: '8px' }}>
               🌿 Registrar cuidado realizado hoy:
             </h3>
@@ -628,10 +619,10 @@ export default function PlantPassport({
               placeholder="Nota opcional (ej: se usó abono de compostaje casero)..."
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e0', fontSize: '0.85rem' }}
             />
-          </section>
+          </section>}
 
           {/* ─── SUGERENCIAS DEL CALENDARIO AGRÍCOLA Y FASE LUNAR ─── */}
-          {calendar && (
+          {user && calendar && (
             <section style={{ background: '#faf5ff', border: '1px solid #e9d8fd', borderRadius: '12px', padding: '14px', marginBottom: '18px' }}>
               <h3 style={{ margin: '0 0 6px', fontSize: '0.9rem', color: '#6b46c1' }}>
                 🌙 Calendario Agrícola Tradicional & Saberes:
@@ -647,8 +638,8 @@ export default function PlantPassport({
             </section>
           )}
 
-          {/* ─── ACCIÓN DE COSECHA ─── */}
-          <section style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginBottom: '16px' }}>
+          {/* La cosecha local se documenta con evidencia desde Registrar actividad. */}
+          {user && <section style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginBottom: '16px' }}>
             {!showHarvestDialog ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <span style={{ fontSize: '0.85rem', color: '#718096' }}>
@@ -705,7 +696,7 @@ export default function PlantPassport({
                 </div>
               </div>
             )}
-          </section>
+          </section>}
 
           {/* ─── BOTÓN UNIFICADO ARCHIVAR Y LIBERAR PARCELA (SOLO RESPONSABLE) ─── */}
           {!plant.archivedAt && onArchive && (

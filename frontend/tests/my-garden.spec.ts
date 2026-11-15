@@ -44,6 +44,21 @@ test('menú principal agrupa las funciones del huerto en tres módulos públicos
   await expect(quickActions.getByRole('button', { name: 'Bitácora', exact: true })).toBeVisible()
 })
 
+test('Mis plantas no muestra aviso de sesión ni navegación redundante', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Descubrir Kawsapacha' }).click()
+  await page.getByRole('navigation', { name: 'Acciones de tu jardín' })
+    .getByRole('button', { name: 'Mis plantas', exact: true }).click()
+
+  await expect(page.getByRole('heading', { name: 'Mis plantas', exact: true, level: 1 })).toBeVisible()
+  await expect(page.locator('.prototype-alert')).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: 'Secciones de Mi Huerto Vivo' })).toHaveCount(0)
+  const back = page.getByRole('button', { name: 'Volver a Mi Huerto Vivo' })
+  await expect(back).toBeVisible()
+  await back.click()
+  await expect(page.locator('.my-garden-page')).toBeVisible()
+})
+
 for (const kind of kinds) for (const [region, province] of Object.entries(regions)) {
   test(`escenario de producción ${kind} ${region}: seis zonas vacías y selección`, async ({ page }) => {
     await registerGround(page, '/', province, kind)

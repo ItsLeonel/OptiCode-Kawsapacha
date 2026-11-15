@@ -61,6 +61,12 @@ test('agricultural journal: all nine activities, real photos after reload, no in
   await page.getByRole('button', { name: 'Añadir a mi huerto', exact: true }).click()
   const passport = page.getByRole('dialog', { name: 'Romero', exact: true })
   await expect(passport).toBeVisible()
+  // La información prioritaria aparece de inmediato; los anexos se abren a demanda.
+  await expect(passport.getByRole('button', { name: 'Actualizar foto y observaciones' })).toBeVisible()
+  await expect(passport.getByRole('button', { name: 'Registrar actividad', exact: true })).toBeVisible()
+  await expect(passport.locator('.passport-signage')).not.toHaveAttribute('open', '')
+  await passport.locator('.passport-signage summary').click()
+  await expect(passport.getByRole('button', { name: 'Imprimir señalética' })).toBeVisible()
   const original = await photoDigest(page)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
   await recordActivity(page, 'watering', { plant: 'Romero · Espacio 1' })

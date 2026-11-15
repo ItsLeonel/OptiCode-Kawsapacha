@@ -1,6 +1,6 @@
-import type { GardenFeatures } from '../../real-gardens/garden-characteristics'
-import type { GardenKind } from '../../real-gardens/real-garden'
-import type { GardenRegion } from '../../real-gardens/garden-region'
+import type { GardenFeatures } from '../../../shared/contracts/garden-features'
+import type { GardenKind } from '../../../shared/contracts/real-garden'
+import type { GardenRegion } from '../../../shared/geo/region'
 
 export type FeaturePoint = Readonly<{ x: number; y: number }>
 export type FencePlacement = FeaturePoint & Readonly<{ length: number; thickness: number; rotation?: number }>

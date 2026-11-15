@@ -1,4 +1,4 @@
-import type { GardenRegion } from '../../real-gardens/garden-region'
+import type { GardenRegion } from '../../../shared/geo/region'
 
 /** Existing independent art; no screen capture is used as a texture. */
 export const LANDSCAPES: Record<GardenRegion, string> = {

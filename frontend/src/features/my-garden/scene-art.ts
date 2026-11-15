@@ -1,4 +1,4 @@
-import type { GardenRegion } from '../real-gardens/garden-region'
+import type { GardenRegion } from '../../shared/geo/region'
 
 export const SCENE_ART = {
   pots: new URL('./illustrations/macetas-v3.png', import.meta.url).href,

@@ -1,5 +1,5 @@
-import { regionForProvince } from '../../real-gardens/garden-region'
-import type { RealGarden } from '../../real-gardens/real-garden'
+import { regionForProvince } from '../../../shared/geo/region'
+import type { RealGarden } from '../../../shared/contracts/real-garden'
 import type { GardenPlant } from '../garden'
 import { buildGardenVisualModel } from './model'
 import type { GardenActivity } from '../journal/activities'

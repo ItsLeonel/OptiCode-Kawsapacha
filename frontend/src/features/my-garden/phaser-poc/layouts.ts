@@ -1,6 +1,6 @@
 import { coastalFootprintRatio } from './coastal-terrain'
-import type { GardenKind } from '../../real-gardens/real-garden'
-import type { GardenRegion } from '../../real-gardens/garden-region'
+import type { GardenKind } from '../../../shared/contracts/real-garden'
+import type { GardenRegion } from '../../../shared/geo/region'
 import { potArtwork } from '../pot-artwork'
 
 export type WorldPoint = Readonly<{ x: number; y: number }>

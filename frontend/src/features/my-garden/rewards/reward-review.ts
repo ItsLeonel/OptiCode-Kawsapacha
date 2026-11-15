@@ -44,8 +44,8 @@ export const REWARD_REVIEW_STATUS_LABELS: Record<RewardReviewStatus, string> = {
 }
 
 export const REWARD_REVIEW_EFFECT_LABELS: Record<RewardEffect, string> = {
-  provisional: 'Semillas provisionales',
-  confirmed: 'Semillas confirmadas',
+  provisional: 'Saldo anterior registrado',
+  confirmed: 'Semillas ganadas',
   reverted: 'Semillas revertidas',
   none: 'Sin movimiento de semillas',
 }

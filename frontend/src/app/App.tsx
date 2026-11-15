@@ -24,7 +24,6 @@ import {
   notificationApi,
   memberApi,
   getUser,
-  resolveMediaUrl,
   type UserSession,
   type CommunityInvitationItem,
   rewardsApi,
@@ -33,7 +32,7 @@ import {
 import { regionForProvince } from '../features/real-gardens/garden-region'
 import { matchesCommunityLocation, withCommunityLocation } from '../features/real-gardens/garden-community-location'
 import type { GardenSceneRenderer } from '../features/my-garden/garden-scene-renderer'
-import { recordId } from '../features/my-garden/plant-record'
+import { localDate, recordId } from '../features/my-garden/plant-record'
 import { useGardenJournal } from '../features/my-garden/journal/useGardenJournal'
 import type { GardenJournal } from '../features/my-garden/journal/journal'
 import ActivityModal from '../features/my-garden/journal/ActivityModal'

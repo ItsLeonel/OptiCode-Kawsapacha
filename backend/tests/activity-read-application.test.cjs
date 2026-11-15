@@ -6,13 +6,13 @@ const {createActivityReadService}=require('../dist/modules/activities/applicatio
 test('consulta aplica solo filtros válidos y omite anulados',async()=>{
  let received
  const repo={
-  async list(filter){received=filter;return [{id:'a1'}]},
+  async list(filter){received=filter;return [{id:'a1',type:'watering',performedDate:'2026-10-01'}]},
   async getDetail(){return null},
  }
  const calls=[]
  const app=createActivityReadService(repo,async(...args)=>{calls.push(args);return true})
  const result=await app.listGardenActivities('garden','user',{plantId:'p',type:'tipo-inexistente',from:'2026-10-01'})
- assert.deepEqual(result,[{id:'a1'}])
+ assert.deepEqual(result,[{id:'a1',type:'watering',performedDate:'2026-10-01'}])
  assert.deepEqual(received,{gardenId:'garden',includeVoided:false,plantId:'p',from:'2026-10-01'})
  assert.deepEqual(calls[0][2],{requireApproved:false})
  await app.listGardenActivities('garden','user',{type:'watering',includeVoided:true})

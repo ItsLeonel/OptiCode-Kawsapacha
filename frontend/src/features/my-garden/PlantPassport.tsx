@@ -154,16 +154,6 @@ export default function PlantPassport({
     if (!plant) return
     setError('')
     setMessage('')
-    if (isSowingPending) {
-      setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
-      return
-    }
-    const targetActType: GardenActivity['type'] =
-      actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
-    if (hasPendingActivityType(targetActType)) {
-      setError('⏳ Esta actividad ya fue realizada y está pendiente de revisión por el MSP. No se puede repetir hasta que sea validada o rechazada.')
-      return
-    }
     const label =
       actionType === 'WATERING' ? 'Riego 💧' : actionType === 'FERTILIZER' ? 'Abono 🧪' : 'Poda ✂️'
 
@@ -192,9 +182,6 @@ export default function PlantPassport({
     try {
       if (user && activeGardenId && !plant.id.includes('-')) {
         const type = actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
-        if (actionType === 'PRUNING') {
-          await careApi.add(plant.id, actionType, actionNotes || `Cuidado rápido: ${label}`)
-        }
         const formData = new FormData()
         formData.append('type', type)
         formData.append('performedDate', new Date().toISOString().split('T')[0])
@@ -209,7 +196,7 @@ export default function PlantPassport({
         await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
       }
       const actionName = actionType === 'WATERING' ? 'Riego' : actionType === 'FERTILIZER' ? 'Abono' : 'Limpieza'
-      setMessage(`✅ ${actionName} registrado — pendiente de aprobación por el MSP para acreditar tus Semillas de vida 🌱`)
+      setMessage(`✅ ${actionName} guardado en Bitácora. La actividad es provisional hasta su revisión MSP.`)
       setTimeout(() => setMessage(''), 5000)
       setActionNotes('')
       await loadPlantData()
@@ -225,14 +212,6 @@ export default function PlantPassport({
     if (!plant) return
     setError('')
     setMessage('')
-    if (isSowingPending) {
-      setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP.')
-      return
-    }
-    if (isHarvestPending) {
-      setError('⏳ Ya existe una cosecha pendiente de revisión por el MSP para esta planta.')
-      return
-    }
     try {
       if (user && !plant.id.includes('-')) {
         if (activeGardenId) {
@@ -271,7 +250,7 @@ export default function PlantPassport({
   const recentlyPruned = logs.some(l => l.actionType === 'PRUNING' && (Date.now() - new Date(l.performedAt).getTime()) < 7 * 24 * 60 * 60 * 1000) || growth?.healthStatus === 'ESTRES_PODA'
   const isResponsible = !user || currentCommunityRole === 'RESPONSABLE'
 
-  // Planta con siembra pendiente de aprobación MSP — bloquear todos los cuidados
+  // Estado informativo: el MSP no bloquea cuidados de una planta real.
   const isSowingPending = plant?.reviewStatus === 'PENDING' || plant?.reviewStatus === 'NEEDS_CHANGES'
 
   const hasPendingActivityType = (actType: GardenActivity['type']) =>
@@ -426,7 +405,7 @@ export default function PlantPassport({
                 ⚠️ Siembra pendiente de aprobación por el MSP
               </div>
               <div style={{ marginTop: '4px', fontSize: '0.85rem', fontWeight: 400, lineHeight: 1.4 }}>
-                Esta siembra ha sido registrada y está en proceso de verificación por el Ministerio de Salud Pública. Todos los miembros de la comunidad pueden observar el cultivo, pero ningún cuidado, riego o cosecha podrá realizarse sobre esta planta hasta que sea formalmente aprobada por el MSP.
+                Esta siembra ha sido registrada y está en proceso de verificación por el Ministerio de Salud Pública. Todos los miembros de la comunidad pueden observar el cultivo, y sus integrantes pueden registrar cuidados y cosechas sin esperar esa decisión.
               </div>
             </div>
           )}
@@ -461,14 +440,14 @@ export default function PlantPassport({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div>
                 <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
-                  Estimación agronómica: {isSowingPending ? 'Siembra pendiente de aprobación MSP ⏳' : (growth?.stage || 'Calculando...')}
+                  Estimación agronómica: {growth?.stage || 'Calculando...'}
                 </strong>
                 <div style={{ fontSize: '0.82rem', color: '#4a5568', marginTop: '2px' }}>
                   Estado documentado: <strong>{PLANT_STATES[plant.state ?? 'not-documented'] ?? plant.state}</strong>
                 </div>
               </div>
               <span style={{ fontWeight: 'bold', color: isRegrowing ? '#d69e2e' : '#2f855a', fontSize: '1.1rem' }}>
-                {isSowingPending ? '0%' : (growth ? `${growth.percentage}%` : '0%')}
+                {growth ? `${growth.percentage}%` : '0%'}
               </span>
             </div>
 
@@ -476,7 +455,7 @@ export default function PlantPassport({
             <div style={{ width: '100%', height: '14px', background: '#e2e8f0', borderRadius: '7px', overflow: 'hidden', marginBottom: '10px' }}>
               <div
                 style={{
-                  width: `${isSowingPending ? 0 : (growth ? growth.percentage : 0)}%`,
+                  width: `${growth ? growth.percentage : 0}%`,
                   height: '100%',
                   background: isRegrowing
                     ? 'linear-gradient(90deg, #f6e05e 0%, #d69e2e 100%)'

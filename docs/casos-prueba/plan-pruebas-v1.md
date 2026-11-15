@@ -1,5 +1,20 @@
 # Plan de pruebas — Kawsapacha V1
 
+> **Actualización de alcance — 15/11/2026 (revisión PM):** este plan conserva **las ejecuciones históricas del 08/11**. La aplicación de escritorio disponible en `main` es la referencia para nuevas revisiones, pero el hecho de que haya evolucionado **no convierte esas ejecuciones en pruebas del código actual**. Corte de referencia: `main` `3f3547b` (consultado 15/11); responsive en [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74) (`6d7750a9`, **sin fusionar**). El PR de diseño [#41](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/41) es documentación y capturas. Esta actualización no afirma que Santiago haya reejecutado los casos.
+
+### Complemento de QA pendiente para el cierre documental
+- [ ] **Reejecutar sobre un único SHA del `main` vigente** los P-001–P-017 prioritarios, registrar entorno, fecha, esperado/obtenido, captura y resultado nuevo; conservar los resultados del 08/11 sin sobreescribirlos.
+- [ ] Crear y ejecutar casos nuevos vinculados con HU-020–HU-023 (invitaciones, almacén, cosecha, calendario) y con las funcionalidades posteriores que el PM incluya en el alcance de entrega; coordinar identificadores y trazabilidad con Leonardo (#2/#15).
+- [ ] Separar pruebas manuales del **escritorio actual** de pruebas de los **cambios responsive del PR #74**. Para este último validar 320/360/390/430/768 px, 4 regiones × 4 modalidades y seis parcelas, gestos táctiles y ausencia de desbordamiento. [CI verde](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions) es evidencia automatizada, no prueba en teléfono real.
+- [ ] Validar fotografía/cámara y persistencia entre dispositivos en HTTPS real solo cuando Santiago confirme su publicación en #49/#75; identificar test no ejecutado/bloqueado cuando no haya entorno seguro.
+- [ ] Revisar el recorrido comunidad→huerto→registro de planta/foto→Pasaporte→Bitácora y los permisos con dos cuentas de prueba; **foro, eventos y ranking** corresponden al desarrollo pendiente #48 y no pueden figurar como aprobados.
+- [ ] Exportar a `docs/casos-prueba/evidencias/` las capturas realmente existentes en el DOCX y vincularlas con resultados nuevos. El contenido actual de la carpeta no incluye los PNG mencionados en el índice; no declarar evidencia GitHub verificable hasta subirla.
+- [ ] Entregar a Leonardo (#15) una matriz que separe **corte histórico del 08/11**, ejecución nueva validada y huecos de cobertura. Santiago mantiene responsabilidad y autoría de las ejecuciones.
+
+**Regla:** no editar los veredictos históricos de otra persona ni inventar una ejecución reciente. El reporte original de 17/17 aprobados sigue siendo **el reporte de Santiago para 08/11**, no una garantía sobre `main` del 15/11.
+
+
+
 **Proyecto:** Huertos Medicinales Comunitarios (ISWD652 Calidad de Software, 2026B — EPN) · **Equipo:** OptiCode
 **Responsable de QA:** Santiago Guamán (`TonyTiago`) · **Issues:** #5 QA-001 y #14 QA-002 · **Actualizado:** 08/11/2026
 

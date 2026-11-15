@@ -1,6 +1,6 @@
 // backend/src/modules/communities/presentation/community.controller.ts
 import type { Response } from 'express'
-import { createCommunity, listCommunities, getCommunityById, updateCommunity } from '../application/community.service'
+import { createCommunity, listCommunities, getCommunityById, updateCommunity } from '../community.module'
 import { ok, fail } from '../../../shared/utils/response'
 import type { AuthRequest } from '../../../shared/types/index'
 

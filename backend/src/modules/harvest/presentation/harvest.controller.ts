@@ -1,6 +1,6 @@
 // backend/src/modules/harvest/presentation/harvest.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../../../types'
+import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
 import * as harvestService from '../application/harvest.service'
 import { prisma } from '../../../infrastructure/database/prisma'

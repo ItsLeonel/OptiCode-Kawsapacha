@@ -1,7 +1,7 @@
 // backend/src/modules/administration/presentation/admin-technical.controller.ts
 import type { Response } from 'express'
 import { ok, fail } from '../../../shared/utils/response'
-import type { AuthRequest } from '../../../types'
+import type { AuthRequest } from '../../../shared/types/index'
 import {
   provisionMspUser,
   toggleUserStatus,

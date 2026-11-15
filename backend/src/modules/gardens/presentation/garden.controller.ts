@@ -3,7 +3,7 @@ import type { Response } from 'express'
 import { createGarden, listGardens, getGardenById, updateGarden } from '../application/garden.service'
 import { assertGardenAccess } from '../../activities/application/activity.service'
 import { ok, fail } from '../../../shared/utils/response'
-import type { AuthRequest } from '../../../types'
+import type { AuthRequest } from '../../../shared/types/index'
 
 export async function create(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

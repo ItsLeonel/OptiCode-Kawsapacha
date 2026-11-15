@@ -1,6 +1,6 @@
 // backend/src/modules/activities/presentation/activity.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../../../types'
+import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
 import {
   createGardenActivity,

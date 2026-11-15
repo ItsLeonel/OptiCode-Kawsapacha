@@ -34,4 +34,13 @@ La composición HTTP vive en `backend/src/app/router.ts`. Las reglas puras no de
 - Sin reescribir ni eliminar migraciones Prisma, datos reales, archivos de usuarios, evidencias o credenciales de despliegue.
 - Preservar `/uploads`, su volumen Docker y la compatibilidad de scripts y CI.
 
+## Revisión y excepciones
+
+- [ADR-0001: decisión de monolito modular](ADR-0001-monolito-modular.md)
+- [ADR-0002: límites transaccionales y excepciones](ADR-0002-limites-transaccionales.md)
+- [Auditoría de fronteras](auditoria-fronteras-2026-11-15.md)
+- [Ejecución de la Fase 1](../quality/fase-1-arquitectura-pr72.md)
+
+Las transacciones actuales de anulación y revisión MSP se mantienen; los flujos multioperación de actividades, cosechas e inventario todavía requieren pruebas de rollback para justificar una nueva unidad de trabajo. La fase arquitectónica no debe afirmar atomicidad que no existe.
+
 Consultar también [arquitectura histórica](../arquitectura/backend.md), [frontend](../arquitectura/frontend.md) y [contratos](../arquitectura/contratos-api.md).

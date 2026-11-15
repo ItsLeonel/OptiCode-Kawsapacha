@@ -17,3 +17,9 @@ Identificar imágenes antiguas y archivos sobrantes sin destruir recursos utiliz
 Ejecutar desde la raíz: `node tools/audit-assets.cjs`. El script lee los archivos rastreados por Git y busca referencias literales desde código, estilos y documentación.
 
 **Limitación:** una ausencia de referencias literales **no prueba** que una imagen sea inutilizada, especialmente cuando Phaser genera rutas dinámicas o Vite descubre recursos mediante patrones. Los candidatos requieren inspección manual antes de cualquier eliminación. Se conserva el comportamiento actual como condición de aceptación.
+
+## Limpieza confirmada en la rama de refactorización
+
+Se retiraron **15 imágenes obsoletas** (711.815 bytes): nueve íconos SVG del paquete visual antiguo `frontend/src/assets/kawsapacha-comunidad/iconos/`, cuatro personajes regionales reemplazados por los personajes v3 de `frontend/src/shared/assets/comunidad-v3/personajes/`, un colibrí `welcome/hummingbird.png` y una imagen de poda `journal/activity-art/pruning.png`. La búsqueda de referencias de los nombres originales en código y documentación no devolvió consumidores; además se comprobó que los personajes usados actualmente son los v3.
+
+Estas supresiones **no** incluyen evidencia fotográfica de usuarios, imágenes cargadas por Phaser ni capturas enlazadas desde documentos de diseño. Deben quedar sujetas a la misma validación de build y pruebas visuales que el resto del PR.

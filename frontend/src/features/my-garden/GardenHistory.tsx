@@ -61,7 +61,7 @@ function activityIcon(type: ActivityFilter): BitacoraIconName {
   const icons: Record<string, BitacoraIconName> = {
     watering: 'water', sowing: 'sowing', fertilizing: 'fertilizing', observation: 'observation',
     harvest: 'harvest', preparation: 'preparation', weeding: 'weeding', hilling: 'hilling',
-    replanting: 'replanting', postharvest: 'harvest', sowing_ritual: 'sowing',
+    postharvest: 'harvest', sowing_ritual: 'sowing',
     gratitude_ritual: 'harvest', signage: 'leaf', pruning: 'weeding', pest_control: 'leaf', other: 'leaf',
   }
   return icons[type] ?? 'leaf'
@@ -240,8 +240,12 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
   const entries = useMemo(() => {
     const local = activities.map(activity => normalizeActivity(activity, plants))
     const merged = [...local]
-    for (const backend of care) if (!merged.some(existing => isTheSameCare(existing, backend))) merged.push(backend)
-    merged.push(...harvests)
+    // El backend enlaza GardenActivity con CareLog/HarvestRecord. No listar dos veces
+    // una única actividad; conservar registros antiguos sin actividad enlazada.
+    const linkedCare = new Set(activities.map(item => item.careLogId).filter(Boolean))
+    const linkedHarvest = new Set(activities.map(item => item.harvestRecordId).filter(Boolean))
+    for (const backend of care) if (!linkedCare.has(backend.id) && !merged.some(existing => isTheSameCare(existing, backend))) merged.push(backend)
+    for (const backend of harvests) if (!linkedHarvest.has(backend.id)) merged.push(backend)
     return merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
   }, [activities, plants, care, harvests])
   const activeEntries = entries.filter(item => !item.voidedAt)

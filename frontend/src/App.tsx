@@ -1029,9 +1029,10 @@ export default function App({
   async function saveActivity(draft: ActivityDraft) {
     if (user) {
       if (backendCommunity && backendCommunity.status !== 'APPROVED') {
-        setNotice('⚠️ Tu comunidad aún no ha sido aprobada por el MSP. No es posible registrar actividades agrícolas hasta contar con la verificación oficial.')
-        setActivityForm(null)
-        return
+        throw new Error('Tu comunidad aún no ha sido aprobada por el MSP. La actividad no se ha guardado.')
+      }
+      if (!activeGardenId) {
+        throw new Error('Selecciona un huerto sincronizado antes de registrar la actividad. No se guardó en IndexedDB.')
       }
 
       if (activeGardenId) {
@@ -1058,16 +1059,6 @@ export default function App({
           await loadGardenForCommunity(activeCommunityId)
         }
         await Promise.all([reloadServerRewards(), loadPendingInvitations()])
-      } else if (draft.target.kind === 'plant' && draft.target.plantId) {
-        const targetPlantId = draft.target.plantId
-        if (draft.type === 'watering') {
-          await careApi.add(targetPlantId, 'WATERING', draft.notes || 'Riego aplicado desde diario')
-        } else if (draft.type === 'fertilizing') {
-          await careApi.add(targetPlantId, 'FERTILIZER', draft.notes || 'Abono aplicado desde diario')
-        } else if (draft.type === 'harvest') {
-          const qty = draft.details?.quantity ? `${draft.details.quantity}${draft.details.unit || 'g'}` : '250g'
-          await harvestApi.harvest(targetPlantId, qty, draft.notes || 'Cosecha registrada desde diario')
-        }
       }
 
       setActivityForm(null)

@@ -32,13 +32,11 @@ import {
   resolveMediaUrl,
   type UserSession,
   type CommunityInvitationItem,
-  type BackendActivity,
   type CatalogSpecies,
   normalizeCatalogSpecies,
   rewardsApi,
   type RewardsSummary,
 } from '../shared/api/client'
-import type { AuthoritativeRewards, RewardBadgeId, RewardMissionId, RewardLevel } from '../features/my-garden/rewards/rewards-types'
 import { regionForProvince } from '../features/real-gardens/garden-region'
 import { matchesCommunityLocation, withCommunityLocation } from '../features/real-gardens/garden-community-location'
 import type { GardenSceneRenderer } from '../features/my-garden/garden-scene-renderer'
@@ -51,6 +49,8 @@ import { type ActivityDraft, type ActivityType, type GardenActivity } from '../f
 import '../features/my-garden/garden-journal.css'
 import GardenProgress from '../features/my-garden/GardenProgress'
 import { calculateProgress } from '../features/my-garden/journal/progress'
+import { mapBackendActivity } from '../features/my-garden/journal/map-backend-activity'
+import { toAuthoritativeRewards } from '../features/my-garden/rewards/map-backend-rewards'
 import { attachServerEvidence } from '../features/my-garden/selectors/server-plant-evidence'
 import { currentScreen, SCREEN_PATHS, type Screen } from './navigation'
 import { draftKey } from '../features/real-gardens/draft-key'
@@ -287,96 +287,6 @@ export default function App({
         setBackendPlants([])
       })
   }, [user])
-
-  function mapBackendActivity(b: BackendActivity): GardenActivity {
-    let detailsObj: any = {}
-    try {
-      detailsObj = typeof b.details === 'string' ? JSON.parse(b.details || '{}') : (b.details || {})
-    } catch {
-      detailsObj = {}
-    }
-    const target: GardenActivity['target'] =
-      b.targetKind === 'plant' && b.plantId
-        ? { kind: 'plant', plantId: b.plantId, plot: b.plotIndex ?? 0 }
-        : b.targetKind === 'plot'
-        ? { kind: 'plot', plot: b.plotIndex ?? 0 }
-        : { kind: 'garden' }
-
-    const photoUrls = b.evidences?.map(e => resolveMediaUrl(e.fileUrl)) || []
-
-    return {
-      id: b.id,
-      gardenId: b.gardenId,
-      type: b.type as any,
-      date: b.performedDate,
-      responsible: b.actorUser?.name || 'Comunidad',
-      target,
-      notes: b.notes || '',
-      photoIds: photoUrls.map((_, i) => `${b.id}-photo-${i}`),
-      photos: photoUrls,
-      details: detailsObj,
-      createdAt: b.createdAt,
-      validation: 'local-v1',
-      voidedAt: b.voidedAt ?? undefined,
-      voidReason: b.voidReason ?? undefined,
-      reviewStatus: b.reviewStatus ?? undefined,
-      reviewedById: b.reviewedById ?? undefined,
-      reviewReason: b.reviewReason ?? undefined,
-      reviewedAt: b.reviewedAt ?? undefined,
-      careLogId: b.careLogId ?? null,
-      harvestRecordId: b.harvestRecordId ?? null,
-    }
-  }
-
-  function toAuthoritativeRewards(summary: RewardsSummary): AuthoritativeRewards {
-    const badgeMap: Record<string, RewardBadgeId> = {
-      FIRST_SOWING: 'first-sowing',
-      'first-sowing': 'first-sowing',
-      CARE_EXCELLENCE: 'care',
-      care: 'care',
-      MINDFUL_OBSERVER: 'observer',
-      observer: 'observer',
-      BOUNTIFUL_HARVEST: 'harvest',
-      harvest: 'harvest',
-    }
-    const missionMap: Record<string, RewardMissionId> = {
-      ROOT_CARE: 'care',
-      care: 'care',
-      OBSERVATION_JOURNAL: 'observer',
-      observer: 'observer',
-      LUNAR_RHYTHM: 'lunar',
-      'lunar-cycle': 'lunar',
-      lunar: 'lunar',
-    }
-    return {
-      source: 'server',
-      seeds: summary.points,
-      level: (['Aprendiz', 'Oficial', 'Maestro'].includes(summary.level) ? summary.level : 'Aprendiz') as RewardLevel,
-      nextLevel: (summary.nextLevel && ['Aprendiz', 'Oficial', 'Maestro'].includes(summary.nextLevel) ? summary.nextLevel : undefined) as RewardLevel | undefined,
-      progressPercent: summary.progressPercent,
-      remaining: summary.remaining,
-      badges: (['first-sowing', 'care', 'observer', 'harvest'] as RewardBadgeId[]).map(id => {
-        const match = summary.badges.find(b => {
-          const rawCode = (b as any).badgeId || (b as any).code
-          return badgeMap[rawCode] === id
-        })
-        return { id, earned: Boolean(match), earnedAt: match?.earnedAt }
-      }),
-      missions: (['care', 'observer', 'lunar'] as RewardMissionId[]).map(id => {
-        const match = summary.missions.find(m => {
-          const rawCode = (m as any).missionId || (m as any).code
-          return missionMap[rawCode] === id
-        })
-        return {
-          id,
-          current: match ? (match as any).currentValue ?? (match as any).progress ?? 0 : 0,
-          target: match ? (match as any).targetValue ?? (match as any).targetCount ?? 3 : 3,
-          completed: match ? Boolean((match as any).completed || (match as any).status === 'COMPLETED') : false,
-          rewardSeeds: (match as any)?.rewardPoints ?? 20,
-        }
-      }),
-    }
-  }
 
   async function reloadServerRewards() {
     if (!user) {

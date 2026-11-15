@@ -404,7 +404,7 @@ class ModularGardenScene extends Phaser.Scene {
       this.mobileBaseZoom = zoom
       this.mobileMaxZoom = Math.max(zoom * 3, 1.15)
       this.cameras.main.setZoom(zoom).centerOn(
-        (minX + maxX) / 2 + (kind === 'pots' ? 90 : 0),
+        (minX + maxX) / 2 + (kind === 'pots' ? 340 : 0),
         (minY + maxY) / 2,
       )
       this.clampMobileCamera()

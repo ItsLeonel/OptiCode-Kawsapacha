@@ -1,77 +1,32 @@
-import { prisma } from '../../../infrastructure/database/prisma'
-import { assertGardenAccess } from '../../gardens/garden-access.module'
+import type { ActivityReadRepository, ActivityReadFilter } from './ports/activity-read.repository'
 import { VALID_ACTIVITY_TYPES, type ActivityType } from '../domain/activity-types'
 
-export async function listGardenActivities(
-  gardenId: string,
-  userId: string,
-  filters: {
-    plantId?: string
-    type?: string
-    from?: string
-    to?: string
-    includeVoided?: boolean
-  }
-) {
-  await assertGardenAccess(gardenId, userId, { requireApproved: false })
-
-  const whereClause: Record<string, unknown> = {
-    gardenId,
-  }
-
-  if (!filters.includeVoided) {
-    whereClause.voidedAt = null
-  }
-
-  if (filters.plantId) {
-    whereClause.plantId = filters.plantId
-  }
-
-  if (filters.type && VALID_ACTIVITY_TYPES.includes(filters.type as ActivityType)) {
-    whereClause.type = filters.type
-  }
-
-  if (filters.from || filters.to) {
-    whereClause.performedDate = {}
-    if (filters.from) {
-      (whereClause.performedDate as Record<string, string>).gte = filters.from
-    }
-    if (filters.to) {
-      (whereClause.performedDate as Record<string, string>).lte = filters.to
-    }
-  }
-
-  const activities = await prisma.gardenActivity.findMany({
-    where: whereClause,
-    include: {
-      evidences: true,
-      actorUser: { select: { id: true, name: true, email: true } },
-      plant: { select: { id: true, customName: true, plotIndex: true, species: true } },
-    },
-    orderBy: [
-      { performedDate: 'desc' },
-      { createdAt: 'desc' },
-    ],
-  })
-
-  return activities
+export type ActivityFilters={
+ plantId?:string;type?:string;from?:string;to?:string;includeVoided?:boolean
 }
 
-export async function getGardenActivityDetail(activityId: string, userId: string) {
-  const activity = await prisma.gardenActivity.findUnique({
-    where: { id: activityId },
-    include: {
-      evidences: true,
-      actorUser: { select: { id: true, name: true, email: true } },
-      plant: { select: { id: true, customName: true, plotIndex: true, species: true } },
-    },
-  })
-
-  if (!activity) {
-    throw new Error('Actividad no encontrada.')
+/** Caso de uso: valida filtros y permisos; el adaptador traduce a consultas SQL. */
+export function createActivityReadService(
+ repository:ActivityReadRepository,
+ assertGardenAccess:(gardenId:string,userId:string,options?:{requireApproved?:boolean})=>Promise<boolean>
+) {
+ async function listGardenActivities(gardenId:string,userId:string,filters:ActivityFilters) {
+  await assertGardenAccess(gardenId,userId,{requireApproved:false})
+  const filter:ActivityReadFilter={
+   gardenId,
+   includeVoided:Boolean(filters.includeVoided),
+   ...(filters.plantId?{plantId:filters.plantId}:{}),
+   ...(filters.type&&VALID_ACTIVITY_TYPES.includes(filters.type as ActivityType)?{type:filters.type}:{}),
+   ...(filters.from?{from:filters.from}:{}),
+   ...(filters.to?{to:filters.to}:{}),
   }
-
-  await assertGardenAccess(activity.gardenId, userId)
-
+  return repository.list(filter)
+ }
+ async function getGardenActivityDetail(activityId:string,userId:string) {
+  const activity=await repository.getDetail(activityId)
+  if(!activity)throw new Error('Actividad no encontrada.')
+  await assertGardenAccess(activity.gardenId,userId)
   return activity
+ }
+ return {listGardenActivities,getGardenActivityDetail}
 }

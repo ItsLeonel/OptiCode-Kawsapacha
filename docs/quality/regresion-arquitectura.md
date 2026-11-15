@@ -36,3 +36,13 @@ Los tres fallos Playwright documentados en la [línea base histórica](regresion
 | Despliegue | Copia del SQLite real, `/uploads` histórico y HTTPS | Pendiente de aceptación manual |
 
 **Separación de afirmaciones:** las pruebas automatizadas del commit indicado están aprobadas. Ninguna fila manual se marca aprobada sin observación de la instalación que conserva datos reales. La rama de PR no ha sido fusionada.
+
+### Inspección de una copia privada (aún no realizada aquí)
+
+No se encontró ninguna copia SQLite real ni el contenido histórico de `uploads` entre los archivos accesibles. Para validar **sin escribir ni mostrar datos personales**, usar Node.js 24 y ejecutar desde la raíz del repositorio:
+
+```powershell
+node tools/verify-local-snapshot.cjs --db "C:\ruta\a\copia\kawsapacha.db" --uploads "C:\ruta\a\copia\uploads" --hash-photos
+```
+
+La herramienta verifica integridad SQLite, claves foráneas, 21 tablas, roles, regiones, modalidades, seis índices de parcela y archivos fotográficos; el fingerprint permite contrastar el mismo respaldo en dos ejecuciones. **No efectúa login ni pruebas visuales** y no puede certificar la instalación real sin esos archivos. La ejecución aislada del script aprobó en [Backend CI #43737504855](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43737504855).

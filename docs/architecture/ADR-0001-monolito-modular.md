@@ -16,7 +16,7 @@ Mantener un backend desplegable único y organizarlo en 13 módulos por capacida
 1. El dominio no conoce Prisma, Express, archivos ni HTTP.
 2. Los casos de uso dependen de contratos/puertos; la infraestructura implementa esas interfaces.
 3. El ensamblaje se mantiene en módulos de composición, no dentro de dominio o aplicación.
-4. El frontend compartido no puede importar funcionalidades ni `app`; las funcionalidades no importan `app`.
+4. El frontend compartido no puede importar funcionalidades ni `app`; las funcionalidades no importan `app` **ni otras funcionalidades**. Todo contrato y componente transversal pertenece a `shared`.
 5. Las rutas, respuestas, códigos HTTP, permisos, migraciones, fotografías y semántica de las operaciones deben conservarse.
 6. Eliminar fachadas heredadas **solo cuando no queden consumidores**; CI verifica su uso.
 7. Los cambios funcionales y alteraciones de límites ACID se tramitan por separado.
@@ -26,12 +26,12 @@ Mantener un backend desplegable único y organizarlo en 13 módulos por capacida
 - 13 módulos backend, **0 ciclos intermodulares**, 0 archivos `application/` con import directo a Prisma.
 - Pruebas aisladas de aplicación y dominio más cobertura HTTP y SQLite.
 - `App.tsx` de 1.545 a 833 líneas mediante extracción de registro de plantas, actividades/bitácora, carga de jardín y coordinación de comunidades.
-- 0 dependencias inversas `frontend/src/shared → features` registradas; Phaser desacoplado de HTTP.
+- 0 dependencias inversas `frontend/src/shared → features` y **0 imports cruzados entre funcionalidades** (eran 78); Phaser desacoplado de HTTP.
 - Rutas de API aseguradas con pruebas de montaje y método; esquema y migraciones de Prisma idénticos a `main`.
 
 ## Costes y excepciones aceptadas
 
-La separación genera más archivos y aumenta la cantidad total de código estructural; **menos líneas por archivo no equivale automáticamente a menor complejidad del sistema**. Persisten referencias `feature → feature` (78 imports directos contabilizados por la herramienta), así como fachadas de compatibilidad necesarias. Las transacciones multioperación de actividades/cosechas permanecen en los límites históricos: ver [ADR-0002](ADR-0002-limites-transaccionales.md). No se asegura atomicidad global ni ausencia de todos los acoplamientos.
+La separación genera más archivos y aumenta la cantidad total de código estructural; **menos líneas por archivo no equivale automáticamente a menor complejidad del sistema**. Las importaciones directas entre funcionalidades fueron eliminadas; se mantienen las fachadas de compatibilidad necesarias. Las transacciones multioperación de actividades/cosechas permanecen en los límites históricos: ver [ADR-0002](ADR-0002-limites-transaccionales.md). No se asegura atomicidad global ni ausencia de todos los acoplamientos.
 
 ## Evidencia de aceptación
 

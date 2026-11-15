@@ -69,11 +69,11 @@ Los 13 módulos están bajo `backend/src/modules/` con subcarpetas `domain/`, `a
 - Phaser recibe snapshots, comandos y eventos por `adapter.ts`, `model.ts` y `bridge.ts`, sin acceso directo al cliente HTTP.
 - Las cuatro fachadas de entrada antiguas se conservan **porque aún tienen consumidores comprobados**; no retirar reexportaciones sin auditoría.
 
-El CI comprueba importaciones entre capas, ciclos backend, reglas frontend `shared → features/app` y `features → app`, y que el código de Phaser no importe el cliente HTTP. Las pruebas estáticas no equivalen a ausencia de todo acoplamiento semántico.
+El CI comprueba importaciones entre capas, ciclos backend, reglas frontend `shared → features/app`, `features → app` y **cualquier `feature → feature` directo**, y que el código de Phaser no importe el cliente HTTP. Las pruebas estáticas no equivalen a ausencia de todo acoplamiento semántico.
 
 ## Límites y excepciones documentadas
 
-- Existen **78 imports directos entre funcionalidades frontend** (conteo de referencias, no de pares únicos), con dependencias en ambas direcciones entre algunas capacidades del jardín y comunidades. La capa `shared` mantiene 0 imports inversos; eliminar todas las colaboraciones `feature → feature` requeriría otro cambio de alcance.
+- La dependencia directa entre funcionalidades frontend se redujo de **78 a 0 imports** mediante contratos e iconos reutilizables, geografía, selectores, recursos visuales y catálogo en `shared`. El CI impide nuevas importaciones `feature → feature`. La coordinación de capacidades permanece en `app/`.
 - Las secuencias de cosecha, inventario, evidencia, puntos y misiones no son íntegramente atómicas; ver [ADR-0002](ADR-0002-limites-transaccionales.md).
 - La regresión automatizada y persistencia con SQLite temporal aprobó; las pruebas **con la instalación y datos privados reales** requieren revisión del equipo.
 - No cambiar ni regenerar bases reales, ni reinicializar `/uploads`. Conservar los volúmenes de Docker.

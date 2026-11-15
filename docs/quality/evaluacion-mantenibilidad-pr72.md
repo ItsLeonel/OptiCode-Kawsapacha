@@ -2,15 +2,15 @@
 
 ## Método y referencias
 
-Comparación entre la base original `main` (`e9ef2a6d`) y el commit funcional `5e024893`. Los recuentos de archivos y tamaños son de los árboles Git completos `backend/src` y `frontend/src`; los tamaños son **bytes de archivos TS/TSX versionados**, no memoria, binarios ni LOC. Las líneas de los archivos clave provienen de su contenido. El análisis de módulos/importaciones se obtuvo con `node tools/maintainability-report.cjs` en [CI Backend #43733059733](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43733059733).
+Comparación entre la base original `main` (`e9ef2a6d`) y la rama refactorizada tras eliminar dependencias cruzadas. Los recuentos de archivos y tamaños son de los árboles Git completos `backend/src` y `frontend/src`; los tamaños son **bytes de archivos TS/TSX versionados**, no memoria, binarios ni LOC. El análisis actual de dependencias y líneas se obtuvo con `node tools/maintainability-report.cjs` en [CI Backend #43737022726](https://github.com/ItsLeonel/OptiCode-Kawsapacha/actions/runs/43737022726) y se comprueba en ejecuciones posteriores.
 
 | Métrica comparable | Antes (`main`) | Después (PR) |
 | --- | ---: | ---: |
 | Archivos TS/TSX backend | 67 | **181** |
 | Tamaño fuente TS/TSX backend | 233.746 bytes | **294.313 bytes** |
 | Módulos bajo `backend/src/modules/` | 0 | **13** |
-| Archivos TS/TSX frontend | 143 | **171** |
-| Tamaño fuente TS/TSX frontend | 1.036.958 bytes | **1.054.981 bytes** |
+| Archivos TS/TSX frontend | 143 | **177** |
+| Tamaño fuente TS/TSX frontend | 1.036.958 bytes | **1.056.163 bytes** |
 | Módulos bajo `frontend/src/features/` | 7 | **7** |
 | Componente raíz `App.tsx` | 1.545 líneas | **833 líneas** |
 | Servicio principal de actividad (archivo) | 534 líneas | **253 líneas** en el caso de uso extraído |
@@ -25,9 +25,9 @@ Comparación entre la base original `main` (`e9ef2a6d`) y el commit funcional `5
 | Módulos backend / ciclos intermodulares | 13 / **0** |
 | Referencias directas entre módulos backend | 24 |
 | `application/` con imports directos Prisma | **0** |
-| Archivos frontend / líneas físicas TS/TSX | 171 / 19.627 |
+| Archivos frontend / líneas físicas TS/TSX | 177 / 19.648 |
 | Funcionalidades frontend | 7 |
-| Imports directos entre funcionalidades frontend | **78** |
+| Imports directos entre funcionalidades frontend | **0** (antes: 78) |
 | `shared/` importando `features/` | **0** |
 
 Los contadores de importaciones son referencias, no relaciones únicas. Los valores de dependencia antes del cambio no se presentan como si fueran comparables: la estructura previa **no tenía** `backend/src/modules/` y la herramienta agrupa por carpetas `modules/`/`features/`. No hay medición de complejidad cognitiva/SonarQube ni cobertura porcentual.
@@ -44,7 +44,7 @@ Los contadores de importaciones son referencias, no relaciones únicas. Los valo
 ## Excepciones y límite de la certificación
 
 1. Los flujos de cosecha/inventario y actividades/evidencias/recompensas mantienen escrituras separadas y requieren una evolución transaccional independiente; no afirmar atomicidad integral. [ADR-0002](../architecture/ADR-0002-limites-transaccionales.md).
-2. Los 78 imports entre funcionalidades frontend muestran acoplamientos residuales; la refactorización priorizó preservar comportamiento y evitar ciclos de backend.
+2. Las 78 dependencias directas frontend originales se redujeron a **0** mediante `shared` y un bloqueo automático contra nuevas referencias entre funcionalidades. Las colaboraciones mediadas por la composición de `app` siguen siendo legítimas.
 3. La **prueba manual sobre la instalación real** con cuentas, SQLite y fotografías existentes continúa a cargo del equipo. Los tests usan datos aislados y no sustituyen la aceptación de producción.
 4. Las cifras de líneas incluyen comentarios y líneas vacías. El resultado de CI puede certificarse; la equivalencia funcional absoluta con datos privados no.
 

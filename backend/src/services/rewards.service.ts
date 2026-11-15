@@ -252,6 +252,21 @@ export async function evaluateActivityReward(activity: {
     }
   }
 
+  // La aprobación MSP de una actividad ya registrada confirma puntos existentes;
+  // no debe intentar insertar el mismo asiento y provocar errores de unicidad.
+  const existingAward = await prisma.rewardLedger.findUnique({
+    where: {
+      userId_eventType_sourceId: { userId, eventType: `activity.${type}`, sourceId: activityId },
+    },
+  })
+  if (existingAward) {
+    const summary = await getUserRewardsSummary(userId)
+    return {
+      awarded: false, pointsAwarded: 0, totalPoints: summary.points,
+      level: summary.level, reason: 'Recompensa ya registrada para esta actividad.',
+    }
+  }
+
   // Objetivo identificable: huerto general, parcela específica o planta específica
   const targetKey = targetKind === 'plant' && plantId
     ? `plant:${plantId}`
@@ -323,7 +338,8 @@ export async function evaluateActivityReward(activity: {
       },
     })
   } catch (err: unknown) {
-    // Si ya existía el registro único (reintento idempotente)
+    // Un error de base de datos no se interpreta falsamente como duplicidad.
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err
     const summary = await getUserRewardsSummary(userId)
     return {
       awarded: false,

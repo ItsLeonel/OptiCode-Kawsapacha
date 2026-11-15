@@ -110,14 +110,16 @@ Si ya tienes una base SQLite de una versión anterior (por ejemplo de V1 o de ra
 2. **Verifica la ruta de tu base antigua en `backend/.env`:**
    - Prisma resuelve `DATABASE_URL` respecto a `backend/prisma/schema.prisma`. Por defecto `.env.example` usa `DATABASE_URL="file:./kawsapacha.db"`, que corresponde al archivo `backend/prisma/kawsapacha.db`.
    - Si tu versión anterior guardaba los datos en otro archivo (por ejemplo `backend/prisma/dev.db`), copia ese archivo como `backend/prisma/kawsapacha.db` o ajusta `DATABASE_URL` en `backend/.env` antes de migrar.
-3. **Haz una copia de respaldo** de la base y de tus fotos locales (`backend/uploads/`) por seguridad:
+3. **Haz una copia de respaldo** de la base y de **todo** `backend/uploads/` (fotos de plantas, actividades y comunidades) antes de migrar. Detén el backend primero y comprueba el respaldo:
    ```powershell
    # Windows PowerShell (desde OptiCode-Kawsapacha/backend)
    Copy-Item prisma/kawsapacha.db prisma/kawsapacha.db.bak
+   Copy-Item uploads uploads-backup -Recurse
    ```
    ```bash
    # Linux / macOS (desde OptiCode-Kawsapacha/backend)
    cp prisma/kawsapacha.db prisma/kawsapacha.db.bak
+   cp -a uploads uploads-backup
    ```
 4. **Instala dependencias y revisa qué migraciones faltan:**
    ```bash
@@ -139,14 +141,7 @@ Si ya tienes una base SQLite de una versión anterior (por ejemplo de V1 o de ra
    Este comando actualiza las 30 especies del catálogo regional manteniendo intactos los 8 IDs históricos y crea `admin1@mail.com` y `admin2@mail.com` (`Password123`, rol `ADMIN_TECNICO`) únicamente si aún no existen en tu base.
 7. **Verifica qué sucede con los datos antiguos y posibles casos especiales:**
    - **Estados iniciales tras migrar desde V1:** las comunidades, plantas y actividades creadas antes de Fase 4.5 reciben automáticamente `status = 'PENDING'` / `reviewStatus = 'PENDING'`. Inicia sesión con `admin1@mail.com` (`Password123`) o crea una cuenta `ADMIN_MSP` para aprobarlas en `#admin-msp`.
-   - **Si aparece error `duplicate column name` al correr `migrate deploy`:** significa que esa BD ya había recibido cambios manuales con `prisma db push` anteriormente. Marca las migraciones ya presentes como aplicadas y reintenta:
-     ```bash
-     npx prisma migrate resolve --applied 20261114044500_catalogo_medicinal_regional
-     npx prisma migrate resolve --applied 20261114190000_fase4_5_msp_moderacion_auditoria_y_espejo_v2
-     npx prisma migrate deploy
-     npx prisma generate
-     npm run prisma:seed
-     ```
+   - **Si aparece `duplicate column name` o falla una migración:** **detén el proceso; no ejecutes `migrate resolve --applied` a ciegas.** Ese error puede indicar una base modificada con `prisma db push` o un esquema parcialmente aplicado. Conserva la copia `.bak` y `backend/uploads/`, consulta `npx prisma migrate status` e inspecciona en una **copia de la BD** el esquema y `_prisma_migrations`. Solo un responsable técnico debe marcar **la migración específica** como aplicada después de comprobar que **todos** sus cambios ya existen; de lo contrario se omitirían columnas o tablas necesarias. Si no está claro, restaura el respaldo y revisa la migración antes de reintentar.
    - **Si prefieres empezar con una BD nueva sin conservar datos antiguos:** ejecuta `npx prisma migrate reset --force` y luego `npm run prisma:seed`.
 8. **Comprueba que todo quedó operativo:** levanta `npm run dev` en `backend/` y `frontend/`, verifica `http://localhost:3000/api/health` (`"status": "ok"`) e inicia sesión con `admin1@mail.com` / `Password123` o con tus cuentas comunitarias previas. Más detalles y ejemplos en [docs/CREDENCIALES-Y-ACTUALIZACION-BD.md](docs/CREDENCIALES-Y-ACTUALIZACION-BD.md).
 

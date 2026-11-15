@@ -11,6 +11,7 @@ import { careApi } from '../../../services/api'
 import { PHOTO_ACCEPT } from '../../../shared/photo-validation'
 import AgriculturalCycleFields from './AgriculturalCycleFields'
 import { nextPostharvestStep } from './postharvest-cycle'
+import { ACTIVITY_CARDS, FEATURED, CATEGORIES, type Category } from './activity-card-catalog'
 import {
   ACTIVITY_TYPES,
   validateActivity,
@@ -20,46 +21,8 @@ import {
   type ActivityDetails,
   type GardenActivity,
 } from './activities'
-import wateringArt from './activity-art/watering.png'
-import sowingArt from './activity-art/sowing.png'
-import fertilizingArt from './activity-art/fertilizing.png'
-import harvestArt from './activity-art/harvest.png'
 import '../garden-journal.css'
 import './activity-modal-v2.css'
-
-type Category = 'all' | 'cultivo' | 'cuidado' | 'seguimiento' | 'cosecha'
-
-type ActivityCard = {
-  short: string
-  emoji: string
-  art?: string
-  category: Exclude<Category, 'all'>
-}
-
-const ACTIVITY_CARDS: Record<ActivityType, ActivityCard> = {
-  watering: { emoji: '💧', art: wateringArt, short: 'Riego', category: 'cuidado' },
-  sowing: { emoji: '🌱', art: sowingArt, short: 'Siembra', category: 'cultivo' },
-  fertilizing: { emoji: '🪴', art: fertilizingArt, short: 'Abonado', category: 'cuidado' },
-  observation: { emoji: '🔎', short: 'Seguimiento', category: 'seguimiento' },
-  harvest: { emoji: '🧺', art: harvestArt, short: 'Cosecha', category: 'cosecha' },
-  preparation: { emoji: '🌾', short: 'Preparación', category: 'cultivo' },
-  weeding: { emoji: '🌿', short: 'Deshierbe', category: 'cuidado' },
-  hilling: { emoji: '⛰️', short: 'Aporque', category: 'cultivo' },
-  sowing_ritual: { emoji: '🌅', short: 'Ritual de siembra', category: 'cultivo' },
-  gratitude_ritual: { emoji: '🌞', short: 'Ritual de gratitud', category: 'cosecha' },
-  signage: { emoji: '🏷️', short: 'Señalética', category: 'cultivo' },
-  postharvest: { emoji: '📦', short: 'Poscosecha', category: 'cosecha' },
-}
-
-const FEATURED: ActivityType[] = ['watering', 'sowing', 'fertilizing', 'observation', 'harvest']
-
-const CATEGORIES: { id: Category; label: string; symbol: string }[] = [
-  { id: 'all', label: 'Todas', symbol: '✦' },
-  { id: 'cultivo', label: 'Cultivo', symbol: '🌱' },
-  { id: 'cuidado', label: 'Cuidados', symbol: '🍃' },
-  { id: 'seguimiento', label: 'Crecimiento', symbol: '🌿' },
-  { id: 'cosecha', label: 'Cosecha', symbol: '🧺' },
-]
 
 export default function ActivityModal({
   plants,

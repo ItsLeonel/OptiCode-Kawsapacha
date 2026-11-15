@@ -183,7 +183,7 @@ export default function GardenNavigation({
         )}
       </div>
     </aside>
-  {overlayMode && <button ref={toggleRef} className={`garden-sidebar-tab${open ? ' is-open' : ''}`} type="button" aria-label={open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} aria-expanded={open} aria-controls="garden-main-navigation" title="Menú · Alt+M" onClick={() => setOpen(value => !value)}><span aria-hidden="true">{open ? '‹' : '›'}</span><small>Menú</small></button>}
+  {overlayMode && <button ref={toggleRef} className={`garden-sidebar-tab${open ? ' is-open' : ''}`} type="button" aria-label={open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} aria-expanded={open} aria-controls="garden-main-navigation" title="Menú · Alt+M" onClick={() => setOpen(value => !value)}><span aria-hidden="true">{open ? '×' : '☰'}</span><small>Menú</small></button>}
     </>
   )
 }

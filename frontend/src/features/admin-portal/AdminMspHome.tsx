@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import AdminIcon from './AdminIcon'
+import AdminIcon, { type AdminIconName } from './AdminIcon'
 import AdminMap from './AdminMap'
 import type { AdminNavKey, MspDashboardData } from './admin-types'
 import communityLearning from '../communities/assets/aprender-v2.jpg'

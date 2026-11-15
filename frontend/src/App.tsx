@@ -119,7 +119,30 @@ export default function App({
   // Selección unificada de datos según modo (Backend o Visitante)
   const communityRecord = user ? backendCommunity : journal.data.community
   const realGarden = user ? backendGarden : journal.data.terrain
-  const plants = user ? backendPlants : journal.plants
+  // En la sesión las evidencias reales provienen de la Bitácora SQLite,
+  // no de IndexedDB de visitante ni solo de la última foto de la planta.
+  const serverPlantsWithEvidence = useMemo(() => backendPlants.map(plant => {
+    const evidences = backendActivities
+      .filter(activity =>
+        !activity.voidedAt &&
+        activity.gardenId === activeGardenId &&
+        (activity.type === 'sowing' || activity.type === 'observation') &&
+        activity.target.kind === 'plant' && activity.target.plantId === plant.id
+      )
+      .flatMap(activity => (activity.photos ?? []).map((photo, index) => ({
+        id: `${activity.id}-evidence-${index}`,
+        date: activity.date,
+        notes: activity.notes,
+        photo,
+        photoId: activity.photoIds[index],
+        growthStage: isGrowthStage(activity.details.growthStage) ? activity.details.growthStage : undefined,
+        heightCm: typeof activity.details.heightCm === 'number' ? activity.details.heightCm : undefined,
+        reviewStatus: activity.reviewStatus,
+      })))
+      .sort((a, b) => a.date.localeCompare(b.date))
+    return { ...plant, evidences }
+  }), [backendPlants, backendActivities, activeGardenId])
+  const plants = user ? serverPlantsWithEvidence : journal.plants
   const activePlants = plants.filter(plant => !plant.archivedAt)
   const activities = user && activeGardenId ? backendActivities : journal.data.activities
 
@@ -131,13 +154,13 @@ export default function App({
         gardenId: activeGardenId,
         community: backendCommunity,
         terrain: backendGarden,
-        plants: backendPlants,
+        plants: serverPlantsWithEvidence,
         activities: backendActivities,
         appliedCommands: [],
       }
     }
     return journal.data
-  }, [user, activeGardenId, backendCommunity, backendGarden, backendPlants, backendActivities, journal.data])
+  }, [user, activeGardenId, backendCommunity, backendGarden, serverPlantsWithEvidence, backendActivities, journal.data])
 
   const [screen, setScreen] = useState<Screen>(currentScreen)
   const [communityEntry, setCommunityEntry] = useState<CommunityEntryAction | null>(null)
@@ -443,7 +466,8 @@ export default function App({
               name: p.customName || p.species?.name || p.speciesId,
               latin: p.species?.latinName || '',
               photo: resolveMediaUrl(p.photoUrl),
-              date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
+              date: new Date(p.createdAt ?? p.plantingDate).toLocaleDateString('es-EC'),
+              plantedOn: p.plantingDate.slice(0, 10),
               plot: p.plotIndex ?? -1,
               createdAt: (p as any).createdAt || new Date(p.plantingDate).toISOString(),
               state: (p as any).observedState || (p.lifecycleStatus === 'READY_TO_HARVEST' ? 'mature' : 'growing'),

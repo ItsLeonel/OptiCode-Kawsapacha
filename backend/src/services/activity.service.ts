@@ -110,7 +110,7 @@ export async function assertGardenAccess(
     }
   }
 
-  throw new Error('No tienes permisos para interactuar con este huerto.')
+  throw Object.assign(new Error('No tienes permisos para interactuar con este huerto.'), { code: 'FORBIDDEN' })
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react'
-import { regionForProvince } from '../../features/real-gardens/garden-region'
+import { regionForProvince } from '../geo/region'
 import '../../styles/ecuador-game-map.css'
 
 type Geometry = { type: 'Polygon' | 'MultiPolygon'; coordinates: unknown }

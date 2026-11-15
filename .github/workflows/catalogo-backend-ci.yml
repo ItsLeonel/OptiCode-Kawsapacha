@@ -34,6 +34,8 @@ jobs:
         run: npm run prisma:seed
       - name: Límites de arquitectura modular
         run: npm run check:architecture
+      - name: Inventario de activos gráficos potencialmente obsoletos
+        run: node ../tools/audit-assets.cjs
       - name: TypeScript y build backend
         run: |
           npm run typecheck

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from './e2e'
 import { registerGround, expectReady, canvasSlot, slots, scene } from './garden-helpers'
-import { mainNavigation } from './community-helpers'
+import { navigateModule } from './community-helpers'
 
 // The SVG renderer was replaced by the interactive Phaser renderer. Keep the
 // region/modality matrix and navigation/accessibility checks against real UI.
@@ -77,7 +77,7 @@ test('todas las acciones llevan a registros, listados o progreso real; navegaci√
     await expect(page.getByRole('heading', { name: title, exact: true, level: 1 })).toBeVisible()
     await page.goBack(); await expectReady(page)
     await page.goForward(); await expect(page.getByRole('heading', { name: title, exact: true, level: 1 })).toBeVisible()
-    await mainNavigation(page).getByRole('button', { name: 'Mi Jard√≠n', exact: true }).click(); await expectReady(page)
+    await navigateModule(page, 'Mi Huerto'); await expectReady(page)
   }
   await page.getByRole('button', { name: 'Conocer mi camino', exact: false }).click()
   await expect(page.getByRole('heading', { name: 'Mi camino verde', exact: true, level: 1 })).toBeVisible()

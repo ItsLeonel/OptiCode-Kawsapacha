@@ -32,6 +32,8 @@ jobs:
           npx prisma migrate deploy
       - name: Sembrar el catálogo regional sin borrar datos
         run: npm run prisma:seed
+      - name: Límites de arquitectura modular
+        run: npm run check:architecture
       - name: TypeScript y build backend
         run: |
           npm run typecheck

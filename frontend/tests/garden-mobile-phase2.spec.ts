@@ -170,3 +170,42 @@ for (const province of ['Pichincha', 'Guayas', 'Napo', 'Galápagos'] as const) {
     })
   }
 }
+
+
+test('Fase 3: encuadre del jardín en cinco tamaños, imágenes y controles accesibles', async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+  await registerGround(page, '/', 'Manabí', 'ground')
+  await expectReady(page)
+
+  for (const width of [320, 360, 390, 430, 768]) {
+    await page.setViewportSize({ width, height: width === 768 ? 1024 : 844 })
+    await expectReady(page)
+    const layout = await camera(page)
+    expect(layout.width).toBeGreaterThan(0)
+    expect(layout.height).toBeGreaterThan(0)
+    const renderer = await scene(page).locator('canvas').evaluate(canvas => ({
+      intrinsicWidth: canvas.width,
+      intrinsicHeight: canvas.height,
+      rectWidth: canvas.getBoundingClientRect().width,
+      rectHeight: canvas.getBoundingClientRect().height,
+    }))
+    expect(renderer.intrinsicWidth).toBeGreaterThan(0)
+    expect(renderer.intrinsicHeight).toBeGreaterThan(0)
+    expect(renderer.rectWidth).toBeGreaterThan(0)
+    expect(renderer.rectHeight).toBeGreaterThan(0)
+    expect(await page.evaluate(() document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+    if (width <= 700) {
+      await sixVisible(page)
+      await expect(page.getByRole('button', { name: 'Acercar jardín' })).toBeVisible()
+      await expect(page.locator('.garden-quick-actions button')).toHaveCount(6)
+    } else {
+      await expect(page.locator('.garden-poc-mobile-zoom')).toBeHidden()
+    }
+    await page.locator('.garden-poc').screenshot({
+      path: test.info().outputPath(`fase3-viewport-${width}.png`),
+      animations: 'disabled',
+    })
+  }
+  expect(pageErrors).toEqual([])
+})

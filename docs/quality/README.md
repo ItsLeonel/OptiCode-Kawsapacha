@@ -11,7 +11,8 @@ El objetivo de la refactorización es mejorar las subcaracterísticas de manteni
 
 ## Evidencia pendiente
 
-- Medir antes/después complejidad, duplicación y cobertura con reportes reproducibles.
+- Ejecutar `node tools/maintainability-report.cjs` desde la raíz para contar archivos, líneas, dependencias intermodulares y dependencias directas a Prisma.
+- Comparar ese reporte contra la rama `main` usando el mismo comando; después medir complejidad, duplicación y cobertura con herramientas específicas.
 - Reducir referencias directas entre servicios sin cambiar el contrato.
 - Ejecutar regresión manual con cuentas existentes, fotos históricas, MSP, comunidad y todas las modalidades/regiones Phaser.
 

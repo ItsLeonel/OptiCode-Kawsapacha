@@ -1,6 +1,6 @@
 import type { MspActivityRepository, MspActivityServices } from './ports/msp-activity.repository'
 
-export function createMspActivityService<TActivity extends {id:string;actorUserId:string;type:string;performedDate:string;targetKind:string;plantId:string|null;plotIndex:number|null;reviewStatus:string;reviewedAt:Date|null;voidedAt:Date|null},TUpdated>(repository:MspActivityRepository<TActivity,TUpdated>,services:MspActivityServices) {
+export function createMspActivityService<TActivity extends {id:string;actorUserId:string;type:string;performedDate:string;targetKind:string;plantId:string|null;plotIndex:number|null;reviewStatus:string;reviewedAt:Date|null;voidedAt:Date|null},TUpdated,TList>(repository:MspActivityRepository<TActivity,TUpdated,TList>,services:MspActivityServices) {
 const {logAudit,createNotification,evaluateActivityReward,getUserRewardsSummary,syncUserMissionsAndBadges,calculateGrowth}=services
 
 // ─── SUPERVISIÓN DE ACTIVIDADES Y EVIDENCIAS (MSP) ─────────────────────────────

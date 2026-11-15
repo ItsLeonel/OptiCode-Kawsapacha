@@ -1,7 +1,7 @@
 export type ReviewAction='APPROVED'|'NEEDS_CHANGES'|'REJECTED'
-export interface MspActivityRepository<A extends {id:string;actorUserId:string;type:string;performedDate:string;targetKind:string;plantId:string|null;plotIndex:number|null;reviewStatus:string;reviewedAt:Date|null;voidedAt:Date|null},U> {
+export interface MspActivityRepository<A extends {id:string;actorUserId:string;type:string;performedDate:string;targetKind:string;plantId:string|null;plotIndex:number|null;reviewStatus:string;reviewedAt:Date|null;voidedAt:Date|null},U,L> {
  count(where:Record<string,unknown>):Promise<number>
- findMany(where:Record<string,unknown>,skip:number,limit:number):Promise<A[]>
+ findMany(where:Record<string,unknown>,skip:number,limit:number):Promise<L[]>
  findForReview(id:string):Promise<A|null>
  approveIfUnchanged(id:string,previousStatus:string,reviewedAt:Date|null,reviewerId:string,reason:string|null):Promise<{count:number}>
  getUpdated(id:string):Promise<U>

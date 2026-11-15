@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma'
 import path from 'path'
 import { assertGardenAccess } from './activity.service'
 import { evaluateActivityReward } from './rewards.service'
+import { syncUserMissionsAndBadges } from './missions.service'
 
 const MAX_PLOTS = 6
 
@@ -78,7 +79,7 @@ export async function registerPlant(input: RegisterPlantInput) {
       photoPath: input.file.path,
       photoMime: input.file.mimetype,
       photoSize: input.file.size,
-      reviewStatus: 'PENDING', // Registrada y utilizable; la revisión MSP es posterior.
+      reviewStatus: 'APPROVED', // Registro válido automáticamente; auditoría MSP opcional.
     },
     include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },
   })
@@ -106,7 +107,7 @@ export async function registerPlant(input: RegisterPlantInput) {
         plotIndex: input.plotIndex,
         notes: input.notes || `Siembra documentada de ${species.name}`,
         details: JSON.stringify(sowingDetails),
-        reviewStatus: 'PENDING',
+        reviewStatus: 'APPROVED',
       },
     })
 
@@ -122,7 +123,7 @@ export async function registerPlant(input: RegisterPlantInput) {
       })
     }
 
-    // Puntos provisionales inmediatos; el MSP confirmará o revertirá el crédito.
+    // Siembra válida desde el inicio: los puntos se acreditan inmediatamente.
     await evaluateActivityReward({
       id: sowingActivity.id,
       actorUserId: input.registeredById,
@@ -132,6 +133,7 @@ export async function registerPlant(input: RegisterPlantInput) {
       plantId: createdPlant.id,
       plotIndex: input.plotIndex,
     })
+    await syncUserMissionsAndBadges(input.registeredById)
   } catch (actErr) {
     console.error('Error al registrar actividad automática de siembra en Bitácora:', actErr)
   }
@@ -387,7 +389,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
     include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },
   })
 
-  // Documentar observaciones reales sin otorgar recompensas antes de revisión MSP.
+  // Documentar observaciones reales como actividades válidas y recompensables.
   const hasObservation = Boolean(
     input.file || input.heightCm !== undefined ||
     (input.observedState && input.observedState !== plant.observedState) ||
@@ -412,7 +414,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
         plotIndex: updated.plotIndex,
         notes: input.notes || `Observación actualizada: ${input.observedState || 'seguimiento'}`,
         details: JSON.stringify(detailsObj),
-        reviewStatus: 'PENDING',
+        reviewStatus: 'APPROVED',
       },
     })
 
@@ -428,7 +430,16 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
       })
     }
 
-    // Recompensas: solo tras la aprobación de esta actividad por el MSP.
+    await evaluateActivityReward({
+      id: activity.id,
+      actorUserId: input.requestingUserId,
+      type: 'observation',
+      performedDate: today,
+      targetKind: 'plant',
+      plantId: plant.id,
+      plotIndex: updated.plotIndex,
+    })
+    await syncUserMissionsAndBadges(input.requestingUserId)
   } catch (actErr) {
     console.error('Error al registrar actividad automática de observación:', actErr)
   }

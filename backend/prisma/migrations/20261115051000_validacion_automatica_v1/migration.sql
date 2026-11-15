@@ -15,7 +15,10 @@ WHERE "reviewStatus" = 'PENDING'
     SELECT 1 FROM "garden_activities" AS "a"
     WHERE "a"."plantId" = "cultivated_plants"."id"
       AND "a"."type" = 'sowing'
-      AND "a"."reviewStatus" = 'REJECTED'
+      AND (
+        "a"."reviewStatus" IN ('REJECTED', 'NEEDS_CHANGES')
+        OR ("a"."reviewStatus" = 'PENDING' AND "a"."reviewedById" IS NOT NULL)
+      )
   );
 
 -- La comunidad conserva su estado PENDING y requiere decisión MSP.

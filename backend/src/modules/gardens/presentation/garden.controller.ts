@@ -1,9 +1,9 @@
-// backend/src/controllers/garden.controller.ts
+// backend/src/modules/gardens/presentation/garden.controller.ts
 import type { Response } from 'express'
-import { createGarden, listGardens, getGardenById, updateGarden } from '../services/garden.service'
-import { assertGardenAccess } from '../services/activity.service'
-import { ok, fail } from '../utils/response'
-import type { AuthRequest } from '../types'
+import { createGarden, listGardens, getGardenById, updateGarden } from '../application/garden.service'
+import { assertGardenAccess } from '../../activities/application/activity.service'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../types'
 
 export async function create(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

@@ -1,10 +1,10 @@
-// backend/src/controllers/lunar-calendar.controller.ts
+// backend/src/modules/lunar-calendar/presentation/lunar-calendar.controller.ts
 import type { Request, Response } from 'express'
-import { ok, fail } from '../utils/response'
+import { ok, fail } from '../../../shared/utils/response'
 import {
   calculateDayLunarInfo,
   calculateMonthLunarInfo,
-} from '../services/lunar-calendar.service'
+} from '../application/lunar-calendar.service'
 
 export async function getLunarCalendar(req: Request, res: Response): Promise<void> {
   try {

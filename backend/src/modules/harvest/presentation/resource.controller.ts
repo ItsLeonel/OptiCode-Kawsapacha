@@ -1,8 +1,8 @@
-// backend/src/controllers/resource.controller.ts
+// backend/src/modules/harvest/presentation/resource.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../types'
-import { ok, fail } from '../utils/response'
-import * as resourceService from '../services/resource.service'
+import type { AuthRequest } from '../../../types'
+import { ok, fail } from '../../../shared/utils/response'
+import * as resourceService from '../application/resource.service'
 
 export async function list(req: AuthRequest, res: Response): Promise<void> {
   try {

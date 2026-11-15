@@ -1,10 +1,10 @@
-// backend/src/controllers/harvest.controller.ts
+// backend/src/modules/harvest/presentation/harvest.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../types'
-import { ok, fail } from '../utils/response'
-import * as harvestService from '../services/harvest.service'
-import { prisma } from '../config/prisma'
-import { assertGardenAccess } from '../services/activity.service'
+import type { AuthRequest } from '../../../types'
+import { ok, fail } from '../../../shared/utils/response'
+import * as harvestService from '../application/harvest.service'
+import { prisma } from '../../../infrastructure/database/prisma'
+import { assertGardenAccess } from '../../activities/application/activity.service'
 
 export async function harvestPlant(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

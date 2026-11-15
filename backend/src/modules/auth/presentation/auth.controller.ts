@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
-import { registerUser, loginUser, getUserById } from '../services/auth.service'
-import { ok, fail } from '../utils/response'
-import type { AuthRequest } from '../types'
+import { registerUser, loginUser, getUserById } from '../application/auth.service'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../types'
 
 export async function register(req: Request, res: Response): Promise<void> {
   const { name, email, password } = req.body as { name?: string; email?: string; password?: string }

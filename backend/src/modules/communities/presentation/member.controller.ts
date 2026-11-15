@@ -1,8 +1,8 @@
-// backend/src/controllers/member.controller.ts
+// backend/src/modules/communities/presentation/member.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../types'
-import { ok, fail } from '../utils/response'
-import * as memberService from '../services/member.service'
+import type { AuthRequest } from '../../../types'
+import { ok, fail } from '../../../shared/utils/response'
+import * as memberService from '../application/member.service'
 
 export async function invite(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

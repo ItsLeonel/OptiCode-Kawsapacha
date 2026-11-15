@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
-import { CATALOG_REGIONS, listCatalog, getCatalogById, type CatalogRegion } from '../services/catalog.service'
-import { ok, fail } from '../utils/response'
+import { CATALOG_REGIONS, listCatalog, getCatalogById, type CatalogRegion } from '../application/catalog.service'
+import { ok, fail } from '../../../shared/utils/response'
 
 export async function list(req: Request, res: Response): Promise<void> {
   try {

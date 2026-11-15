@@ -1,13 +1,13 @@
-// backend/src/controllers/notification.controller.ts
+// backend/src/modules/notifications/presentation/notification.controller.ts
 import type { Response } from 'express'
-import { ok, fail } from '../utils/response'
-import type { AuthRequest } from '../types'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../types'
 import {
   listUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   clearReadNotifications,
-} from '../services/notification.service'
+} from '../application/notification.service'
 
 export async function getNotifications(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

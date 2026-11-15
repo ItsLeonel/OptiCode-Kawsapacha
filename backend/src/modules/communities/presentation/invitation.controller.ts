@@ -1,8 +1,8 @@
-// backend/src/controllers/invitation.controller.ts
+// backend/src/modules/communities/presentation/invitation.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../types'
-import { ok, fail } from '../utils/response'
-import * as invitationService from '../services/invitation.service'
+import type { AuthRequest } from '../../../types'
+import { ok, fail } from '../../../shared/utils/response'
+import * as invitationService from '../application/invitation.service'
 
 export async function getMyInvitations(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

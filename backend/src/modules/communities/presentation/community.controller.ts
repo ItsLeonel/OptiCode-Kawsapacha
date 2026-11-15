@@ -1,8 +1,8 @@
-// backend/src/controllers/community.controller.ts
+// backend/src/modules/communities/presentation/community.controller.ts
 import type { Response } from 'express'
-import { createCommunity, listCommunities, getCommunityById, updateCommunity } from '../services/community.service'
-import { ok, fail } from '../utils/response'
-import type { AuthRequest } from '../types'
+import { createCommunity, listCommunities, getCommunityById, updateCommunity } from '../application/community.service'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../types'
 
 export async function create(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

@@ -474,7 +474,7 @@ export default function App({
               growthStage: isGrowthStage(p.growthStage) ? p.growthStage : undefined,
               observations: p.notes || '',
               archivedAt: p.archivedAt ? new Date(p.archivedAt).toISOString() : (p.lifecycleStatus === 'ARCHIVED' ? new Date().toISOString() : undefined),
-              reviewStatus: p.reviewStatus ?? 'APPROVED', // Propagar estado de aprobación de siembra al frontend
+              reviewStatus: p.reviewStatus ?? 'APPROVED', // Registro válido; el MSP puede auditar la siembra después
             }))
           )
         } else {
@@ -798,7 +798,7 @@ export default function App({
           createdAt: (apiPlant as any).createdAt || new Date(apiPlant.plantingDate).toISOString(),
           state: 'observed',
           growthStage: isGrowthStage(apiPlant.growthStage) ? apiPlant.growthStage : input.growthStage,
-          reviewStatus: apiPlant.reviewStatus || 'PENDING',
+          reviewStatus: apiPlant.reviewStatus || 'APPROVED',
         }
         setBackendPlants(existing => [...existing, record])
         setRegistration(null)
@@ -1050,8 +1050,8 @@ export default function App({
         const created = await activityApi.create(activeGardenId, formData)
         const earned = Number(created.reward?.pointsAwarded ?? 0)
         setNotice(earned > 0
-          ? `✅ Actividad registrada. +${earned} Semillas provisionales sujetas a revisión MSP.`
-          : '✅ Actividad guardada en Bitácora. La verificación MSP es posterior.')
+          ? `✅ Actividad registrada. +${earned} Semillas de vida acreditadas.`
+          : '✅ Actividad guardada en Bitácora. El MSP puede auditarla posteriormente.')
         await reloadBackendActivities(activeGardenId)
 
         if (activeCommunityId) {

@@ -90,14 +90,35 @@ export async function listCommunities(userId: string) {
   })
 }
 
-export async function getCommunityById(id: string) {
-  return prisma.community.findUnique({
+export async function getCommunityById(id: string, viewerUserId?: string, viewerRole?: string) {
+  const comm = await prisma.community.findUnique({
     where: { id },
     include: {
       members: { include: { user: { select: { id: true, name: true, email: true } } } },
       gardens: true,
     },
   })
+  if (!comm) return null
+
+  const isPrivileged =
+    viewerRole === 'ADMIN_MSP' ||
+    viewerRole === 'ADMIN_TECNICO' ||
+    comm.creatorId === viewerUserId ||
+    comm.members.some(m => m.userId === viewerUserId && m.status === 'ACCEPTED')
+
+  if (!isPrivileged) {
+    // Privacidad geográfica: coordenadas exactas solo para personal del MSP, Admin Técnico o miembros acreditados
+    return {
+      ...comm,
+      gardens: comm.gardens.map(g => ({
+        ...g,
+        latitude: null,
+        longitude: null,
+      })),
+    }
+  }
+
+  return comm
 }
 
 export async function updateCommunity(id: string, userId: string, data: Partial<Omit<CreateCommunityInput, 'creatorId'>>) {
@@ -107,11 +128,17 @@ export async function updateCommunity(id: string, userId: string, data: Partial<
     ;(error as any).code = 'FORBIDDEN'
     throw error
   }
-  const previous = await prisma.community.findUniqueOrThrow({ where: { id }, select: { photoUrl: true } })
+  const previous = await prisma.community.findUniqueOrThrow({ where: { id }, select: { photoUrl: true, status: true, name: true } })
   const { file, removePhoto, ...fields } = data
+  const resubmit = previous.status === 'NEEDS_CHANGES' || previous.status === 'REJECTED'
+
   return withEntityPhoto('communities', file, removePhoto, previous.photoUrl, photoUrl => prisma.community.update({
     where: { id },
-    data: { ...fields, photoUrl },
+    data: {
+      ...fields,
+      photoUrl,
+      ...(resubmit ? { status: 'PENDING', reviewReason: null, reviewedAt: null, reviewedById: null } : {}),
+    },
     include: {
       _count: {
         select: {

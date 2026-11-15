@@ -123,3 +123,22 @@ test('regional ground anchors follow the approved Costa footprint at every regis
     }
   }
 })
+
+test('care badges (water, fertilizer, weeding) only appear on active plants, never on empty slots', () => {
+  const activities: any[] = [
+    { type: 'watering', date: '2026-11-10', target: { kind: 'plot', plot: 0 } },
+    { type: 'fertilizing', date: '2026-11-10', target: { kind: 'plot', plot: 0 } },
+    { type: 'weeding', date: '2026-11-10', target: { kind: 'plot', plot: 0 } },
+    { type: 'watering', date: '2026-11-12', target: { kind: 'plant', plantId: 'recorded-plant', plot: 4 } },
+  ]
+  const model = buildGardenVisualModel(garden, [plant], 'sierra', activities)
+  // Parcela 0 está vacía (sin planta) -> No debe tener marcas de riego, abono ni deshierbe
+  expect(model.slots[0].plant).toBeNull()
+  expect(model.slots[0].lastWateredAt).toBeUndefined()
+  expect(model.slots[0].lastFertilizedAt).toBeUndefined()
+  expect(model.slots[0].lastWeededAt).toBeUndefined()
+
+  // Parcela 4 tiene planta activa -> Debe tener su marca de riego
+  expect(model.slots[4].plant).not.toBeNull()
+  expect(model.slots[4].lastWateredAt).toBe('2026-11-12')
+})

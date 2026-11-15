@@ -35,5 +35,6 @@ test('las sugerencias son orientativas, no restricciones para cuidar plantas', (
   for (const day of estimateLunarMonth('2026-11', 'America/Guayaquil').days) {
     expect(day.recommendations.length).toBeGreaterThan(0)
     expect(day.recommendations.every(item => item.advisory)).toBeTruthy()
+    expect(day.recommendations.some(item => (item.activityType as string) === 'replanting')).toBe(false)
   }
 })

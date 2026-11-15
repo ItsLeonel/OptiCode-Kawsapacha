@@ -8,6 +8,7 @@ import { regionalLandscapes } from '../../shared/regional-landscapes'
 import { useGardenDialog } from './useGardenDialog'
 import BitacoraIcon, { type BitacoraIconName } from './BitacoraIcons'
 import bookHeader from './bitacora-art/book-header.webp'
+import { reviewBadge } from '../../utils/reviewStatus'
 import PostHarvestLabel from './PostHarvestLabel'
 import { createActivityCsv } from './journal/report-csv'
 import './bitacora-viva.css'
@@ -29,6 +30,7 @@ type FeedItem = {
   photos: string[]
   photoIds: string[]
   source: 'journal' | 'care' | 'harvest'
+  reviewStatus?: string
   voidedAt?: string
   voidReason?: string
 }
@@ -47,7 +49,6 @@ const OTHER_FILTERS: { key: ActivityFilter; title: string }[] = [
   { key: 'preparation', title: 'Preparación del terreno' },
   { key: 'weeding', title: 'Limpieza y deshierbe' },
   { key: 'hilling', title: 'Aporque' },
-  { key: 'replanting', title: 'Replante' },
   { key: 'sowing_ritual', title: 'Ritual de siembra' },
   { key: 'gratitude_ritual', title: 'Ritual de gratitud' },
   { key: 'signage', title: 'Señalética medicinal' },
@@ -98,7 +99,7 @@ function normalizeActivity(activity: GardenActivity, plants: GardenPlant[]): Fee
     date: activity.date, createdAt: activity.createdAt, responsible: activity.responsible,
     plantId: targetPlantId, plot, targetName: plant?.name ?? (plot === undefined ? 'Todo el huerto' : `Espacio ${plot + 1}`),
     notes: activity.notes, details: activity.details, photos: activity.photos ?? [], photoIds: activity.photoIds,
-    source: 'journal', voidedAt: activity.voidedAt, voidReason: activity.voidReason,
+    source: 'journal', reviewStatus: (activity as any).reviewStatus, voidedAt: activity.voidedAt, voidReason: activity.voidReason,
   }
 }
 
@@ -155,7 +156,10 @@ function EntryDetails({ item, plant, sourcePlant, onSelect, onVoid, onClose }: {
         <div><dt>Fecha</dt><dd><BitacoraIcon name="calendar" size={16}/>{displayDate(item.date)}</dd></div>
         <div><dt>Responsable</dt><dd><BitacoraIcon name="person" size={16}/>{item.responsible}</dd></div>
         <div><dt>Ubicación</dt><dd><BitacoraIcon name="pin" size={16}/>{item.targetName}{item.plot !== undefined ? ` · Espacio ${item.plot + 1}` : ''}</dd></div>
-        <div><dt>Guardado</dt><dd><BitacoraIcon name={item.source === 'care' ? 'check' : 'file'} size={16}/>{item.source === 'care' ? 'Registro de cuidados del servidor' : item.source === 'harvest' ? 'Registro de cosecha del servidor' : 'Registro de la bitácora local'}</dd></div>
+        <div><dt>Guardado</dt><dd><BitacoraIcon name={item.source === 'care' ? 'check' : 'file'} size={16}/>{item.source === 'care' ? 'Registro de cuidados del servidor' : item.source === 'harvest' ? 'Registro de cosecha del servidor' : 'Registro de la bitácora'}</dd></div>
+        {item.reviewStatus && reviewBadge(item.reviewStatus) && (
+          <div><dt>Estado MSP</dt><dd style={{ color: reviewBadge(item.reviewStatus)!.color, fontWeight: 700 }}><BitacoraIcon name="check" size={16}/>{reviewBadge(item.reviewStatus)!.label}</dd></div>
+        )}
       </dl>
       {item.notes && <section className="bv-detail-section"><h3>Observaciones</h3><p>{item.notes}</p></section>}
       {Object.keys(item.details).length > 0 && <section className="bv-detail-section"><h3>Detalles de la actividad</h3><dl className="bv-detail-extras">
@@ -303,9 +307,39 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
         {loadingCare && <p className="bv-status" role="status">Consultando los cuidados del servidor…</p>}
         {filtered.length ? <div className="bv-activity-grid">{displayEntries.map(item => {
           const plant = item.plantId ? plants.find(p => p.id === item.plantId) : undefined
-          return <article key={item.key} className="bv-entry-card" data-type={item.type} data-voided={item.voidedAt ? 'true' : 'false'}>
+          const badge = reviewBadge(item.reviewStatus)
+          const isPending = item.reviewStatus === 'PENDING'
+          return <article
+            key={item.key}
+            className="bv-entry-card"
+            data-type={item.type}
+            data-voided={item.voidedAt ? 'true' : 'false'}
+            style={isPending ? { background: '#fffbeb', border: '1px solid #fde68a' } : undefined}
+          >
             <EntryVisual item={item} plant={plant}/>
-            <div className="bv-entry-copy"><div className="bv-entry-type"><span className="bv-activity-icon"><BitacoraIcon name={activityIcon(item.type)} size={29}/></span><h3>{item.title}</h3></div>
+            <div className="bv-entry-copy">
+              <div className="bv-entry-type">
+                <span className="bv-activity-icon"><BitacoraIcon name={activityIcon(item.type)} size={29}/></span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <h3>{item.title}</h3>
+                  {badge && (
+                    <span
+                      style={{
+                        alignSelf: 'flex-start',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        color: badge.color,
+                        background: badge.bg,
+                        border: `1px solid ${badge.border}`,
+                        borderRadius: '12px',
+                        padding: '1px 8px',
+                      }}
+                    >
+                      {badge.label}
+                    </span>
+                  )}
+                </div>
+              </div>
               <div className="bv-entry-meta"><span><BitacoraIcon name="leaf" size={15}/>{item.targetName}</span><span><BitacoraIcon name="pin" size={15}/>{item.plot === undefined ? 'Todo el huerto' : `Espacio ${item.plot + 1}`}</span><span><BitacoraIcon name="calendar" size={15}/>{displayDate(item.date)}</span></div>
               <p className="bv-entry-excerpt">{item.notes || 'Actividad documentada sin observaciones adicionales.'}</p>
               {item.voidedAt && <span className="bv-entry-status">Anulada · historial conservado</span>}
@@ -324,7 +358,7 @@ export default function GardenHistory({ plants, onRegister, onSelect, activities
         })}</div> : <div className="bv-plant-empty"><BitacoraIcon name="sprout" size={34}/><p>{includeArchived ? 'Todavía no hay plantas archivadas.' : 'Todavía no has registrado plantas en tu huerto.'}</p>{!includeArchived && <button type="button" className="bv-primary-button" onClick={onRegister}>Registrar una planta</button>}</div>}
         {shownPlants.length > 3 && <div className="bv-more-row"><button type="button" className="bv-more-button" onClick={() => setAllPlants(!allPlants)}>{allPlants ? 'Ver menos plantas' : `Ver todas mis plantas (${shownPlants.length})`} <BitacoraIcon name="right" size={17}/></button></div>}
       </section>
-      <p className="bv-honesty-note"><BitacoraIcon name="info" size={15}/> {authenticated ? 'Se muestran únicamente cuidados y cosechas básicos recuperados de SQLite. La Bitácora fotográfica avanzada requiere la API #43; no se mezclan datos de visitante.' : 'Los registros de esta bitácora se guardan solo en tu navegador. No están sincronizados con el servidor.'}</p>
+      <p className="bv-honesty-note"><BitacoraIcon name="info" size={15}/> Las fotografías y las actividades se muestran según su origen. Los registros locales todavía no están sincronizados como bitácora general con el backend.</p>
     </div>
     {selected && <EntryDetails key={selected.key} item={selected} plant={selected.plantId ? plants.find(p => p.id === selected.plantId) : undefined} sourcePlant={sourcePlant} onSelect={onSelect} onVoid={onVoid} onClose={() => setSelectedKey(null)}/>}
   </section>

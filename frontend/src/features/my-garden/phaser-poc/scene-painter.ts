@@ -968,36 +968,32 @@ export class GardenScenePainter {
       for (let grain = 0; grain < 24; grain++) prepared.fillStyle(grain % 2 ? model.soilStyle.light : model.soilStyle.grain, .55).fillEllipse(x - 100 + grain % 8 * 28, y - 35 + Math.floor(grain / 8) * 26, 6, 3)
       this.components.add('activity:prepared')
     }
-    if (slot.lastFertilizedAt) {
-      const badge = this.graphics('plants', slot.depth * 10 + 4)
-      badge.fillStyle(0xb6984e, .9).fillCircle(x + 38, y + 25, 7)
-      badge.lineStyle(2, 0xffe3a0).strokeCircle(x + 38, y + 25, 7)
-      this.components.add('activity:fertilized')
-    }
-    // Son marcas de eventos en la bitácora, nunca una inferencia sobre
-    // humedad actual, malezas ni crecimiento biológico.
-    if (slot.lastWateredAt) {
-      const badge = this.graphics('plants', slot.depth * 10 + 4)
-      badge.fillStyle(0x287f9e, .95).fillCircle(x - 47, y + 24, 8)
-      badge.fillStyle(0xc5f1fa, .97).fillTriangle(x - 47, y + 9, x - 53, y + 25, x - 41, y + 25)
-      this.components.add('activity:watered')
-    }
-    if (slot.lastWeededAt) {
-      const badge = this.graphics('plants', slot.depth * 10 + 4)
-      badge.fillStyle(0x4b8b4b, .95).fillCircle(x + 56, y + 23, 8)
-      badge.lineStyle(2.5, 0xe6f2b4, .95)
-      badge.lineBetween(x + 56, y + 27, x + 56, y + 17)
-      badge.lineBetween(x + 56, y + 21, x + 51, y + 18)
-      badge.lineBetween(x + 56, y + 21, x + 61, y + 18)
-      this.components.add('activity:weeded')
-    }
     if (!slot.plant) {
-      // A tiny warm glint suggests interactivity without a sign, number or fake crop.
-      const g = this.graphics('plants', slot.depth * 10 + 1)
-      g.fillStyle(0xffeab1, .12).fillEllipse(x, y, 46, 26)
-      g.lineStyle(2, 0xffe9b1, .75).strokeEllipse(x, y, 18, 10)
-      g.fillStyle(0xfff4d2, .9).fillCircle(x, y - 1, 3)
+      // Espacio vacío: sin marcas de cuidados, solo un sutil indicador de interactividad.
+      // No se dibujan iconos residuales de actividades de plantas anteriores.
     } else {
+      // Son marcas de eventos en la bitácora, solo cuando hay planta activa en el espacio.
+      if (slot.lastFertilizedAt) {
+        const badge = this.graphics('plants', slot.depth * 10 + 4)
+        badge.fillStyle(0xb6984e, .9).fillCircle(x + 38, y + 25, 7)
+        badge.lineStyle(2, 0xffe3a0).strokeCircle(x + 38, y + 25, 7)
+        this.components.add('activity:fertilized')
+      }
+      if (slot.lastWateredAt) {
+        const badge = this.graphics('plants', slot.depth * 10 + 4)
+        badge.fillStyle(0x287f9e, .95).fillCircle(x - 47, y + 24, 8)
+        badge.fillStyle(0xc5f1fa, .97).fillTriangle(x - 47, y + 9, x - 53, y + 25, x - 41, y + 25)
+        this.components.add('activity:watered')
+      }
+      if (slot.lastWeededAt) {
+        const badge = this.graphics('plants', slot.depth * 10 + 4)
+        badge.fillStyle(0x4b8b4b, .95).fillCircle(x + 56, y + 23, 8)
+        badge.lineStyle(2.5, 0xe6f2b4, .95)
+        badge.lineBetween(x + 56, y + 27, x + 56, y + 17)
+        badge.lineBetween(x + 56, y + 21, x + 51, y + 18)
+        badge.lineBetween(x + 56, y + 21, x + 61, y + 18)
+        this.components.add('activity:weeded')
+      }
       // Espejo Digital V2: la fotografía solo es evidencia en Pasaporte Vivo.
       // Sin observación explícita, se dibuja una señal sin crecimiento inventado.
       const stage = documentedGrowthStage(slot.plant)
@@ -1054,5 +1050,4 @@ export class GardenScenePainter {
       },
     }, model, type, plot, reducedMotion)
   }
-
 }

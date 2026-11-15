@@ -20,6 +20,8 @@ backend/prisma/*.db
 backend/prisma/*.db-journal
 backend/uploads/plants/*
 !backend/uploads/plants/.gitkeep
+backend/uploads/activities/*
+!backend/uploads/activities/.gitkeep
 backend/uploads/communities/
 backend/uploads/gardens/
 
@@ -35,6 +37,7 @@ Thumbs.db
 *.tsbuildinfo
 
 # Generated review outputs and local-only design experiments
+docs/PLAN_*.md
 frontend/artifacts/
 VISTA_PREVIA.webp
 kawsapacha_codex_*.zip

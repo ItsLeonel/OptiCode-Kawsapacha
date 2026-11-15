@@ -64,13 +64,9 @@ export function paintSecondaryFeedback(g: Phaser.GameObjects.Graphics, type: Act
   if (type === 'preparation' || type === 'hilling') {
     g.lineStyle(4, 0xa16e42, .96)
     for (let i = -1; i <= 1; i++) g.strokeEllipse(i * 23, 0, type === 'hilling' ? 26 : 39, type === 'hilling' ? 19 : 12)
-  } else if (type === 'sowing' || type === 'replanting') {
+  } else if (type === 'sowing') {
     g.fillStyle(0x987044, .98)
     for (let i = -1; i <= 1; i++) g.fillEllipse(i * 17, (i % 2) * 8, 8, 12)
-    if (type === 'replanting') {
-      g.lineStyle(4, 0xffe0a1, .96).lineBetween(-28, 25, 25, -15)
-      g.lineBetween(25, -15, 11, -14).lineBetween(25, -15, 22, 0)
-    }
   } else if (type === 'observation') {
     g.lineStyle(5, 0xffe6b7, .98).strokeCircle(-6, -6, 18)
     g.lineStyle(6, 0x875d39, .98).lineBetween(7, 7, 33, 34)

@@ -15,7 +15,9 @@ export async function harvestPlant(req: AuthRequest, res: Response): Promise<voi
     const harvest = await harvestService.harvestPlant(plantId, quantity.trim(), notes ?? '', req.user.userId)
     ok(res, { harvest }, 'Cosecha registrada.', 201)
   } catch (err: any) {
-    fail(res, 'INTERNAL_ERROR', err?.message || 'Error al registrar cosecha.', 500)
+    const code = err?.code
+    const status = code === 'ACTIVITY_ALREADY_PENDING' ? 409 : code === 'PLANT_NOT_APPROVED' ? 403 : 500
+    fail(res, code || 'INTERNAL_ERROR', err?.message || 'Error al registrar cosecha.', status)
   }
 }
 

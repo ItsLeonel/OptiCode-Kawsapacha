@@ -4,6 +4,7 @@ import { GROWTH_STAGES, type GrowthStage } from './growth-stages'
 import { localDate, recordId, validatePlantUpdate, type PlantUpdate } from './plant-record'
 import { useGardenDialog } from './useGardenDialog'
 import { useJournalPhoto } from './journal/useJournalPhoto'
+import { PHOTO_ACCEPT } from '../../shared/photo-validation'
 import { usePlantVisualAnalysis } from './usePlantVisualAnalysis'
 import PlantVisualAnalysis from './PlantVisualAnalysis'
 import './garden-journal.css'
@@ -33,11 +34,11 @@ export default function PlantEditor({ plant, plants, onSave, onClose, growthStag
         <label>Estado documentado<select aria-label="Estado documentado" value={draft.state} onChange={event => field('state', event.target.value as PlantState)}>{Object.entries(PLANT_STATES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
         <label>Etapa de crecimiento observada<select aria-label="Etapa de crecimiento observada" disabled={!growthStageEnabled} value={draft.growthStage ?? ''} onChange={event => field('growthStage', event.target.value ? event.target.value as GrowthStage : undefined)}><option value="">Sin etapa verificada</option>{Object.entries(GROWTH_STAGES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
         <label>Altura medida (cm, opcional)<input type="number" min="0" max="100000" step="0.1" value={draft.heightCm ?? ''} onChange={event => field('heightCm', event.target.value === '' ? undefined : Number(event.target.value))}/></label>
-        <label>Nueva fotografía (obligatoria si cambia la etapa)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={photo.choose}/></label>
+        <label>Nueva fotografía (obligatoria si cambia la etapa)<input type="file" accept={PHOTO_ACCEPT} onChange={photo.choose}/></label>
         <label className="journal-wide">Observaciones<textarea value={draft.observations} maxLength={2000} onChange={event => field('observations', event.target.value)}/></label>
       </div>
       <PlantVisualAnalysis analysis={analysis} previous={plant.visualProfile}/>
-      <p className="journal-note">{growthStageEnabled ? 'Una nueva etapa solo aparecerá en el jardín cuando adjuntes una fotografía real. No existe crecimiento automático.' : 'La actualización de etapas con sesión requiere la API de evidencias #43. Tus fotos actuales se conservan.'}</p>
+      <p className="journal-note">{growthStageEnabled ? 'Una nueva etapa solo aparecerá en el jardín cuando adjuntes una fotografía real. No existe crecimiento automático.' : 'La actualización de etapas requiere conectar la sesión del huerto. Tus fotos actuales se conservan.'}</p>
       {(error || photo.error) && <p role="alert" className="journal-error">{error || photo.error}</p>}
       <footer><button type="button" disabled={busy} onClick={onClose}>Cancelar</button><button type="submit" disabled={busy || photo.reading || Boolean(photo.error) || analysis.status === 'analyzing'}>{busy ? 'Guardando…' : 'Guardar observación'}</button></footer>
     </form>

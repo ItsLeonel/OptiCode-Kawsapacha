@@ -108,9 +108,9 @@ export default function RewardsDashboard({ journal, region, authenticated, offic
               </button>
             })}
           </div>
-          {missionSelected && <div className="rv-selected-detail"><strong>{missionSelected.label}</strong><span>{missionSelected.criterion}</span><small>{missionSelected.id === 'lunar' ? 'La validación de fases lunares requiere la API.' : 'Solo se reconocen actividades documentadas y válidas.'}</small></div>}
+          {missionSelected && <div className="rv-selected-detail"><strong>{missionSelected.label}</strong><span>{missionSelected.criterion}</span><small>{missionSelected.id === 'lunar' ? 'Se validan actividades aprobadas por el MSP en la fecha lunar recomendada.' : 'Solo se reconocen actividades documentadas y aprobadas por el MSP.'}</small></div>}
           <button type="button" className="rv-subtle-button rv-missions-toggle" aria-expanded={showAllMissions} onClick={() => setShowAllMissions(value => !value)}>{showAllMissions ? 'Ocultar explicación' : 'Ver todas las misiones'} <span aria-hidden="true">{showAllMissions ? '⌃' : '⌄'}</span></button>
-          {showAllMissions && <p className="rv-extra-detail">La misión «Ciclo lunar consciente» y las recompensas de todas las misiones se habilitarán cuando el backend confirme las reglas. Registrar una actividad no garantiza automáticamente puntos.</p>}
+          {showAllMissions && <p className="rv-extra-detail">Todas las insignias y misiones verdes se acreditan únicamente cuando el MSP aprueba tus evidencias registradas. Registrar una actividad no garantiza automáticamente puntos.</p>}
         </section>
       </div>
       <section className="rv-trajectory">

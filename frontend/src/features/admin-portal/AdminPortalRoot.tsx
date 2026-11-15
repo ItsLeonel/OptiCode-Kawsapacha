@@ -63,6 +63,7 @@ export default function AdminPortalRoot() {
   const [access, setAccess] = useState<Access>('checking')
   const [verifiedUser, setVerifiedUser] = useState<UserSession | null>(null)
   const [error, setError] = useState('')
+  
   useEffect(() => {
     const onNavigation = () => setRoute(currentRoute())
     window.addEventListener('hashchange', onNavigation)

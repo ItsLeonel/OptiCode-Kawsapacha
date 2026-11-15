@@ -52,10 +52,9 @@ export function applyJournalCommand(current: GardenJournal, command: JournalComm
   } else if (command.type === 'terrain') {
     if (!next.community) throw new Error('Primero registra una comunidad para tu huerto.')
     next.terrain = { ...command.terrain, communityName: next.community.name }
-  } else {
+  } else if (command.type === 'plant-add') {
     if (!next.terrain || !next.community) throw new Error('Primero registra tu comunidad y tu terreno.')
-    if (command.type === 'plant-add') {
-      const plant = command.plant
+    const plant = command.plant
       if (!plant.id || !plant.photoId || plant.name.trim().length < 2 || (plant.plantedOn !== undefined && !validDate(plant.plantedOn)) || !Number.isInteger(plant.plot) || plant.plot < 0 || plant.plot >= 6) throw new Error('Revisa la fotografía, identificación y espacio de la planta.')
       if (next.plants.some(item => item.id === plant.id) || projectPlants(next).some(item => !item.archivedAt && item.plot === plant.plot)) throw new Error('Ese espacio ya está ocupado. Tu fotografía no se ha perdido.')
       next.plants.push({ ...plant, photo: '' })
@@ -87,7 +86,6 @@ export function applyJournalCommand(current: GardenJournal, command: JournalComm
         next.plants[index] = { ...plant, plot: visible.plot, state: visible.state, photoId: visible.photoId, plantedOn: visible.plantedOn, updatedAt: command.at, archivedAt: undefined }
       }
     }
-  }
   const occupied = projectPlants(next).filter(plant => !plant.archivedAt).map(plant => plant.plot)
   if (new Set(occupied).size !== occupied.length) throw new Error('Ese cambio ocuparía un espacio que ya tiene otra planta. Libera o cambia su ubicación primero.')
   return { ...next, revision: current.revision + 1, appliedCommands: [...current.appliedCommands, command.id] }
@@ -116,7 +114,7 @@ export function projectPlants(journal: GardenJournal): GardenPlant[] {
         if (activity.photoIds[0] && currentEffect) { plant.photoId = activity.photoIds[0]; plant.photo = activity.photos?.[0] ?? '' }
         plant.evidences.push({ id: activity.id, date: activity.date, notes: activity.notes, ...(details.state ? { state: details.state } : {}), ...(details.growthStage ? { growthStage: details.growthStage } : {}), ...(details.heightCm !== undefined ? { heightCm: details.heightCm } : {}), ...(details.visualProfile ? { visualProfile: details.visualProfile } : {}), ...(activity.photoIds[0] ? { photoId: activity.photoIds[0], photo: activity.photos?.[0] } : {}) })
       }
-      if (activity.type === 'replanting' && details.destinationPlot !== undefined && currentEffect) plant.plot = details.destinationPlot
+      if ((activity.type as string) === 'replanting' && details.destinationPlot !== undefined && currentEffect) plant.plot = details.destinationPlot
       if (activity.type === 'harvest' && details.harvestMode === 'complete' && currentEffect) { plant.state = 'harvested'; plant.growthStage = 'harvested'; if (details.releasePlot) plant.archivedAt = activity.createdAt }
     }
     return plant

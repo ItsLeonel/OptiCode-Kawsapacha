@@ -6,8 +6,10 @@ import { PLANT_SPECIES, type PlantSpecies, type PlantRegistration, type PlantReg
 import { usePlantCamera } from './usePlantCamera'
 import './plant-registration.css'
 import { localDate, recordId, validDate } from './plant-record'
+import { MAX_PHOTO_BYTES, optimizeMobilePhoto, PHOTO_ACCEPT } from '../../shared/photo-validation'
 import { usePlantVisualAnalysis } from './usePlantVisualAnalysis'
 import PlantVisualAnalysis from './PlantVisualAnalysis'
+import type { PlantVisualProfile } from './plant-visual-profile'
 
 // Held only in App memory while the visitor sets up their real garden.
 export type PlantRegistrationDraft = {
@@ -19,44 +21,11 @@ export type PlantRegistrationDraft = {
   requestId?: string
   recordSowing?: boolean
   growthStage?: GrowthStage
+  visualProfile?: PlantVisualProfile
   responsible?: string
 }
 
-async function optimizeImage(file: File | Blob): Promise<File | Blob> {
-  const url = URL.createObjectURL(file)
-  try {
-    const image = new Image()
-    image.src = url
-    await image.decode()
-    if (!image.naturalWidth || !image.naturalHeight) throw new Error('Empty image')
-
-    const maxDim = 1920
-    const w = image.naturalWidth
-    const h = image.naturalHeight
-
-    if (file.size <= 3 * 1024 * 1024 && Math.max(w, h) <= maxDim && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      return file
-    }
-
-    const scale = Math.min(1, maxDim / Math.max(w, h))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(w * scale)
-    canvas.height = Math.round(h * scale)
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('Canvas 2D unavailable')
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-
-    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85))
-    if (!blob) throw new Error('Compression failed')
-
-    const originalName = file instanceof File ? file.name.replace(/\.[^/.]+$/, '') : 'foto-planta'
-    return new File([blob], `${originalName}.jpg`, { type: 'image/jpeg' })
-  } finally {
-    URL.revokeObjectURL(url)
-  }
-}
-
-export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialGrowthStage, growthStageEnabled = true, serverBasicOnly = false, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
+export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialGrowthStage, growthStageEnabled = true, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
   plants: GardenPlant[]
   speciesOptions?: PlantSpecies[]
   initialPlot: number | null
@@ -69,13 +38,19 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   initialSowing?: boolean
   initialGrowthStage?: GrowthStage
   growthStageEnabled?: boolean
-  serverBasicOnly?: boolean
   initialResponsible?: string
   initialRequestId?: string
   onClose: () => void
   onSetup: (draft: PlantRegistrationDraft) => void
 }) {
-  const available = Array.from({ length: PLOT_COUNT }, (_, index) => index).filter(plot => !plants.some(plant => plant.plot === plot))
+  const available = Array.from({ length: PLOT_COUNT }, (_, index) => index).filter(
+    plot => !plants.some(plant => !plant.archivedAt && plant.plot === plot)
+  )
+  const initialPlotOccupant =
+    initialPlot !== null ? plants.find(plant => !plant.archivedAt && plant.plot === initialPlot) : undefined
+  const initialPlotPending = Boolean(
+    initialPlotOccupant && (initialPlotOccupant.reviewStatus === 'PENDING' || initialPlotOccupant.reviewStatus === 'NEEDS_CHANGES')
+  )
   const [plot, setPlot] = useState(initialPlot !== null && available.includes(initialPlot) ? initialPlot : available[0] ?? -1)
   const [speciesName, setSpeciesName] = useState(() => speciesOptions.some(option => option.name === initialSpecies) ? initialSpecies : speciesOptions[0]?.name ?? initialSpecies)
   const [plantedOn, setPlantedOn] = useState(initialPlantedOn)
@@ -86,7 +61,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   const [error, setError] = useState('')
   const [reading, setReading] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [recordSowing, setRecordSowing] = useState(initialSowing && !serverBasicOnly)
+  const [recordSowing, setRecordSowing] = useState(initialSowing)
   const [growthStage, setGrowthStage] = useState<GrowthStage | undefined>(initialGrowthStage)
   const [responsible, setResponsible] = useState(initialResponsible)
   const requestId = useRef(initialRequestId ?? recordId('registration'))
@@ -97,8 +72,14 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
   const selection = useRef(0)
   const saving = useRef(false)
   const camera = usePlantCamera()
-  const species = speciesOptions.find(item => item.name === speciesName)
+  const species = speciesOptions.find(item => item.name === speciesName) || speciesOptions[0]
   const cameraActive = camera.state !== 'idle'
+
+  useEffect(() => {
+    if (speciesOptions.length > 0 && !speciesOptions.some(opt => opt.name === speciesName)) {
+      setSpeciesName(speciesOptions[0].name)
+    }
+  }, [speciesOptions, speciesName])
 
   useEffect(() => {
     const dialog = dialogRef.current!
@@ -132,8 +113,8 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
     setPhoto(null)
 
     try {
-      const optimized = await optimizeImage(file)
-      if (optimized.size > 3 * 1024 * 1024) {
+      const optimized = await optimizeMobilePhoto(file, 'foto-planta')
+      if (optimized.size > MAX_PHOTO_BYTES) {
         if (request === selection.current) {
           setError('La fotografía excede los 3 MB incluso tras optimizar. Elige otra imagen.')
           setReading(false)
@@ -232,8 +213,8 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
             <button type="button" aria-pressed={mode === 'camera'} onClick={openCamera} disabled={camera.state === 'requesting' || camera.state === 'capturing'}><GardenIcon name="camera"/>Cámara</button>
             <button type="button" aria-pressed={mode === 'gallery'} onClick={openGallery}><GardenIcon name="gallery"/>Galería</button>
             <label className="plant-sr-only" htmlFor="plant-photo">Fotografía de tu planta (JPG, PNG o WebP, hasta 3 MB)</label>
-            <input ref={fileRef} id="plant-photo" type="file" accept="image/jpeg,image/png,image/webp,image/*" tabIndex={-1} className="plant-sr-only" onChange={choosePhoto}/>
-            <input ref={cameraInputRef} id="plant-camera-native" type="file" accept="image/jpeg,image/png,image/webp,image/*" capture="environment" tabIndex={-1} className="plant-sr-only" onChange={choosePhoto}/>
+            <input ref={fileRef} id="plant-photo" type="file" accept={PHOTO_ACCEPT} tabIndex={-1} className="plant-sr-only" onChange={choosePhoto}/>
+            <input ref={cameraInputRef} id="plant-camera-native" type="file" accept={PHOTO_ACCEPT} capture="environment" tabIndex={-1} className="plant-sr-only" onChange={choosePhoto}/>
           </div>
           <div className="plant-photo-workspace" aria-busy={reading || camera.state === 'requesting' || camera.state === 'capturing'}>
             <div className="plant-viewfinder">
@@ -252,7 +233,15 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
           <div className="plant-selected-species">{preview ? <img src={preview} alt="Fotografía seleccionada"/> : <span className="plant-preview-placeholder" aria-hidden="true"><GardenIcon name="seed"/></span>}<div><strong>{species?.name ?? 'Tu planta'}</strong>{species && <em>{species.latin}</em>}</div></div>
           <PlantVisualAnalysis analysis={analysis}/>
           <label className="plant-registration-field" htmlFor="plant-species">Especie medicinal<select id="plant-species" value={speciesName} onChange={event => setSpeciesName(event.target.value)} required>{speciesOptions.map(item => <option key={item.name} value={item.name}>{item.name}</option>)}</select></label>
-          <label className="plant-registration-field" htmlFor="plant-position">Posición de cultivo<select id="plant-position" value={plot} onChange={event => setPlot(Number(event.target.value))} required disabled={!available.length}>{!available.length && <option value={-1}>Sin espacios disponibles</option>}{Array.from({ length: PLOT_COUNT }, (_, index) => <option key={index} value={index} disabled={!available.includes(index)}>Espacio {index + 1}{!available.includes(index) ? ' · ocupado' : ''}</option>)}</select></label>
+          <label className="plant-registration-field" htmlFor="plant-position">Posición de cultivo<select id="plant-position" value={plot} onChange={event => setPlot(Number(event.target.value))} required disabled={!available.length}>{!available.length && <option value={-1}>Sin espacios disponibles</option>}{Array.from({ length: PLOT_COUNT }, (_, index) => {
+            const occupant = plants.find(plant => !plant.archivedAt && plant.plot === index)
+            const isPending = occupant && (occupant.reviewStatus === 'PENDING' || occupant.reviewStatus === 'NEEDS_CHANGES')
+            return (
+              <option key={index} value={index} disabled={Boolean(occupant)}>
+                Espacio {index + 1}{!occupant ? ' · disponible' : isPending ? ` · ⏳ pendiente MSP (${occupant.name})` : ` · ocupado (${occupant.name})`}
+              </option>
+            )
+          })}</select></label>
           <label className="plant-registration-field" htmlFor="plant-sowing-date">Fecha de siembra <span>(opcional)</span><input type="date" id="plant-sowing-date" max={localDate()} value={plantedOn} onChange={event => setPlantedOn(event.target.value)}/></label>
           <label className="plant-registration-field" htmlFor="plant-growth-stage">
             Etapa que muestra esta fotografía <span>(opcional)</span>
@@ -262,8 +251,13 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
             </select>
             <small>{growthStageEnabled ? 'Solo lo que observaste realmente. La foto es evidencia, no la ilustración de Mi Jardín.' : 'Las etapas del usuario autenticado se habilitarán al conectar la API de evidencias del servidor.'}</small>
           </label>
-          {!serverBasicOnly && <label className="journal-check"><input type="checkbox" checked={recordSowing} onChange={event => setRecordSowing(event.target.checked)}/>Registrar también la actividad de siembra realizada</label>}
+          <label className="journal-check"><input type="checkbox" checked={recordSowing} onChange={event => setRecordSowing(event.target.checked)}/>Registrar también la actividad de siembra realizada</label>
           {recordSowing && <label className="plant-registration-field">Persona responsable de la siembra<input required minLength={2} maxLength={100} value={responsible} onChange={event => setResponsible(event.target.value)}/></label>}
+          {initialPlotPending && initialPlotOccupant && (
+            <p className="plant-registration-notice" role="status">
+              ⏳ El Espacio {initialPlotOccupant.plot + 1} ya tiene a «{initialPlotOccupant.name}» pendiente de aprobación por el MSP y no puede utilizarse hasta su revisión.
+            </p>
+          )}
           {notice && <p className="plant-registration-notice">{notice}</p>}
           {!available.length && <p className="plant-registration-notice" role="status">Los seis espacios están ocupados. Consulta sus Pasaportes Vivos en el jardín.</p>}
           {!ready && <div className="plant-registration-setup"><p>Primero registra tu terreno en Mi Jardín. Debe estar vinculado a una comunidad. Una comunidad personal es válida.</p><button type="button" disabled={reading || cameraActive} onClick={() => onSetup({ plot, species: speciesName, photo, plantedOn, notice, requestId: requestId.current, recordSowing, responsible, ...(growthStageEnabled && growthStage ? { growthStage } : {}) })}>Ir a Mi terreno <GardenIcon name="arrow"/></button></div>}
@@ -282,7 +276,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
             </div>
           )}
           <div className="plant-registration-actions"><button type="button" className="plant-registration-cancel" disabled={busy} onClick={onClose}>Cancelar</button><button className="plant-registration-submit" type="submit" disabled={busy || !ready || !available.length || !photo || reading || cameraActive || analysis.status === 'analyzing'}><GardenIcon name="seed"/>{busy ? 'Guardando…' : 'Añadir a mi huerto'}</button></div>
-          <small className="plant-registration-temporary">{serverBasicOnly ? 'Se guardarán la ficha básica y la fotografía en SQLite. El perfil visual calculado aquí no se sincroniza hasta que esté lista la API #35/#43; las etapas y la actividad de siembra aún no se guardan.' : 'Se guardan la ficha, la etapa y la fotografía solo en este navegador.'}</small>
+          <small className="plant-registration-temporary">{growthStageEnabled ? 'Se guardan la ficha, la etapa y la fotografía en el servidor o en este navegador.' : 'Se guardan la ficha y la fotografía.'}</small>
         </section>
       </div>
     </form>

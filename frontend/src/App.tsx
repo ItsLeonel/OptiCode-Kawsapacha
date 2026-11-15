@@ -26,26 +26,33 @@ import {
   plantApi,
   careApi,
   harvestApi,
+  activityApi,
   invitationApi,
+  notificationApi,
   memberApi,
   getUser,
+  resolveMediaUrl,
   type UserSession,
   type CommunityInvitationItem,
+  type BackendActivity,
   type CatalogSpecies,
   normalizeCatalogSpecies,
+  rewardsApi,
+  type RewardsSummary,
 } from './services/api'
+import type { AuthoritativeRewards, RewardBadgeId, RewardMissionId, RewardLevel } from './features/my-garden/rewards/rewards-types'
 import { regionForProvince } from './features/real-gardens/garden-region'
 import { matchesCommunityLocation, withCommunityLocation } from './features/real-gardens/garden-community-location'
 import type { GardenSceneRenderer } from './features/my-garden/garden-scene-renderer'
 import { localDate, recordId, validatePlantUpdate, validDate, type PlantUpdate } from './features/my-garden/plant-record'
+import { isGrowthStage } from './features/my-garden/growth-stages'
 import { useGardenJournal } from './features/my-garden/journal/useGardenJournal'
+import type { GardenJournal } from './features/my-garden/journal/journal'
 import ActivityModal from './features/my-garden/journal/ActivityModal'
-import ActivityList from './features/my-garden/journal/ActivityList'
-import { activityKey, type ActivityDraft, type ActivityType, type GardenActivity } from './features/my-garden/journal/activities'
+import { type ActivityDraft, type ActivityType, type GardenActivity } from './features/my-garden/journal/activities'
 import './features/my-garden/garden-journal.css'
 import GardenProgress from './features/my-garden/GardenProgress'
 import { calculateProgress } from './features/my-garden/journal/progress'
-import { AUTHENTICATED_JOURNAL, basicServerNotes, isBasicServerActivity, validateBasicServerActivity } from './features/my-garden/journal/storage-mode'
 
 type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Bitácora' | 'Mi historia' | 'Mi camino verde'
 
@@ -71,6 +78,13 @@ function currentScreen(): Screen {
 const draftKey = (draft: RealGardenDraft) =>
   JSON.stringify({ ...draft, photo: draft.photo ? [draft.photo.name, draft.photo.size, draft.photo.lastModified] : null })
 
+function photoExtension(blob: Blob): string {
+  const mime = (blob.type || '').toLowerCase()
+  if (mime === 'image/png') return 'png'
+  if (mime === 'image/webp') return 'webp'
+  return 'jpg'
+}
+
 export default function App({
   onAuthenticate,
   renderGardenScene,
@@ -83,7 +97,6 @@ export default function App({
 
   // Bitácora local IndexedDB (modo visitante)
   const journal = useGardenJournal(!user)
-  const serverSavedActivityIds = useRef<Set<string>>(new Set())
   const [serverActivityRevision, setServerActivityRevision] = useState(0)
 
   // Estado del backend cuando hay usuario con sesión activa
@@ -95,17 +108,36 @@ export default function App({
   const [backendGarden, setBackendGarden] = useState<RealGarden | null>(null)
   const [activeGardenId, setActiveGardenId] = useState<string | null>(null)
   const [backendPlants, setBackendPlants] = useState<GardenPlant[]>([])
+  const [backendActivities, setBackendActivities] = useState<GardenActivity[]>([])
   const [pendingInvitations, setPendingInvitations] = useState<CommunityInvitationItem[]>([])
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
   const [isNotificationsOpen, setNotificationsOpen] = useState(false)
   const [speciesCatalog, setSpeciesCatalog] = useState<CatalogSpecies[]>(() => regionalSpecies.map(normalizeCatalogSpecies))
   const [catalogServerLoaded, setCatalogServerLoaded] = useState(false)
+  const [serverRewards, setServerRewards] = useState<RewardsSummary | null>(null)
 
   // Selección unificada de datos según modo (Backend o Visitante)
   const communityRecord = user ? backendCommunity : journal.data.community
   const realGarden = user ? backendGarden : journal.data.terrain
   const plants = user ? backendPlants : journal.plants
-  const visibleJournal = user ? AUTHENTICATED_JOURNAL : journal.data
   const activePlants = plants.filter(plant => !plant.archivedAt)
+  const activities = user && activeGardenId ? backendActivities : journal.data.activities
+
+  const effectiveJournal: GardenJournal = useMemo(() => {
+    if (user && activeGardenId) {
+      return {
+        version: 1,
+        revision: 1,
+        gardenId: activeGardenId,
+        community: backendCommunity,
+        terrain: backendGarden,
+        plants: backendPlants,
+        activities: backendActivities,
+        appliedCommands: [],
+      }
+    }
+    return journal.data
+  }, [user, activeGardenId, backendCommunity, backendGarden, backendPlants, backendActivities, journal.data])
 
   const [screen, setScreen] = useState<Screen>(currentScreen)
   const [communityEntry, setCommunityEntry] = useState<CommunityEntryAction | null>(null)
@@ -123,7 +155,8 @@ export default function App({
 
   const detail = plants.find(plant => plant.id === detailId) ?? null
   const editingPlant = plants.find(plant => plant.id === editingId)
-  const progress = useMemo(() => calculateProgress(visibleJournal, communityRecord?.responsible), [visibleJournal, communityRecord?.responsible])
+  const activeUser = user?.name || communityRecord?.responsible
+  const progress = useMemo(() => calculateProgress(effectiveJournal, activeUser), [effectiveJournal, activeUser])
 
   // El API es la fuente de verdad; la lista local solo permite consultar en ausencia de servidor.
   useEffect(() => {
@@ -200,22 +233,45 @@ export default function App({
     return activeCommunityMembers.filter(m => m.status === 'PENDING').length
   }, [user, activeCommunityMembers])
 
-  // Cargar invitaciones pendientes
+  // Cargar invitaciones pendientes y notificaciones no leídas
   async function loadPendingInvitations() {
     if (!user) {
       setPendingInvitations([])
+      setUnreadNotificationsCount(0)
       return
     }
     try {
-      const list = await invitationApi.getMyInvitations()
+      const [list, notifRes] = await Promise.all([
+        invitationApi.getMyInvitations().catch(() => []),
+        notificationApi.list().catch(() => ({ notifications: [], unreadCount: 0 })),
+      ])
       setPendingInvitations(list || [])
+      setUnreadNotificationsCount(notifRes.unreadCount || 0)
     } catch {
       setPendingInvitations([])
+      setUnreadNotificationsCount(0)
     }
   }
 
+  const totalNotificationsCount = pendingInvitations.length + unreadNotificationsCount
+
   useEffect(() => {
-    loadPendingInvitations()
+    void loadPendingInvitations()
+    if (user) void reloadServerRewards()
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    const refresh = () => {
+      void loadPendingInvitations()
+      void reloadServerRewards()
+    }
+    const interval = window.setInterval(refresh, 30000)
+    window.addEventListener('focus', refresh)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refresh)
+    }
   }, [user])
 
   // Cargar datos persistentes del usuario desde SQLite
@@ -254,6 +310,119 @@ export default function App({
       })
   }, [user])
 
+  function mapBackendActivity(b: BackendActivity): GardenActivity {
+    let detailsObj: any = {}
+    try {
+      detailsObj = typeof b.details === 'string' ? JSON.parse(b.details || '{}') : (b.details || {})
+    } catch {
+      detailsObj = {}
+    }
+    const target: GardenActivity['target'] =
+      b.targetKind === 'plant' && b.plantId
+        ? { kind: 'plant', plantId: b.plantId, plot: b.plotIndex ?? 0 }
+        : b.targetKind === 'plot'
+        ? { kind: 'plot', plot: b.plotIndex ?? 0 }
+        : { kind: 'garden' }
+
+    const photoUrls = b.evidences?.map(e => resolveMediaUrl(e.fileUrl)) || []
+
+    return {
+      id: b.id,
+      gardenId: b.gardenId,
+      type: b.type as any,
+      date: b.performedDate,
+      responsible: b.actorUser?.name || 'Comunidad',
+      target,
+      notes: b.notes || '',
+      photoIds: photoUrls.map((_, i) => `${b.id}-photo-${i}`),
+      photos: photoUrls,
+      details: detailsObj,
+      createdAt: b.createdAt,
+      validation: 'local-v1',
+      voidedAt: b.voidedAt ?? undefined,
+      voidReason: b.voidReason ?? undefined,
+      reviewStatus: b.reviewStatus ?? undefined,
+      reviewedById: b.reviewedById ?? undefined,
+      reviewReason: b.reviewReason ?? undefined,
+      reviewedAt: b.reviewedAt ?? undefined,
+    }
+  }
+
+  function toAuthoritativeRewards(summary: RewardsSummary): AuthoritativeRewards {
+    const badgeMap: Record<string, RewardBadgeId> = {
+      FIRST_SOWING: 'first-sowing',
+      'first-sowing': 'first-sowing',
+      CARE_EXCELLENCE: 'care',
+      care: 'care',
+      MINDFUL_OBSERVER: 'observer',
+      observer: 'observer',
+      BOUNTIFUL_HARVEST: 'harvest',
+      harvest: 'harvest',
+    }
+    const missionMap: Record<string, RewardMissionId> = {
+      ROOT_CARE: 'care',
+      care: 'care',
+      OBSERVATION_JOURNAL: 'observer',
+      observer: 'observer',
+      LUNAR_RHYTHM: 'lunar',
+      'lunar-cycle': 'lunar',
+      lunar: 'lunar',
+    }
+    return {
+      source: 'server',
+      seeds: summary.points,
+      level: (['Aprendiz', 'Oficial', 'Maestro'].includes(summary.level) ? summary.level : 'Aprendiz') as RewardLevel,
+      nextLevel: (summary.nextLevel && ['Aprendiz', 'Oficial', 'Maestro'].includes(summary.nextLevel) ? summary.nextLevel : undefined) as RewardLevel | undefined,
+      progressPercent: summary.progressPercent,
+      remaining: summary.remaining,
+      badges: (['first-sowing', 'care', 'observer', 'harvest'] as RewardBadgeId[]).map(id => {
+        const match = summary.badges.find(b => {
+          const rawCode = (b as any).badgeId || (b as any).code
+          return badgeMap[rawCode] === id
+        })
+        return { id, earned: Boolean(match), earnedAt: match?.earnedAt }
+      }),
+      missions: (['care', 'observer', 'lunar'] as RewardMissionId[]).map(id => {
+        const match = summary.missions.find(m => {
+          const rawCode = (m as any).missionId || (m as any).code
+          return missionMap[rawCode] === id
+        })
+        return {
+          id,
+          current: match ? (match as any).currentValue ?? (match as any).progress ?? 0 : 0,
+          target: match ? (match as any).targetValue ?? (match as any).targetCount ?? 3 : 3,
+          completed: match ? Boolean((match as any).completed || (match as any).status === 'COMPLETED') : false,
+          rewardSeeds: (match as any)?.rewardPoints ?? 20,
+        }
+      }),
+    }
+  }
+
+  async function reloadServerRewards() {
+    if (!user) {
+      setServerRewards(null)
+      return
+    }
+    try {
+      const summary = await rewardsApi.getSummary()
+      setServerRewards(summary)
+    } catch {
+      // Si falla la sincronización, el estado fallback usa la bitácora
+    }
+  }
+
+  async function reloadBackendActivities(gId: string) {
+    try {
+      const list = await activityApi.list(gId)
+      if (list && Array.isArray(list)) {
+        setBackendActivities(list.map(mapBackendActivity))
+      }
+      void reloadServerRewards()
+    } catch (err) {
+      console.error('Error cargando actividades del servidor:', err)
+    }
+  }
+
   async function loadGardenForCommunity(cId: string) {
     try {
       const gardensList = await gardenApi.list(cId)
@@ -269,30 +438,36 @@ export default function App({
           setBackendPlants(
             activeList.map(p => ({
               id: p.id,
-              name: p.species?.name || p.speciesId,
+              name: p.customName || p.species?.name || p.speciesId,
               latin: p.species?.latinName || '',
-              photo: p.photoUrl,
+              photo: resolveMediaUrl(p.photoUrl),
               date: new Date(p.plantingDate).toLocaleDateString('es-EC'),
               plot: p.plotIndex ?? -1,
               createdAt: (p as any).createdAt || new Date(p.plantingDate).toISOString(),
-              state: 'observed',
+              state: (p as any).observedState || (p.lifecycleStatus === 'READY_TO_HARVEST' ? 'mature' : 'growing'),
+              growthStage: isGrowthStage(p.growthStage) ? p.growthStage : undefined,
+              observations: p.notes || '',
               archivedAt: p.archivedAt ? new Date(p.archivedAt).toISOString() : (p.lifecycleStatus === 'ARCHIVED' ? new Date().toISOString() : undefined),
+              reviewStatus: p.reviewStatus ?? 'APPROVED', // Propagar estado de aprobación de siembra al frontend
             }))
           )
         } else {
           setBackendPlants([])
         }
+        await reloadBackendActivities(g.id)
       } else {
         setActiveGardenId(null)
         setBackendGarden(null)
         setRealGardenDraft(toGardenDraft(null))
         setBackendPlants([])
+        setBackendActivities([])
       }
     } catch {
       setActiveGardenId(null)
       setBackendGarden(null)
       setRealGardenDraft(toGardenDraft(null))
       setBackendPlants([])
+      setBackendActivities([])
     }
   }
 
@@ -410,6 +585,17 @@ export default function App({
       const result = await authApi.handleSubmission(submission)
       setUser(result.user)
       setAuthenticated(true)
+
+      // Redirección estricta para roles administrativos — no deben ver la interfaz comunitaria
+      if (result.user.role === 'ADMIN_MSP') {
+        window.location.hash = '#admin-msp'
+        return { message: 'Bienvenido al Portal de Supervisión MSP.', authenticated: true }
+      }
+      if (result.user.role === 'ADMIN_TECNICO') {
+        window.location.hash = '#admin-tecnico'
+        return { message: 'Bienvenido al Portal de Administración Técnica.', authenticated: true }
+      }
+
       setNotice(result.message)
       setTimeout(() => goto('Inicio'), 500)
       return { message: result.message, authenticated: true }
@@ -429,10 +615,11 @@ export default function App({
     setBackendGarden(null)
     setActiveGardenId(null)
     setBackendPlants([])
+    setBackendActivities([])
     setPendingInvitations([])
+    setUnreadNotificationsCount(0)
     setUserCommunities([])
     setNotificationsOpen(false)
-    serverSavedActivityIds.current.clear()
     goto('Bienvenida')
   }
 
@@ -560,7 +747,8 @@ export default function App({
       }
 
       try {
-        const file = new File([input.photo], `${input.species.name.toLowerCase().replace(/\s+/g, '-')}.jpg`, {
+        const ext = photoExtension(input.photo)
+        const file = new File([input.photo], `${input.species.name.toLowerCase().replace(/\s+/g, '-')}.${ext}`, {
           type: input.photo.type || 'image/jpeg',
         })
         const apiPlant = await plantApi.register(activeGardenId, {
@@ -569,24 +757,33 @@ export default function App({
           plotIndex: input.plot,
           customName: input.species.name,
           notes: input.plantedOn ? `Sembrada el ${input.plantedOn}` : 'Registrada con cámara Kawsapacha',
+          plantedOn: input.plantedOn || undefined,
+          growthStage: input.growthStage || undefined,
         })
 
         const record: GardenPlant = {
           id: apiPlant.id,
           name: apiPlant.species?.name || input.species.name,
           latin: apiPlant.species?.latinName || input.species.latin,
-          photo: apiPlant.photoUrl,
+          photo: resolveMediaUrl(apiPlant.photoUrl),
           date: new Date(apiPlant.plantingDate).toLocaleDateString('es-EC'),
           plot: apiPlant.plotIndex ?? 0,
-          // La API actual no persiste la fecha de siembra como campo documentado.
+          plantedOn: input.plantedOn,
           createdAt: (apiPlant as any).createdAt || new Date(apiPlant.plantingDate).toISOString(),
           state: 'observed',
+          growthStage: isGrowthStage(apiPlant.growthStage) ? apiPlant.growthStage : input.growthStage,
+          reviewStatus: apiPlant.reviewStatus || 'PENDING',
         }
         setBackendPlants(existing => [...existing, record])
-        goto('Inicio')
-        setSelectedPlot(null)
+        setRegistration(null)
         setDetailId(record.id)
-        setNotice('Fotografía y ficha básica guardadas en SQLite. El perfil visual y la siembra documentada requieren la API #35/#43.')
+        setSelectedPlot(null)
+        setServerActivityRevision(r => r + 1)
+        if (activeGardenId) {
+          void reloadBackendActivities(activeGardenId)
+        }
+        setNotice('🌱 ¡Siembra registrada! La planta está pendiente de aprobación por el MSP. No se podrán realizar cuidados hasta su verificación oficial.')
+        goto('Inicio')
         return { ok: true }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Error al registrar la planta en el servidor.'
@@ -649,6 +846,19 @@ export default function App({
   }
 
   function registerInPlot(plot?: number, speciesName: string = SPECIES[0].name, message?: string) {
+    if (plot !== undefined) {
+      const occupant = activePlants.find(item => item.plot === plot)
+      if (occupant) {
+        const isPending = occupant.reviewStatus === 'PENDING' || occupant.reviewStatus === 'NEEDS_CHANGES'
+        setNotice(
+          isPending
+            ? `⏳ El Espacio ${plot + 1} ya tiene a «${occupant.name}» pendiente de aprobación por el MSP y no puede utilizarse.`
+            : `El Espacio ${plot + 1} ya está ocupado por «${occupant.name}».`
+        )
+        setDetailId(occupant.id)
+        return
+      }
+    }
     setSelectedPlot(plot ?? null)
     setDetailId(null)
     setEditingId(null)
@@ -664,10 +874,55 @@ export default function App({
   }
 
   async function updatePlant(draft: PlantUpdate) {
-    if (user) throw new Error('La edición con cuenta requiere la API de evidencias #35/#43. No se guardará en IndexedDB de visitante.')
     if (!editingPlant) throw new Error('No se encontró la ficha de la planta.')
     const invalid = validatePlantUpdate(draft, editingPlant, plants)
     if (invalid) throw new Error(invalid)
+
+    if (user) {
+      const formData = new FormData()
+      formData.append('name', draft.name)
+      formData.append('customName', draft.name)
+      formData.append('latin', draft.latin)
+      formData.append('plotIndex', String(draft.plot))
+      if (draft.plantedOn) formData.append('plantedOn', draft.plantedOn)
+      if (draft.state) formData.append('state', draft.state)
+      if (draft.growthStage) formData.append('growthStage', draft.growthStage)
+      if (draft.observations) formData.append('observations', draft.observations)
+      if (draft.heightCm !== undefined) formData.append('heightCm', String(draft.heightCm))
+      if (draft.photo) formData.append('picture', draft.photo, `plant.${photoExtension(draft.photo)}`)
+
+      const updated = await plantApi.update(editingPlant.id, formData)
+
+      setBackendPlants(prev =>
+        prev.map(p => {
+          if (p.id === editingPlant.id) {
+            const fullPhoto = resolveMediaUrl(updated.photoUrl || p.photo)
+            return {
+              ...p,
+              name: updated.customName || p.name,
+              latin: updated.species?.latinName || p.latin,
+              plot: updated.plotIndex ?? p.plot,
+              plantedOn: updated.plantingDate ? updated.plantingDate.slice(0, 10) : p.plantedOn,
+              state: (updated as any).observedState || draft.state || p.state,
+              growthStage: isGrowthStage((updated as any).growthStage) ? (updated as any).growthStage : (draft.growthStage ?? p.growthStage),
+              observations: updated.notes || draft.observations || p.observations,
+              photo: fullPhoto,
+            }
+          }
+          return p
+        })
+      )
+
+      setServerActivityRevision(r => r + 1)
+      if (activeGardenId) {
+        void reloadBackendActivities(activeGardenId)
+      }
+      setEditingId(null)
+      setDetailId(editingPlant.id)
+      setNotice('Observación, estado y evidencias guardadas en el servidor.')
+      return
+    }
+
     const photoId = draft.photo ? recordId('photo') : undefined
     const { photo, ...fields } = draft
     await journal.commit(
@@ -683,29 +938,40 @@ export default function App({
       },
       photo && photoId ? [{ id: photoId, blob: photo }] : []
     )
+
     setEditingId(null)
     setDetailId(editingPlant.id)
-    setNotice('Observación y evidencias guardadas.')
+    setNotice('Observación, estado y evidencias guardadas.')
   }
 
   async function archivePlant() {
     if (!detail) return
     if (user) {
-      if (currentCommunityRole !== 'RESPONSABLE') throw new Error('Solo el Responsable puede archivar plantas.')
+      if (currentCommunityRole && currentCommunityRole !== 'RESPONSABLE') {
+        setNotice('Solo las personas con rol Responsable pueden archivar plantas y liberar parcelas.')
+        return
+      }
       await plantApi.archive(detail.id)
-      setBackendPlants(prev => prev.map(p => p.id === detail.id ? { ...p, plot: -1, archivedAt: new Date().toISOString() } : p))
+      setBackendPlants(prev =>
+        prev.map(p =>
+          p.id === detail.id
+            ? { ...p, plot: -1, archivedAt: new Date().toISOString() }
+            : p
+        )
+      )
+      setServerActivityRevision(r => r + 1)
       setDetailId(null)
-      setNotice('Planta archivada en SQLite. Se liberó el espacio.')
+      setNotice('📦 Planta archivada en el servidor. La parcela ha quedado libre para un nuevo cultivo.')
       return
     }
     await journal.commit({ id: recordId('archive'), type: 'plant-archive', plantId: detail.id, at: new Date().toISOString() })
     setDetailId(null)
-    setNotice('Planta archivada en este navegador. El espacio quedó libre.')
+    setNotice('📦 Planta archivada. La parcela ha quedado libre para un nuevo cultivo.')
   }
 
   async function restorePlant() {
     if (!detail) return null
-    if (user) return 'La restauración en servidor no está disponible; requiere un endpoint autorizado.'
+    if (user) return 'La restauración en servidor requiere una solicitud autorizada.'
     try {
       await journal.commit({ id: recordId('restore'), type: 'plant-restore', plantId: detail.id, at: new Date().toISOString() })
       return null
@@ -715,9 +981,9 @@ export default function App({
   }
 
   function openActivity(plant?: GardenPlant, type?: ActivityType) {
-    if (user && type && !isBasicServerActivity(type)) {
+    if (user && (activeGardenId || backendPlants.length > 0)) {
       setDetailId(null)
-      setNotice('La actividad requiere la Bitácora persistente #43; no se guardará una copia local bajo tu cuenta.')
+      setActivityForm({ plantId: plant?.id, plot: plant?.plot ?? selectedPlot, type })
       return
     }
     if (!realGarden || !communityRecord) {
@@ -734,45 +1000,64 @@ export default function App({
 
   async function saveActivity(draft: ActivityDraft) {
     if (user) {
-      const invalid = validateBasicServerActivity(draft, backendPlants, user.name, activeGardenId)
-      if (invalid) throw new Error(invalid)
-      if (serverSavedActivityIds.current.has(draft.id)) {
+      if (backendCommunity && backendCommunity.status !== 'APPROVED') {
+        setNotice('⚠️ Tu comunidad aún no ha sido aprobada por el MSP. No es posible registrar actividades agrícolas hasta contar con la verificación oficial.')
         setActivityForm(null)
-        setNotice('Esta actividad ya fue confirmada por el servidor. No se enviará de nuevo.')
         return
       }
-      // No tocar IndexedDB: el identificador del huerto y de la planta pertenecen a SQLite.
-      const plantId = draft.target.kind === 'plant' ? draft.target.plantId : null
-      if (!plantId) throw new Error('Selecciona una planta registrada en el servidor.')
-      const notes = basicServerNotes(draft)
-      if (draft.type === 'watering') await careApi.add(plantId, 'WATERING', notes)
-      else if (draft.type === 'fertilizing') await careApi.add(plantId, 'FERTILIZER', notes)
-      else if (draft.type === 'harvest') {
-        await harvestApi.harvest(plantId, String(draft.details.quantity) + draft.details.unit, notes)
-      } else throw new Error('Actividad no disponible en la API actual.')
-      serverSavedActivityIds.current.add(draft.id)
+
+      if (activeGardenId) {
+        const formData = new FormData()
+        formData.append('type', draft.type)
+        formData.append('performedDate', draft.date)
+        formData.append('targetKind', draft.target.kind)
+        if (draft.target.kind === 'plant') {
+          formData.append('plantId', draft.target.plantId)
+          formData.append('plotIndex', String(draft.target.plot))
+        } else if (draft.target.kind === 'plot') {
+          formData.append('plotIndex', String(draft.target.plot))
+        }
+        formData.append('notes', draft.notes || '')
+        formData.append('details', JSON.stringify(draft.details || {}))
+        formData.append('clientActivityId', draft.id)
+        if (draft.photo) {
+          formData.append('photo', draft.photo, `activity.${photoExtension(draft.photo)}`)
+        }
+        await activityApi.create(activeGardenId, formData)
+        await reloadBackendActivities(activeGardenId)
+
+        if (activeCommunityId) {
+          await loadGardenForCommunity(activeCommunityId)
+        }
+        await Promise.all([reloadServerRewards(), loadPendingInvitations()])
+      } else if (draft.target.kind === 'plant' && draft.target.plantId) {
+        const targetPlantId = draft.target.plantId
+        if (draft.type === 'watering') {
+          await careApi.add(targetPlantId, 'WATERING', draft.notes || 'Riego aplicado desde diario')
+        } else if (draft.type === 'fertilizing') {
+          await careApi.add(targetPlantId, 'FERTILIZER', draft.notes || 'Abono aplicado desde diario')
+        } else if (draft.type === 'harvest') {
+          const qty = draft.details?.quantity ? `${draft.details.quantity}${draft.details.unit || 'g'}` : '250g'
+          await harvestApi.harvest(targetPlantId, qty, draft.notes || 'Cosecha registrada desde diario')
+        }
+      }
+
       setActivityForm(null)
-      setServerActivityRevision(current => current + 1)
-      setNotice(draft.type === 'harvest'
-        ? 'Cosecha básica confirmada en SQLite. La evidencia fotográfica y el ciclo avanzado requieren la API #43.'
-        : 'Cuidado confirmado en SQLite. Para adjuntar evidencias y registrar actividades avanzadas falta integrar la API #43.')
-      if (screen === 'Inicio') setFeedback({ id: draft.id, type: draft.type, plot: draft.target.kind === 'garden' ? null : draft.target.plot })
+      setServerActivityRevision(r => r + 1)
+      setNotice('✅ Actividad registrada — pendiente de aprobación por el MSP para acreditar tus Semillas de vida 🌱')
+      if (screen === 'Inicio') {
+        setFeedback({ id: draft.id, type: draft.type, plot: draft.details.destinationPlot ?? (draft.target.kind === 'garden' ? null : draft.target.plot) })
+      }
       return
     }
 
-    // Solo modo visitante: evento y fotografía se guardan juntos en IndexedDB.
-    if (journal.data.activities.some(item => item.id === draft.id)) {
-      setActivityForm(null)
-      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este navegador.')
-      return
-    }
     const photoId = draft.photo ? recordId('photo') : undefined
     const activity: GardenActivity = {
       id: draft.id,
       gardenId: journal.data.gardenId,
       type: draft.type,
       date: draft.date,
-      responsible: draft.responsible,
+      responsible: draft.responsible || 'Comunidad',
       target: draft.target,
       notes: draft.notes,
       details: draft.details,
@@ -780,29 +1065,29 @@ export default function App({
       validation: 'local-v1',
       photoIds: photoId ? [photoId] : [],
     }
-    if (journal.data.activities.some(item => activityKey(item) === activityKey(activity))) {
-      setActivityForm(null)
-      setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este navegador.')
-      return
-    }
-    const saved = await journal.commit(
-      { id: draft.id, type: 'activity', activity },
-      draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [],
-    )
+    const saved = await journal.commit({ id: draft.id, type: 'activity', activity }, draft.photo && photoId ? [{ id: photoId, blob: draft.photo }] : [])
     const actual = saved.activities.find(item => item.id === draft.id)
     setActivityForm(null)
     if (!actual) {
       setNotice('Esta actividad ya estaba guardada. El registro permanece solo en este navegador.')
       return
     }
-    setNotice('Actividad y evidencias guardadas en este navegador. No están sincronizadas con una cuenta.')
+    setNotice('Actividad guardada en este navegador.')
     if (screen === 'Inicio') {
       setFeedback({ id: actual.id, type: actual.type, plot: actual.details.destinationPlot ?? (actual.target.kind === 'garden' ? null : actual.target.plot) })
     }
   }
 
   async function voidActivity(id: string, reason: string) {
-    if (user) throw new Error('La anulación con cuenta requiere la API de actividades #43; no se alterará la bitácora de visitante.')
+    if (user) {
+      if (activeGardenId) {
+        await activityApi.void(activeGardenId, id, reason)
+        await reloadBackendActivities(activeGardenId)
+        setServerActivityRevision(r => r + 1)
+      }
+      setNotice('Actividad anulada en el servidor; se conserva el historial.')
+      return
+    }
     await journal.commit({ id: recordId('activity-void'), type: 'activity-void', activityId: id, reason, at: new Date().toISOString() })
     setNotice('Actividad anulada en este navegador; se conserva el historial.')
   }
@@ -853,7 +1138,7 @@ export default function App({
       ? 'plants'
       : screen === 'Mis plantas'
       ? 'my-plants'
-      : screen === 'Mi historia'
+      : screen === 'Mi historia' || screen === 'Bitácora'
       ? 'history'
       : screen === 'Mi camino verde'
       ? 'progress'
@@ -862,6 +1147,7 @@ export default function App({
       : 'garden'
 
   const immersiveGarden = screen === 'Inicio' && Boolean(realGarden)
+
   if (screen === 'Bienvenida' || screen === 'Usuarios') {
     return (
       <AuthPage
@@ -876,6 +1162,17 @@ export default function App({
         }}
       />
     )
+  }
+
+  // Guardia estricto de roles administrativos: si un administrador con sesión activa
+  // intenta ingresar a los menús de comunidad o huerto, redirigirlo a su interfaz oficial
+  // para que jamás vea ni interactúe con los menús de usuarios comunes.
+  if (user?.role === 'ADMIN_MSP' || user?.role === 'ADMIN_TECNICO') {
+    const adminHash = user.role === 'ADMIN_MSP' ? '#admin-msp' : '#admin-tecnico'
+    if (window.location.hash !== adminHash) {
+      window.location.hash = adminHash
+    }
+    return null
   }
 
   if (!user && (journal.loading || (journal.ready && !initializedDraft.current))) {
@@ -902,16 +1199,53 @@ export default function App({
         onWelcome={() => goto('Bienvenida')}
         user={user}
         onLogout={handleLogout}
-        pendingInvitationsCount={pendingInvitations.length}
+        pendingInvitationsCount={totalNotificationsCount}
         onOpenNotifications={() => setNotificationsOpen(true)}
         region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')}
-        progress={user ? undefined : {
-          points: progress.points,
-          level: progress.level,
-          progressPercent: progress.progressPercent,
-          nextLevel: progress.nextLevel,
-          badges: progress.badges,
-        }}
+        progress={
+          user
+            ? (serverRewards
+                ? {
+                    points: serverRewards.points,
+                    level: serverRewards.level,
+                    progressPercent: serverRewards.progressPercent,
+                    nextLevel: serverRewards.nextLevel ?? undefined,
+                    badges: (['first-sowing', 'care', 'observer', 'harvest'] as const).map(id => {
+                      const meta: Record<string, { label: string; criterion: string }> = {
+                        'first-sowing': { label: 'La primera semilla', criterion: 'Una siembra registrada con fotografía' },
+                        care: { label: 'Raíces cuidadas', criterion: 'Riego documentado en tres fechas distintas' },
+                        observer: { label: 'Mirada atenta', criterion: 'Seguimiento con foto en tres fechas distintas' },
+                        harvest: { label: 'Cosecha con memoria', criterion: 'Una cosecha registrada con evidencia fotográfica' },
+                      }
+                      const badgeMap: Record<string, string> = {
+                        FIRST_SOWING: 'first-sowing',
+                        'first-sowing': 'first-sowing',
+                        CARE_ROOTS: 'care',
+                        care: 'care',
+                        OBSERVATION_JOURNAL: 'observer',
+                        observer: 'observer',
+                        HARVEST_MEMORY: 'harvest',
+                        harvest: 'harvest',
+                      }
+                      const earned = serverRewards.badges.some(b => badgeMap[(b as any).badgeId || (b as any).code] === id)
+                      return {
+                        id,
+                        label: meta[id].label,
+                        criterion: meta[id].criterion,
+                        earned,
+                      }
+                    }),
+                  }
+                : undefined)
+            : {
+                points: progress.points,
+                level: progress.level,
+                progressPercent: progress.progressPercent,
+                nextLevel: progress.nextLevel,
+                badges: progress.badges,
+              }
+        }
+        onRetryRewards={reloadServerRewards}
       />
 
       {screen === 'Inicio' || screen === 'Mi terreno' ? (
@@ -930,12 +1264,25 @@ export default function App({
           onAction={gardenAction}
           onNavigate={navigateGarden}
           user={user}
-          pendingInvitationsCount={pendingInvitations.length}
+          pendingInvitationsCount={totalNotificationsCount}
           onOpenNotifications={() => setNotificationsOpen(true)}
+          officialRewards={serverRewards ? toAuthoritativeRewards(serverRewards) : null}
           renderGardenScene={renderGardenScene}
-          activities={visibleJournal.activities}
+          activities={activities}
           feedback={feedback}
-          progress={user ? undefined : { points: progress.points, level: progress.level, responsible: communityRecord?.responsible }}
+          progress={
+            serverRewards
+              ? {
+                  points: serverRewards.points,
+                  level: serverRewards.level,
+                  responsible: user?.name || communityRecord?.responsible,
+                }
+              : {
+                  points: progress.points,
+                  level: progress.level,
+                  responsible: communityRecord?.responsible,
+                }
+          }
           interactionBlocked={Boolean(registration || detail || editingPlant || activityForm)}
           terrainProvince={realGardenDraft.province}
           terrainView={
@@ -995,7 +1342,7 @@ export default function App({
                 className="prototype-alert"
                 style={{ background: 'rgba(56, 161, 105, 0.15)', borderColor: '#38a169', color: '#2f855a' }}
               >
-                <strong>Sesión activa ({user.name}):</strong> La cuenta, comunidad, huerto y fichas básicas de plantas se guardan en SQLite. Las observaciones fotográficas, la Bitácora avanzada y sus recompensas aún requieren la API #35/#43.
+                <strong>Sesión activa ({user.name}):</strong> Tus datos, comunidades, huertos y fotografías se guardan y persisten en el servidor de Kawsapacha.
               </div>
             ) : (
               <div className="prototype-alert">
@@ -1055,8 +1402,14 @@ export default function App({
 
             {(screen === 'Mi camino verde' || screen === 'Mi historia') && (
               <>
-                <GardenProgress journal={visibleJournal} region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')} authenticated={Boolean(user)} />
-
+                <GardenProgress
+                  journal={effectiveJournal}
+                  region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')}
+                  authenticated={Boolean(user)}
+                  official={serverRewards ? toAuthoritativeRewards(serverRewards) : null}
+                  review={serverRewards?.review ?? null}
+                  currentUser={user?.name || communityRecord?.responsible}
+                />
               </>
             )}
             {screen === 'Mis plantas' && (
@@ -1066,9 +1419,9 @@ export default function App({
               <GardenHistory
                 key={user ? `${user.id}:${activeGardenId ?? 'none'}` : 'visitor'}
                 plants={plants}
-                activities={visibleJournal.activities}
+                activities={activities}
                 onActivity={() => openActivity()}
-                onVoid={user ? undefined : voidActivity}
+                onVoid={voidActivity}
                 authenticated={Boolean(user)}
                 gardenId={activeGardenId}
                 refreshKey={serverActivityRevision}
@@ -1090,40 +1443,50 @@ export default function App({
         </main>
       )}
 
-      {registration && (
-        <PlantRegistrationModal
-          plants={activePlants}
-          speciesOptions={speciesCatalog.filter(plant => {
-            const currentProvince = realGarden?.location?.province ?? communityRecord?.province
-            const currentRegion = currentProvince ? regionForProvince(currentProvince) : null
-            return plant.registerStatus !== 'INFORMATIVA' && (!currentRegion || plant.regions.includes(currentRegion))
-          }).map(plant => ({ id: plant.id, name: plant.name, latin: plant.latinName, icon: plant.icon }))}
-          initialPlot={registration.plot}
-          initialSpecies={registration.species}
-          initialPhoto={registration.photo}
-          initialPlantedOn={registration.plantedOn}
-          initialSowing={registration.recordSowing}
-          initialGrowthStage={registration.growthStage}
-          growthStageEnabled={!user}
-          serverBasicOnly={Boolean(user)}
-          initialResponsible={registration.responsible ?? communityRecord?.responsible ?? ''}
-          initialRequestId={registration.requestId}
-          notice={registration.notice}
-          ready={ready}
-          onConfirm={addPlant}
-          onClose={() => setRegistration(null)}
-          onSetup={draft => {
-            setPendingRegistration(draft)
-            goto('Mi terreno')
-          }}
-        />
-      )}
+      {registration && (() => {
+        const currentProvince = realGarden?.location?.province ?? communityRecord?.province
+        const currentRegion = currentProvince ? regionForProvince(currentProvince) : null
+        const cultivableSpecies = speciesCatalog.filter(p => p.registerStatus !== 'INFORMATIVA')
+        const regionalFiltered = currentRegion
+          ? cultivableSpecies.filter(p => !p.regions || p.regions.length === 0 || p.regions.includes(currentRegion))
+          : cultivableSpecies
+        const finalSpeciesOptions = (regionalFiltered.length > 0 ? regionalFiltered : cultivableSpecies).map(plant => ({
+          id: plant.id,
+          name: plant.name,
+          latin: plant.latinName,
+          icon: plant.icon,
+        }))
+
+        return (
+          <PlantRegistrationModal
+            plants={activePlants}
+            speciesOptions={finalSpeciesOptions}
+            initialPlot={registration.plot}
+            initialSpecies={registration.species}
+            initialPhoto={registration.photo}
+            initialPlantedOn={registration.plantedOn}
+            initialSowing={registration.recordSowing}
+            initialGrowthStage={registration.growthStage}
+            growthStageEnabled={true}
+            initialResponsible={registration.responsible ?? communityRecord?.responsible ?? ''}
+            initialRequestId={registration.requestId}
+            notice={registration.notice}
+            ready={ready}
+            onConfirm={addPlant}
+            onClose={() => setRegistration(null)}
+            onSetup={draft => {
+              setPendingRegistration(draft)
+              goto('Mi terreno')
+            }}
+          />
+        )
+      })()}
 
       {editingPlant && (
         <PlantEditor
           plant={editingPlant}
           plants={plants}
-          growthStageEnabled={!user}
+          growthStageEnabled={true}
           onSave={updatePlant}
           onClose={() => {
             setEditingId(null)
@@ -1135,15 +1498,14 @@ export default function App({
       {activityForm && (
         <ActivityModal
           plants={activePlants}
-          activities={visibleJournal.activities}
-          gardenId={user ? (activeGardenId ?? '') : journal.data.gardenId}
-          responsible={user?.name ?? communityRecord?.responsible ?? ''}
-          serverBasicOnly={Boolean(user)}
+          gardenId={user && activeGardenId ? activeGardenId : journal.data.gardenId}
+          responsible={user?.name || communityRecord?.responsible || 'Comunidad'}
           initialPlant={plants.find(plant => plant.id === activityForm.plantId)}
           initialPlot={activityForm.plot}
           initialActivityType={activityForm.type}
+          existingActivities={activities}
           onSave={saveActivity}
-          growthStageEnabled={!user}
+          growthStageEnabled={true}
           onClose={() => setActivityForm(null)}
           onRegister={(plot, type) => {
             setActivityForm(null)
@@ -1154,7 +1516,7 @@ export default function App({
                     ...current,
                     recordSowing: type === 'sowing',
                     plantedOn: type === 'sowing' ? localDate() : '',
-                    responsible: communityRecord?.responsible ?? '',
+                    responsible: user?.name || communityRecord?.responsible || '',
                   }
                 : current
             )
@@ -1165,13 +1527,22 @@ export default function App({
       <PlantPassport
         plant={detail}
         user={user}
+        activeGardenId={activeGardenId}
+        activities={activities}
+        onActivityCreated={() => {
+          setServerActivityRevision(r => r + 1)
+          if (activeGardenId) void reloadBackendActivities(activeGardenId)
+          if (activeCommunityId) void loadGardenForCommunity(activeCommunityId)
+          void reloadServerRewards()
+          void loadPendingInvitations()
+        }}
         currentCommunityRole={currentCommunityRole}
         onClose={() => setDetailId(null)}
         onHistory={() => goto('Bitácora')}
         onPlantHarvested={handlePlantHarvested}
         onPlantRemoved={handlePlantRemoved}
         onEdit={
-          !user && detail
+          detail
             ? () => {
                 setEditingId(detail.id)
                 setDetailId(null)
@@ -1181,25 +1552,13 @@ export default function App({
         onArchive={detail ? archivePlant : undefined}
         onRestore={!user && detail ? restorePlant : undefined}
         onActivity={detail ? (type?: ActivityType) => openActivity(detail, type) : undefined}
-        activityItems={
-          detail && !user ? (
-            <section aria-label="Actividades de esta planta">
-              <h3>Actividades de esta planta</h3>
-              <ActivityList
-                activities={visibleJournal.activities.filter(
-                  activity => activity.target.kind === 'plant' && activity.target.plantId === detail.id
-                )}
-                plants={plants}
-              />
-            </section>
-          ) : undefined
-        }
       />
 
       {isNotificationsOpen && (
         <NotificationsModal
           onClose={() => setNotificationsOpen(false)}
           onAccepted={handleInvitationAccepted}
+          onNotificationsUpdated={loadPendingInvitations}
         />
       )}
 

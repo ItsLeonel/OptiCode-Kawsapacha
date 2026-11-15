@@ -1,224 +1,547 @@
-import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from 'react'
-import GardenIcon from '../my-garden/GardenIcon'
-import { invitationApi, type CommunityInvitationItem } from '../../services/api'
-import {
-  isAdministrativeNotice,
-  noticeDate,
-  noticeKindLabel,
-  noticePointsLabel,
-  type AdministrativeNotice,
-  type AdministrativeNoticeSource,
-} from './administrative-notifications'
-import './notifications.css'
-
-type InboxTab = 'all' | 'invitations' | 'notices'
+import { useState, useEffect } from 'react'
+import { invitationApi, notificationApi, type CommunityInvitationItem, type UserNotification } from '../../services/api'
 
 interface Props {
   onClose: () => void
   onAccepted: (communityId: string) => Promise<void> | void
-  /** Se conectará desde App cuando Ronny publique los endpoints confirmados. */
-  noticeSource?: AdministrativeNoticeSource
-  /** Navegación opcional hacia la evidencia o comunidad; no se inventan enlaces. */
-  onOpenNotice?: (notice: AdministrativeNotice) => void
+  onNotificationsUpdated?: () => Promise<void> | void
+  onGoToCommunity?: () => void
+  onGoToGarden?: () => void
 }
 
-export default function NotificationsModal({ onClose, onAccepted, noticeSource, onOpenNotice }: Props) {
-  const titleId = useId()
-  const descriptionId = useId()
-  const dialogRef = useRef<HTMLDivElement | null>(null)
-  const closeRef = useRef(onClose)
-  const [tab, setTab] = useState<InboxTab>('all')
-  const [onlyPending, setOnlyPending] = useState(false)
+function formatNotificationMessage(message: string): string {
+  if (!message) return ''
+  const englishToSpanish: Record<string, string> = {
+    '"preparation"': '«Preparación del terreno»',
+    '"watering"': '«Riego»',
+    '"fertilizing"': '«Abonado orgánico»',
+    '"weeding"': '«Limpieza y mantenimiento»',
+    '"hilling"': '«Aporque»',
+    '"harvest"': '«Cosecha»',
+    '"sowing"': '«Siembra»',
+    '"replanting"': '«Trasplante o resiembra»',
+    '"observation"': '«Observación botánica»',
+  }
+  let result = message
+  for (const [en, es] of Object.entries(englishToSpanish)) {
+    result = result.split(en).join(es)
+  }
+  return result
+}
+
+export default function NotificationsModal({ onClose, onAccepted, onNotificationsUpdated, onGoToCommunity, onGoToGarden }: Props) {
+  const [activeTab, setActiveTab] = useState<'unread' | 'read' | 'invitations'>('unread')
   const [invitations, setInvitations] = useState<CommunityInvitationItem[]>([])
-  const [notices, setNotices] = useState<AdministrativeNotice[]>([])
-  const [invitationLoading, setInvitationLoading] = useState(true)
-  const [noticeLoading, setNoticeLoading] = useState(Boolean(noticeSource))
-  const [invitationError, setInvitationError] = useState('')
-  const [noticeError, setNoticeError] = useState('')
-  const [actionId, setActionId] = useState<string | null>(null)
-  const [rejectId, setRejectId] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState('')
-  const [reload, setReload] = useState(0)
+  const [notifications, setNotifications] = useState<UserNotification[]>([])
+  const [loading, setLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
 
-  useEffect(() => { closeRef.current = onClose }, [onClose])
-
-  // Acepta Escape y mantiene el foco dentro del diálogo, incluso con filtros.
   useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    dialogRef.current?.focus()
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); return }
-      if (event.key !== 'Tab' || !dialogRef.current) return
-      const enabled = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), input:not(:disabled), a[href], [tabindex]:not([tabindex="-1"])',
-      )).filter(item => item.getClientRects().length > 0)
-      if (!enabled.length) return
-      const first = enabled[0]
-      const last = enabled[enabled.length - 1]
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
-        event.preventDefault(); last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => { document.removeEventListener('keydown', onKeyDown); previous?.focus() }
+    loadAll()
   }, [])
 
-  useEffect(() => {
-    let current = true
-    setInvitationLoading(true)
-    setInvitationError('')
-    invitationApi.getMyInvitations().then(items => {
-      if (current) setInvitations(items.filter(item => item.status === 'PENDING' || !item.status))
-    }).catch((error: unknown) => {
-      if (current) setInvitationError(error instanceof Error ? error.message : 'No fue posible cargar las invitaciones.')
-    }).finally(() => { if (current) setInvitationLoading(false) })
-    return () => { current = false }
-  }, [reload])
+  async function loadAll() {
+    setLoading(true)
+    try {
+      const [invList, notifRes] = await Promise.all([
+        invitationApi.getMyInvitations().catch(() => []),
+        notificationApi.list().catch(() => ({ notifications: [], unreadCount: 0 })),
+      ])
+      const notifs = notifRes.notifications || []
+      const invs = invList || []
+      setInvitations(invs)
+      setNotifications(notifs)
 
-  useEffect(() => {
-    let current = true
-    setNoticeError('')
-    if (!noticeSource) {
-      setNotices([])
-      setNoticeLoading(false)
-      return () => { current = false }
-    }
-    setNoticeLoading(true)
-    noticeSource.list().then(items => {
-      if (!current) return
-      if (!Array.isArray(items) || !items.every(isAdministrativeNotice)) {
-        setNotices([])
-        setNoticeError('El servidor devolvió avisos con un formato inesperado.')
-        return
+      // Si no hay avisos no leídos pero sí hay invitaciones, sugerir pestaña de invitaciones
+      const unreadCount = notifs.filter(n => !n.isRead).length
+      if (unreadCount === 0 && invs.length > 0) {
+        setActiveTab('invitations')
+      } else if (unreadCount === 0 && notifs.length > 0) {
+        setActiveTab('read')
       }
-      setNotices([...items].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)))
-    }).catch((error: unknown) => {
-      if (current) setNoticeError(error instanceof Error ? error.message : 'No fue posible cargar los avisos.')
-    }).finally(() => { if (current) setNoticeLoading(false) })
-    return () => { current = false }
-  }, [noticeSource, reload])
+      await onNotificationsUpdated?.()
+    } catch (err: unknown) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const unread = useMemo(() => notices.filter(notice => !notice.readAt).length, [notices])
-  const visibleInvitations = tab === 'notices' ? [] : invitations
-  const visibleNotices = useMemo(
-    () => tab === 'invitations' ? [] : notices.filter(notice => !onlyPending || !notice.readAt),
-    [notices, onlyPending, tab],
-  )
-  const busy = Boolean(actionId)
-
-  async function accept(invitation: CommunityInvitationItem) {
-    if (busy) return
-    setFeedback(''); setInvitationError(''); setActionId(`accept:${invitation.id}`)
+  async function handleAccept(invitation: CommunityInvitationItem) {
+    setError('')
+    setMessage('')
+    setActionLoading(invitation.id)
     try {
       await invitationApi.accept(invitation.id)
+      setMessage(`¡Te has unido exitosamente a la comunidad "${invitation.communityName}"!`)
       await onAccepted(invitation.communityId)
-      setFeedback(`Aceptaste la invitación de «${invitation.communityName}».`)
-      setReload(value => value + 1)
-    } catch (error) {
-      setInvitationError(error instanceof Error ? error.message : 'No fue posible aceptar la invitación.')
-      // Recuperamos la lista del servidor: la aceptación pudo haberse guardado ya.
-      setReload(value => value + 1)
-    } finally { setActionId(null) }
+      await loadAll()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al aceptar invitación')
+    } finally {
+      setActionLoading(null)
+    }
   }
 
-  async function reject(invitation: CommunityInvitationItem) {
-    if (busy) return
-    setFeedback(''); setInvitationError(''); setActionId(`reject:${invitation.id}`)
+  async function handleReject(invitation: CommunityInvitationItem) {
+    if (!confirm(`¿Estás seguro de que deseas rechazar la invitación a ${invitation.communityName}?`)) return
+    setError('')
+    setMessage('')
+    setActionLoading(invitation.id)
     try {
       await invitationApi.reject(invitation.id)
-      setFeedback(`Rechazaste la invitación de «${invitation.communityName}».`)
-      setRejectId(null)
-      setReload(value => value + 1)
-    } catch (error) {
-      setInvitationError(error instanceof Error ? error.message : 'No fue posible rechazar la invitación.')
-    } finally { setActionId(null) }
+      setMessage(`Has rechazado la invitación a la comunidad "${invitation.communityName}".`)
+      await loadAll()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al rechazar invitación')
+    } finally {
+      setActionLoading(null)
+    }
   }
 
-  async function markRead(notice: AdministrativeNotice) {
-    if (!noticeSource || notice.readAt || busy) return
-    setFeedback(''); setNoticeError(''); setActionId(`read:${notice.id}`)
+  async function handleMarkRead(notifId: string) {
     try {
-      const updated = await noticeSource.markRead(notice.id)
-      if (!isAdministrativeNotice(updated) || updated.id !== notice.id || !updated.readAt) {
-        throw new Error('El servidor no confirmó la lectura del aviso.')
-      }
-      setNotices(items => items.map(item => item.id === updated.id ? updated : item))
-      setFeedback('Aviso marcado como leído.')
-    } catch (error) {
-      setNoticeError(error instanceof Error ? error.message : 'No fue posible marcar el aviso como leído.')
-    } finally { setActionId(null) }
+      await notificationApi.markRead(notifId)
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n))
+      setMessage('Notificación movida a la pestaña "Leídas".')
+      await onNotificationsUpdated?.()
+    } catch (err) {
+      console.error(err)
+    }
   }
 
-  return <div className="knt-backdrop" onMouseDown={(event: MouseEvent<HTMLDivElement>) => { if (event.currentTarget === event.target) onClose() }}>
-    <div className="knt-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId} tabIndex={-1}>
-      <header className="knt-header">
-        <span className="knt-header-icon"><GardenIcon name="bell"/></span>
-        <div className="knt-heading">
-          <h2 id={titleId}>Centro de notificaciones</h2>
-          <p id={descriptionId}>Invitaciones a comunidades y decisiones de revisión MSP</p>
+  async function handleMarkAllRead() {
+    try {
+      await notificationApi.markAllRead()
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      setMessage('Todas las notificaciones fueron movidas a la pestaña "Leídas".')
+      setActiveTab('read')
+      await onNotificationsUpdated?.()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  async function handleClearRead() {
+    if (!confirm('¿Deseas vaciar todas las notificaciones leídas de tu historial?')) return
+    try {
+      await notificationApi.clearRead()
+      setNotifications(prev => prev.filter(n => !n.isRead))
+      setMessage('Historial de notificaciones leídas vaciado correctamente.')
+      await onNotificationsUpdated?.()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const unreadNotifications = notifications.filter(n => !n.isRead)
+  const readNotifications = notifications.filter(n => n.isRead)
+  const unreadMspCount = unreadNotifications.length
+  const readMspCount = readNotifications.length
+  const pendingInvCount = invitations.length
+
+  async function handleClose() {
+    if (unreadNotifications.length > 0) {
+      try {
+        await notificationApi.markAllRead()
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+        await onNotificationsUpdated?.()
+      } catch {
+        // continuar cierre aunque falle el marcado automático
+      }
+    } else {
+      await onNotificationsUpdated?.()
+    }
+    onClose()
+  }
+
+  return (
+    <div
+      className="community-dialog-backdrop"
+      onClick={() => void handleClose()}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.65)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1100,
+        backdropFilter: 'blur(4px)',
+      }}
+    >
+      <div
+        className="community-dialog-content"
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#ffffff',
+          borderRadius: '18px',
+          maxWidth: '640px',
+          width: '92%',
+          maxHeight: '88vh',
+          overflowY: 'auto',
+          padding: '24px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+          position: 'relative',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.6rem' }}>🔔</span>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#1a202c' }}>Bandeja de Notificaciones</h2>
+              <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#718096' }}>
+                Avisos oficiales del MSP e invitaciones comunitarias
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleClose()}
+            aria-label="Cerrar notificaciones"
+            style={{
+              background: '#edf2f7',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            ✕
+          </button>
         </div>
-        <button type="button" className="knt-close" onClick={onClose} aria-label="Cerrar notificaciones"><GardenIcon name="close"/></button>
-      </header>
 
-      <div className="knt-filters">
-        <div className="knt-tabs" role="group" aria-label="Tipo de notificación">
-          <button type="button" className={tab === 'all' ? 'is-active' : ''} aria-pressed={tab === 'all'} onClick={() => setTab('all')}>Todas</button>
-          <button type="button" className={tab === 'invitations' ? 'is-active' : ''} aria-pressed={tab === 'invitations'} onClick={() => setTab('invitations')}>Invitaciones <span>{invitations.length}</span></button>
-          <button type="button" className={tab === 'notices' ? 'is-active' : ''} aria-pressed={tab === 'notices'} onClick={() => setTab('notices')}>Avisos {Boolean(unread) && <span>{unread}</span>}</button>
+        {/* Pestañas de Notificaciones */}
+        <div style={{ display: 'flex', gap: '0.45rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('unread')}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeTab === 'unread' ? '#276749' : '#edf2f7',
+              color: activeTab === 'unread' ? '#fff' : '#4a5568',
+              fontWeight: 600,
+              fontSize: '0.84rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>No leídas</span>
+            {unreadMspCount > 0 && (
+              <span style={{ background: '#e53e3e', color: '#fff', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px' }}>
+                {unreadMspCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('read')}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeTab === 'read' ? '#276749' : '#edf2f7',
+              color: activeTab === 'read' ? '#fff' : '#4a5568',
+              fontWeight: 600,
+              fontSize: '0.84rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>Leídas ({readMspCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('invitations')}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '6px',
+              border: 'none',
+              background: activeTab === 'invitations' ? '#276749' : '#edf2f7',
+              color: activeTab === 'invitations' ? '#fff' : '#4a5568',
+              fontWeight: 600,
+              fontSize: '0.84rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>Invitaciones</span>
+            {pendingInvCount > 0 && (
+              <span style={{ background: '#d69e2e', color: '#fff', fontSize: '0.7rem', padding: '1px 6px', borderRadius: '10px' }}>
+                {pendingInvCount}
+              </span>
+            )}
+          </button>
+
+          {activeTab === 'unread' && unreadMspCount > 0 && (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              style={{
+                marginLeft: 'auto',
+                fontSize: '0.78rem',
+                background: 'none',
+                border: 'none',
+                color: '#3182ce',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Marcar todas como leídas
+            </button>
+          )}
+
+          {activeTab === 'read' && readMspCount > 0 && (
+            <button
+              type="button"
+              onClick={handleClearRead}
+              style={{
+                marginLeft: 'auto',
+                fontSize: '0.78rem',
+                background: 'none',
+                border: 'none',
+                color: '#e53e3e',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Limpiar historial de leídas
+            </button>
+          )}
         </div>
-        <label className="knt-unread"><input type="checkbox" checked={onlyPending} onChange={(event: ChangeEvent<HTMLInputElement>) => setOnlyPending(event.target.checked)}/><span>Solo pendientes / sin leer</span></label>
+
+        {message && (
+          <div style={{ background: '#e6fffa', border: '1px solid #38b2ac', color: '#234e52', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem' }}>
+            ✓ {message}
+          </div>
+        )}
+
+        {error && (
+          <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', color: '#9b2c2c', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.88rem' }}>
+            ⚠ {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '36px 0', color: '#718096' }}>
+            <p>Cargando notificaciones...</p>
+          </div>
+        ) : activeTab === 'unread' ? (
+          unreadNotifications.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 20px', color: '#718096' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>✨</div>
+              <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', color: '#2d3748' }}>¡Estás al día!</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                No tienes notificaciones pendientes. Puedes consultar los avisos anteriores en la pestaña <strong>Leídas ({readMspCount})</strong>.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {unreadNotifications.map(n => renderNotificationCard(n, false))}
+            </div>
+          )
+        ) : activeTab === 'read' ? (
+          readNotifications.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 20px', color: '#718096' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>📜</div>
+              <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', color: '#2d3748' }}>Sin notificaciones leídas</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                Aquí se conservarán temporalmente las notificaciones que marques como leídas durante 7 días.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+                {readNotifications.map(n => renderNotificationCard(n, true))}
+              </div>
+              <small style={{ display: 'block', textAlign: 'center', color: '#a0aec0', fontSize: '0.78rem', fontStyle: 'italic', borderTop: '1px solid #edf2f7', paddingTop: '10px' }}>
+                ℹ️ Las notificaciones leídas se conservan en tu historial durante 7 días y luego se depuran automáticamente.
+              </small>
+            </div>
+          )
+        ) : (
+          invitations.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '36px 20px', color: '#718096' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🌱</div>
+              <h3 style={{ margin: '0 0 6px', fontSize: '1.05rem', color: '#2d3748' }}>No tienes invitaciones pendientes</h3>
+              <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                Cuando un responsable te invite a una comunidad, la solicitud aparecerá aquí para que puedas aceptarla o rechazarla.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {invitations.map(inv => (
+                <div
+                  key={inv.id}
+                  style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    background: '#f7fafc',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <strong style={{ fontSize: '1rem', color: '#2d3748' }}>{inv.communityName}</strong>
+                      <div style={{ fontSize: '0.82rem', color: '#718096', marginTop: '2px' }}>
+                        Invitación enviada por: <strong>{inv.invitedByName || 'Responsable'}</strong> · Rol propuesto: <strong>{inv.role}</strong>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: '#feebc8', color: '#744210' }}>
+                      PENDIENTE
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: '#4a5568', margin: '0 0 12px 0' }}>
+                    Has sido invitado/a a formar parte de esta comunidad agroecológica. Al aceptar, podrás compartir el huerto y registrar actividades colaborativas.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      disabled={actionLoading === inv.id}
+                      onClick={() => handleReject(inv)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e0',
+                        background: '#fff',
+                        color: '#4a5568',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      Rechazar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={actionLoading === inv.id}
+                      onClick={() => handleAccept(inv)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: '#2f855a',
+                        color: '#fff',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {actionLoading === inv.id ? 'Aceptando...' : 'Aceptar invitación'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
       </div>
-
-      <div className="knt-content">
-        {feedback && <p className="knt-feedback" role="status">{feedback}</p>}
-        {invitationError && tab !== 'notices' && <p className="knt-error" role="alert">{invitationError}</p>}
-        {noticeError && tab !== 'invitations' && <p className="knt-error" role="alert">{noticeError}</p>}
-
-        {tab !== 'notices' && <section className="knt-section" aria-label="Invitaciones a comunidades">
-          <div className="knt-section-heading"><h3>Invitaciones</h3><small>Solicitudes recibidas desde Kawsapacha</small></div>
-          {invitationLoading ? <p className="knt-empty" role="status">Cargando invitaciones…</p> : visibleInvitations.length ? (
-            <ul className="knt-list">{visibleInvitations.map(inv => <li key={inv.id} className="knt-card knt-invitation">
-              <div className="knt-card-top"><span className="knt-kind"><GardenIcon name="community"/> Comunidad</span><span className="knt-pill">Pendiente</span></div>
-              <h4>Invitación a {inv.communityName}</h4>
-              <p>Te invitaron como <strong>{inv.role}</strong>.</p>
-              <div className="knt-meta"><span>Invita: {inv.invitedByName}</span>{inv.communityLocation && <span>{inv.communityLocation}</span>}<time dateTime={inv.createdAt}>{noticeDate(inv.createdAt)}</time></div>
-              {rejectId === inv.id ? <div className="knt-confirm" role="group" aria-label={`Confirmar rechazo de ${inv.communityName}`}>
-                <p>¿Rechazar esta invitación? No te unirás a la comunidad.</p>
-                <button type="button" className="knt-secondary" disabled={busy} onClick={() => setRejectId(null)}>Cancelar</button>
-                <button type="button" className="knt-danger" disabled={busy} onClick={() => { void reject(inv) }}>{actionId === `reject:${inv.id}` ? 'Rechazando…' : 'Confirmar rechazo'}</button>
-              </div> : <div className="knt-actions">
-                <button type="button" className="knt-secondary" disabled={busy} onClick={() => setRejectId(inv.id)}>Rechazar</button>
-                <button type="button" className="knt-primary" disabled={busy} onClick={() => { void accept(inv) }}>{actionId === `accept:${inv.id}` ? 'Aceptando…' : 'Aceptar invitación'}</button>
-              </div>}
-            </li>)}</ul>
-          ) : !invitationError && <p className="knt-empty">No tienes invitaciones pendientes.</p>}
-          {invitationError && <button type="button" className="knt-retry" onClick={() => setReload(value => value + 1)}>Volver a consultar</button>}
-        </section>}
-
-        {tab !== 'invitations' && <section className="knt-section" aria-label="Avisos administrativos">
-          <div className="knt-section-heading"><h3>Avisos del MSP</h3><small>Resoluciones y cambios verificados por el servidor</small></div>
-          {!noticeSource ? <div className="knt-empty knt-unconnected">
-            <GardenIcon name="leaf"/><strong>Avisos pendientes de integración</strong>
-            <p>Las decisiones de comunidades y evidencias aparecerán aquí cuando se conecte el servicio de notificaciones del backend. No se muestran decisiones ni puntos ficticios.</p>
-          </div> : noticeLoading ? <p className="knt-empty" role="status">Consultando avisos…</p> : visibleNotices.length ? <ul className="knt-list">
-            {visibleNotices.map(notice => <li key={notice.id} className={`knt-card knt-notice${notice.readAt ? '' : ' is-unread'}`}>
-              <div className="knt-card-top"><span className="knt-kind"><GardenIcon name="leaf"/>{noticeKindLabel(notice.kind)}</span>{!notice.readAt && <span className="knt-pill">Sin leer</span>}</div>
-              <h4>{notice.title}</h4><p>{notice.description}</p>
-              {notice.reason && <p className="knt-reason"><strong>Observación MSP:</strong> {notice.reason}</p>}
-              {notice.points && <p className="knt-points"><GardenIcon name="seed"/> {noticePointsLabel(notice.points.state)}{typeof notice.points.amount === 'number' ? ` · ${notice.points.amount.toLocaleString('es-EC')}` : ''}</p>}
-              <div className="knt-meta">{notice.communityName && <span>{notice.communityName}</span>}{notice.subjectName && <span>{notice.subjectName}</span>}{notice.actorName && <span>Revisó: {notice.actorName}</span>}<time dateTime={notice.createdAt}>{noticeDate(notice.createdAt)}</time></div>
-              {(!notice.readAt || onOpenNotice) && <div className="knt-actions">
-                {!notice.readAt && <button type="button" className="knt-secondary" disabled={busy} onClick={() => { void markRead(notice) }}>{actionId === `read:${notice.id}` ? 'Guardando…' : 'Marcar como leído'}</button>}
-                {onOpenNotice && <button type="button" className="knt-primary" onClick={() => onOpenNotice(notice)}>{notice.actionLabel || 'Ver detalle'}</button>}
-              </div>}
-            </li>)}
-          </ul> : !noticeError && <p className="knt-empty">{onlyPending ? 'No tienes avisos sin leer.' : 'No hay avisos administrativos registrados.'}</p>}
-          {noticeSource && noticeError && <button type="button" className="knt-retry" onClick={() => setReload(value => value + 1)}>Volver a consultar</button>}
-        </section>}
-      </div>
-      <footer className="knt-footer">Los cambios de estado y de recompensas se confirman únicamente desde el servidor.</footer>
     </div>
-  </div>
+  )
+
+  function renderNotificationCard(n: UserNotification, isHistory: boolean) {
+    const isApproved = n.type.includes('APPROVED')
+    const isNeedsChanges = n.type.includes('NEEDS_CHANGES')
+    const isRejected = n.type.includes('REJECTED')
+    const borderColor = isHistory ? '#e2e8f0' : isApproved ? '#9ae6b4' : isNeedsChanges ? '#fbd38d' : isRejected ? '#feb2b2' : '#e2e8f0'
+    const bgColor = isHistory ? '#fafafa' : isApproved ? '#f0fff4' : isNeedsChanges ? '#fffaf0' : isRejected ? '#fff5f5' : '#f7fafc'
+    const badgeColor = isHistory ? '#718096' : isApproved ? '#22543d' : isNeedsChanges ? '#744210' : '#742a2a'
+    const badgeBg = isHistory ? '#edf2f7' : isApproved ? '#c6f6d5' : isNeedsChanges ? '#feebc8' : '#fed7d7'
+    const badgeText = isApproved ? 'APROBADO' : isNeedsChanges ? 'REQUIERE CORRECCIÓN' : isRejected ? 'RECHAZADO' : 'AVISO'
+
+    return (
+      <div
+        key={n.id}
+        style={{
+          border: `1px solid ${borderColor}`,
+          background: bgColor,
+          borderRadius: '10px',
+          padding: '14px 16px',
+          opacity: isHistory ? 0.88 : 1,
+          boxShadow: isHistory ? 'none' : '0 2px 6px rgba(0,0,0,0.06)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '8px', background: badgeBg, color: badgeColor }}>
+              {badgeText}
+            </span>
+            {isHistory && (
+              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#718096' }}>
+                ✓ LEÍDA
+              </span>
+            )}
+          </div>
+          <small style={{ color: '#a0aec0', fontSize: '0.75rem' }}>
+            {new Date(n.createdAt).toLocaleDateString('es-EC', { hour: '2-digit', minute: '2-digit' })}
+          </small>
+        </div>
+        <strong style={{ display: 'block', color: '#2d3748', fontSize: '0.95rem', marginBottom: '4px' }}>
+          {n.title}
+        </strong>
+        <p style={{ margin: '0 0 10px 0', fontSize: '0.86rem', color: '#4a5568', lineHeight: 1.4 }}>
+          {formatNotificationMessage(n.message)}
+        </p>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          {!isHistory && (
+            <button
+              type="button"
+              onClick={() => handleMarkRead(n.id)}
+              style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', border: '1px solid #cbd5e0', background: '#fff', borderRadius: '4px', cursor: 'pointer' }}
+            >
+              ✓ Marcar como leída
+            </button>
+          )}
+          {(isNeedsChanges || isRejected) && n.type.startsWith('COMMUNITY_') && onGoToCommunity && (
+            <button
+              type="button"
+              onClick={onGoToCommunity}
+              style={{ fontSize: '0.75rem', padding: '0.2rem 0.7rem', border: 'none', background: '#d69e2e', color: '#fff', fontWeight: 600, borderRadius: '4px', cursor: 'pointer' }}
+            >
+              ✏️ Corregir mi comunidad
+            </button>
+          )}
+          {isApproved && n.type.startsWith('COMMUNITY_') && onGoToGarden && (
+            <button
+              type="button"
+              onClick={onGoToGarden}
+              style={{ fontSize: '0.75rem', padding: '0.2rem 0.7rem', border: 'none', background: '#276749', color: '#fff', fontWeight: 600, borderRadius: '4px', cursor: 'pointer' }}
+            >
+              🌱 Ir a sembrar
+            </button>
+          )}
+          {onGoToGarden && n.type.startsWith('ACTIVITY_') && (
+            <button
+              type="button"
+              onClick={onGoToGarden}
+              style={{ fontSize: '0.75rem', padding: '0.2rem 0.7rem', border: 'none', background: '#3182ce', color: '#fff', fontWeight: 600, borderRadius: '4px', cursor: 'pointer' }}
+            >
+              🌿 Ver mi huerto
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 }

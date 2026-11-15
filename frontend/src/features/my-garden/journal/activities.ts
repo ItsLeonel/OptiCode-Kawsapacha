@@ -2,18 +2,36 @@ import { PLANT_STATES, type GardenPlant, type PlantState } from '../garden'
 import { isGrowthStage, type GrowthStage } from '../growth-stages'
 import { isPlantVisualProfile, type PlantVisualProfile } from '../plant-visual-profile'
 import { validDate } from '../plant-record'
-import { validatePostharvest, SOWING_METHODS, POSTHARVEST_STEPS, HARVEST_PARTS, type PostHarvestStep, type SowingMethod, type HarvestPart } from './postharvest-cycle'
+import {
+  validatePostharvest,
+  SOWING_METHODS,
+  POSTHARVEST_STEPS,
+  HARVEST_PARTS,
+  type PostHarvestStep,
+  type SowingMethod,
+  type HarvestPart,
+} from './postharvest-cycle'
 
 export const ACTIVITY_TYPES = {
-  preparation: 'Preparación del terreno', weeding: 'Limpieza y deshierbe', sowing: 'Siembra', watering: 'Riego',
-  fertilizing: 'Abonado', hilling: 'Aporque', replanting: 'Replante', observation: 'Seguimiento del crecimiento', harvest: 'Cosecha',
-  sowing_ritual: 'Ritual de siembra', gratitude_ritual: 'Ritual de gratitud', signage: 'Señalética medicinal', postharvest: 'Poscosecha y conservación',
+  preparation: 'Preparación del terreno',
+  weeding: 'Limpieza y deshierbe',
+  sowing: 'Siembra',
+  watering: 'Riego',
+  fertilizing: 'Abonado',
+  hilling: 'Aporque',
+  observation: 'Seguimiento del crecimiento',
+  harvest: 'Cosecha',
+  sowing_ritual: 'Ritual de siembra',
+  gratitude_ritual: 'Ritual de gratitud',
+  signage: 'Señalética medicinal',
+  postharvest: 'Poscosecha y conservación',
 } as const
 export type ActivityType = keyof typeof ACTIVITY_TYPES
 export type ActivityTarget = { kind: 'garden' } | { kind: 'plot'; plot: number } | { kind: 'plant'; plantId: string; plot: number }
 export type ActivityDetails = {
   method?: string; material?: string; quantity?: number; unit?: 'L' | 'kg' | 'g' | 'unidades'
-  heightCm?: number; state?: PlantState; growthStage?: GrowthStage; visualProfile?: PlantVisualProfile; destinationPlot?: number; harvestMode?: 'partial' | 'complete'; releasePlot?: boolean
+  heightCm?: number; state?: PlantState; growthStage?: GrowthStage; visualProfile?: PlantVisualProfile
+  destinationPlot?: number; harvestMode?: 'partial' | 'complete'; releasePlot?: boolean
   sowingMethod?: SowingMethod; harvestedPart?: HarvestPart; traditionalTemperature?: 'hot' | 'cold' | 'unknown'
   sourceHarvestId?: string; postharvestStep?: PostHarvestStep; batchCode?: string; packageDate?: string; expiryDate?: string
   storagePlace?: string; storageLabel?: string
@@ -22,6 +40,7 @@ export type GardenActivity = {
   id: string; gardenId: string; type: ActivityType; date: string; responsible: string; target: ActivityTarget
   notes: string; photoIds: string[]; photos?: string[]; details: ActivityDetails; createdAt: string
   validation: 'local-v1'; voidedAt?: string; voidReason?: string
+  reviewStatus?: string; reviewedById?: string; reviewReason?: string; reviewedAt?: string
 }
 export type ActivityDraft = Omit<GardenActivity, 'gardenId' | 'createdAt' | 'validation' | 'photoIds' | 'photos'> & { photo?: Blob }
 
@@ -44,12 +63,25 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   if (target.kind !== 'garden' && (!Number.isInteger(target.plot) || target.plot < 0 || target.plot >= 6)) return 'Selecciona un espacio válido.'
   const plant = target.kind === 'plant' ? plants.find(item => item.id === target.plantId) : undefined
   if (target.kind === 'plant' && (!plant || plant.archivedAt || plant.plot !== target.plot)) return 'La planta ya no ocupa ese espacio. Revisa la ubicación antes de guardar.'
-  if (['sowing', 'hilling', 'replanting', 'observation', 'harvest', 'signage'].includes(activity.type) && !plant) return 'Esta actividad requiere una planta registrada. Primero registra la planta en el espacio correspondiente.'
+  const plantInPlot = target.kind === 'plot' ? plants.find(item => !item.archivedAt && item.plot === target.plot) : undefined
+  const blockedPendingPlant = [plant, plantInPlot].find(
+    item => item && (item.reviewStatus === 'PENDING' || item.reviewStatus === 'NEEDS_CHANGES')
+  )
+  if (blockedPendingPlant) {
+    return `El Espacio ${blockedPendingPlant.plot + 1} ya tiene una planta pendiente de revisión por el MSP (${blockedPendingPlant.name}). No se pueden registrar actividades ni utilizar este espacio hasta su aprobación.`
+  }
+  if (plantInPlot && (activity.type === 'sowing' || activity.type === 'preparation')) {
+    return `El Espacio ${plantInPlot.plot + 1} ya está ocupado por «${plantInPlot.name}».`
+  }
+  if (plant && activity.type === 'preparation') {
+    return `El Espacio ${plant.plot + 1} ya está ocupado por «${plant.name}».`
+  }
+  if (['sowing', 'hilling', 'observation', 'harvest', 'signage'].includes(activity.type) && !plant) return 'Esta actividad requiere una planta registrada. Primero registra la planta en el espacio correspondiente.'
   if (plant?.plantedOn && activity.date < plant.plantedOn) return 'La actividad no puede ser anterior a la siembra registrada.'
   if (activity.type === 'sowing' && plant?.plantedOn && plant.plantedOn !== activity.date) return 'La fecha debe coincidir con la siembra de la ficha. Corrige la ficha si es necesario.'
   const detail = activity.details
   if ((detail.heightCm !== undefined || detail.state !== undefined || detail.growthStage !== undefined || detail.visualProfile !== undefined) && activity.type !== 'observation') return 'Las medidas y el estado se documentan mediante una actividad de seguimiento.'
-  if (detail.destinationPlot !== undefined && activity.type !== 'replanting') return 'El cambio de espacio corresponde a un replante.'
+  if (detail.destinationPlot !== undefined) return 'El cambio de espacio por replante ya no está habilitado.'
   if (detail.harvestMode !== undefined && activity.type !== 'harvest') return 'El tipo de cosecha corresponde a una actividad de cosecha.'
   if (detail.sowingMethod !== undefined && activity.type !== 'sowing') return 'El método de propagación corresponde a la siembra.'
   if (detail.sowingMethod && !Object.hasOwn(SOWING_METHODS, detail.sowingMethod)) return 'Método de siembra inválido.'
@@ -76,10 +108,6 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
     if (value !== undefined && (typeof value !== 'string' || value.length > 400)) return 'Los datos de poscosecha deben ser textos de hasta 400 caracteres.'
   }
   if (activity.type === 'observation' && !activity.notes.trim() && !activity.photoIds.length && detail.heightCm === undefined && detail.state === undefined && detail.growthStage === undefined) return 'Añade una observación, fotografía, medida o estado documentado.'
-  if (activity.type === 'replanting') {
-    if (!Number.isInteger(detail.destinationPlot) || detail.destinationPlot! < 0 || detail.destinationPlot! >= 6 || detail.destinationPlot === plant?.plot) return 'Elige un espacio de destino distinto y válido.'
-    if (plants.some(item => !item.archivedAt && item.id !== plant?.id && item.plot === detail.destinationPlot)) return 'El espacio de destino está ocupado. No se sustituirá su planta.'
-  }
   if (activity.type === 'harvest' && !['partial', 'complete'].includes(detail.harvestMode ?? '')) return 'Indica si la cosecha fue parcial o completa.'
   if (detail.releasePlot && (activity.type !== 'harvest' || detail.harvestMode !== 'complete')) return 'Solo una cosecha completa permite liberar el espacio.'
   return null

@@ -115,7 +115,7 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
         <img src={GARDEN_GUIDES[model.region]} alt="" aria-hidden="true"/><span>Tu huerto cuenta una historia<small>¿Exploramos juntos?</small></span>
       </button>
       {contextual && <div className="garden-poc-context" role="status" style={{ left: Math.max(100, Math.min((host.current?.clientWidth ?? 400) - 100, (contextual.anchor.x - camera.left) * camera.zoom)), top: Math.max(185, Math.min((host.current?.clientHeight ?? 600) - 130, (contextual.anchor.y - camera.top) * camera.zoom - 35)) }}>
-        <GardenIcon name={contextual.plant ? 'leaf' : 'seed'}/><strong>{contextual.plant?.name ?? 'Aquí comienza una vida'}</strong><span>{contextual.plant ? (documentedGrowthStage(contextual.plant) ? GROWTH_STAGES[documentedGrowthStage(contextual.plant)!] + ' · Pasaporte Vivo' : 'Etapa sin documentar · Pasaporte Vivo') : 'Registrar una planta'}</span>
+        <GardenIcon name={contextual.plant ? 'leaf' : 'seed'}/><strong>{contextual.plant?.name ?? 'Aquí comienza una vida'}</strong><span>{contextual.plant ? (contextual.plant.reviewStatus === 'PENDING' ? '⏳ Siembra pendiente MSP · Pasaporte Vivo' : (documentedGrowthStage(contextual.plant) ? GROWTH_STAGES[documentedGrowthStage(contextual.plant)!] + ' · Pasaporte Vivo' : 'Etapa sin documentar · Pasaporte Vivo')) : 'Registrar una planta'}</span>
       </div>}
       <p id={hintId} className="garden-poc-sr-only">El jardín tiene cámara fija. Pulsa Tab para seleccionar una zona; Enter abre el registro o el Pasaporte Vivo.</p>
       {helpOpen && <div id={helpId} className="garden-poc-help garden-poc-panel">

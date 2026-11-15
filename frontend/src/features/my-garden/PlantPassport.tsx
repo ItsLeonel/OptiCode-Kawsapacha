@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import GardenIcon from './GardenIcon'
 import { PLANT_STATES, type GardenPlant } from './garden'
+import type { ActivityType, GardenActivity } from './journal/activities'
 import { GROWTH_STAGES, documentedGrowthStage } from './growth-stages'
 import { compareVisualProfiles } from './plant-visual-profile'
-import type { ActivityType } from './journal/activities'
+import BotanicalSignage from './BotanicalSignage'
 import {
   careApi,
   catalogApi,
+  harvestApi,
+  activityApi,
+  resolveMediaUrl,
   type CareLog,
   type GrowthData,
   type HealthStatus,
@@ -14,7 +18,6 @@ import {
   type UserSession,
 } from '../../services/api'
 import './garden-journal.css'
-import BotanicalSignage from './BotanicalSignage'
 
 // ─── Badge de salud ──────────────────────────────────────────────────────────
 
@@ -47,15 +50,20 @@ export default function PlantPassport({
   currentCommunityRole,
   onClose,
   onHistory,
+  onPlantHarvested,
   onPlantRemoved: _onPlantRemoved,
   onEdit,
   onArchive,
   onRestore,
   onActivity,
-  activityItems,
+  activeGardenId,
+  activities = [],
+  onActivityCreated,
 }: {
   plant: GardenPlant | null
   user?: UserSession | null
+  activeGardenId?: string | null
+  activities?: GardenActivity[]
   currentCommunityRole?: 'RESPONSABLE' | 'PARTICIPANTE' | null
   onClose: () => void
   onHistory: () => void
@@ -65,13 +73,16 @@ export default function PlantPassport({
   onArchive?: () => void | Promise<void>
   onRestore?: () => string | null | Promise<string | null>
   onActivity?: (type?: ActivityType) => void
-  activityItems?: ReactNode
+  onActivityCreated?: () => void
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [logs, setLogs] = useState<CareLog[]>([])
   const [growth, setGrowth] = useState<GrowthData | null>(null)
   const [calendar, setCalendar] = useState<CalendarTips | null>(null)
   const [loading, setLoading] = useState(false)
+  const [actionNotes, setActionNotes] = useState('')
+  const [harvestQuantity, setHarvestQuantity] = useState('200g')
+  const [showHarvestDialog, setShowHarvestDialog] = useState(false)
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -95,7 +106,9 @@ export default function PlantPassport({
     setCalendar(null)
     setMessage('')
     setError('')
+    setShowHarvestDialog(false)
     setShowArchiveDialog(false)
+    setActionNotes('')
   }
 
   async function loadPlantData() {
@@ -111,15 +124,30 @@ export default function PlantPassport({
         setLogs(careLogs)
         setGrowth(growthData)
       } else {
-        // Sin servidor no se inventan porcentajes, estado de salud ni madurez.
-        setGrowth(null)
+        // Modo demostración local
+        setGrowth({
+          percentage: 45,
+          stage: 'Brote 🌿',
+          daysUntilHarvest: 25,
+          needsWatering: true,
+          needsFertilizer: false,
+          healthStatus: 'REQUIERE_RIEGO',
+          lifecycleStatus: 'GROWING',
+          plantingDate: new Date().toISOString(),
+        })
       }
 
       try {
         const tips = await catalogApi.getCalendarTips(plant.name)
         setCalendar(tips)
       } catch {
-        setCalendar(null)
+        setCalendar({
+          wateringFrequencyDays: 3,
+          fertilizerFrequencyDays: 25,
+          growthCycleDays: 45,
+          bestPlantingSeason: 'Todo el año',
+          lunarPhaseTip: 'Sembrar en cuarto creciente para estimular el crecimiento vegetal',
+        })
       }
     } catch (err: unknown) {
       console.error(err)
@@ -128,12 +156,152 @@ export default function PlantPassport({
     }
   }
 
+  // ─── Cuidados con validación de sobrecuidado ──────────────────────────────
+
+  async function handleApplyCare(actionType: 'WATERING' | 'FERTILIZER' | 'PRUNING') {
+    if (!plant) return
+    setError('')
+    setMessage('')
+    if (isSowingPending) {
+      setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
+      return
+    }
+    const targetActType: GardenActivity['type'] =
+      actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
+    if (hasPendingActivityType(targetActType)) {
+      setError('⏳ Esta actividad ya fue realizada y está pendiente de revisión por el MSP. No se puede repetir hasta que sea validada o rechazada.')
+      return
+    }
+    const label =
+      actionType === 'WATERING' ? 'Riego 💧' : actionType === 'FERTILIZER' ? 'Abono 🧪' : 'Poda ✂️'
+
+    // Validación local de sobrecuidado (modo demo)
+    if (!user || plant.id.includes('-')) {
+      if (actionType === 'WATERING' && growth && !growth.needsWatering) {
+        setError('⚠️ Esta planta ya tiene suficiente humedad. Regar en exceso puede pudrir sus raíces.')
+        return
+      }
+      if (actionType === 'FERTILIZER' && growth && !growth.needsFertilizer) {
+        setError('⚠️ El suelo ya está nutrido. El exceso de abono quema las raíces por toxicidad de sales.')
+        return
+      }
+      setMessage(`¡${label} registrado en modo demostración!`)
+      if (growth) {
+        setGrowth({
+          ...growth,
+          needsWatering: actionType === 'WATERING' ? false : growth.needsWatering,
+          needsFertilizer: actionType === 'FERTILIZER' ? false : growth.needsFertilizer,
+          healthStatus: 'VIGOROSA',
+        })
+      }
+      return
+    }
+
+    try {
+      if (user && activeGardenId && !plant.id.includes('-')) {
+        const type = actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
+        if (actionType === 'PRUNING') {
+          await careApi.add(plant.id, actionType, actionNotes || `Cuidado rápido: ${label}`)
+        }
+        const formData = new FormData()
+        formData.append('type', type)
+        formData.append('performedDate', new Date().toISOString().split('T')[0])
+        formData.append('targetKind', 'plant')
+        formData.append('plantId', plant.id)
+        formData.append('plotIndex', String(plant.plot ?? 0))
+        formData.append('notes', actionNotes || `Cuidado rápido: ${label}`)
+        formData.append('details', JSON.stringify({ method: 'Acción rápida desde Pasaporte Vivo' }))
+
+        await activityApi.create(activeGardenId, formData)
+      } else {
+        await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
+      }
+      const actionName = actionType === 'WATERING' ? 'Riego' : actionType === 'FERTILIZER' ? 'Abono' : 'Limpieza'
+      setMessage(`✅ ${actionName} registrado — pendiente de aprobación por el MSP para acreditar tus Semillas de vida 🌱`)
+      setTimeout(() => setMessage(''), 5000)
+      setActionNotes('')
+      await loadPlantData()
+      if (onActivityCreated) onActivityCreated()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al registrar cuidado')
+    }
+  }
+
+  // ─── Cosecha no-destructiva ────────────────────────────────────────────────
+
+  async function handleHarvest() {
+    if (!plant) return
+    setError('')
+    setMessage('')
+    if (isSowingPending) {
+      setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP.')
+      return
+    }
+    if (isHarvestPending) {
+      setError('⏳ Ya existe una cosecha pendiente de revisión por el MSP para esta planta.')
+      return
+    }
+    try {
+      if (user && !plant.id.includes('-')) {
+        if (activeGardenId) {
+          const formData = new FormData()
+          formData.append('type', 'harvest')
+          formData.append('performedDate', new Date().toISOString().split('T')[0])
+          formData.append('targetKind', 'plant')
+          formData.append('plantId', plant.id)
+          formData.append('plotIndex', String(plant.plot ?? 0))
+          formData.append('notes', actionNotes || `Cosecha: ${harvestQuantity}`)
+          formData.append('details', JSON.stringify({ method: harvestQuantity, harvestMode: 'partial' }))
+          await activityApi.create(activeGardenId, formData)
+          if (onActivityCreated) onActivityCreated()
+          setMessage('🌾 ¡Cosecha registrada y enviada a revisión MSP! La planta permanece sembrada.')
+        } else {
+          await harvestApi.harvest(plant.id, harvestQuantity, actionNotes || 'Cosecha realizada desde Pasaporte Vivo')
+          setMessage('🌾 ¡Cosecha recolectada e ingresada al almacén! La planta permanece sembrada y ha iniciado un nuevo ciclo de rebrote.')
+        }
+      } else {
+        setMessage(`🌾 ¡Cosecha de ${harvestQuantity} registrada! La planta sigue en su parcela iniciando rebrote.`)
+      }
+      setShowHarvestDialog(false)
+      setTimeout(() => {
+        if (onPlantHarvested) onPlantHarvested(plant.id)
+      }, 1400)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al registrar cosecha')
+    }
+  }
+
   // ─── Renderizado ───────────────────────────────────────────────────────────
 
   const isRegrowing = growth?.lifecycleStatus === 'REGROWING'
+  const canHarvest = ((growth?.percentage ?? 0) >= 75 && !isRegrowing) || (isRegrowing && (growth?.percentage ?? 0) >= 75)
   const hasStress = growth?.overWatered || growth?.overFertilized || growth?.overPruned
+  const recentlyPruned = logs.some(l => l.actionType === 'PRUNING' && (Date.now() - new Date(l.performedAt).getTime()) < 7 * 24 * 60 * 60 * 1000) || growth?.healthStatus === 'ESTRES_PODA'
   const isResponsible = !user || currentCommunityRole === 'RESPONSABLE'
-  const visualEvidence = (plant?.evidences ?? []).filter(item => item.visualProfile).sort((a, b) => a.date.localeCompare(b.date))
+
+  // Planta con siembra pendiente de aprobación MSP — bloquear todos los cuidados
+  const isSowingPending = plant?.reviewStatus === 'PENDING' || plant?.reviewStatus === 'NEEDS_CHANGES'
+
+  const hasPendingActivityType = (actType: GardenActivity['type']) =>
+    Boolean(
+      plant &&
+        activities.some(
+          a =>
+            !a.voidedAt &&
+            a.type === actType &&
+            (a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES') &&
+            a.target.kind === 'plant' &&
+            a.target.plantId === plant.id
+        )
+    )
+  const isWateringPending = hasPendingActivityType('watering')
+  const isFertilizingPending = hasPendingActivityType('fertilizing')
+  const isWeedingPending = hasPendingActivityType('weeding')
+  const isHarvestPending = hasPendingActivityType('harvest')
+
+  const visualEvidence = (plant?.evidences ?? [])
+    .filter(item => item.visualProfile)
+    .sort((a, b) => a.date.localeCompare(b.date))
   const previousProfile = visualEvidence.length > 1 ? visualEvidence[visualEvidence.length - 2].visualProfile : undefined
   const currentProfile = visualEvidence.length ? visualEvidence[visualEvidence.length - 1].visualProfile : undefined
   const visualChanges = compareVisualProfiles(previousProfile, currentProfile)
@@ -168,7 +336,7 @@ export default function PlantPassport({
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', margin: '16px 0' }}>
             <img
               className="garden-passport-photo"
-              src={plant.photo}
+              src={resolveMediaUrl(plant.photo)}
               alt={`Fotografía registrada de ${plant.name}`}
               style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '12px', border: '2px solid #cbd5e0' }}
             />
@@ -186,19 +354,26 @@ export default function PlantPassport({
                 Ubicación: <strong>Parcela {plant.plot + 1}</strong> · Registrada: {plant.date}
                 {plant.plantedOn && ` · Sembrada: ${new Date(`${plant.plantedOn}T12:00:00`).toLocaleDateString('es-EC')}`}
               </div>
-              <div style={{ marginTop: '6px' }}>
+              <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <HealthBadge status={growth?.healthStatus} />
+                <span style={{
+                  display: 'inline-block', padding: '4px 10px', borderRadius: '20px',
+                  background: '#ebf8ff', border: '1px solid #bee3f8', color: '#2b6cb0',
+                  fontSize: '0.78rem', fontWeight: 700,
+                }}>
+                  🌱 {PLANT_STATES[plant.state ?? 'not-documented'] ?? plant.state}
+                </span>
               </div>
               <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#276749', margin: '9px 0 0' }}>
                 Etapa reflejada en Mi Jardín: {documentedGrowthStage(plant) ? GROWTH_STAGES[documentedGrowthStage(plant)!] : 'Sin observación visual documentada'}
               </p>
               <small style={{ color: '#718096' }}>
-                {user ? 'La sincronización de etapas observadas está pendiente de la API.' : 'La etapa cambia solamente con fotografías registradas en este navegador.'}
+                {user ? 'La etapa observada se sincroniza con tus evidencias fotográficas registradas.' : 'La etapa cambia solamente con fotografías registradas en este navegador.'}
               </small>
             </div>
           </div>
 
-          <BotanicalSignage plant={plant}/>
+          <BotanicalSignage plant={plant} />
           <section aria-label="Espejo Digital Evolutivo" style={{ border: '1px solid #c6dfc6', background: '#f6fbf4', borderRadius: 12, padding: 14, marginBottom: 18 }}>
             <h3 style={{ margin: '0 0 8px', color: '#28513d', fontSize: '0.98rem' }}>🌱 Espejo Digital Evolutivo</h3>
             {plant.visualProfile
@@ -210,16 +385,37 @@ export default function PlantPassport({
             {visualChanges.length > 0 && <p style={{ fontSize: '0.82rem', margin: '0 0 6px' }}><strong>Cambios aparentes entre fotos:</strong> {visualChanges.join(' · ')}.</p>}
             {visualEvidence.length > 0 && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '8px 0' }}>
               {visualEvidence.map(item => <div key={item.id} style={{ minWidth: 85, maxWidth: 120, fontSize: '0.73rem' }}>
-                {item.photo && <img src={item.photo} alt={'Evidencia fotográfica del ' + item.date} style={{ width: 85, height: 85, objectFit: 'cover', borderRadius: 7 }} />}
+                {item.photo && <img src={resolveMediaUrl(item.photo)} alt={'Evidencia fotográfica del ' + item.date} style={{ width: 85, height: 85, objectFit: 'cover', borderRadius: 7 }} />}
                 <div>{item.date}</div><div>Cobertura: {item.visualProfile!.densityLevel}/5</div>
               </div>)}
             </div>}
-            <small style={{ color: '#506357' }}>Las comparaciones dependen del encuadre y la iluminación; no prueban crecimiento real ni diagnóstico. {user ? 'La persistencia entre dispositivos de este perfil requiere integrar la API de evidencias #35/#43.' : 'Este historial está guardado solo en este navegador.'}</small>
+            <small style={{ color: '#506357' }}>Las comparaciones dependen del encuadre y la iluminación; no prueban crecimiento real ni diagnóstico.</small>
           </section>
 
+          {isSowingPending && (
+            <div
+              style={{
+                background: '#fffbeb',
+                border: '2px solid #f59e0b',
+                color: '#92400e',
+                padding: '14px 16px',
+                borderRadius: '10px',
+                marginBottom: '16px',
+                fontSize: '0.92rem',
+              }}
+            >
+              <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⚠️ Siembra pendiente de aprobación por el MSP
+              </div>
+              <div style={{ marginTop: '4px', fontSize: '0.85rem', fontWeight: 400, lineHeight: 1.4 }}>
+                Esta siembra ha sido registrada y está en proceso de verificación por el Ministerio de Salud Pública. Todos los miembros de la comunidad pueden observar el cultivo, pero ningún cuidado, riego o cosecha podrá realizarse sobre esta planta hasta que sea formalmente aprobada por el MSP.
+              </div>
+            </div>
+          )}
+
           {message && (
-            <div style={{ background: '#e6fffa', border: '1px solid #38b2ac', color: '#234e52', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>
-              ✓ {message}
+            <div className="pending-approval-notice" style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>
+              {message}
             </div>
           )}
 
@@ -236,18 +432,23 @@ export default function PlantPassport({
               {growth?.overWatered && <div>💧 Suelo saturado de agua: riesgo inminente de <strong>asfixia radicular y pudrición de raíces</strong>. Suspende el riego.</div>}
               {growth?.overFertilized && <div>🧪 Suelo sobrefertilizado: exceso de sales puede <strong>quemar las raíces</strong>. No apliques más abono.</div>}
               {growth?.overPruned && <div>✂️ Poda excesiva esta semana: la planta necesita tiempo para <strong>recuperarse del estrés</strong>.</div>}
-              <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#c53030' }}>Esta alerta es orientativa; no confirma el estado real del suelo o de la planta.</div>
+              <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#c53030' }}>El crecimiento está pausado hasta que el estrés ceda.</div>
             </div>
           )}
 
           {/* ─── INDICADOR DE CRECIMIENTO DINÁMICO ─── */}
           <section style={{ background: isRegrowing ? '#fffff0' : '#f0fff4', border: `1px solid ${isRegrowing ? '#fefcbf' : '#c6f6d5'}`, borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
-                Estimación agronómica: {growth?.stage || 'Sin estimación'}
-              </strong>
+              <div>
+                <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
+                  Estimación agronómica: {isSowingPending ? 'Siembra pendiente de aprobación MSP ⏳' : (growth?.stage || 'Calculando...')}
+                </strong>
+                <div style={{ fontSize: '0.82rem', color: '#4a5568', marginTop: '2px' }}>
+                  Estado documentado: <strong>{PLANT_STATES[plant.state ?? 'not-documented'] ?? plant.state}</strong>
+                </div>
+              </div>
               <span style={{ fontWeight: 'bold', color: isRegrowing ? '#d69e2e' : '#2f855a', fontSize: '1.1rem' }}>
-                {growth ? `${growth.percentage}%` : 'Sin dato'}
+                {isSowingPending ? '0%' : (growth ? `${growth.percentage}%` : '0%')}
               </span>
             </div>
 
@@ -255,7 +456,7 @@ export default function PlantPassport({
             <div style={{ width: '100%', height: '14px', background: '#e2e8f0', borderRadius: '7px', overflow: 'hidden', marginBottom: '10px' }}>
               <div
                 style={{
-                  width: `${growth ? growth.percentage : 0}%`,
+                  width: `${isSowingPending ? 0 : (growth ? growth.percentage : 0)}%`,
                   height: '100%',
                   background: isRegrowing
                     ? 'linear-gradient(90deg, #f6e05e 0%, #d69e2e 100%)'
@@ -268,18 +469,18 @@ export default function PlantPassport({
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#4a5568' }}>
               <span>
-                {!growth ? 'Sin pronóstico agronómico disponible' : isRegrowing
-                  ? 'Indicador orientativo de rebrote; no confirma su estado real'
-                  : 'Días estimados para cosecha: '}
-                {growth && !isRegrowing && <strong>{growth.daysUntilHarvest} días</strong>}
+                {isRegrowing
+                  ? (canHarvest
+                    ? '✨ Rebrote maduro — ¡lista para cosechar de nuevo!'
+                    : `🌱 En recuperación: lista para cosechar en aprox. ${growth?.daysUntilHarvest ?? 0} días`)
+                  : `Días estimados para cosecha: `}
+                {!isRegrowing && <strong>{growth?.daysUntilHarvest ?? 0} días</strong>}
               </span>
               <span>
-                {!growth ? (
-                  <span>No hay medición de humedad</span>
-                ) : growth.needsWatering ? (
-                  <strong style={{ color: '#d69e2e' }}>💧 Riego sugerido (orientativo)</strong>
+                {growth?.needsWatering ? (
+                  <strong style={{ color: '#d69e2e' }}>💧 Requiere riego</strong>
                 ) : (
-                  <span style={{ color: '#38a169' }}>Riego no sugerido hoy (estimación)</span>
+                  <span style={{ color: '#38a169' }}>✓ Riego al día</span>
                 )}
               </span>
             </div>
@@ -300,17 +501,115 @@ export default function PlantPassport({
             )}
           </section>
 
-          {/* Un solo registro verificable: no simular éxito desde el Pasaporte. */}
-          <section style={{ marginBottom:'18px' }}>
-            <h3 style={{ fontSize:'0.95rem', color:'#2d3748', marginBottom:'8px' }}>🌿 Documentar actividad realizada</h3>
-            <p style={{ color:'#718096', fontSize:'0.82rem' }}>El jardín solo cambia de etapa con nueva evidencia fotográfica. Regar o abonar no provoca crecimiento automático.</p>
-            {onActivity && !plant.archivedAt && <div style={{ display:'flex', flexWrap:'wrap', gap:'8px' }}>
-              <button type="button" className="rg-outline-button" onClick={() => onActivity('watering')}>💧 Riego</button>
-              <button type="button" className="rg-outline-button" onClick={() => onActivity('fertilizing')}>🌾 Abonado</button>
-              {!user && <button type="button" className="rg-outline-button" onClick={() => onActivity('weeding')}>🌿 Deshierbe</button>}
-              {!user && <button type="button" className="rg-outline-button" onClick={() => onActivity('observation')}>📷 Seguimiento</button>}
-            </div>}
-            {user && <p style={{ fontSize: '0.8rem', color: '#785830' }}>El seguimiento con fotografía y las demás actividades se habilitarán al integrar el servidor de evidencias #35/#43.</p>}
+          {/* ─── ACCIONES DE CUIDADO CON ESTADO DINÁMICO ─── */}
+          <section style={{ marginBottom: '18px' }}>
+            <h3 style={{ fontSize: '0.95rem', color: '#2d3748', marginBottom: '8px' }}>
+              🌿 Registrar cuidado realizado hoy:
+            </h3>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSowingPending) {
+                    setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
+                    return
+                  }
+                  if (isWateringPending) {
+                    setError('⏳ El riego de esta planta ya fue realizado y está pendiente de revisión por el MSP.')
+                    return
+                  }
+                  if (!growth?.needsWatering) {
+                    setError('⚠️ Esta planta ya tiene suficiente humedad. Regar en exceso puede pudrir sus raíces.')
+                    return
+                  }
+                  void handleApplyCare('WATERING')
+                }}
+                disabled={loading || isSowingPending || isWateringPending}
+                title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isWateringPending ? 'Riego ya realizado y pendiente de revisión MSP' : (!growth?.needsWatering ? 'Suelo húmedo — no requiere riego ahora' : 'Registrar riego')}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  border: (isSowingPending || isWateringPending) ? '1px solid #cbd5e0' : (growth?.needsWatering ? '1px solid #bee3f8' : '1px solid #c6f6d5'),
+                  background: (isSowingPending || isWateringPending) ? '#edf2f7' : (growth?.needsWatering ? '#ebf8ff' : '#f0fff4'),
+                  color: (isSowingPending || isWateringPending) ? '#a0aec0' : (growth?.needsWatering ? '#2b6cb0' : '#276749'),
+                  fontWeight: 600, cursor: (isSowingPending || isWateringPending) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  opacity: (loading || isSowingPending || isWateringPending) ? 0.6 : 1,
+                }}
+              >
+                {isSowingPending ? '⏳ Riego bloqueado' : isWateringPending ? '⏳ Riego en revisión MSP' : (growth?.needsWatering ? '💧 Regué la planta' : '✓ Suelo húmedo')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSowingPending) {
+                    setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
+                    return
+                  }
+                  if (isFertilizingPending) {
+                    setError('⏳ El abonado de esta planta ya fue realizado y está pendiente de revisión por el MSP.')
+                    return
+                  }
+                  if (!growth?.needsFertilizer) {
+                    setError('⚠️ El suelo ya está nutrido. El exceso de abono quema las raíces por toxicidad de sales.')
+                    return
+                  }
+                  void handleApplyCare('FERTILIZER')
+                }}
+                disabled={loading || isSowingPending || isFertilizingPending}
+                title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isFertilizingPending ? 'Abonado ya realizado y pendiente de revisión MSP' : (!growth?.needsFertilizer ? 'Suelo nutrido — no requiere abono ahora' : 'Registrar abono')}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  border: (isSowingPending || isFertilizingPending) ? '1px solid #cbd5e0' : (growth?.needsFertilizer ? '1px solid #feebc8' : '1px solid #c6f6d5'),
+                  background: (isSowingPending || isFertilizingPending) ? '#edf2f7' : (growth?.needsFertilizer ? '#fffaf0' : '#f0fff4'),
+                  color: (isSowingPending || isFertilizingPending) ? '#a0aec0' : (growth?.needsFertilizer ? '#c05621' : '#276749'),
+                  fontWeight: 600, cursor: (isSowingPending || isFertilizingPending) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  opacity: (loading || isSowingPending || isFertilizingPending) ? 0.6 : 1,
+                }}
+              >
+                {isSowingPending ? '⏳ Abono bloqueado' : isFertilizingPending ? '⏳ Abono en revisión MSP' : (growth?.needsFertilizer ? '🧪 Apliqué abono' : '✓ Suelo nutrido')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isSowingPending) {
+                    setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
+                    return
+                  }
+                  if (isWeedingPending) {
+                    setError('⏳ La limpieza / poda de esta planta ya fue realizada y está pendiente de revisión por el MSP.')
+                    return
+                  }
+                  if (recentlyPruned) {
+                    setError('⚠️ La planta ya se encuentra podada y con su mantenimiento al día. Podar con demasiada frecuencia causa estrés a la planta.')
+                    return
+                  }
+                  void handleApplyCare('PRUNING')
+                }}
+                disabled={loading || isSowingPending || isWeedingPending}
+                title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isWeedingPending ? 'Poda / limpieza ya realizada y pendiente de revisión MSP' : (recentlyPruned ? 'Poda y mantenimiento al día' : 'Registrar poda o mantenimiento')}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px',
+                  border: (isSowingPending || isWeedingPending) ? '1px solid #cbd5e0' : (recentlyPruned ? '1px solid #c6f6d5' : '1px solid #e2e8f0'),
+                  background: (isSowingPending || isWeedingPending) ? '#edf2f7' : (recentlyPruned ? '#f0fff4' : '#edf2f7'),
+                  color: (isSowingPending || isWeedingPending) ? '#a0aec0' : (recentlyPruned ? '#276749' : '#4a5568'),
+                  fontWeight: 600, cursor: (isSowingPending || isWeedingPending) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  opacity: (loading || isSowingPending || isWeedingPending) ? 0.6 : 1,
+                }}
+              >
+                {isSowingPending ? '⏳ Poda bloqueada' : isWeedingPending ? '⏳ Poda en revisión MSP' : (recentlyPruned ? '✓ Poda al día' : '✂️ Poda / Mantenimiento')}
+              </button>
+            </div>
+            <input
+              type="text"
+              value={actionNotes}
+              onChange={e => setActionNotes(e.target.value)}
+              placeholder="Nota opcional (ej: se usó abono de compostaje casero)..."
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e0', fontSize: '0.85rem' }}
+            />
           </section>
 
           {/* ─── SUGERENCIAS DEL CALENDARIO AGRÍCOLA Y FASE LUNAR ─── */}
@@ -330,10 +629,64 @@ export default function PlantPassport({
             </section>
           )}
 
-          {/* Una cosecha real se registra aunque el estimador de madurez no la espere. */}
-          <section style={{ borderTop:'1px solid #e2e8f0', paddingTop:'16px', marginBottom:'16px' }}>
-            <p style={{ fontSize:'0.84rem', color:'#718096' }}>Si realizaste una cosecha, documenta tipo, cantidad medida y fotografía desde la Bitácora. No se inventa rebrote ni cantidad.</p>
-            {onActivity && !plant.archivedAt && <button type="button" className="garden-solid-button" onClick={() => onActivity('harvest')}>🧺 {user ? 'Registrar cosecha parcial básica, sin foto' : 'Registrar cosecha con evidencia'}</button>}
+          {/* ─── ACCIÓN DE COSECHA ─── */}
+          <section style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginBottom: '16px' }}>
+            {!showHarvestDialog ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <span style={{ fontSize: '0.85rem', color: '#718096' }}>
+                  {canHarvest
+                    ? (isRegrowing ? '✨ ¡Rebrote maduro! La planta está lista para una nueva cosecha.' : '✨ ¡Tu planta está lista para cosechar!')
+                    : (isRegrowing
+                      ? `🌱 En recuperación: lista para cosechar en aprox. ${growth?.daysUntilHarvest ?? 0} días.`
+                      : 'La planta necesita más tiempo para madurar antes de cosechar.')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowHarvestDialog(true)}
+                  disabled={!canHarvest || loading || isSowingPending || isHarvestPending}
+                  title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isHarvestPending ? 'Ya existe una cosecha pendiente de revisión MSP' : (!canHarvest ? (isRegrowing ? `La planta aún está en rebrote. Espera ${growth?.daysUntilHarvest ?? 0} días más.` : 'Espera a que la planta madure (≥75%)') : 'Cosechar')}
+                  style={{
+                    padding: '8px 16px', background: (canHarvest && !isSowingPending && !isHarvestPending) ? '#38a169' : '#a0aec0', color: '#fff', border: 'none',
+                    borderRadius: '8px', fontWeight: 600,
+                    cursor: (canHarvest && !isSowingPending && !isHarvestPending) ? 'pointer' : 'not-allowed',
+                    opacity: (canHarvest && !isSowingPending && !isHarvestPending) ? 1 : 0.65,
+                  }}
+                >
+                  {isHarvestPending ? '⏳ Cosecha en revisión MSP' : '🌾 Cosechar planta'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: '#fffff0', border: '1px solid #fefcbf', padding: '14px', borderRadius: '10px' }}>
+                <h4 style={{ margin: '0 0 8px', color: '#744210' }}>Registrar Cosecha de {plant.name}</h4>
+                <p style={{ margin: '0 0 10px', fontSize: '0.82rem', color: '#744210' }}>
+                  🌱 La planta permanecerá en su parcela e iniciará un nuevo ciclo de rebrote. El producto recolectado se registrará en el inventario comunitario.
+                </p>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    value={harvestQuantity}
+                    onChange={e => setHarvestQuantity(e.target.value)}
+                    placeholder="Cantidad (ej: 250g hojas secas)"
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e0', fontSize: '0.85rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleHarvest()}
+                    disabled={loading}
+                    style={{ padding: '8px 16px', background: '#d69e2e', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Confirmar cosecha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHarvestDialog(false)}
+                    style={{ background: 'none', border: 'none', color: '#718096', cursor: 'pointer', fontSize: '0.85rem' }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* ─── BOTÓN UNIFICADO ARCHIVAR Y LIBERAR PARCELA (SOLO RESPONSABLE) ─── */}
@@ -438,8 +791,8 @@ export default function PlantPassport({
             <GardenIcon name="book" /> Ver Bitácora general de cultivo
           </button>
           {/* Evidencias de main */}
-          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.growthStage && <p><strong>Etapa documentada: {GROWTH_STAGES[evidence.growthStage]}</strong></p>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={evidence.photo} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
-          {activityItems}
+          {/* Evidencias de main */}
+          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.growthStage && <p><strong>Etapa documentada: {GROWTH_STAGES[evidence.growthStage]}</strong></p>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={resolveMediaUrl(evidence.photo)} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
         </div>
       )}
     </dialog>

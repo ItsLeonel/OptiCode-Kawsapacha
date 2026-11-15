@@ -16,6 +16,7 @@ import { GARDEN_KINDS, formatGardenArea, type RealGarden } from '../real-gardens
 import GreenChallenges from './GreenChallenges'
 import LunarCalendarWidget from './lunar/LunarCalendarWidget'
 import type { UserSession } from '../../services/api'
+import type { AuthoritativeRewards } from './rewards/rewards-types'
 import './my-garden.css'
 import './my-garden-v2.css'
 import './garden-scene.css'
@@ -45,6 +46,7 @@ export default function MyGardenPage({
   user,
   pendingInvitationsCount = 0,
   onOpenNotifications,
+  officialRewards = null,
   onCreateCommunity,
   onJoinCommunity,
   terrainView,
@@ -81,6 +83,7 @@ export default function MyGardenPage({
   user?: UserSession | null
   pendingInvitationsCount?: number
   onOpenNotifications?: () => void
+  officialRewards?: AuthoritativeRewards | null
 }) {
   const territory = terrainView
     ? (provinceForName(terrainProvince ?? '') ? terrainProvince : communityProvince(community) || realGarden?.communityProvince || '')
@@ -107,9 +110,10 @@ export default function MyGardenPage({
               type="button"
               onClick={onOpenNotifications}
               className={`garden-header-bell-btn ${pendingInvitationsCount > 0 ? 'has-pending' : ''}`}
-              title={pendingInvitationsCount > 0 ? `${pendingInvitationsCount} invitaciones pendientes` : 'Notificaciones'}
+              title={pendingInvitationsCount > 0 ? `${pendingInvitationsCount} notificaciones pendientes` : 'Notificaciones'}
             >
               <GardenIcon name="bell" />
+              {pendingInvitationsCount > 0 && <span className="garden-header-bell-dot" aria-hidden="true" />}
               {pendingInvitationsCount > 0 && <span className="garden-header-bell-count">{pendingInvitationsCount}</span>}
             </button>
           )}
@@ -200,7 +204,7 @@ export default function MyGardenPage({
               pendingInvitationsCount={pendingInvitationsCount}
             />
           ))}
-        {!terrainView && <GreenChallenges onNavigate={onNavigate} activities={activities} authenticated={Boolean(user)} />}
+        {!terrainView && <GreenChallenges onNavigate={onNavigate} activities={activities} authenticated={Boolean(user)} officialRewards={officialRewards} />}
       </div>
 
       {/* Módulo lunar de React: se superpone a Phaser sin modificar fondos, cámara ni parcelas. */}

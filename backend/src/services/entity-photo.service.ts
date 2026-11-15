@@ -4,15 +4,22 @@ import path from 'path'
 
 export const uploadsRoot = path.resolve(process.env['UPLOADS_DIR'] || path.resolve(__dirname, '../../uploads'))
 export const PHOTO_MAX_BYTES = 3 * 1024 * 1024
-export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 type PhotoFolder = 'communities' | 'gardens'
 
 function photoExtension(file: Express.Multer.File) {
   const bytes = file.buffer
   const png = bytes.length >= 24 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) && bytes.toString('ascii', 12, 16) === 'IHDR'
-  const jpeg = bytes.length >= 4 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 && bytes[bytes.length - 2] === 255 && bytes[bytes.length - 1] === 217
+  const jpeg = bytes.length >= 4 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
   const webp = bytes.length >= 20 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP' && ['VP8 ', 'VP8L', 'VP8X'].includes(bytes.toString('ascii', 12, 16))
-  const extension = file.mimetype === 'image/png' && png ? 'png' : file.mimetype === 'image/jpeg' && jpeg ? 'jpg' : file.mimetype === 'image/webp' && webp ? 'webp' : null
+  const extension =
+    file.mimetype === 'image/png' && png
+      ? 'png'
+      : (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg') && jpeg
+      ? 'jpg'
+      : file.mimetype === 'image/webp' && webp
+      ? 'webp'
+      : null
   if (!extension || !file.size || file.size > PHOTO_MAX_BYTES) {
     throw Object.assign(new Error('Selecciona una imagen JPG, PNG o WebP válida de hasta 3 MB.'), { code: 'INVALID_PHOTO' })
   }

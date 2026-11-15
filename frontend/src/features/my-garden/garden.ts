@@ -29,6 +29,7 @@ export type GardenPlant = {
   visualProfile?: PlantVisualProfile
   evidences?: PlantEvidence[]
   archivedAt?: string
+  reviewStatus?: string   // Estado de aprobación de la siembra por el MSP: PENDING | APPROVED | NEEDS_CHANGES | REJECTED
 }
 
 export type GardenDestination = 'garden' | 'community' | 'real-garden' | 'plants' | 'my-plants' | 'history' | 'progress'

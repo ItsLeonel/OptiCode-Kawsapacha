@@ -28,6 +28,12 @@ export function useGardenJournal(enabled = true) {
     if (connection) connection.onmessage = () => { store.load().then(next => { if (active) accept(next) }).catch(cause => { if (active) setFailure(cause instanceof Error ? cause.message : 'No se pudo actualizar el jardín de esta pestaña.') }) }
     return () => { active = false; connection?.close(); store.close(); if (repository.current === store) repository.current = null }
   }, [attempt, accept, enabled])
+  useEffect(() => {
+    if (!failure) return
+    const timeout = setTimeout(() => setFailure(''), 4500)
+    return () => clearTimeout(timeout)
+  }, [failure])
+
   const commit = useCallback(async (command: JournalCommand, photos?: JournalPhoto[]) => {
     if (!enabled) throw new Error('El registro IndexedDB está reservado para el modo visitante. Usa la API de tu cuenta.')
     if (!repository.current) throw new Error('Espera a que termine de abrirse el jardín guardado.')

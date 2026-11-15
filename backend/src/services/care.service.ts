@@ -82,10 +82,10 @@ function calculateGrowthData(
     return l.actionType === 'PRUNING' && days <= 7
   }).length
 
-  // Exceso: más de 2 riegos en 24 h, más de 1 abono en 24 h, más de 2 podas en una semana
+  // Exceso: más de 2 riegos en 24 h, más de 1 abono en 24 h, más de 1 poda en una semana
   const overWatered = wateringsLast24h > 2
   const overFertilized = fertilizersLast24h > 1
-  const overPruned = pruningsLastWeek > 2
+  const overPruned = pruningsLastWeek >= 1
 
   // ── Determinar estado de salud ────────────────────────────────────────────
   let healthStatus: HealthStatus = 'VIGOROSA'
@@ -94,9 +94,10 @@ function calculateGrowthData(
   else if (overPruned) healthStatus = 'ESTRES_PODA'
 
   // ── Calcular porcentaje base ──────────────────────────────────────────────
-  // Si hay estrés (sobrecuidado), congelar avance. Si no, calcular normalmente.
+  // Si hay estrés (sobrecuidado), congelar avance sin bonos. Si no, calcular normalmente con bonos.
   const hasStress = overWatered || overFertilized || overPruned
-  let percentage = hasStress ? 0 : Math.min(100, (daysElapsed / cycleDays) * 100)
+  const basePercentage = Math.min(100, (daysElapsed / cycleDays) * 100)
+  let percentage = basePercentage
 
   if (!hasStress) {
     // Bonus por riegos adecuados (dentro de frecuencia)
@@ -114,10 +115,10 @@ function calculateGrowthData(
     percentage = Math.min(100, percentage + recentFertilizer.length * 2)
   }
 
-  // En rebrote: porcentaje parte de 25% (planta sigue viva) y crece hasta 100%
+  // En rebrote: porcentaje parte de 0% (barra reiniciada) y crece hasta 100%
   if (isRegrowing) {
-    const regrowthPct = Math.min(100, (daysElapsed / regrowthDays) * 75) // 25% → 100%
-    percentage = hasStress ? 25 : Math.min(100, 25 + regrowthPct)
+    const regrowthPct = Math.min(100, (daysElapsed / regrowthDays) * 100)
+    percentage = Math.min(100, regrowthPct)
   }
 
   percentage = Math.round(percentage)
@@ -125,8 +126,9 @@ function calculateGrowthData(
   // ── Etapa de crecimiento ──────────────────────────────────────────────────
   let stage: string
   if (isRegrowing) {
-    if (percentage < 50) stage = 'Rebrote y recuperación 🌱'
-    else if (percentage < 75) stage = 'Crecimiento de rebrote 🌿'
+    if (percentage < 25) stage = 'Rebrote inicial 🌱'
+    else if (percentage < 50) stage = 'Rebrote y recuperación 🌿'
+    else if (percentage < 75) stage = 'Crecimiento de rebrote 🪴'
     else stage = 'Lista para cosechar ✨'
   } else {
     if (percentage <= 25) stage = 'Semilla 🌱'
@@ -172,10 +174,16 @@ function calculateGrowthData(
 
 // ─── Validación previa al registro de cuidado ─────────────────────────────────
 
-async function validateCareAction(
+export async function validateCareAction(
   plantId: string,
   actionType: string,
-  plant: { lifecycleStatus: string; species: Species; careLogs: CareLogEntry[] }
+  plant: {
+    lifecycleStatus: string
+    species: Species
+    careLogs: CareLogEntry[]
+    plantingDate?: Date | null
+    lastHarvestDate?: Date | null
+  }
 ): Promise<{ allowed: boolean; warningMessage: string }> {
   const now = new Date()
   const { species, careLogs } = plant
@@ -229,10 +237,10 @@ async function validateCareAction(
       const days = (now.getTime() - new Date(l.performedAt).getTime()) / (1000 * 60 * 60 * 24)
       return l.actionType === 'PRUNING' && days <= 7
     }).length
-    if (pruningsLastWeek >= 2) {
+    if (pruningsLastWeek >= 1) {
       return {
         allowed: false,
-        warningMessage: '⚠️ Poda excesiva esta semana: la planta necesita tiempo para recuperarse del estrés por poda.',
+        warningMessage: '⚠️ La planta ya se encuentra podada y con su mantenimiento al día. Espera a que complete su ciclo para podarla nuevamente.',
       }
     }
   }
@@ -254,6 +262,12 @@ export async function addCareLog(
     include: { species: true, careLogs: true },
   })
   if (!plantForValidation) throw new Error('Planta no encontrada')
+  if (plantForValidation.reviewStatus !== 'APPROVED') {
+    throw Object.assign(
+      new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su aprobación oficial.'),
+      { code: 'PLANT_NOT_APPROVED' }
+    )
+  }
 
   const { allowed, warningMessage } = await validateCareAction(plantId, actionType, {
     lifecycleStatus: plantForValidation.lifecycleStatus,
@@ -272,10 +286,21 @@ export async function addCareLog(
   // Recalcular estado del ciclo de vida
   const freshPlant = await prisma.cultivatedPlant.findUnique({
     where: { id: plantId },
-    include: { species: true, careLogs: true },
+    include: {
+      species: true,
+      careLogs: {
+        include: {
+          activities: { select: { id: true, reviewStatus: true, voidedAt: true } },
+        },
+      },
+    },
   })
   if (freshPlant && freshPlant.lifecycleStatus !== 'HARVESTED') {
-    const growth = calculateGrowthData(freshPlant, freshPlant.species, freshPlant.careLogs)
+    const approvedCareLogs = freshPlant.careLogs.filter(cl => {
+      if (!cl.activities || cl.activities.length === 0) return true
+      return cl.activities.some(a => a.reviewStatus === 'APPROVED' && !a.voidedAt)
+    })
+    const growth = calculateGrowthData(freshPlant, freshPlant.species, approvedCareLogs)
     if (growth.percentage >= 76 && freshPlant.lifecycleStatus !== 'REGROWING') {
       await prisma.cultivatedPlant.update({
         where: { id: plantId },
@@ -306,12 +331,41 @@ export async function getCareLogs(plantId: string) {
 export async function calculateGrowth(plantId: string) {
   const plant = await prisma.cultivatedPlant.findUnique({
     where: { id: plantId },
-    include: { species: true, careLogs: true },
+    include: {
+      species: true,
+      careLogs: {
+        include: {
+          activities: { select: { id: true, reviewStatus: true, voidedAt: true } },
+        },
+      },
+    },
   })
   if (!plant) throw new Error('Planta no encontrada')
 
+  if (plant.reviewStatus !== 'APPROVED') {
+    return {
+      percentage: 0,
+      stage: 'Siembra pendiente de aprobación MSP ⏳',
+      daysUntilHarvest: plant.species.growthCycleDays,
+      needsWatering: false,
+      needsFertilizer: false,
+      overWatered: false,
+      overFertilized: false,
+      overPruned: false,
+      healthStatus: 'VIGOROSA' as const,
+      lifecycleStatus: plant.lifecycleStatus,
+      plantingDate: plant.plantingDate,
+      lastHarvestDate: plant.lastHarvestDate,
+    }
+  }
+
+  const approvedCareLogs = plant.careLogs.filter(cl => {
+    if (!cl.activities || cl.activities.length === 0) return true
+    return cl.activities.some(a => a.reviewStatus === 'APPROVED' && !a.voidedAt)
+  })
+
   return {
-    ...calculateGrowthData(plant, plant.species, plant.careLogs),
+    ...calculateGrowthData(plant, plant.species, approvedCareLogs),
     lifecycleStatus: plant.lifecycleStatus,
     plantingDate: plant.plantingDate,
     lastHarvestDate: plant.lastHarvestDate,

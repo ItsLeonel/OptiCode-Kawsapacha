@@ -36,7 +36,7 @@ export const LUNAR_STAGES: Record<LunarStage, { label: string; ancestral: string
   waxing: {
     label: 'Luna creciente',
     ancestral: 'Wiñak Killa',
-    description: 'En la tradición agrícola se vincula con la siembra, el trasplante y la resiembra.',
+    description: 'En la tradición agrícola se vincula con la siembra y el cuidado de brotes en crecimiento.',
   },
   full: {
     label: 'Luna llena',
@@ -58,8 +58,7 @@ const RECOMMENDATIONS: Record<LunarStage, LunarRecommendation[]> = {
   ],
   waxing: [
     { activityType: 'sowing', title: 'Siembra medicinal', description: 'Orientación tradicional para sembrar plantas medicinales.', advisory: true },
-    { activityType: 'replanting', title: 'Trasplante', description: 'Revisar plantas que necesitan cambiar de recipiente o espacio.', advisory: true },
-    { activityType: 'replanting', title: 'Resiembra', description: 'Reponer plantas cuando corresponda.', advisory: true },
+    { activityType: 'watering', title: 'Riego de acompañamiento foliar', description: 'Hidratación moderada para sostener el vigor de hojas y tallos jóvenes.', advisory: true },
   ],
   full: [
     { activityType: 'harvest', title: 'Cosecha medicinal', description: 'Consultar la madurez y la parte vegetal a recolectar.', advisory: true },

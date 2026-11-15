@@ -13,9 +13,13 @@ type SidebarProgress = {
   badges: { id: string; label: string; earned: boolean }[]
 }
 
-const ITEMS: { destination: PrimaryDestination; label: string; icon: 'garden' | 'community' | 'target' }[] = [
+const ITEMS: { destination: GardenDestination; label: string; icon: 'garden' | 'map' | 'community' | 'leaf' | 'pot' | 'book' | 'target' }[] = [
   { destination: 'garden', label: 'Mi Huerto Vivo', icon: 'garden' },
+  { destination: 'real-garden', label: 'Mi terreno', icon: 'map' },
   { destination: 'community', label: 'Comunidad', icon: 'community' },
+  { destination: 'plants', label: 'Catálogo medicinal', icon: 'leaf' },
+  { destination: 'my-plants', label: 'Mis plantas', icon: 'pot' },
+  { destination: 'history', label: 'Bitácora general', icon: 'book' },
   { destination: 'progress', label: 'Mi camino verde', icon: 'target' },
 ]
 
@@ -29,7 +33,9 @@ export default function GardenNavigation({
   onLogout,
   pendingInvitationsCount = 0,
   onOpenNotifications,
+  region: _region,
   overlayMode = false,
+  onRetryRewards,
 }: {
   active: GardenDestination | PrimaryDestination
   onNavigate: (destination: GardenDestination) => void
@@ -42,6 +48,7 @@ export default function GardenNavigation({
   onOpenNotifications?: () => void
   region?: string
   overlayMode?: boolean
+  onRetryRewards?: () => void
 }) {
   const earnedBadges = progress?.badges.filter(badge => badge.earned) ?? []
   const [open, setOpen] = useState(false)
@@ -141,7 +148,10 @@ export default function GardenNavigation({
             className={`garden-nav-notif-btn ${pendingInvitationsCount > 0 ? 'is-pending' : ''}`}
             aria-label={`Notificaciones ${pendingInvitationsCount > 0 ? `(${pendingInvitationsCount} pendientes)` : ''}`}
           >
-            <GardenIcon name="bell" />
+            <span className="garden-nav-bell-wrap">
+              <GardenIcon name="bell" />
+              {pendingInvitationsCount > 0 && <span className="garden-notif-red-dot" aria-hidden="true" />}
+            </span>
             <span>Notificaciones</span>
             {pendingInvitationsCount > 0 && (
               <span className="garden-nav-badge">{pendingInvitationsCount}</span>
@@ -184,11 +194,39 @@ export default function GardenNavigation({
       )}
 
       {!progress && user && (
-        <button className="garden-path-preview" type="button" onClick={() => onNavigate('progress')}>
-          <span className="garden-progress-heading"><GardenIcon name="seed" /><strong>Mi progreso</strong></span>
-          <span className="garden-progress-level"><strong>Sin sincronizar</strong></span>
-          <span className="garden-progress-next">Recompensas pendientes del servidor</span>
-        </button>
+        <div className="garden-path-preview" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <button type="button" onClick={() => onNavigate('progress')} style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', color: 'inherit', width: '100%' }}>
+            <span className="garden-progress-heading"><GardenIcon name="seed" /><strong>Mi progreso</strong></span>
+            <span className="garden-progress-level"><strong>Sin sincronizar</strong></span>
+            <span className="garden-progress-next">Recompensas pendientes del servidor</span>
+          </button>
+          {onRetryRewards && (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation()
+                onRetryRewards()
+              }}
+              style={{
+                marginTop: '4px',
+                fontSize: '0.78rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: 'rgba(255,255,255,0.2)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'inherit',
+                cursor: 'pointer',
+                width: 'fit-content',
+              }}
+              title="Reintentar conexión con el servidor"
+            >
+              🔄 Reintentar
+            </button>
+          )}
+        </div>
       )}
       <div className="garden-sidebar-footer">
         {user ? (

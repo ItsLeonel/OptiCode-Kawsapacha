@@ -196,3 +196,10 @@
     max-height: max(140px, calc(100dvh - 300px));
   }
 }
+
+/* Fase 3: ocultar guía grande en cualquier jardín compacto (incluye QA/lab).
+   En la vista inmersiva el botón ? mantiene la ayuda accesible; la ilustración
+   no debe interceptar toques directos sobre las parcelas. */
+@media (max-width: 700px) {
+  .garden-poc .garden-poc-guide { display: none; }
+}

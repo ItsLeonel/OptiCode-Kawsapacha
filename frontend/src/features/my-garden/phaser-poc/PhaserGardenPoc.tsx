@@ -12,6 +12,7 @@ import type { SlotId } from './model'
 import { GARDEN_GUIDES } from '../garden-guides'
 import './phaser-poc.css'
 import './garden-live.css'
+import './garden-mobile.css'
 
 export default function PhaserGardenPoc(props: GardenSceneRendererProps & { renderer?: 'auto' | 'canvas' }) {
   const { realGarden, plants, selectedPlot, interactionBlocked, activities, feedback, progress, renderer = 'auto' } = props
@@ -110,6 +111,24 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
         <button type="button" aria-label="Ver características de mi terreno" aria-controls={infoId} aria-expanded={infoOpen} onClick={() => { setInfoOpen(!infoOpen); setHelpOpen(false) }}><GardenIcon name="map"/><span>Mi terreno</span></button>
         <button type="button" aria-label="Ayuda del jardín" aria-controls={helpId} aria-expanded={helpOpen} onClick={() => { setHelpOpen(!helpOpen); setInfoOpen(false) }}>?</button>
       </div>
+      <div className="garden-poc-mobile-zoom" role="group" aria-label="Controles de cámara móvil">
+        <button type="button" aria-label="Acercar jardín" title="Acercar" onClick={() => command({ type: 'zoom', factor: 1.25 })}>+</button>
+        <button type="button" aria-label="Alejar jardín" title="Alejar" onClick={() => command({ type: 'zoom', factor: .8 })}>−</button>
+        <button type="button" aria-label="Centrar jardín" title="Volver a ver las seis parcelas" onClick={() => command({ type: 'reset-camera' })}>↺</button>
+      </div>
+      <div className="garden-poc-mobile-plots" role="group" aria-label="Acceso rápido a las seis parcelas">
+        {model.slots.map(slot => (
+          <button key={slot.id} type="button"
+            data-plot-index={slot.plot}
+            data-planted={Boolean(slot.plant)}
+            aria-label={`Parcela ${slot.plot + 1}: ${slot.plant ? slot.plant.name + ', abrir Pasaporte Vivo' : 'registrar planta'}`}
+            aria-pressed={selectedPlot === slot.plot}
+            disabled={interactionBlocked}
+            onClick={() => bridge.emit({ type: 'activate-slot', slot: slot.id })}>
+            P{slot.plot + 1}
+          </button>
+        ))}
+      </div>
       <div className="garden-poc-record-count"><GardenIcon name="leaf"/>{plants.length ? plants.length + (plants.length === 1 ? ' planta registrada' : ' plantas registradas') : 'Tu tierra, una historia por comenzar'}<small>{plants.length ? 'Etapas ilustradas solo con observaciones documentadas' : 'Selecciona una zona para registrar tu primera planta'}</small></div>
       <button type="button" className="garden-poc-guide" data-guide-region={model.region} aria-label={'Consejo del guía de ' + GARDEN_REGIONS[model.region].label} aria-expanded={helpOpen} aria-controls={helpId} onClick={() => { setHelpOpen(!helpOpen); setInfoOpen(false) }}>
         <img src={GARDEN_GUIDES[model.region]} alt="" aria-hidden="true"/><span>Tu huerto cuenta una historia<small>¿Exploramos juntos?</small></span>
@@ -117,9 +136,9 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
       {contextual && <div className="garden-poc-context" role="status" style={{ left: Math.max(100, Math.min((host.current?.clientWidth ?? 400) - 100, (contextual.anchor.x - camera.left) * camera.zoom)), top: Math.max(185, Math.min((host.current?.clientHeight ?? 600) - 130, (contextual.anchor.y - camera.top) * camera.zoom - 35)) }}>
         <GardenIcon name={contextual.plant ? 'leaf' : 'seed'}/><strong>{contextual.plant?.name ?? 'Aquí comienza una vida'}</strong><span>{contextual.plant ? (contextual.plant.reviewStatus === 'PENDING' ? '⏳ Siembra pendiente MSP · Pasaporte Vivo' : (documentedGrowthStage(contextual.plant) ? GROWTH_STAGES[documentedGrowthStage(contextual.plant)!] + ' · Pasaporte Vivo' : 'Etapa sin documentar · Pasaporte Vivo')) : 'Registrar una planta'}</span>
       </div>}
-      <p id={hintId} className="garden-poc-sr-only">El jardín tiene cámara fija. Pulsa Tab para seleccionar una zona; Enter abre el registro o el Pasaporte Vivo.</p>
+      <p id={hintId} className="garden-poc-sr-only">En móvil puedes arrastrar y pellizcar para explorar las seis parcelas, usar los controles de zoom o elegir una parcela directamente. Con teclado, Tab selecciona una zona y Enter abre su registro o Pasaporte Vivo.</p>
       {helpOpen && <div id={helpId} className="garden-poc-help garden-poc-panel">
-        <strong>Explora tu jardín</strong><p>Selecciona una zona para registrar una planta o consultar su Pasaporte Vivo. La cámara se mantiene fija para mostrar el huerto completo.</p><p>Teclado: pulsa Tab para recorrer las seis zonas; las flechas, Inicio y Fin cambian la selección. Enter abre su formulario.</p>
+        <strong>Explora tu jardín</strong><p>Selecciona una zona para registrar una planta o consultar su Pasaporte Vivo. En móvil, arrastra con un dedo para desplazarte, pellizca para ampliar y pulsa ↺ para centrar las seis parcelas. En escritorio se conserva la vista general fija.</p><p>Teclado: pulsa Tab para recorrer las seis zonas; las flechas, Inicio y Fin cambian la selección. Enter abre su formulario.</p>
         <button type="button" onClick={() => { setHelpOpen(false); slotButtons.current[0]?.focus({ preventScroll: true }) }}>Seleccionar una zona con teclado</button>
       </div>}
       {infoOpen && <aside id={infoId} className="garden-poc-data garden-poc-panel" aria-label="Características de mi terreno">

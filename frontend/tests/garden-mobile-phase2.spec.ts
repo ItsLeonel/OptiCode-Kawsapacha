@@ -31,7 +31,7 @@ async function sixVisible(page: Page) {
     const x = (plot.x - position.left) * position.zoom
     const y = (plot.y - position.top) * position.zoom
     expect(x, 'parcela visible en horizontal').toBeGreaterThanOrEqual(0)
-    expect(x, 'parcela visible en horizontal').toBeLessThanOrEqual(position.width)
+    expect(x, `parcela visible en horizontal: ${JSON.stringify(position)}`).toBeLessThanOrEqual(position.width)
     expect(y, 'parcela visible en vertical').toBeGreaterThanOrEqual(0)
     expect(y, 'parcela visible en vertical').toBeLessThanOrEqual(position.height)
   }
@@ -200,7 +200,7 @@ test('Fase 3: encuadre del jardín en cinco tamaños, imágenes y controles acce
     // A generous CI budget detects catastrophic resize stalls, not minor noise.
     expect(elapsed, `El jardín debe responder al ancho ${width}px`).toBeLessThan(30_000)
     measurements.push({ width, resizeToReadyMs: elapsed, canvasWidth: renderer.intrinsicWidth, canvasHeight: renderer.intrinsicHeight })
-    expect(await page.evaluate(() document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
     if (width <= 700) {
       await sixVisible(page)
       await expect(page.getByRole('button', { name: 'Acercar jardín' })).toBeVisible()

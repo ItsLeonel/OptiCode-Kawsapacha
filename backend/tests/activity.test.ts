@@ -58,61 +58,24 @@ export async function runActivityTests() {
   })
 
   try {
-    // 0. Verificar que una planta pendiente de aprobación MSP bloquea los cuidados
-    let pendingBlocked = false
-    try {
-      await createGardenActivity({
-        gardenId: garden.id,
-        actorUserId: user.id,
-        type: 'watering',
-        performedDate: '2026-11-02',
-        targetKind: 'plant',
-        plantId: plant.id,
-        notes: 'Intento de riego en planta no aprobada',
-      })
-    } catch (err: any) {
-      if (err.code === 'PLANT_NOT_APPROVED') pendingBlocked = true
-    }
-    assert.ok(pendingBlocked, 'Debe bloquear actividades de cuidado si la siembra está pendiente de aprobación MSP')
-
-    // 0b. Verificar que el espacio con planta pendiente también bloquea actividades por plot (ej. sowing u observation)
-    let plotPendingBlocked = false
-    try {
-      await createGardenActivity({
-        gardenId: garden.id,
-        actorUserId: user.id,
-        type: 'observation',
-        performedDate: '2026-11-02',
-        targetKind: 'plot',
-        plotIndex: 1,
-        notes: 'Intento de observación en espacio pendiente MSP',
-      })
-    } catch (err: any) {
-      if (err.code === 'PLANT_NOT_APPROVED') plotPendingBlocked = true
-    }
-    assert.ok(plotPendingBlocked, 'Debe bloquear actividades dirigidas al espacio mientras la planta esté pendiente MSP')
-
-    let sowingOnPendingBlocked = false
-    try {
-      await createGardenActivity({
-        gardenId: garden.id,
-        actorUserId: user.id,
-        type: 'sowing',
-        performedDate: '2026-11-02',
-        targetKind: 'plot',
-        plotIndex: 1,
-        notes: 'Intento de siembra en espacio ocupado/pendiente',
-      })
-    } catch (err: any) {
-      if (err.code === 'PLANT_NOT_APPROVED') sowingOnPendingBlocked = true
-    }
-    assert.ok(sowingOnPendingBlocked, 'Debe bloquear siembra adicional en un espacio con planta pendiente MSP')
-
-    // Aprobar la planta para continuar el flujo de cuidados válidos
-    await prisma.cultivatedPlant.update({
-      where: { id: plant.id },
-      data: { reviewStatus: 'APPROVED' },
+    // Las plantas PENDING permiten nuevas observaciones sin esperar al MSP.
+    const pendingCare = await createGardenActivity({
+      gardenId: garden.id, actorUserId: user.id, type: 'observation',
+      performedDate: '2026-11-01', targetKind: 'plant', plantId: plant.id,
+      notes: 'Observación en planta todavía pendiente',
     })
+    assert.equal(pendingCare.activity?.reviewStatus, 'PENDING')
+    const pendingPlot = await createGardenActivity({
+      gardenId: garden.id, actorUserId: user.id, type: 'observation',
+      performedDate: '2026-11-01', targetKind: 'plot', plotIndex: 1,
+      notes: 'Historial del espacio con planta en revisión',
+    })
+    assert.equal(pendingPlot.activity?.reviewStatus, 'PENDING')
+    // No permitir sembrar dos plantas en el mismo espacio físico.
+    await assert.rejects(() => createGardenActivity({
+      gardenId: garden.id, actorUserId: user.id, type: 'sowing',
+      performedDate: '2026-11-01', targetKind: 'plot', plotIndex: 1,
+    }), { code: 'PLOT_OCCUPIED' })
 
     // Seguridad de extremo a extremo: una cuenta ajena no debe leer ni editar
     // plantas o fotos del huerto de otra comunidad.

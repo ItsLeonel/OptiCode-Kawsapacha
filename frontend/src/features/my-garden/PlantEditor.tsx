@@ -139,7 +139,7 @@ export default function PlantEditor({
           </div>
           <div className="journal-fields plant-editor-fields">
             <label>
-              Nombre común <span className="plant-editor-required" aria-label="obligatorio">*</span>
+              <span className="plant-editor-field-title">Nombre común <span className="plant-editor-required" aria-label="obligatorio">*</span></span>
               <input required value={draft.name} maxLength={100} onChange={event => field('name', event.target.value)} />
             </label>
             <label>
@@ -181,7 +181,7 @@ export default function PlantEditor({
           </div>
           <div className="journal-fields plant-editor-fields">
             <label>
-              Fecha de observación <span className="plant-editor-required" aria-label="obligatorio">*</span>
+              <span className="plant-editor-field-title">Fecha de observación <span className="plant-editor-required" aria-label="obligatorio">*</span></span>
               <input required type="date" max={localDate()} value={draft.date} onChange={event => field('date', event.target.value)} />
             </label>
             <label>
@@ -203,7 +203,7 @@ export default function PlantEditor({
               </select>
             </label>
             <label>
-              Altura medida <span className="plant-editor-optional">(opcional, cm)</span>
+              <span className="plant-editor-field-title">Altura medida <span className="plant-editor-optional">(opcional, cm)</span></span>
               <input
                 type="number"
                 min="0"
@@ -215,7 +215,7 @@ export default function PlantEditor({
               />
             </label>
             <label className="journal-wide plant-editor-notes">
-              Observaciones <span className="plant-editor-optional">(opcional)</span>
+              <span className="plant-editor-field-title">Observaciones <span className="plant-editor-optional">(opcional)</span></span>
               <textarea
                 value={draft.observations}
                 maxLength={2000}

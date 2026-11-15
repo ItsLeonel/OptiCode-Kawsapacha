@@ -152,8 +152,15 @@ test('digital mirror: edit a real photo and observations, move, archive and rest
   await expect(passport).toContainText('23.5 cm')
   await expect(passport.locator('.passport-timeline img')).toHaveCount(2)
   await expect(passport.locator('.garden-passport-photo')).not.toHaveAttribute('src', original!)
-  // Los blob: URLs se regeneran al montar el componente: validar bytes persistidos, no identidad efímera del URL.
-  await expect.poll(() => photoDigest(page, '.passport-timeline img')).toBe(originalDigest)
+  // Dos fotos tomadas el mismo día no tienen un orden cronológico único.
+  // Comprobar que la foto histórica permanece entre las evidencias, por contenido.
+  await expect.poll(() => passport.locator('.passport-timeline img').evaluateAll(async images => {
+    return Promise.all(images.map(async element => {
+      const bytes = await (await fetch((element as HTMLImageElement).src)).arrayBuffer()
+      const digest = await crypto.subtle.digest('SHA-256', bytes)
+      return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('')
+    }))
+  })).toContain(originalDigest)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo', exact: true }).click()
   await expect(slots(page).nth(4)).toContainText('Romero del patio')
   await expect(slots(page).nth(2)).toContainText('Registrar una planta')

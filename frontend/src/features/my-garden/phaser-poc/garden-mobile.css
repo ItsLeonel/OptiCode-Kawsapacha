@@ -160,3 +160,20 @@
     max-height: calc(100% - 240px);
   }
 }
+
+
+/* Calendario lunar: acceso conservado, sin interceptar zoom ni parcelas. */
+@media (max-width: 700px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .lunar-garden-widget {
+    top: auto; bottom: calc(200px + env(safe-area-inset-bottom)); right: 8px;
+    width: min(310px, calc(100vw - 16px));
+    flex-direction: column-reverse;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .lunar-widget-toggle {
+    min-height: 44px; padding: 6px 10px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .lunar-today-panel {
+    margin-top: 0; margin-bottom: 8px;
+    max-height: max(140px, calc(100dvh - 300px));
+  }
+}

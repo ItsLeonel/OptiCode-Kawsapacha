@@ -51,6 +51,7 @@ test('móvil: zoom, arrastre, reset, selección y Pasaporte Vivo', async ({ page
   const zoomIn = page.getByRole('button', { name: 'Acercar jardín', exact: true })
   await zoomIn.click()
   await expect.poll(async () => (await camera(page)).zoom).toBeGreaterThan(initial.zoom)
+  const afterZoom = await camera(page)
 
   const canvas = scene(page).locator('canvas')
   const box = await canvas.boundingBox()
@@ -59,7 +60,7 @@ test('móvil: zoom, arrastre, reset, selección y Pasaporte Vivo', async ({ page
   await page.mouse.down()
   await page.mouse.move(box!.x + box!.width * .7, box!.y + box!.height * .52, { steps: 12 })
   await page.mouse.up()
-  await expect.poll(async () => (await camera(page)).left).not.toBe(initial.left)
+  await expect.poll(async () => (await camera(page)).left).not.toBe(afterZoom.left)
 
   await page.getByRole('button', { name: 'Centrar jardín' }).click()
   await expect.poll(async () => Math.abs((await camera(page)).zoom - initial.zoom)).toBeLessThan(.001)

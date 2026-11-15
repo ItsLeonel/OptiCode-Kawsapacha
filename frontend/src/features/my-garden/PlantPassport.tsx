@@ -253,11 +253,6 @@ export default function PlantPassport({
                   </section>
                 ) : <p className="passport-empty">Sin recomendaciones de calendario disponibles.</p>}
                 <p className="passport-disclaimer">Estas orientaciones no registran acciones automáticamente ni sustituyen la observación del huerto real.</p>
-                {onActivity && !plant.archivedAt && (
-                  <button type="button" className="passport-inline-action" onClick={() => onActivity()}>
-                    Registrar un riego, abono, cuidado o cosecha
-                  </button>
-                )}
               </div>
             </details>
 

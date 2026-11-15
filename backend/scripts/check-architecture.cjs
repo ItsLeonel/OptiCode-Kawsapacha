@@ -8,6 +8,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const modulesRoot = path.resolve(__dirname, '../src/modules')
+const middlewaresRoot = path.resolve(__dirname, '../src/shared/middlewares')
 const forbiddenPackages = /^(?:@prisma\/client|express|cors|helmet|multer|fs|node:fs(?:\/.*)?|node:path(?:\/.*)?|path)$/
 let inspected = 0
 const errors = []
@@ -27,19 +28,27 @@ function analyze(file) {
   const moduleName = relative.split('/')[0]
   const domain = relative.includes('/domain/')
   const isolatedApplication = relative.includes('/application/')
+  const presentation = relative.includes('/presentation/')
   const matches = content.matchAll(/(?:\bfrom\s*|\brequire\s*\(|\bimport\s*\()\s*['"]([^'"]+)['"]/g)
   for (const match of matches) {
     const spec = match[1]
-    if (domain && (forbiddenPackages.test(spec) || /(?:^|\/)(?:infrastructure|application|presentation|middlewares)(?:\/|$)/.test(spec))) {
+    const compositionImport = /(?:^|\/)[^/]+\.module(?:\.[jt]sx?)?$/.test(spec)
+    if (domain && (forbiddenPackages.test(spec) || compositionImport || /(?:^|\/)(?:infrastructure|application|presentation|middlewares)(?:\/|$)/.test(spec))) {
       errors.push(relative + ' depende de ' + spec)
     }
-    if (isolatedApplication && (forbiddenPackages.test(spec) || /(?:^|\/)(?:infrastructure|presentation)(?:\/|$)/.test(spec))) {
+    if (isolatedApplication && (forbiddenPackages.test(spec) || compositionImport || /(?:^|\/)(?:infrastructure|presentation)(?:\/|$)/.test(spec))) {
       errors.push(relative + ' depende de ' + spec)
+    }
+    if (presentation && (spec.startsWith('@prisma/client') || spec.includes('/infrastructure/'))) {
+      errors.push(relative + ' importa persistencia directamente desde presentación: ' + spec)
     }
     if (spec.startsWith('.')) {
       const target = path.resolve(path.dirname(file), spec)
       const resolved = path.relative(modulesRoot, target).replaceAll('\\', '/')
       const targetModule = resolved.split('/')[0]
+      if (!resolved.startsWith('..') && targetModule !== moduleName && (domain || isolatedApplication)) {
+        errors.push(relative + ' accede a otro módulo desde una capa interna: ' + spec)
+      }
       if (!resolved.startsWith('..') && targetModule !== moduleName) {
         const edge = moduleName + ' -> ' + targetModule
         directDependencies.set(edge, (directDependencies.get(edge) || 0) + 1)
@@ -101,6 +110,15 @@ function findModuleCycles(importEdges) {
   return cycles.sort((a, b) => a.join(',').localeCompare(b.join(',')))
 }
 
+/** El middleware compartido presenta HTTP y no debe consultar Prisma directamente. */
+for (const entry of fs.readdirSync(middlewaresRoot, { withFileTypes: true })) {
+  if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue
+  const source = fs.readFileSync(path.join(middlewaresRoot, entry.name), 'utf8')
+  if (/from\s*['\"][^'\"]*infrastructure\/database\/prisma|from\s*['\"]@prisma\/client/.test(source)) {
+    errors.push('shared/middlewares/' + entry.name + ' importa Prisma directamente')
+  }
+}
+
 walk(modulesRoot)
 console.log('Dominios TypeScript comprobados: ' + inspected)
 console.log('Referencias entre módulos (línea base, no umbral): ' + [...directDependencies.values()].reduce((a,b)=>a+b,0))
@@ -114,5 +132,5 @@ if (errors.length) {
   console.error('Violaciones de las reglas del dominio:\n' + errors.join('\n'))
   process.exitCode = 1
 } else {
-  console.log('OK: los dominios extraídos no dependen de infraestructura, aplicación ni HTTP.')
+  console.log('OK: dominio, aplicación, presentación y middleware respetan las fronteras comprobadas.')
 }

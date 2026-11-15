@@ -106,7 +106,10 @@ console.log('Dominios TypeScript comprobados: ' + inspected)
 console.log('Referencias entre módulos (línea base, no umbral): ' + [...directDependencies.values()].reduce((a,b)=>a+b,0))
 const cycles = findModuleCycles(directDependencies)
 console.log('Grupos de dependencias circulares entre módulos: ' + cycles.length)
-for (const cycle of cycles) console.log('  Ciclo (línea base): ' + cycle.join(' <-> '))
+for (const cycle of cycles) {
+  console.log('  Ciclo: ' + cycle.join(' <-> '))
+  errors.push('Dependencia circular entre módulos: ' + cycle.join(' <-> '))
+}
 if (errors.length) {
   console.error('Violaciones de las reglas del dominio:\n' + errors.join('\n'))
   process.exitCode = 1

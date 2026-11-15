@@ -203,7 +203,7 @@ export async function runPhase45MspRbacTests() {
 
   assert.ok(act1Result.activity)
   assert.equal(act1Result.activity.reviewStatus, 'PENDING', 'La actividad debe quedar en PENDING')
-  assert.equal(act1Result.reward?.pointsAwarded, 0, 'No se deben otorgar puntos anticipadamente')
+  assert.equal(act1Result.reward?.pointsAwarded, 5, 'Se entregan puntos provisionales al registrar')
 
   // Verificar que el saldo del usuario sigue en 0 (puntos retenidos hasta aprobación)
   const pendingSummary = await getUserRewardsSummary(registrationResult.user.id)

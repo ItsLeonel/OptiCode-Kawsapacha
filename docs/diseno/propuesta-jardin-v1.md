@@ -1,5 +1,13 @@
 # Mi Jardín V1 — dirección visual y solución técnica
 
+> **Nota de vigencia — 15/11/2026:** este documento describe de forma fiel la **revisión local histórica** (Costa/En tierra, cámara fija y capturas de escritorio/móvil) realizada por Dylan. Su frase inicial «no implementada» se refiere a **propuestas de rediseño**, no a que Mi Jardín/Phaser carezca de implementación. Desde entonces, se desarrolló el [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74), rama `fix/responsive-mobile-garden` (referencia `6d7750a9`, **sin fusionar**), con cámara responsive y controles móviles; esto **supersede para dicha rama** las afirmaciones posteriores de «cámara fija», «sin paneo/zoom» y «solapamiento sin corregir». Se conservan esos datos como línea base de la sesión antigua y **no** se atribuyen a `main` o producción mejoras que aún están solo en PR.
+>
+> **Hecho comprobado en repositorio:** en el PR #74 hay cambios en `createGardenGame.ts`, `garden-mobile.css`, `GardenNavigation.tsx` y pruebas Playwright; el CI del SHA `6d7750a9` aprobó validación frontend, regresión crítica y build Docker. **Pendiente de verificación:** comportamiento real en Android/iPhone, captura y accesibilidad, aprobación visual del PM y publicación HTTPS. Dylan debe volver a documentar las 16 combinaciones región×modalidad, los seis puntos de siembra y el flujo registro→Pasaporte→Bitácora; informar a Leonardo las diferencias exactas.
+>
+> **Para la entrega académica:** `main` es la base funcional de escritorio; el PR #41 aporta diseño y capturas históricas, mientras que el PR #74 es una mejora posterior en revisión. No actualizar las cifras medidas en la captura original (`0.75`, `0.203`, `18 px`) como si fueran medidas recientes.
+
+
+
 **Estado:** propuesta y descripción técnica para revisión de Leonel. No se declara aprobada ni implementada.
 
 Este documento separa lo que aparece en el código actual de lo que queda sujeto a revisión. No describe una nueva escena ni autoriza cambios al motor o a los recursos.

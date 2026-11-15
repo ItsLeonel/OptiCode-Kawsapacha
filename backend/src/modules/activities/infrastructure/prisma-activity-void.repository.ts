@@ -1,5 +1,5 @@
 import { prisma } from '../../../infrastructure/database/prisma'
-import { revertActivityReward } from '../../rewards/application/rewards.service'
+import { revertActivityReward } from '../../rewards/rewards.module'
 import type { ActivityVoidRepository } from '../application/ports/activity-void.repository'
 
 /** Anulación y reversión atómicas en una sola transacción. */

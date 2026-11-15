@@ -547,6 +547,7 @@ export interface ApiPlant {
   customName: string
   photoUrl: string
   plantingDate: string
+  createdAt?: string
   notes?: string
   lifecycleStatus?: string
   observedState?: string

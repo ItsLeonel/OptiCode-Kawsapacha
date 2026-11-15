@@ -109,7 +109,7 @@ function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: Adm
     <div className="kap-section-heading"><div><h2>Panel de gestión institucional</h2><p>Supervisión y acompañamiento de Kawsapacha · simulación académica, no un portal oficial del MSP</p></div><span className="kap-info-chip"><AdminIcon name="shield" size={14}/> Datos del proyecto</span></div>
     <div className="kap-metrics">
       <AdminMetric icon="users" label="Comunidades registradas" value={data?.communitiesTotal}/>
-      <AdminMetric icon="calendar" label="Eventos activos" value={data?.activeEvents} tone="gold"/>
+      <AdminMetric icon="calendar" label="Eventos registrados" value={data?.activeEvents} tone="gold"/>
       <AdminMetric icon="book" label="Recursos educativos" value={data?.educationalResources} tone="brown"/>
       <AdminMetric icon="shield" label="Contenidos en moderación" value={data?.moderationPending} tone="red"/>
     </div>
@@ -139,7 +139,7 @@ function MspHome({ data, setTab }: { data?: MspDashboardData; setTab: (next: Adm
         </div>
       </AdminPanel>
       <AdminPanel icon="chart" title="Reportes rápidos" subtitle="Indicadores del programa" action={<ActionLink onClick={() => setTab('reportes')}>Ver reportes</ActionLink>}>
-        <div className="kap-report-list">{['Actividad de comunidades', 'Resultados de eventos', 'Uso de recursos educativos'].map(label => <button type="button" key={label} onClick={() => setTab('reportes')}><AdminIcon name="chart" size={18}/>{label}<AdminIcon name="right" size={17}/></button>)}</div>
+        <div className="kap-report-list">{['Actividades agrícolas', 'Eventos por provincia', 'Recursos por categoría'].map(label => <button type="button" key={label} onClick={() => setTab('reportes')}><AdminIcon name="chart" size={18}/>{label}<AdminIcon name="right" size={17}/></button>)}</div>
       </AdminPanel>
     </div>
   </>
@@ -406,7 +406,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#2d3748' }}>Eventos del proyecto gestionados por el rol MSP</h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#718096' }}>
-              Coordinación y difusión oficial de ferias, mingas y capacitaciones agroecológicas para comunidades.
+              Registro y difusión de ferias, mingas y capacitaciones del proyecto para las comunidades.
             </p>
           </div>
           <button
@@ -537,7 +537,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#2d3748' }}>Biblioteca educativa del proyecto Kawsapacha</h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#718096' }}>
-              Guías técnicas, protocolos de bioseguridad y saberes ancestrales avalados para las comunidades.
+              Guías, materiales y saberes compartidos para las comunidades dentro de la simulación académica.
             </p>
           </div>
           <button

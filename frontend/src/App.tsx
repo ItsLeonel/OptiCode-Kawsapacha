@@ -808,7 +808,7 @@ export default function App({
         if (activeGardenId) {
           void reloadBackendActivities(activeGardenId)
         }
-        setNotice('🌱 ¡Siembra registrada! La planta está pendiente de aprobación por el MSP. No se podrán realizar cuidados hasta su verificación oficial.')
+        setNotice('🌱 Siembra guardada. Puedes empezar a cuidarla; el MSP revisará la evidencia posteriormente.')
         goto('Inicio')
         return { ok: true }
       } catch (err: unknown) {
@@ -878,7 +878,7 @@ export default function App({
         const isPending = occupant.reviewStatus === 'PENDING' || occupant.reviewStatus === 'NEEDS_CHANGES'
         setNotice(
           isPending
-            ? `⏳ El Espacio ${plot + 1} ya tiene a «${occupant.name}» pendiente de aprobación por el MSP y no puede utilizarse.`
+            ? `El Espacio ${plot + 1} ya está sembrado con «${occupant.name}». Puedes cuidarla, pero no sembrar otra en el mismo espacio.`
             : `El Espacio ${plot + 1} ya está ocupado por «${occupant.name}».`
         )
         setDetailId(occupant.id)
@@ -1026,9 +1026,6 @@ export default function App({
 
   async function saveActivity(draft: ActivityDraft) {
     if (user) {
-      if (backendCommunity && backendCommunity.status !== 'APPROVED') {
-        throw new Error('Tu comunidad aún no ha sido aprobada por el MSP. La actividad no se ha guardado.')
-      }
       if (!activeGardenId) {
         throw new Error('Selecciona un huerto sincronizado antes de registrar la actividad. No se guardó en IndexedDB.')
       }
@@ -1050,7 +1047,11 @@ export default function App({
         if (draft.photo) {
           formData.append('photo', draft.photo, `activity.${photoExtension(draft.photo)}`)
         }
-        await activityApi.create(activeGardenId, formData)
+        const created = await activityApi.create(activeGardenId, formData)
+        const earned = Number(created.reward?.pointsAwarded ?? 0)
+        setNotice(earned > 0
+          ? `✅ Actividad registrada. +${earned} Semillas provisionales sujetas a revisión MSP.`
+          : '✅ Actividad guardada en Bitácora. La verificación MSP es posterior.')
         await reloadBackendActivities(activeGardenId)
 
         if (activeCommunityId) {
@@ -1061,7 +1062,7 @@ export default function App({
 
       setActivityForm(null)
       setServerActivityRevision(r => r + 1)
-      setNotice('✅ Actividad registrada — pendiente de aprobación por el MSP para acreditar tus Semillas de vida 🌱')
+
       if (screen === 'Inicio') {
         setFeedback({ id: draft.id, type: draft.type, plot: draft.details.destinationPlot ?? (draft.target.kind === 'garden' ? null : draft.target.plot) })
       }

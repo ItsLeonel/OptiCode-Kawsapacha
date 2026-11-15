@@ -36,6 +36,6 @@ export const prismaPlantWriteRepository = {
     return prisma.gardenActivity.create({data:data as Prisma.GardenActivityUncheckedCreateInput})
   },
   createEvidence(data:{activityId:string;filePath:string;fileUrl:string|null;mimeType:string;fileSize:number}) {
-    return prisma.activityEvidence.create({data})
+    return prisma.activityEvidence.create({data:{...data,fileUrl:data.fileUrl!}})
   },
 }

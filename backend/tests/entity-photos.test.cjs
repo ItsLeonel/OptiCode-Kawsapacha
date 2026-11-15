@@ -101,7 +101,7 @@ test('real SQLite migration, uploads, persistence and authorization', async t =>
     assert.equal(await prisma.realGarden.count({ where: { id: 'legacy-garden' } }), 1)
   })
   await t.test('a failed database write removes only the new upload', async () => {
-    const { withEntityPhoto } = require('../dist/modules/media/application/entity-photo.service')
+    const { withEntityPhoto } = require('../dist/modules/media/media.module')
     const before = fs.readdirSync(path.join(database.uploads, 'gardens'))
     await assert.rejects(withEntityPhoto('gardens', { buffer: png, size: png.length, mimetype: 'image/png' }, false, null, async () => { throw new Error('Simulated database failure') }), /Simulated/)
     assert.deepEqual(fs.readdirSync(path.join(database.uploads, 'gardens')), before)

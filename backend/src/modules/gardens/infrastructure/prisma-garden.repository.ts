@@ -1,5 +1,5 @@
 import { prisma } from '../../../infrastructure/database/prisma'
-import { withEntityPhoto } from '../../media/application/entity-photo.service'
+import { withEntityPhoto } from '../../media/media.module'
 import type { GardenRepository, GardenPhotoStorage, GardenChanges, GardenNew } from '../application/ports/garden.repository'
 
 export const prismaGardenRepository:GardenRepository={

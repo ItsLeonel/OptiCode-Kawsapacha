@@ -1,5 +1,5 @@
 import multer from 'multer'
-import { PHOTO_MAX_BYTES, PHOTO_MIME_TYPES } from '../../modules/media/application/entity-photo.service'
+import { PHOTO_MAX_BYTES, PHOTO_MIME_TYPES } from '../../modules/media/media.module'
 
 // Buffer at most one bounded file. Services authorize before writing anything.
 export const uploadEntityPhoto = multer({

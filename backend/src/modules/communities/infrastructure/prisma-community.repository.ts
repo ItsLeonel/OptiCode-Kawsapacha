@@ -1,5 +1,5 @@
 import { prisma } from '../../../infrastructure/database/prisma'
-import { withEntityPhoto } from '../../media/application/entity-photo.service'
+import { withEntityPhoto } from '../../media/media.module'
 import type { CommunityRepository, CommunityPhotoStorage, CommunityCreateData, CommunityUpdateData } from '../application/ports/community.repository'
 
 /** Consultas e incluye relaciones exactamente como el servicio V1. */

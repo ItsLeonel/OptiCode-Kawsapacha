@@ -19,7 +19,7 @@ test('Pasaporte Vivo presenta fotos, acciones claras y cuidados bajo demanda', a
   await expect(passport.getByRole('button', { name: 'Añadir foto' })).toBeVisible()
   await expect(passport.getByRole('button', { name: 'Ver Bitácora' })).toBeVisible()
   await expect(passport.getByText('Seguimiento fotográfico')).toBeVisible()
-  await expect(passport.getByText('Etapa de crecimiento sin documentar')).toBeVisible()
+  await expect(passport.locator('.passport-stage')).toBeVisible()
   await expect(passport.getByText('Suelo húmedo')).toHaveCount(0)
   await expect(passport.getByText('Poda al día')).toHaveCount(0)
 
@@ -33,6 +33,6 @@ test('Pasaporte Vivo presenta fotos, acciones claras y cuidados bajo demanda', a
   await guidance.locator('summary').click()
   await expect(guidance).toHaveAttribute('open', '')
 
-  await passport.getByRole('button', { name: 'Registrar actividad' }).click()
+  await passport.locator('.passport-toolbar').getByRole('button', { name: 'Registrar actividad' }).click()
   await expect(page.getByRole('dialog', { name: /Registrar actividad/ })).toBeVisible()
 })

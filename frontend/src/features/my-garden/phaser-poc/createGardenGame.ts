@@ -12,7 +12,12 @@ class ModularGardenScene extends Phaser.Scene {
   private failedAssets = new Set<string>()
   private requestedAssets = new Set<string>()
   private ready = false
-  private drag: { x: number; y: number; moved: boolean } | null = null
+  private drag: { x: number; y: number; lastX: number; lastY: number; moved: boolean } | null = null
+  private activePointers = new Map<number, { x: number; y: number }>()
+  private pinch: { distance: number; zoom: number } | null = null
+  private suppressClick = false
+  private mobileBaseZoom = 1
+  private mobileMaxZoom = 1
   private hovered: SlotId | null = null
   private focused: SlotId | null = null
   private lastCamera = ''
@@ -34,6 +39,8 @@ class ModularGardenScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height).setBackgroundColor('#28462c')
     this.ready = true
     this.input.enabled = !this.bridge.snapshot.blocked
+    // Phaser only tracks one touch pointer by default. Enable two-finger pinch.
+    this.input.addPointer(2)
     this.load.on(Phaser.Loader.Events.COMPLETE, this.draw, this)
     const unsubscribe = this.bridge.onCommand(command => this.receive(command))
     this.scale.on(Phaser.Scale.Events.RESIZE, this.resizeCamera, this)
@@ -41,7 +48,9 @@ class ModularGardenScene extends Phaser.Scene {
     // Phaser's wheel listener is passive when preventDefaultWheel is false.
     // Cancel page scrolling separately, while preserving Ctrl+wheel accessibility.
     const preventPageScroll = (event: WheelEvent) => {
-      if (!event.ctrlKey && !this.bridge.snapshot.blocked) event.preventDefault()
+      if (event.ctrlKey || this.bridge.snapshot.blocked) return
+      event.preventDefault()
+      if (this.isMobileCamera()) this.zoomMobile(this.cameras.main.zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12), event.offsetX, event.offsetY)
     }
     this.game.canvas.addEventListener('wheel', preventPageScroll, { passive: false })
     // A React layout change or page scroll can move the canvas between Phaser
@@ -62,6 +71,9 @@ class ModularGardenScene extends Phaser.Scene {
       this.painter?.destroy()
       this.painter = null
       this.lastDrawnModel = null
+      this.activePointers.clear()
+      this.drag = null
+      this.pinch = null
       this.events.off(Phaser.Scenes.Events.SHUTDOWN, release)
       this.events.off(Phaser.Scenes.Events.DESTROY, release)
     }
@@ -69,28 +81,67 @@ class ModularGardenScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, release)
     this.events.once(Phaser.Scenes.Events.DESTROY, release)
 
-    // Pointer movement is used only to distinguish a click from a drag.
-    // Moving the pointer never moves the camera or the garden.
+    // Desktop stays click-only. Mobile enables bounded drag and two-finger zoom.
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.primaryDown || this.bridge.snapshot.blocked) return
-      this.drag = { x: pointer.x, y: pointer.y, moved: false }
+      if (this.bridge.snapshot.blocked) return
+      if (this.isMobileCamera()) {
+        this.activePointers.set(pointer.id, { x: pointer.x, y: pointer.y })
+        if (this.activePointers.size > 1) {
+          const [a, b] = [...this.activePointers.values()]
+          this.pinch = { distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), zoom: this.cameras.main.zoom }
+          this.suppressClick = true
+          this.drag = null
+          this.setHover(null)
+          return
+        }
+      }
+      if (!pointer.primaryDown) return
+      this.drag = { x: pointer.x, y: pointer.y, lastX: pointer.x, lastY: pointer.y, moved: false }
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.drag && pointer.isDown) {
+      if (this.isMobileCamera() && this.activePointers.has(pointer.id)) {
+        this.activePointers.set(pointer.id, { x: pointer.x, y: pointer.y })
+        if (this.activePointers.size > 1 && this.pinch) {
+          const [a, b] = [...this.activePointers.values()]
+          const distance = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))
+          this.zoomMobile(this.pinch.zoom * distance / this.pinch.distance, (a.x + b.x) / 2, (a.y + b.y) / 2)
+          this.setHover(null)
+          return
+        }
+        if (this.drag && pointer.isDown) {
+          const dx = pointer.x - this.drag.lastX
+          const dy = pointer.y - this.drag.lastY
+          this.drag.moved ||= Math.hypot(pointer.x - this.drag.x, pointer.y - this.drag.y) > 8
+          this.drag.lastX = pointer.x
+          this.drag.lastY = pointer.y
+          if (this.drag.moved) {
+            this.panMobile(dx, dy)
+            this.setHover(null)
+            return
+          }
+        }
+      } else if (this.drag && pointer.isDown) {
         this.drag.moved ||= Math.hypot(pointer.x - this.drag.x, pointer.y - this.drag.y) > 8
       }
+      if (this.isMobileCamera() && (this.suppressClick || this.drag?.moved)) { this.setHover(null); return }
       const slot = this.pickSlot(pointer)
       this.setHover(this.drag?.moved ? null : slot?.id ?? null)
       this.game.canvas.style.cursor = slot && !this.drag?.moved ? 'pointer' : 'default'
     })
-    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
-      const wasClick = this.drag && !this.drag.moved
+    const releasePointer = (pointer: Phaser.Input.Pointer, inside: boolean) => {
+      const wasClick = inside && Boolean(this.drag && !this.drag.moved && !this.suppressClick)
+      if (this.isMobileCamera()) {
+        this.activePointers.delete(pointer.id)
+        if (this.activePointers.size < 2) this.pinch = null
+        if (this.activePointers.size === 0) this.suppressClick = false
+      }
       this.drag = null
       if (!wasClick || this.bridge.snapshot.blocked) return
       const slot = this.pickSlot(pointer)
       if (slot) this.bridge.emit({ type: 'activate-slot', slot: slot.id })
-    })
-    this.input.on('pointerupoutside', () => { this.drag = null })
+    }
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => releasePointer(pointer, true))
+    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => releasePointer(pointer, false))
     this.input.on('gameout', () => this.setHover(null))
     this.syncAssets()
     this.draw()
@@ -107,7 +158,13 @@ class ModularGardenScene extends Phaser.Scene {
   private receive(command: SceneCommand) {
     if (command.type === 'snapshot') {
       this.input.enabled = !command.snapshot.blocked
-      if (command.snapshot.blocked) { this.drag = null; this.setHover(null) }
+      if (command.snapshot.blocked) {
+        this.drag = null
+        this.pinch = null
+        this.activePointers.clear()
+        this.suppressClick = false
+        this.setHover(null)
+      }
       // Abrir/cerrar un modal o cambiar selección no altera el huerto.
       // Reconstruir todo el paisaje y sus texturas para esos cambios
       // bloqueaba la página durante recorridos largos de Playwright.
@@ -121,8 +178,16 @@ class ModularGardenScene extends Phaser.Scene {
     }
     if (this.bridge.snapshot.blocked) return
     if (command.type === 'feedback') { this.painter?.feedback(this.bridge.snapshot.model, command.activity, command.plot, command.reducedMotion); return }
-    // Fixed composition: legacy pan/zoom commands have no effect.
-    if (command.type === 'reset-camera') this.resetCamera()
+    // Desktop retains its existing fixed composition. Only mobile uses pan/zoom.
+    if (command.type === 'zoom' && this.isMobileCamera()) {
+      this.zoomMobile(this.cameras.main.zoom * command.factor, this.scale.width / 2, this.scale.height / 2)
+      return
+    }
+    if (command.type === 'pan' && this.isMobileCamera()) {
+      this.panMobile(command.x, command.y)
+      return
+    }
+    if (command.type === 'reset-camera') { this.resetCamera(); this.publishCamera(); return }
     if (command.type === 'focus-slot') {
       this.focused = command.slot
       this.drawEffects()
@@ -270,9 +335,49 @@ class ModularGardenScene extends Phaser.Scene {
       .sort((a, b) => a.distance - b.distance)[0]?.slot
   }
 
+  private isMobileCamera() { return this.scale.width <= 700 }
+
+  private clampMobileCamera() {
+    const camera = this.cameras.main
+    const width = this.scale.width / camera.zoom
+    const height = this.scale.height / camera.zoom
+    // Phaser scrollX/Y differ from the visible worldView origin when zoom != 1.
+    // Convert to world-view top-left, clamp there, then convert back to scroll.
+    const offsetX = (width - this.scale.width) / 2
+    const offsetY = (height - this.scale.height) / 2
+    const clampWorldStart = (worldStart: number, dimension: number, visible: number) =>
+      visible >= dimension ? (dimension - visible) / 2 : Phaser.Math.Clamp(worldStart, 0, dimension - visible)
+    camera.setScroll(
+      clampWorldStart(camera.scrollX - offsetX, WORLD.width, width) + offsetX,
+      clampWorldStart(camera.scrollY - offsetY, WORLD.height, height) + offsetY,
+    )
+    camera.preRender()
+  }
+
+  private panMobile(dx: number, dy: number) {
+    if (!this.isMobileCamera() || !this.ready || this.bridge.snapshot.blocked) return
+    const camera = this.cameras.main
+    camera.setScroll(camera.scrollX - dx / camera.zoom, camera.scrollY - dy / camera.zoom)
+    this.clampMobileCamera()
+    this.publishCamera()
+  }
+
+  private zoomMobile(next: number, screenX: number, screenY: number) {
+    if (!this.isMobileCamera() || !this.ready || this.bridge.snapshot.blocked) return
+    const camera = this.cameras.main
+    const zoom = Phaser.Math.Clamp(next, this.mobileBaseZoom * .85, this.mobileMaxZoom)
+    if (Math.abs(camera.zoom - zoom) < .0001) return
+    const before = camera.getWorldPoint(screenX, screenY)
+    camera.setZoom(zoom)
+    camera.preRender()
+    const after = camera.getWorldPoint(screenX, screenY)
+    camera.setScroll(camera.scrollX + before.x - after.x, camera.scrollY + before.y - after.y)
+    this.clampMobileCamera()
+    this.publishCamera()
+  }
+
   private resizeCamera() {
-    // Phaser also emits RESIZE on a bounds refresh after page scrolling.
-    // Keep the fixed framing until the viewport dimensions actually change.
+    // Browser scrolling can re-emit RESIZE without real dimension changes.
     if (`${this.scale.width}:${this.scale.height}` !== this.viewportSize) this.resetCamera()
   }
 
@@ -280,6 +385,46 @@ class ModularGardenScene extends Phaser.Scene {
     if (!this.ready) return
     this.viewportSize = `${this.scale.width}:${this.scale.height}`
     this.drag = null
+    this.pinch = null
+    this.activePointers.clear()
+    this.suppressClick = false
+    // Phaser clamps centerOn through its legacy camera bounds independently
+    // of our zoom-aware mobile viewport. Disable only on mobile: our own
+    // clampMobileCamera still keeps panning inside the real world.
+    this.cameras.main.useBounds = !this.isMobileCamera()
+    if (this.isMobileCamera()) {
+      const anchors = this.bridge.snapshot.model.slots.map(slot => slot.anchor)
+      const xs = anchors.map(slot => slot.x)
+      const ys = anchors.map(slot => slot.y)
+      const minX = Math.min(...xs)
+      const maxX = Math.max(...xs)
+      const minY = Math.min(...ys)
+      const maxY = Math.max(...ys)
+      // Keep all six plots visible between the compact header and action dock.
+      const safeHeight = Math.max(160, this.scale.height - 340)
+      const kind = this.bridge.snapshot.model.kind
+      // Las macetas tienen una base decorativa más ancha que sus anclas táctiles.
+      // Ajustar exclusivamente el encuadre móvil evita recortar el tercer recipiente.
+      const contentZoom = Math.max(.14, Math.min(
+        (this.scale.width - 24) / (maxX - minX + 380),
+        safeHeight / (maxY - minY + 360),
+        1.1,
+      ))
+      const zoom = contentZoom * (kind === 'pots' ? .86 : kind === 'hanging' || kind === 'vertical' ? .91 : 1)
+      this.mobileBaseZoom = zoom
+      this.mobileMaxZoom = Math.max(zoom * 3, 1.15)
+      const camera = this.cameras.main
+      camera.setZoom(zoom)
+      // Center around the *real plot anchors* using zoom-aware coordinates.
+      // The artwork is wider than the click anchors; the zoom calculation
+      // above provides room for their rims and supports without shifting them.
+      camera.setScroll(
+        (minX + maxX) / 2 - this.scale.width / 2,
+        (minY + maxY) / 2 - this.scale.height / 2,
+      )
+      this.clampMobileCamera()
+      return
+    }
     const ground = this.bridge.snapshot.model.kind === 'ground'
     // Flat garden regions share a fit-to-width frame that keeps all six plots and the entry in view.
     const zoom = ground

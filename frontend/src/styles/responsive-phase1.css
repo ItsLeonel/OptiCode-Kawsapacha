@@ -1,0 +1,275 @@
+/*
+ * Kawsapacha - Fase 1: presentación responsive.
+ * Únicamente CSS. No modifica la cámara de Phaser, datos, API o arquitectura.
+ * Breakpoints: tablet <= 900px; móvil <= 700px; compacto <= 390px.
+ */
+
+/* Contención general y campos adaptativos. */
+@media (max-width: 900px) {
+  .shell, .main, .page, .topbar, .card, .two-col { min-width: 0; }
+  .page { width: 100%; max-width: 100%; }
+  .topbar { min-height: 68px; height: auto; flex-wrap: wrap; row-gap: 8px; padding-block: 12px; }
+  .section-heading, .catalog-header, .garden-header { min-width: 0; flex-wrap: wrap; }
+  .section-heading > *, .catalog-header > *, .garden-header > * { min-width: 0; }
+}
+@media (max-width: 620px) {
+  .page { padding: 18px 12px 40px; }
+  .topbar { padding: 12px; gap: 8px; }
+  .two-col, .map-layout { grid-template-columns: minmax(0, 1fr); }
+  .card { min-width: 0; padding: clamp(12px, 4vw, 20px); }
+  .hero { min-width: 0; padding: 22px 16px; }
+  .hero h1, .section-heading h2, .catalog-header h2 { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .section-heading h2, .catalog-header h2 { font-size: clamp(21px, 6vw, 27px); }
+  .field, .search-label { min-width: 0; max-width: 100%; }
+  .field :is(input, select, textarea), .search-label input { min-width: 0; max-width: 100%; font-size: 16px; }
+  .page :is(button, a[role="button"]) { touch-action: manipulation; }
+}
+
+/* Bienvenida y autenticación. */
+@media (max-width: 760px) {
+  .auth-page { max-width: 100%; overflow-x: clip; }
+  .auth-page :is(.auth-layout, .auth-story, .auth-story-copy, .auth-panel, .auth-panel-content, .auth-form, .auth-form-layout) {
+    min-width: 0; max-width: 100%;
+  }
+  .auth-page .auth-story h1.auth-welcome-board { max-width: 100%; }
+  .auth-page :is(.auth-board-title, .auth-board-subtitle, .auth-panel-heading h2) {
+    white-space: normal; overflow-wrap: anywhere;
+  }
+  .auth-page .auth-input-wrap input { min-width: 0; max-width: 100%; font-size: 16px; }
+  .auth-page .auth-form :is(button, input, select) { min-height: 44px; }
+}
+@media (max-width: 390px) {
+  .auth-page .auth-layout { width: calc(100% - 16px); }
+  .auth-page .auth-story h1.auth-welcome-board { width: 100%; padding: 21px 11px 17px; }
+  .auth-page .auth-board-title { font-size: clamp(23px, 7.3vw, 30px); line-height: 1.13; }
+  .auth-page .auth-board-subtitle { padding: 6px; font-size: clamp(12px, 3.7vw, 14px); }
+  .auth-page .auth-panel-content { margin-inline: 7px; padding-inline: 10px; }
+  .auth-page .auth-panel-heading h2 { font-size: clamp(19px, 6vw, 23px); }
+  .auth-page .auth-tabs button { min-width: 0; padding-inline: 6px; }
+  .auth-page .auth-brand.auth-brand-floating { max-width: calc(100vw - 18px); }
+}
+
+/* Comunidades: cabeceras, tarjetas y asistente. */
+@media (max-width: 700px) {
+  .communities-page.game-v3 :is(.community-page-content, .community-hero, .community-hero-copy, .community-panel, .community-actions, .community-action, .community-overview) {
+    min-width: 0; max-width: 100%;
+  }
+  .communities-page.game-v3 .community-hero h1.game-title {
+    width: 100%; min-width: 0; min-height: 0; max-width: 100%;
+    padding: 23px clamp(15px, 5vw, 32px); font-size: clamp(24px, 6.8vw, 38px);
+    line-height: 1.15; white-space: normal;
+  }
+  .communities-page.game-v3 .community-hero h1 :is(.game-title-copy, .game-title-text) {
+    min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+  }
+  .communities-page.game-v3 :is(.community-subtitle, .community-overview-heading h2, .community-action-copy strong) {
+    max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+  }
+  .communities-page.game-v3 .community-hero .community-create { min-height: 44px; }
+  .communities-page.game-v3 .community-action-copy { min-width: 0; }
+
+  .community-dialog.community-wizard.game-v3 {
+    width: min(100%, calc(100vw - 16px)); max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px); overflow-x: clip; overflow-y: auto;
+  }
+  .community-wizard.game-v3 :is(.cw-world, .cw-form, .cw-stage, .cw-builder, .cw-map-area, .kg-panel) {
+    min-width: 0; max-width: 100%;
+  }
+  .community-wizard.game-v3 :is(h1, h2, h3, p, .game-title-copy, .game-title-text) {
+    min-width: 0; max-width: 100%; overflow-wrap: anywhere; white-space: normal;
+  }
+  .community-wizard.game-v3 :is(input, select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .community-wizard.game-v3 button { touch-action: manipulation; }
+}
+@media (max-width: 380px) {
+  .communities-page.game-v3 .community-topbar { flex-wrap: wrap; }
+  .communities-page.game-v3 .community-hero h1.game-title { padding: 18px 12px; font-size: 23px; }
+  .communities-page.game-v3 .community-subtitle { font-size: 18px; padding-inline: 10px; }
+  .communities-page.game-v3 .community-action-copy { padding: 12px 9px; }
+  .communities-page.game-v3 .community-action-copy strong { font-size: 17px; }
+  .community-dialog.community-wizard.game-v3 { border-radius: 16px; }
+  .community-wizard.game-v3 .cw-world { padding-inline: 8px; }
+}
+
+/* Registro de terreno y configurador. */
+@media (max-width: 700px) {
+  .real-garden-page, .real-garden-page :is(.rg-content, .rg-hero, .rg-hero > div:first-child, .rg-panel, .rg-form-panels, .rg-location-layout, .rg-field, .rg-summary) {
+    min-width: 0; max-width: 100%;
+  }
+  .real-garden-page .rg-topbar, .real-garden-page .rg-breadcrumbs { flex-wrap: wrap; }
+  .real-garden-page .rg-hero h1 {
+    max-width: 100%; flex-wrap: wrap; white-space: normal;
+    font-size: clamp(26px, 8vw, 42px); line-height: 1.12; overflow-wrap: anywhere;
+  }
+  .real-garden-page :is(.rg-panel-heading h2, .rg-subtitle, .rg-registered-name) {
+    max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+  }
+  .real-garden-page :is(input:not([type=radio]), select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .real-garden-page :is(button, summary, .rg-type-card) { touch-action: manipulation; }
+  .real-garden-page .rg-form-footer > div { width: 100%; }
+  .real-garden-page .rg-form-footer button { min-height: 44px; max-width: 100%; white-space: normal; }
+
+  .rg-registration-page, .rg-registration-page :is(.rg-registration-panels, .rg-registration-location, .rg-registration-kind, .rg-registration-more, .rg-registration-details, .rg-registration-details form) {
+    min-width: 0; max-width: 100%;
+  }
+  .rg-registration-page :is(.rg-panel-heading h2, .rg-type-copy strong, .rg-registration-location-summary dd) {
+    max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+  }
+  .rg-registration-page :is(input, select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .rg-registration-details form > footer { min-width: 0; flex-wrap: wrap; gap: 8px; }
+  .rg-registration-details form > footer > button { min-width: 0; min-height: 44px; max-width: 100%; }
+}
+@media (max-width: 390px) {
+  .real-garden-page .rg-content { padding-inline: 8px; }
+  .real-garden-page .rg-hero > div:first-child { padding: 12px; }
+  .real-garden-page .rg-hero h1 { font-size: 27px; }
+  .real-garden-page .rg-panel-heading { gap: 8px; }
+  .real-garden-page .rg-panel-heading h2 { font-size: 22px; }
+  .rg-registration-page .rg-registration-kind .rg-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px;
+  }
+}
+
+/* Cabeceras de Mi Jardín antes de abrir Phaser (Fase 2). */
+@media (max-width: 700px) {
+  .my-garden-page.game-v3:not([data-fullscreen-garden="true"]) :is(.garden-welcome, .garden-welcome-sign, .garden-onboarding, .garden-onboarding-panel) {
+    min-width: 0; max-width: 100%;
+  }
+  .my-garden-page.game-v3 .garden-welcome h1.game-title,
+  .my-garden-page.game-v3 .garden-welcome h1 :is(.game-title-copy, .game-title-text) {
+    min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+  }
+  .my-garden-page.game-v3 .garden-view-navigation { flex-wrap: wrap; }
+  .my-garden-page.game-v3 .garden-view-navigation button { min-height: 44px; }
+  .garden-sidebar-tab { width: 44px; min-width: 44px; min-height: 58px; touch-action: manipulation; }
+  .garden-sidebar.game-v3.garden-sidebar--overlay .garden-nav button { min-height: 48px; }
+}
+@media (max-width: 620px) {
+  .my-garden-page.game-v3:not([data-fullscreen-garden="true"]) .garden-welcome > .garden-welcome-sign {
+    width: 100%; padding: 23px clamp(12px, 5vw, 22px) 30px;
+  }
+  .my-garden-page.game-v3:not([data-fullscreen-garden="true"]) .garden-welcome h1.game-title {
+    font-size: clamp(21px, 6.5vw, 29px); line-height: 1.14; gap: 5px;
+  }
+  .my-garden-page.game-v3:not([data-fullscreen-garden="true"]) .garden-welcome-sign p {
+    font-size: clamp(13px, 3.5vw, 16px);
+  }
+  .my-garden-page.game-v3:not([data-fullscreen-garden="true"]) .garden-onboarding .garden-onboarding-panel {
+    width: 100%; min-height: 0; padding-inline: clamp(12px, 4vw, 20px);
+  }
+}
+
+/* Bitácora: títulos, indicadores, filtros y tarjetas. */
+@media (max-width: 760px) {
+  .kaws-logbook, .kaws-logbook :is(.bv-hero, .bv-hero-title, .bv-content, .bv-summary, .bv-filters, .bv-section-heading, .bv-entry-copy) {
+    min-width: 0; max-width: 100%;
+  }
+  .kaws-logbook .bv-hero-title h1 {
+    min-width: 0; max-width: 100%; font-size: clamp(23px, 6.5vw, 31px);
+    line-height: 1.15; white-space: normal; overflow-wrap: anywhere;
+  }
+  .kaws-logbook :is(.bv-section-heading h2, .bv-entry-type h3) {
+    max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+  }
+  .kaws-logbook :is(button, select) { touch-action: manipulation; }
+  .kaws-logbook .bv-filter-buttons { flex-wrap: wrap; min-width: 0; }
+  .kaws-logbook .bv-plant-selector { min-width: 0; max-width: 100%; }
+  .kaws-logbook .bv-plant-selector select { max-width: 100%; font-size: 16px; }
+}
+@media (max-width: 390px) {
+  .kaws-logbook .bv-hero-title { gap: 6px; padding-right: 6px; }
+  .kaws-logbook .bv-hero-book { width: 48px; height: 54px; }
+  .kaws-logbook .bv-hero-title h1 { font-size: 23px; }
+  .kaws-logbook .bv-content { padding-inline: 8px; }
+}
+
+/* Catálogo medicinal y ficha de la especie. */
+@media (max-width: 740px) {
+  .mc-catalog, .mc-detail, .mc-title-row, .mc-heading-copy, .mc-detail-heading, .mc-filters, .mc-list-heading, .mc-card {
+    min-width: 0; max-width: 100%;
+  }
+  .mc-heading-copy h1, .mc-detail-heading h1, .mc-list-heading h2 {
+    min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere;
+    line-height: 1.17;
+  }
+  .mc-detail-heading h1 { font-size: clamp(24px, 6.5vw, 34px); }
+  .mc-search, .mc-search input, .mc-region-select, .mc-region-select select { min-width: 0; max-width: 100%; }
+  .mc-search input, .mc-region-select select, .mc-list-heading select { font-size: 16px; }
+  .mc-catalog button, .mc-detail button { touch-action: manipulation; }
+}
+@media (max-width: 390px) {
+  .mc-mortar { flex-basis: 42px; width: 42px; height: 42px; }
+  .mc-heading-copy { flex-basis: calc(100% - 55px); }
+  .mc-heading-copy h1 { font-size: clamp(22px, 6.5vw, 25px); }
+  .mc-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .mc-detail-photo { height: 220px; }
+}
+
+/* Panel MSP y panel técnico. */
+@media (max-width: 740px) {
+  .kap-admin-root, .kap-workspace, .kap-content, .kap-topbar, .kap-title-block, .kap-section-heading, .kap-panel {
+    min-width: 0; max-width: 100%;
+  }
+  .kap-topbar { height: auto; min-height: 76px; flex-wrap: wrap; padding: 12px; }
+  .kap-title-block strong {
+    min-width: 0; max-width: 100%; white-space: normal;
+    font-size: clamp(20px, 5vw, 26px); line-height: 1.15; overflow-wrap: anywhere;
+  }
+  .kap-section-heading h2 { max-width: 100%; overflow-wrap: anywhere; }
+  .kap-content { padding: clamp(10px, 3.5vw, 18px); }
+  .kap-admin-root :is(button, input, select) { touch-action: manipulation; }
+  .kap-admin-root :is(input, select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .kap-table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+}
+@media (max-width: 390px) {
+  .kap-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kap-title-block strong { font-size: 20px; }
+  .kap-topbar-right { min-width: 0; gap: 6px; }
+  .kap-content { padding-inline: 9px; }
+}
+
+/* Modales: notificaciones, siembra, actividad y Pasaporte Vivo. */
+@media (max-width: 700px) {
+  .knt-dialog { width: min(100%, calc(100vw - 12px)); max-width: calc(100vw - 12px); max-height: calc(100dvh - 12px); overflow-x: clip; }
+  .knt-dialog :is(.knt-header, .knt-heading, .knt-filters, .knt-tabs, .knt-content, .knt-card, .knt-actions) { min-width: 0; max-width: 100%; }
+  .knt-dialog :is(h2, h3, h4, p) { overflow-wrap: anywhere; white-space: normal; }
+  .knt-dialog .knt-filters { flex-wrap: wrap; }
+  .knt-dialog :is(button, input, select) { touch-action: manipulation; }
+  .knt-dialog .knt-actions button { min-height: 44px; }
+
+  .plant-registration { width: calc(100vw - 12px); max-width: calc(100vw - 12px); max-height: calc(100dvh - 12px); overflow-x: clip; overflow-y: auto; }
+  .plant-registration :is(.plant-registration-header, .plant-registration-body, .plant-registration-actions) { min-width: 0; max-width: 100%; }
+  .plant-registration-header h2 { max-width: 100%; overflow-wrap: anywhere; line-height: 1.15; }
+  .plant-registration :is(input, select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .plant-registration-actions button { min-width: 0; min-height: 44px; white-space: normal; }
+
+  .garden-journal-dialog.activity-garden-modal { max-width: calc(100vw - 12px); max-height: calc(100dvh - 12px); overflow-x: clip; overflow-y: auto; }
+  .activity-garden-modal :is(.activity-garden-header, .activity-garden-header-text, .activity-garden-form, .activity-garden-input-grid, .activity-garden-evidence-grid, .activity-garden-photo-area) {
+    min-width: 0; max-width: 100%;
+  }
+  .activity-garden-modal .activity-garden-header-text h2 { max-width: 100%; overflow-wrap: anywhere; white-space: normal; font-size: clamp(20px, 6vw, 27px); }
+  .activity-garden-modal :is(input, select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .activity-garden-modal button { touch-action: manipulation; }
+
+  .garden-passport.passport-clean { max-width: calc(100vw - 12px); max-height: calc(100dvh - 12px); overflow-x: clip; }
+  .garden-passport.passport-clean :is(.passport-scroll, .passport-body, .passport-hero, .passport-panel-body, .passport-disclosure) { min-width: 0; max-width: 100%; }
+  .garden-passport.passport-clean :is(h2, h3, p, dd, dt, .passport-hero h2) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .garden-passport.passport-clean button { min-height: 44px; touch-action: manipulation; }
+}
+@media (max-width: 390px) {
+  .knt-dialog .knt-header { padding-inline: 10px; }
+  .knt-dialog .knt-heading h2 { font-size: 20px; }
+  .knt-dialog .knt-content { padding-inline: 10px; }
+  .plant-registration { border-radius: 16px; }
+  .plant-registration-header { padding: 12px 10px; }
+  .plant-registration-header h2 { font-size: 22px; }
+  .plant-registration-body { padding-inline: 10px; }
+  .plant-registration-actions { flex-direction: column; }
+  .plant-registration-actions button { width: 100%; }
+  .activity-garden-modal .activity-garden-header { gap: 7px; }
+  .activity-garden-modal .activity-garden-header-text h2 { font-size: 20px; }
+  .activity-garden-modal .activity-garden-form { padding-inline: 10px; }
+  .garden-passport.passport-clean .passport-body { padding: 12px 9px 18px; }
+  .garden-passport.passport-clean .passport-hero { padding: 10px; }
+  .garden-passport.passport-clean .passport-hero h2 { font-size: 22px; }
+}

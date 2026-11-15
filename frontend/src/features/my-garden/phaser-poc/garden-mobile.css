@@ -1,0 +1,205 @@
+/*
+ * Kawsapacha — Fase 2. Presentación del jardín inmersivo en móviles.
+ * El escenario Phaser y sus cuatro regiones/modalidades siguen siendo los mismos.
+ * El encuadre táctil se controla en createGardenGame.ts.
+ */
+.garden-poc-mobile-zoom,
+.garden-poc-mobile-plots { display: none; }
+
+@media (max-width: 700px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading {
+    top: max(7px, env(safe-area-inset-top)); left: 8px;
+    width: auto; max-width: calc(100% - 76px);
+    min-height: 58px; padding: 6px 13px 7px 7px; gap: 7px;
+    border-radius: 13px 18px 15px 12px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading > div { min-width: 0; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading h1 {
+    margin: 0; font-size: clamp(15px, 4.8vw, 20px); line-height: 1.08;
+    white-space: normal; overflow-wrap: anywhere;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading p {
+    max-width: 100%; margin: 2px 0; font-size: 10px; line-height: 1.15;
+    white-space: normal; overflow-wrap: anywhere;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading small {
+    font-size: 9px; line-height: 1.2; white-space: normal; overflow-wrap: anywhere;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-crest {
+    width: 32px; height: 32px; flex: 0 0 32px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-crest .garden-icon {
+    width: 23px; height: 23px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-modality {
+    top: calc(79px + env(safe-area-inset-top)); left: 8px; right: auto;
+    max-width: calc(100% - 115px); padding: 5px 9px;
+    grid-template-columns: 20px minmax(0, 1fr); font-size: 11px; gap: 1px 5px;
+    border-radius: 11px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-modality > .garden-icon {
+    width: 20px; height: 20px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-modality > span { font-size: 10px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world-actions {
+    top: calc(79px + env(safe-area-inset-top)); right: 8px; gap: 5px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world-actions button {
+    width: 44px; min-width: 44px; min-height: 44px; padding: 6px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count {
+    /* The six green parcel shortcuts communicate occupancy without covering plots. */
+    display: none;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count small { display: none; }
+  /* The help button above replaces the large guide illustration on narrow screens. */
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide,
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress,
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-context { display: none; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-panel {
+    top: calc(133px + env(safe-area-inset-top)); left: 8px; right: 8px;
+    width: auto; max-height: calc(100% - 290px); padding: 13px;
+  }
+
+  /* Controls are separate from the canvas; they never alter Phaser's artwork. */
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-zoom {
+    position: absolute; z-index: 7; right: 8px;
+    top: calc(135px + env(safe-area-inset-top));
+    display: flex; flex-direction: row; gap: 4px;
+    padding: 3px; border: 1px solid #d8c082;
+    border-radius: 15px; background: #193e2acb;
+    backdrop-filter: blur(8px);
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-zoom button {
+    display: grid; place-items: center; width: 44px; min-width: 44px; height: 44px; min-height: 44px;
+    padding: 0; font-size: 25px; font-weight: 800; line-height: 1;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-zoom button:last-child {
+    font-size: 19px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world:has(.garden-poc-panel) :is(.garden-poc-mobile-zoom, .garden-poc-mobile-plots) {
+    display: none;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-plots {
+    position: absolute; z-index: 7;
+    left: 7px; right: 7px; bottom: calc(128px + env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px;
+    padding: 4px; border: 1px solid #d8c082; border-radius: 14px;
+    background: #163f2ad9; backdrop-filter: blur(8px);
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-plots button {
+    min-width: 0; min-height: 44px; padding: 5px 2px;
+    border-radius: 10px; font-size: clamp(11px, 3.6vw, 15px); font-weight: 800;
+    color: #fff6d4; background: #375b32e8;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-plots button[data-planted="true"] {
+    border-color: #d8e98c; background: #487c2c;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-plots button[aria-pressed="true"] {
+    border: 2px solid #fff2a6; box-shadow: 0 0 0 2px #97ce48;
+  }
+
+  /* Six existing actions, grouped into compact secondary row and main dock. */
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions {
+    z-index: 9; left: 7px; right: 7px; bottom: max(6px, env(safe-area-inset-bottom));
+    width: auto; max-width: none; margin: 0; padding: 5px;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: 40px 59px; gap: 5px;
+    border-radius: 16px; transform: none;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button {
+    min-width: 0; min-height: 0; height: 100%; max-width: 100%;
+    padding: 4px 3px; font-size: clamp(9px, 2.8vw, 12px);
+    line-height: 1.1; overflow-wrap: anywhere; border-radius: 11px;
+    display: flex; flex-direction: column; justify-content: center; gap: 1px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button > span {
+    width: 21px; height: 21px; flex: 0 0 21px; margin: 0;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions .garden-icon {
+    width: 17px; height: 17px; flex: 0 0 17px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button[data-action="plants"] { order: 1; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button[data-action="my-plants"] { order: 2; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button[data-action="real-garden"] { order: 3; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button[data-action="register"] { order: 4; background: linear-gradient(#99c936, #30661d); border-color: #dcf38b; color: #fffceb; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button[data-action="activity"] { order: 5; background: linear-gradient(#f4d06f, #d18a25); color: #493110; border-color: #ffdd8f; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button[data-action="history"] { order: 6; background: linear-gradient(#c18a52, #6a3e21); color: #fff6de; border-color: #ead19f; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button:is([data-action="plants"], [data-action="my-plants"], [data-action="real-garden"]) {
+    flex-direction: row; align-items: center; gap: 4px;
+    padding: 3px; font-size: clamp(9px, 2.6vw, 11px);
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions button:is([data-action="plants"], [data-action="my-plants"], [data-action="real-garden"]) > span {
+    width: 16px; height: 16px; flex-basis: 16px;
+  }
+  .garden-shell--immersive .garden-sidebar-tab {
+    top: max(10px, env(safe-area-inset-top)); left: auto; right: 8px;
+    transform: none; width: 48px; min-width: 48px; min-height: 48px;
+    height: 48px; padding: 3px;
+    border: 2px solid #ddc57e; border-radius: 12px;
+    gap: 0; display: grid; place-items: center;
+  }
+  .garden-shell--immersive .garden-sidebar-tab small { display: none; }
+  .garden-shell--immersive .garden-sidebar-tab > span { font-size: 28px; line-height: 1; }
+  .garden-shell--immersive .garden-sidebar-tab.is-open {
+    right: auto; left: min(234px, calc(100vw - 48px));
+  }
+}
+
+@media (max-width: 380px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading { max-width: calc(100% - 68px); }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-heading h1 { font-size: 16px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions { left: 4px; right: 4px; padding: 3px; gap: 3px; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-plots { left: 4px; right: 4px; }
+}
+
+@media (max-width: 700px) and (max-height: 600px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count { display: none; }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-zoom {
+    top: calc(135px + env(safe-area-inset-top));
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-panel {
+    max-height: calc(100% - 240px);
+  }
+}
+
+
+/* El estado de guardado comparte la franja del calendario, sin tapar parcelas. */
+@media (max-width: 700px) {
+  .garden-shell--immersive .garden-storage-status {
+    top: auto;
+    bottom: calc(200px + env(safe-area-inset-bottom));
+    left: 8px;
+    right: auto;
+    transform: none;
+    width: max-content;
+    max-width: min(160px, calc(50vw - 14px));
+    padding: 6px 8px;
+    font-size: 9px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Calendario lunar: acceso conservado, sin interceptar zoom ni parcelas. */
+@media (max-width: 700px) {
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .lunar-garden-widget {
+    top: auto; bottom: calc(200px + env(safe-area-inset-bottom)); right: 8px;
+    width: min(310px, calc(100vw - 16px));
+    flex-direction: column-reverse;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .lunar-widget-toggle {
+    min-height: 44px; padding: 6px 10px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .lunar-today-panel {
+    margin-top: 0; margin-bottom: 8px;
+    max-height: max(140px, calc(100dvh - 300px));
+  }
+}
+
+/* Fase 3: ocultar guía grande en cualquier jardín compacto (incluye QA/lab).
+   En la vista inmersiva el botón ? mantiene la ayuda accesible; la ilustración
+   no debe interceptar toques directos sobre las parcelas. */
+@media (max-width: 700px) {
+  .garden-poc .garden-poc-guide { display: none; }
+}

@@ -140,7 +140,7 @@ export default function ActivityModal({
     ? selectedHarvest.target.kind === 'garden' ? { kind: 'garden' } : { kind: 'plot', plot: selectedHarvest.target.plot }
     : originalTarget
 
-  // Verificar si la planta o espacio objetivo tiene la siembra pendiente de aprobación o ya está ocupado
+  // El estado de revisión informa al usuario, pero no bloquea el cuidado de plantas.
   const plantInPlot = target.kind === 'plot'
     ? plants.find(p => p.plot === target.plot && !p.archivedAt)
     : undefined
@@ -288,19 +288,10 @@ export default function ActivityModal({
       setError('⚠️ Confirma que deseas realizar la cosecha anticipada antes de guardar.')
       return
     }
-    if (isTargetPlantPending) {
-      setError(`⚠️ El Espacio ${(effectivePlant?.plot ?? 0) + 1} tiene a «${effectivePlant?.name ?? 'una planta'}» pendiente de aprobación por el MSP. No se pueden registrar actividades ni utilizar este espacio hasta que sea aprobada oficialmente.`)
-      return
-    }
     if (isSpaceBlockedForNewPlantOrPrep) {
       setError(`⚠️ El Espacio ${(effectivePlant?.plot ?? 0) + 1} ya está ocupado por «${effectivePlant?.name ?? 'una planta'}». Elige un espacio disponible para realizar esta acción.`)
       return
     }
-    if (pendingSameTypeActivity) {
-      setError(`⏳ La actividad «${ACTIVITY_TYPES[type]}» ya fue realizada por ${pendingSameTypeActivity.responsible || 'un integrante'} y está pendiente de revisión MSP. Espera a que sea validada o rechazada antes de repetirla.`)
-      return
-    }
-
     const observedDetails = type === 'observation' && analysis.status === 'ready' && analysis.profile
       ? { ...details, visualProfile: analysis.profile }
       : details
@@ -517,7 +508,7 @@ export default function ActivityModal({
               >
                 <strong>⚠️ Espacio {(effectivePlant?.plot ?? 0) + 1} pendiente de aprobación por el MSP:</strong>
                 <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
-                  Ya se encuentra «{effectivePlant?.name}» en proceso de revisión institucional en este espacio. Ningún usuario puede utilizar este espacio ni registrar actividades sobre él hasta que el MSP apruebe o rechace la siembra.
+                  «{effectivePlant?.name}» ya está sembrada. Puedes registrar sus riegos y cuidados; el MSP verificará la evidencia posteriormente.
                 </div>
               </div>
             )}
@@ -554,7 +545,7 @@ export default function ActivityModal({
               >
                 <strong>⏳ Actividad ya realizada · Pendiente de revisión MSP:</strong>
                 <div style={{ marginTop: '2px', fontSize: '0.82rem', fontWeight: 400 }}>
-                  <strong>{ACTIVITY_TYPES[type]}</strong> ya fue registrada por <strong>{pendingSameTypeActivity.responsible || 'un integrante'}</strong> el {pendingSameTypeActivity.date} y está en espera de validación. No se puede repetir en este espacio/planta hasta que el MSP la apruebe o rechace.
+                  <strong>{ACTIVITY_TYPES[type]}</strong> ya fue registrada por <strong>{pendingSameTypeActivity.responsible || 'un integrante'}</strong> el {pendingSameTypeActivity.date} y está en espera de validación. Puedes registrar otra actividad real sin esperar al MSP; las recompensas tienen límites contra duplicados.
                 </div>
               </div>
             )}
@@ -573,7 +564,7 @@ export default function ActivityModal({
                   data-selected={type === item}
                   aria-pressed={type === item}
                   disabled={busy}
-                  title={pendingTypesForTarget.has(item) ? `${ACTIVITY_TYPES[item]} (⏳ Ya realizada y pendiente de revisión MSP)` : ACTIVITY_TYPES[item]}
+                  title={pendingTypesForTarget.has(item) ? `${ACTIVITY_TYPES[item]} (registro anterior pendiente; puedes documentar otra acción real)` : ACTIVITY_TYPES[item]}
                   onClick={() => chooseType(item)}
                 >
                   {type === item && <span className="activity-garden-card-check" aria-hidden="true">✓</span>}
@@ -980,12 +971,10 @@ export default function ActivityModal({
                 isOverWatered ||
                 isOverFertilized ||
                 (isEarlyHarvest && !confirmEarlyHarvest) ||
-                isTargetPlantPending ||
-                isSpaceBlockedForNewPlantOrPrep ||
-                Boolean(pendingSameTypeActivity)
+                isSpaceBlockedForNewPlantOrPrep
               }
             >
-              <GardenIcon name="book" /> {busy ? 'Guardando…' : (isTargetPlantPending ? 'Espacio pendiente MSP' : isSpaceBlockedForNewPlantOrPrep ? 'Espacio ocupado' : pendingSameTypeActivity ? 'En revisión MSP' : 'Registrar actividad')}
+              <GardenIcon name="book" /> {busy ? 'Guardando…' : (isSpaceBlockedForNewPlantOrPrep ? 'Espacio ocupado' : 'Registrar actividad')}
             </button>
           </footer>
         </form>

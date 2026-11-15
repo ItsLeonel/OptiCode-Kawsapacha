@@ -1,5 +1,5 @@
 import type { GardenJournal } from './journal/journal'
-import type { GardenRegion } from '../real-gardens/garden-region'
+import type { GardenRegion } from '../../shared/geo/region'
 import RewardsDashboard from './rewards/RewardsDashboard'
 import RewardReviewPanel from './rewards/RewardReviewPanel'
 import type { AuthoritativeRewards } from './rewards/rewards-types'

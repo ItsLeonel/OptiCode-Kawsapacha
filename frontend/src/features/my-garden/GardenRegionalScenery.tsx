@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import type { GardenRegion } from '../real-gardens/garden-region'
+import type { GardenRegion } from '../../shared/geo/region'
 const borderArt = new URL('./illustrations/bordes-regionales-v3.png', import.meta.url).href
 import { gameRegionAssets } from '../../shared/ui/game-ui/game-region-assets'
 

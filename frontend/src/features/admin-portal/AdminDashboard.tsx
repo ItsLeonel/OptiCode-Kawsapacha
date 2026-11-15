@@ -9,7 +9,7 @@ import brandLogo from './assets/kawsapacha-marca.svg'
 import ecuadorInsignia from './assets/ecuador-insignia.svg'
 import './admin-portal.css'
 import { formatAuditAction, roleLabel, formatAuditDetail } from './admin-formatters'
-import { AdminMetric, AdminPanel, ActionLink, ValueBadge, NavList, SectionHead, ServiceStatus } from './admin-ui'
+import { MSP_NAV, TECH_NAV, AdminMetric, AdminPanel, ActionLink, ValueBadge, NavList, SectionHead, ServiceStatus } from './admin-ui'
 import { MspHome, MspDetail } from './AdminMspViews'
 export { ACTIVITY_TYPE_MAP, formatActivityType, formatAuditAction, roleLabel } from './admin-formatters'
 

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import AdminIcon, { type AdminIconName } from './AdminIcon'
 import type { AdminNavKey, AdminPanelKind } from './admin-types'
 
-const MSP_NAV: { key: AdminNavKey; label: string; icon: AdminIconName }[] = [
+export const MSP_NAV: { key: AdminNavKey; label: string; icon: AdminIconName }[] = [
   { key: 'inicio', label: 'Resumen', icon: 'home' },
   { key: 'comunidades', label: 'Comunidades', icon: 'users' },
   { key: 'eventos', label: 'Eventos', icon: 'calendar' },
@@ -10,7 +10,7 @@ const MSP_NAV: { key: AdminNavKey; label: string; icon: AdminIconName }[] = [
   { key: 'moderacion', label: 'Moderación', icon: 'shield' },
   { key: 'reportes', label: 'Reportes', icon: 'chart' },
 ]
-const TECH_NAV: { key: AdminNavKey; label: string; icon: AdminIconName }[] = [
+export const TECH_NAV: { key: AdminNavKey; label: string; icon: AdminIconName }[] = [
   { key: 'inicio', label: 'Resumen', icon: 'home' },
   { key: 'usuarios', label: 'Usuarios y roles', icon: 'users' },
   { key: 'configuracion', label: 'Configuración y sistema', icon: 'settings' },

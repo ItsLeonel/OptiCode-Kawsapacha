@@ -18,6 +18,7 @@ import {
   type UserSession,
 } from '../../services/api'
 import './garden-journal.css'
+import './plant-passport-clean.css'
 
 // ─── Badge de salud ──────────────────────────────────────────────────────────
 
@@ -309,16 +310,15 @@ export default function PlantPassport({
   return (
     <dialog
       ref={dialogRef}
-      className="garden-passport"
+      className="garden-passport passport-clean"
       aria-labelledby="plant-passport-title"
       onClose={onClose}
       onClick={event => {
         if (event.target === event.currentTarget) dialogRef.current?.close()
       }}
-      style={{ maxWidth: '620px', width: '92%', borderRadius: '16px', padding: '0', border: 'none' }}
     >
       {plant && (
-        <div style={{ padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="passport-scroll">
           <div className="garden-passport-header">
             <span>
               <GardenIcon name="history" /> PASAPORTE VIVO & CUIDADOS
@@ -333,28 +333,28 @@ export default function PlantPassport({
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', margin: '16px 0' }}>
+          <section className="passport-hero" aria-label="Resumen de la planta">
             <img
-              className="garden-passport-photo"
+              className="garden-passport-photo passport-hero-photo"
               src={resolveMediaUrl(plant.photo)}
               alt={`Fotografía registrada de ${plant.name}`}
-              style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: '12px', border: '2px solid #cbd5e0' }}
             />
-            <div className="garden-passport-copy" style={{ margin: 0 }}>
+            <div className="garden-passport-copy passport-hero-copy">
               <span className="garden-eyebrow">
                 {user ? 'REGISTRO PERSISTENTE · BASE DE DATOS' : 'REGISTRO LOCAL · DEMOSTRACIÓN'}
               </span>
-              <h2 id="plant-passport-title" style={{ margin: '4px 0' }}>
+              <h2 id="plant-passport-title">
                 {plant.name}
               </h2>
-              <p style={{ margin: '0 0 8px', color: '#4a5568' }}>
+              <p className="passport-latin">
                 <em>{plant.latin}</em>
               </p>
-              <div style={{ fontSize: '0.85rem', color: '#718096' }}>
-                Ubicación: <strong>Parcela {plant.plot + 1}</strong> · Registrada: {plant.date}
-                {plant.plantedOn && ` · Sembrada: ${new Date(`${plant.plantedOn}T12:00:00`).toLocaleDateString('es-EC')}`}
+              <div className="passport-location">
+                <span><strong>Parcela {plant.plot >= 0 ? plant.plot + 1 : 'archivada'}</strong></span>
+                <span>Registro: {plant.date}</span>
+                {plant.plantedOn && <span>Siembra: {new Date(`${plant.plantedOn}T12:00:00`).toLocaleDateString('es-EC')}</span>}
               </div>
-              <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="passport-health-tags">
                 <HealthBadge status={growth?.healthStatus} />
                 <span style={{
                   display: 'inline-block', padding: '4px 10px', borderRadius: '20px',
@@ -364,17 +364,31 @@ export default function PlantPassport({
                   🌱 {PLANT_STATES[plant.state ?? 'not-documented'] ?? plant.state}
                 </span>
               </div>
-              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#276749', margin: '9px 0 0' }}>
-                Etapa reflejada en Mi Jardín: {documentedGrowthStage(plant) ? GROWTH_STAGES[documentedGrowthStage(plant)!] : 'Sin observación visual documentada'}
-              </p>
-              <small style={{ color: '#718096' }}>
-                {user ? 'La etapa observada se sincroniza con tus evidencias fotográficas registradas.' : 'La etapa cambia solamente con fotografías registradas en este navegador.'}
-              </small>
+              <p className="passport-stage"><span aria-hidden="true">🌱</span> Etapa observada: <strong>{documentedGrowthStage(plant) ? GROWTH_STAGES[documentedGrowthStage(plant)!] : 'Sin etapa documentada'}</strong></p>
             </div>
-          </div>
+          </section>
 
-          <BotanicalSignage plant={plant} />
-          <section aria-label="Espejo Digital Evolutivo" style={{ border: '1px solid #c6dfc6', background: '#f6fbf4', borderRadius: 12, padding: 14, marginBottom: 18 }}>
+          <nav className="passport-toolbar" aria-label="Acciones de la ficha">
+            {onEdit && <button type="button" onClick={onEdit} className="passport-primary-action">Actualizar fotografía</button>}
+            {onActivity && !plant.archivedAt && <button type="button" onClick={() => onActivity()} className="passport-secondary-action">Registrar actividad</button>}
+            {onRestore && plant.archivedAt && <button type="button" onClick={() => void onRestore()} className="passport-secondary-action">Restaurar al espacio</button>}
+            <button type="button" onClick={onHistory} className="passport-link-action"><GardenIcon name="book" /> Ver Bitácora</button>
+          </nav>
+          {plant.evidences?.length ? (
+            <div className="passport-evidence-summary" aria-label="Resumen de evidencias fotográficas">
+              <span className="passport-evidence-count"><strong>{plant.evidences.length}</strong> {plant.evidences.length === 1 ? 'fotografía registrada' : 'fotografías registradas'}</span>
+              <div className="passport-preview-list">
+                {[...plant.evidences].reverse().slice(0, 3).map(item => item.photo
+                  ? <img key={item.id} src={resolveMediaUrl(item.photo)} alt={`Evidencia de ${item.date}`} loading="lazy" />
+                  : null
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          <details className="passport-disclosure passport-evolution">
+            <summary><span>🌿 Evolución fotográfica</span><small>Ver comparación y perfil de las fotografías</small></summary>
+            <section aria-label="Espejo Digital Evolutivo" style={{ border: '1px solid #c6dfc6', background: '#f6fbf4', borderRadius: 12, padding: 14, marginBottom: 18 }}>
             <h3 style={{ margin: '0 0 8px', color: '#28513d', fontSize: '0.98rem' }}>🌱 Espejo Digital Evolutivo</h3>
             {plant.visualProfile
               ? <p style={{ fontSize: '0.82rem', margin: '0 0 6px' }}>
@@ -390,7 +404,8 @@ export default function PlantPassport({
               </div>)}
             </div>}
             <small style={{ color: '#506357' }}>Las comparaciones dependen del encuadre y la iluminación; no prueban crecimiento real ni diagnóstico.</small>
-          </section>
+            </section>
+          </details>
 
           {isSowingPending && (
             <div
@@ -437,7 +452,9 @@ export default function PlantPassport({
           )}
 
           {/* ─── INDICADOR DE CRECIMIENTO DINÁMICO ─── */}
-          <section style={{ background: isRegrowing ? '#fffff0' : '#f0fff4', border: `1px solid ${isRegrowing ? '#fefcbf' : '#c6f6d5'}`, borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
+          <details className="passport-disclosure passport-estimate">
+            <summary><span>📊 Información agronómica orientativa</span><small>Consultar estimaciones y alertas de cuidados</small></summary>
+            <section style={{ background: isRegrowing ? '#fffff0' : '#f0fff4', border: `1px solid ${isRegrowing ? '#fefcbf' : '#c6f6d5'}`, borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div>
                 <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
@@ -500,6 +517,7 @@ export default function PlantPassport({
               </div>
             )}
           </section>
+          </details>
 
           {/* ─── ACCIONES DE CUIDADO CON ESTADO DINÁMICO ─── */}
           <section style={{ marginBottom: '18px' }}>
@@ -776,23 +794,30 @@ export default function PlantPassport({
             </section>
           )}
 
-          <div className="journal-passport-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '12px 0' }}>
-            {onEdit && <button type="button" onClick={onEdit} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Actualizar foto y observaciones</button>}
-            {onActivity && !plant.archivedAt && <button type="button" onClick={() => onActivity()} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Registrar actividad</button>}
-            {onRestore && plant.archivedAt && <button type="button" onClick={() => void onRestore()} className="rg-outline-button" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Restaurar al espacio</button>}
-          </div>
 
-          <button
-            type="button"
-            className="garden-solid-button"
-            onClick={onHistory}
-            style={{ width: '100%', justifyContent: 'center' }}
-          >
-            <GardenIcon name="book" /> Ver Bitácora general de cultivo
-          </button>
-          {/* Evidencias de main */}
-          {/* Evidencias de main */}
-          {!!plant.evidences?.length && <section aria-label="Evidencias de la planta"><h3>Fotos y observaciones</h3><ol className="journal-evidences">{[...plant.evidences].reverse().map(evidence => <li key={evidence.id}><time dateTime={evidence.date}>{evidence.date}</time><p>{evidence.notes}</p>{evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}{evidence.growthStage && <p><strong>Etapa documentada: {GROWTH_STAGES[evidence.growthStage]}</strong></p>}{evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}{evidence.photo && <img src={resolveMediaUrl(evidence.photo)} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}</li>)}</ol></section>}
+          {!!plant.evidences?.length && (
+            <details className="passport-disclosure passport-evidence-history">
+              <summary><span>📸 Fotos y observaciones</span><small>Historial completo de cambios documentados</small></summary>
+              <section aria-label="Evidencias de la planta">
+                <ol className="journal-evidences">
+                  {[...plant.evidences].reverse().map(evidence => (
+                    <li key={evidence.id}>
+                      <time dateTime={evidence.date}>{evidence.date}</time>
+                      <p>{evidence.notes}</p>
+                      {evidence.state && <small>{PLANT_STATES[evidence.state]}</small>}
+                      {evidence.growthStage && <p><strong>Etapa documentada: {GROWTH_STAGES[evidence.growthStage]}</strong></p>}
+                      {evidence.heightCm !== undefined && <p>Altura medida: {evidence.heightCm} cm</p>}
+                      {evidence.photo && <img src={resolveMediaUrl(evidence.photo)} alt={'Evidencia de ' + plant.name + ' del ' + evidence.date}/>}
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            </details>
+          )}
+          <details className="passport-disclosure passport-signage">
+            <summary><span>🏷️ Señalética de la planta</span><small>Consultar o imprimir la ficha para el huerto físico</small></summary>
+            <BotanicalSignage plant={plant} />
+          </details>
         </div>
       )}
     </dialog>

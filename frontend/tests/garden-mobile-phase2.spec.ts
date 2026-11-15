@@ -177,8 +177,10 @@ test('Fase 3: encuadre del jardín en cinco tamaños, imágenes y controles acce
   page.on('pageerror', error => pageErrors.push(error.message))
   await registerGround(page, '/', 'Manabí', 'ground')
   await expectReady(page)
+  const measurements: { width: number; resizeToReadyMs: number; canvasWidth: number; canvasHeight: number }[] = []
 
   for (const width of [320, 360, 390, 430, 768]) {
+    const started = Date.now()
     await page.setViewportSize({ width, height: width === 768 ? 1024 : 844 })
     await expectReady(page)
     const layout = await camera(page)
@@ -194,6 +196,10 @@ test('Fase 3: encuadre del jardín en cinco tamaños, imágenes y controles acce
     expect(renderer.intrinsicHeight).toBeGreaterThan(0)
     expect(renderer.rectWidth).toBeGreaterThan(0)
     expect(renderer.rectHeight).toBeGreaterThan(0)
+    const elapsed = Date.now() - started
+    // A generous CI budget detects catastrophic resize stalls, not minor noise.
+    expect(elapsed, `El jardín debe responder al ancho ${width}px`).toBeLessThan(30_000)
+    measurements.push({ width, resizeToReadyMs: elapsed, canvasWidth: renderer.intrinsicWidth, canvasHeight: renderer.intrinsicHeight })
     expect(await page.evaluate(() document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
     if (width <= 700) {
       await sixVisible(page)
@@ -207,5 +213,9 @@ test('Fase 3: encuadre del jardín en cinco tamaños, imágenes y controles acce
       animations: 'disabled',
     })
   }
+  await test.info().attach('fase3-mobile-performance.json', {
+    body: Buffer.from(JSON.stringify({ measurements, pageErrors }, null, 2)),
+    contentType: 'application/json',
+  })
   expect(pageErrors).toEqual([])
 })

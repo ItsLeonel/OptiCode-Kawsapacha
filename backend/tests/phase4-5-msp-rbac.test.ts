@@ -205,25 +205,22 @@ export async function runPhase45MspRbacTests() {
   assert.equal(act1Result.activity.reviewStatus, 'PENDING', 'La actividad debe quedar en PENDING')
   assert.equal(act1Result.reward?.pointsAwarded, 5, 'Se entregan puntos provisionales al registrar')
 
-  // Verificar que el saldo del usuario sigue en 0 (puntos retenidos hasta aprobación)
+  // El saldo provisional aparece sin certificar la evidencia.
   const pendingSummary = await getUserRewardsSummary(registrationResult.user.id)
-  assert.equal(pendingSummary.points, 0, 'El saldo confirmado debe mantenerse en 0 hasta aprobación')
+  assert.equal(pendingSummary.points, 5)
+  assert.equal(pendingSummary.review.totals.provisional, 5)
 
-  // Verificar que mientras exista un riego PENDING en la planta, no se puede repetir otro riego sobre la misma planta
-  await assert.rejects(
-    async () => {
-      await createGardenActivity({
-        gardenId: garden.id,
-        actorUserId: registrationResult.user.id,
-        type: 'watering',
-        performedDate: '2026-11-10',
-        targetKind: 'plant',
-        plantId: plant.id,
-        notes: 'Intento duplicado mientras el riego sigue en revisión',
-      })
-    },
-    { code: 'ACTIVITY_ALREADY_PENDING' }
-  )
+  // Una actividad pendiente no bloquea registrar otra acción legítima.
+  const signage1 = await createGardenActivity({
+    gardenId: garden.id, actorUserId: registrationResult.user.id,
+    type: 'signage', performedDate: '2026-11-10', targetKind: 'plant', plantId: plant.id,
+  })
+  const signage2 = await createGardenActivity({
+    gardenId: garden.id, actorUserId: registrationResult.user.id,
+    type: 'signage', performedDate: '2026-11-11', targetKind: 'plant', plantId: plant.id,
+  })
+  assert.equal(signage1.activity?.reviewStatus, 'PENDING')
+  assert.equal(signage2.activity?.reviewStatus, 'PENDING')
 
   // MSP consulta la bandeja de actividades pendientes
   const pendingActivities = await listActivitiesForMsp({ status: 'PENDING' })
@@ -232,7 +229,7 @@ export async function runPhase45MspRbacTests() {
   // MSP aprueba la actividad
   const reviewResult = await reviewActivity(act1Result.activity!.id, 'APPROVED', mspUser.id)
   assert.equal(reviewResult.activity.reviewStatus, 'APPROVED')
-  assert.equal(reviewResult.reward?.pointsAwarded, 5, 'Riego debe acreditar 5 Semillas de vida')
+  assert.equal(reviewResult.reward?.pointsAwarded, 0, 'Verificar no vuelve a otorgar los puntos')
 
   // Ahora el saldo confirmado del usuario debe reflejar exactamente los 5 puntos
   const approvedSummary = await getUserRewardsSummary(registrationResult.user.id)

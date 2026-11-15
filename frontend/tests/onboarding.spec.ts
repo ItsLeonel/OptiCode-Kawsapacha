@@ -1,6 +1,6 @@
 import { configureTerrain, confirmTerrain, expectReady, canvasSlot } from './garden-helpers'
 import { test, expect, type Page } from './e2e'
-import { createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo, navigateModule, openGardenSection } from './community-helpers'
+import { createCommunity, nextCommunityStep, openCommunityInfo, navigateModule, openGardenSection } from './community-helpers'
 
 test.setTimeout(60_000)
 const browserErrors = new WeakMap<Page, string[]>()

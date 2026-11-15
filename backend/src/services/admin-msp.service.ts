@@ -410,33 +410,6 @@ export async function reviewActivity(
 
 // ─── EVENTOS INSTITUCIONALES DEL MSP ──────────────────────────────────────────
 
-const DEFAULT_MSP_EVENTS = [
-  {
-    name: 'Minga Nacional Agroecológica Kawsapacha',
-    province: 'Pichincha',
-    canton: 'Quito',
-    scope: 'NACIONAL',
-    date: '2026-11-28',
-    description: 'Jornada comunitaria de siembra, intercambio de semillas y capacitaciones en agroecología.',
-  },
-  {
-    name: 'Feria de Semillas Nativas y Salud Comunitaria',
-    province: 'Chimborazo',
-    canton: 'Riobamba',
-    scope: 'PROVINCIAL',
-    date: '2026-12-05',
-    description: 'Exposición de variedades ancestrales y talleres de medicina tradicional avalados por el MSP.',
-  },
-  {
-    name: 'Taller Provincial de Compostaje y Riego Eficiente',
-    province: 'Azuay',
-    canton: 'Cuenca',
-    scope: 'PROVINCIAL',
-    date: '2026-12-12',
-    description: 'Capacitación práctica para promotores y responsables de huertos comunitarios.',
-  },
-]
-
 export async function listInstitutionalEvents() {
   // No generar eventos ficticios al leer una lista vacía.
   return prisma.mspInstitutionalEvent.findMany({
@@ -474,37 +447,6 @@ export async function deleteInstitutionalEvent(id: string) {
 }
 
 // ─── RECURSOS EDUCATIVOS DEL MSP ──────────────────────────────────────────────
-
-const DEFAULT_MSP_RESOURCES = [
-  {
-    title: 'Guía Oficial de Cultivo y Propiedades de Plantas Medicinales Andinas',
-    kind: 'GUIA',
-    description: 'Documento técnico del MSP con fichas agroecológicas, propiedades terapéuticas y dosificación tradicional.',
-    fileUrl: '/docs/guia-plantas-medicinales-msp.html',
-    published: true,
-  },
-  {
-    title: 'Manual de Manejo Agroecológico de Suelos y Compostaje Comunitario',
-    kind: 'MANUAL',
-    description: 'Técnicas orgánicas para regeneración del suelo, lombricultura y biofertilizantes locales.',
-    fileUrl: '/docs/manual-compostaje-suelos-msp.html',
-    published: true,
-  },
-  {
-    title: 'Ficha Técnica: Calendario Agroecológico Lunar Kawsapacha',
-    kind: 'FICHA',
-    description: 'Recomendaciones del MSP sobre fases lunares, siembra, labores de cultivo y cosecha oportuna.',
-    fileUrl: '/docs/ficha-calendario-lunar-msp.html',
-    published: true,
-  },
-  {
-    title: 'Protocolo de Seguridad Alimentaria en Huertos Comunitarios',
-    kind: 'GUIA',
-    description: 'Normativa sanitaria básica para la manipulación, lavado y consumo seguro de hortalizas.',
-    fileUrl: '/docs/protocolo-seguridad-alimentaria.html',
-    published: true,
-  },
-]
 
 export async function listEducationalResources() {
   // Leer no debe insertar demos ni cambiar URLs legítimas de PDF.

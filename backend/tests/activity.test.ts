@@ -58,19 +58,19 @@ export async function runActivityTests() {
   })
 
   try {
-    // Las plantas PENDING permiten nuevas observaciones sin esperar al MSP.
+    // Regresión: incluso plantas heredadas PENDING aceptan observaciones, que nacen APPROVED.
     const pendingCare = await createGardenActivity({
       gardenId: garden.id, actorUserId: user.id, type: 'observation',
       performedDate: '2026-11-01', targetKind: 'plant', plantId: plant.id,
       notes: 'Observación en planta todavía pendiente',
     })
-    assert.equal(pendingCare.activity?.reviewStatus, 'PENDING')
+    assert.equal(pendingCare.activity?.reviewStatus, 'APPROVED')
     const pendingPlot = await createGardenActivity({
       gardenId: garden.id, actorUserId: user.id, type: 'observation',
       performedDate: '2026-11-01', targetKind: 'plot', plotIndex: 1,
       notes: 'Historial del espacio con planta en revisión',
     })
-    assert.equal(pendingPlot.activity?.reviewStatus, 'PENDING')
+    assert.equal(pendingPlot.activity?.reviewStatus, 'APPROVED')
     // No permitir sembrar dos plantas en el mismo espacio físico.
     await assert.rejects(() => createGardenActivity({
       gardenId: garden.id, actorUserId: user.id, type: 'sowing',
@@ -116,7 +116,6 @@ export async function runActivityTests() {
       performedDate: '2026-11-01',
       targetKind: 'garden',
       notes: 'Descompactación y volteo de suelo según práctica andina',
-      autoApprove: true,
     })
 
     assert.ok(prepResult.activity)

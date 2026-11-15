@@ -9,7 +9,7 @@ import {
   VALID_ACTIVITY_TYPES,
 } from '../src/modules/activities/application/activity.service'
 import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/modules/plants/application/plant.service'
-import { getUserRewardsSummary } from '../src/modules/rewards/application/rewards.service'
+import { getUserRewardsSummary } from '../src/modules/rewards/rewards.module'
 
 export async function runActivityTests() {
   console.log('🧪 Iniciando pruebas de Bitácora Viva y Actividades Agrícolas...')

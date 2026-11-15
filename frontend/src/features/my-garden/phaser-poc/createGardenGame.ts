@@ -341,10 +341,16 @@ class ModularGardenScene extends Phaser.Scene {
     const camera = this.cameras.main
     const width = this.scale.width / camera.zoom
     const height = this.scale.height / camera.zoom
-    // When the portrait view is taller than the world, center the excess sky.
-    const clamp = (scroll: number, dimension: number, visible: number) =>
-      visible >= dimension ? (dimension - visible) / 2 : Phaser.Math.Clamp(scroll, 0, dimension - visible)
-    camera.setScroll(clamp(camera.scrollX, WORLD.width, width), clamp(camera.scrollY, WORLD.height, height))
+    // Phaser scrollX/Y differ from the visible worldView origin when zoom != 1.
+    // Convert to world-view top-left, clamp there, then convert back to scroll.
+    const offsetX = (width - this.scale.width) / 2
+    const offsetY = (height - this.scale.height) / 2
+    const clampWorldStart = (worldStart: number, dimension: number, visible: number) =>
+      visible >= dimension ? (dimension - visible) / 2 : Phaser.Math.Clamp(worldStart, 0, dimension - visible)
+    camera.setScroll(
+      clampWorldStart(camera.scrollX - offsetX, WORLD.width, width) + offsetX,
+      clampWorldStart(camera.scrollY - offsetY, WORLD.height, height) + offsetY,
+    )
     camera.preRender()
   }
 
@@ -413,8 +419,8 @@ class ModularGardenScene extends Phaser.Scene {
       // The artwork is wider than the click anchors; the zoom calculation
       // above provides room for their rims and supports without shifting them.
       camera.setScroll(
-        (minX + maxX) / 2 - this.scale.width / (2 * zoom),
-        (minY + maxY) / 2 - this.scale.height / (2 * zoom),
+        (minX + maxX) / 2 - this.scale.width / 2,
+        (minY + maxY) / 2 - this.scale.height / 2,
       )
       this.clampMobileCamera()
       return

@@ -2,8 +2,8 @@ import { test, expect, type Page } from './e2e'
 import { registerGround, expectReady, canvasSlot, slots, scene } from './garden-helpers'
 import { navigateModule } from './community-helpers'
 
-async function photoDigest(page: Page) {
-  return page.locator('.garden-passport-photo').evaluate(async element => {
+async function photoDigest(page: Page, selector = '.garden-passport-photo') {
+  return page.locator(selector).last().evaluate(async element => {
     const bytes = await (await fetch((element as HTMLImageElement).src)).arrayBuffer()
     return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))).map(byte => byte.toString(16).padStart(2, '0')).join('')
   })
@@ -135,6 +135,7 @@ test('digital mirror: edit a real photo and observations, move, archive and rest
   await page.getByRole('button', { name: 'Añadir a mi huerto', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Romero', exact: true })).toBeVisible()
   const original = await page.locator('.garden-passport-photo').getAttribute('src')
+  const originalDigest = await photoDigest(page)
   await page.getByRole('button', { name: 'Añadir foto', exact: true }).click()
   const editor = page.locator('dialog.plant-editor')
   await expect(editor).toBeVisible()
@@ -151,7 +152,8 @@ test('digital mirror: edit a real photo and observations, move, archive and rest
   await expect(passport).toContainText('23.5 cm')
   await expect(passport.locator('.passport-timeline img')).toHaveCount(2)
   await expect(passport.locator('.garden-passport-photo')).not.toHaveAttribute('src', original!)
-  await expect(passport.locator('.passport-timeline img').last()).toHaveAttribute('src', original!)
+  // Los blob: URLs se regeneran al montar el componente: validar bytes persistidos, no identidad efímera del URL.
+  await expect.poll(() => photoDigest(page, '.passport-timeline img')).toBe(originalDigest)
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo', exact: true }).click()
   await expect(slots(page).nth(4)).toContainText('Romero del patio')
   await expect(slots(page).nth(2)).toContainText('Registrar una planta')

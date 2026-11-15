@@ -222,6 +222,42 @@
   object-fit: cover;
   border-radius: 9px;
 }
+
+.garden-passport.passport-clean .passport-care-shortcuts {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid #d3e0d0;
+  border-radius: 13px;
+  background: #f5f8ee;
+}
+.garden-passport.passport-clean .passport-care-shortcuts > span {
+  color: #2f5738;
+  font-size: 13px;
+  font-weight: 800;
+}
+.garden-passport.passport-clean .passport-care-shortcuts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.garden-passport.passport-clean .passport-care-shortcuts button {
+  flex: 1 1 105px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #b9cfb3;
+  border-radius: 10px;
+  background: #fffefa;
+  color: #315a3c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.garden-passport.passport-clean .passport-care-shortcuts button:hover { background: #e9f4df; }
+.garden-passport.passport-clean .passport-care-shortcuts small { color: #647763; font-size: 11px; }
+
 @media (max-width: 640px) {
   .garden-passport.passport-clean { width: calc(100vw - 14px); max-height: 95dvh; border-radius: 15px; }
   .garden-passport.passport-clean .passport-scroll { padding: 0 14px 18px; max-height: 94dvh; }

@@ -1,5 +1,5 @@
 import type { BackendActivity } from '../../../shared/api/client'
-import { resolveMediaUrl } from '../../../shared/api/client'
+import { resolveMediaUrl } from '../../../shared/api/transport'
 import type { GardenActivity } from './activities'
 
 /** Adaptación estable del contrato HTTP a la bitácora usada por el jardín. */

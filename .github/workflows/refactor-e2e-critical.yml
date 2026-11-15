@@ -1,0 +1,45 @@
+name: Refactor - regresión crítica del jardín
+on:
+  push:
+    paths:
+      - 'frontend/tests/garden-poc-living.spec.ts'
+      - 'frontend/tests/garden-poc-production.spec.ts'
+      - 'frontend/src/features/my-garden/**'
+      - '.github/workflows/refactor-e2e-critical.yml'
+  pull_request:
+    paths:
+      - 'frontend/tests/garden-poc-living.spec.ts'
+      - 'frontend/tests/garden-poc-production.spec.ts'
+      - 'frontend/src/features/my-garden/**'
+      - '.github/workflows/refactor-e2e-critical.yml'
+jobs:
+  mirror-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dependencias
+        run: npm ci --no-audit --no-fund
+      - name: Verificar TypeScript y aplicación
+        run: |
+          npm run typecheck
+          npm run build
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chrome
+      - name: Flujos del espejo digital, fotos, cosecha y persistencia
+        env:
+          KAWSAPACHA_E2E_OFFLINE_CATALOG: '1'
+        run: npx playwright test --config playwright.garden-poc.config.ts tests/garden-poc-living.spec.ts tests/garden-poc-production.spec.ts --reporter=line --max-failures=4
+      - name: Adjuntar fallos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regresion-espejo-digital
+          path: frontend/test-results/garden-poc
+          if-no-files-found: ignore

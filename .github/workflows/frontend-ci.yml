@@ -13,6 +13,12 @@ on:
       - 'tools/check-frontend-architecture.cjs'
       - 'tools/check-legacy-facades.cjs'
 jobs:
+  compatibilidad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar consumidores de fachadas heredadas
+        run: node tools/check-legacy-facades.cjs
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -27,8 +33,6 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verificar dependencias entre capas frontend
         run: node ../tools/check-frontend-architecture.cjs
-      - name: Auditar consumidores de fachadas heredadas
-        run: node ../tools/check-legacy-facades.cjs
       - name: Verificar TypeScript
         run: npm run typecheck
       - name: Compilar

@@ -1352,7 +1352,6 @@ export default function App({
                 </button>
                 <button
                   type="button"
-                  aria-current={screen === 'Mis plantas' ? 'page' : undefined}
                   onClick={() => goto('Mis plantas')}
                 >
                   Mis plantas

@@ -42,8 +42,8 @@ export default function RewardReviewPanel({ authenticated, review }: {
     </div>
 
     <div className="rv-review-stats" aria-label="Saldos de semillas entregados por el servidor">
-      <article className="rv-review-stat rv-review-stat--pending"><span className="rv-review-stat-icon" aria-hidden="true">◷</span><div><h3>Provisionales</h3><output aria-label="Semillas provisionales">{number(server?.totals.provisional)}</output><p>En espera de validación</p></div></article>
-      <article className="rv-review-stat rv-review-stat--approved"><span className="rv-review-stat-icon" aria-hidden="true">✓</span><div><h3>Confirmadas</h3><output aria-label="Semillas confirmadas">{number(server?.totals.confirmed)}</output><p>Validadas por el servidor</p></div></article>
+      
+      <article className="rv-review-stat rv-review-stat--approved"><span className="rv-review-stat-icon" aria-hidden="true">✓</span><div><h3>Ganadas</h3><output aria-label="Semillas ganadas">{number(server?.totals.confirmed)}</output><p>Acreditadas al registrar actividades</p></div></article>
       <article className="rv-review-stat rv-review-stat--reverted"><span className="rv-review-stat-icon" aria-hidden="true">↶</span><div><h3>Revertidas</h3><output aria-label="Semillas revertidas">{number(server?.totals.reverted)}</output><p>Correcciones registradas</p></div></article>
     </div>
 

@@ -1,6 +1,6 @@
 import { configureTerrain, confirmTerrain } from './garden-helpers'
 import { test, expect, type Page } from './e2e'
-import { chooseCommunityTerritory, createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo } from './community-helpers'
+import { chooseCommunityTerritory, createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo, openGardenSection } from './community-helpers'
 
 test.setTimeout(60_000)
 const errors = new WeakMap<Page, string[]>()
@@ -213,14 +213,14 @@ for (const width of [320,390,768]) {
 }
 
 test('huerto requiere comunidad y preserva el borrador al crearla', async ({ page }) => {
-  await mainNavigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
+  await openGardenSection(page, 'Mi terreno')
   await page.getByRole('button', { name: 'Cambiar ubicaci\u00f3n', exact: true }).click()
   await page.locator('#rg-province').selectOption('Guayas')
   await configureTerrain(page)
   await page.getByRole('button', { name: 'Guardar mi terreno', exact: true }).click()
   await expect(page.locator('.rg-feedback[role=status]')).toContainText('Primero crea o selecciona una comunidad')
   await createCommunity(page, 'Ra\u00edces personales', 'Guayas')
-  await mainNavigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
+  await openGardenSection(page, 'Mi terreno')
   await expect(page.locator('#rg-kind-pots')).toBeChecked()
   await confirmTerrain(page, 'Mi huerto pendiente', '12')
   await expect(page.locator('.rg-summary')).toContainText('Ra\u00edces personales')

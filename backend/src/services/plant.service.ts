@@ -1,6 +1,8 @@
 import { prisma } from '../config/prisma'
 import path from 'path'
 import { assertGardenAccess } from './activity.service'
+import { evaluateActivityReward } from './rewards.service'
+import { syncUserMissionsAndBadges } from './missions.service'
 
 const MAX_PLOTS = 6
 
@@ -38,7 +40,7 @@ export async function registerPlant(input: RegisterPlantInput) {
     } else if (existing.reviewStatus === 'PENDING' || existing.reviewStatus === 'NEEDS_CHANGES') {
       throw Object.assign(
         new Error(
-          `El Espacio ${input.plotIndex + 1} ya tiene una planta pendiente de revisión por el MSP (${existing.customName || 'siembra en espera'}). No se puede utilizar hasta que sea aprobada o rechazada.`
+          `El Espacio ${input.plotIndex + 1} ya tiene sembrada la planta «${existing.customName || 'sin nombre'}». Puedes registrar sus cuidados mientras el MSP revisa su evidencia, pero no sembrar otra planta en esa parcela.`
         ),
         { code: 'PLOT_OCCUPIED' }
       )
@@ -50,19 +52,7 @@ export async function registerPlant(input: RegisterPlantInput) {
     }
   }
 
-  // Verificar que el huerto existe y si pertenece a una comunidad, que esté aprobada por el MSP
-  const garden = await prisma.realGarden.findUnique({
-    where: { id: input.realGardenId },
-    include: { community: true },
-  })
-  if (!garden) throw Object.assign(new Error('El huerto no existe.'), { code: 'GARDEN_NOT_FOUND' })
-
-  if (garden.community && garden.community.status !== 'APPROVED') {
-    throw Object.assign(
-      new Error('La comunidad aún no ha sido aprobada por el MSP. No se puede sembrar hasta su verificación institucional.'),
-      { code: 'COMMUNITY_NOT_APPROVED' }
-    )
-  }
+  // assertGardenAccess ya verificó existencia y permisos; PENDING no bloquea siembra.
 
   // Verificar que la especie existe
   const species = await prisma.medicinalCatalog.findUnique({ where: { id: input.speciesId } })
@@ -89,7 +79,7 @@ export async function registerPlant(input: RegisterPlantInput) {
       photoPath: input.file.path,
       photoMime: input.file.mimetype,
       photoSize: input.file.size,
-      reviewStatus: 'PENDING', // Siembra inicia en estado PENDING: requiere aprobación del MSP
+      reviewStatus: 'APPROVED', // Registro válido automáticamente; auditoría MSP opcional.
     },
     include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },
   })
@@ -117,7 +107,7 @@ export async function registerPlant(input: RegisterPlantInput) {
         plotIndex: input.plotIndex,
         notes: input.notes || `Siembra documentada de ${species.name}`,
         details: JSON.stringify(sowingDetails),
-        reviewStatus: 'PENDING',
+        reviewStatus: 'APPROVED',
       },
     })
 
@@ -133,8 +123,17 @@ export async function registerPlant(input: RegisterPlantInput) {
       })
     }
 
-    // La actividad de siembra queda en reviewStatus: 'PENDING' para auditoría del MSP.
-    // Los puntos (Semillas de vida) se acreditarán formalmente al aprobarse la evidencia fotográfica.
+    // Siembra válida desde el inicio: los puntos se acreditan inmediatamente.
+    await evaluateActivityReward({
+      id: sowingActivity.id,
+      actorUserId: input.registeredById,
+      type: 'sowing',
+      performedDate,
+      targetKind: 'plant',
+      plantId: createdPlant.id,
+      plotIndex: input.plotIndex,
+    })
+    await syncUserMissionsAndBadges(input.registeredById)
   } catch (actErr) {
     console.error('Error al registrar actividad automática de siembra en Bitácora:', actErr)
   }
@@ -147,8 +146,8 @@ export async function registerPlant(input: RegisterPlantInput) {
 
 function extractGrowthStage(activities: Array<{ details: string; type: string; reviewStatus: string }>): string | undefined {
   for (const act of activities) {
-    // Una etapa proveniente de seguimiento solo aplica cuando fue aprobada, mientras que la etapa inicial de siembra conserva la evidencia de registro.
-    if (act.type !== 'sowing' && act.reviewStatus !== 'APPROVED') continue
+    // La etapa registrada se refleja de inmediato; una evidencia rechazada no gobierna el espejo.
+    if (act.reviewStatus === 'REJECTED') continue
     try {
       const parsed = JSON.parse(act.details || '{}') as { growthStage?: string }
       if (parsed.growthStage && typeof parsed.growthStage === 'string') {
@@ -323,12 +322,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
   })
   if (!plant) throw Object.assign(new Error('Planta no encontrada.'), { code: 'NOT_FOUND' })
   await assertGardenAccess(plant.realGardenId, input.requestingUserId)
-  if (plant.reviewStatus !== 'APPROVED') {
-    throw Object.assign(
-      new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se puede editar ni documentar hasta su aprobación oficial.'),
-      { code: 'PLANT_NOT_APPROVED' }
-    )
-  }
+  // La planta ya sembrada puede editarse y documentar fotos nuevas aunque MSP aún revise la siembra.
 
   // La etapa y el estado observados no pueden evolucionar sin evidencia fotográfica nueva.
   // No se bloquea una edición de nombre o notas que conserve la misma etapa.
@@ -395,7 +389,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
     include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },
   })
 
-  // Documentar observaciones reales sin otorgar recompensas antes de revisión MSP.
+  // Documentar observaciones reales como actividades válidas y recompensables.
   const hasObservation = Boolean(
     input.file || input.heightCm !== undefined ||
     (input.observedState && input.observedState !== plant.observedState) ||
@@ -420,7 +414,7 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
         plotIndex: updated.plotIndex,
         notes: input.notes || `Observación actualizada: ${input.observedState || 'seguimiento'}`,
         details: JSON.stringify(detailsObj),
-        reviewStatus: 'PENDING',
+        reviewStatus: 'APPROVED',
       },
     })
 
@@ -436,7 +430,16 @@ export async function updatePlantDetails(input: UpdatePlantInput) {
       })
     }
 
-    // Recompensas: solo tras la aprobación de esta actividad por el MSP.
+    await evaluateActivityReward({
+      id: activity.id,
+      actorUserId: input.requestingUserId,
+      type: 'observation',
+      performedDate: today,
+      targetKind: 'plant',
+      plantId: plant.id,
+      plotIndex: updated.plotIndex,
+    })
+    await syncUserMissionsAndBadges(input.requestingUserId)
   } catch (actErr) {
     console.error('Error al registrar actividad automática de observación:', actErr)
   }

@@ -8,7 +8,8 @@ import {
   voidGardenActivity,
   VALID_ACTIVITY_TYPES,
 } from '../src/services/activity.service'
-import { listPlantsByGarden, getPlantPassport, updatePlantDetails } from '../src/services/plant.service'
+import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/services/plant.service'
+import { getUserRewardsSummary } from '../src/services/rewards.service'
 
 export async function runActivityTests() {
   console.log('🧪 Iniciando pruebas de Bitácora Viva y Actividades Agrícolas...')
@@ -58,61 +59,53 @@ export async function runActivityTests() {
   })
 
   try {
-    // 0. Verificar que una planta pendiente de aprobación MSP bloquea los cuidados
-    let pendingBlocked = false
-    try {
-      await createGardenActivity({
-        gardenId: garden.id,
-        actorUserId: user.id,
-        type: 'watering',
-        performedDate: '2026-11-02',
-        targetKind: 'plant',
-        plantId: plant.id,
-        notes: 'Intento de riego en planta no aprobada',
-      })
-    } catch (err: any) {
-      if (err.code === 'PLANT_NOT_APPROVED') pendingBlocked = true
-    }
-    assert.ok(pendingBlocked, 'Debe bloquear actividades de cuidado si la siembra está pendiente de aprobación MSP')
-
-    // 0b. Verificar que el espacio con planta pendiente también bloquea actividades por plot (ej. sowing u observation)
-    let plotPendingBlocked = false
-    try {
-      await createGardenActivity({
-        gardenId: garden.id,
-        actorUserId: user.id,
-        type: 'observation',
-        performedDate: '2026-11-02',
-        targetKind: 'plot',
-        plotIndex: 1,
-        notes: 'Intento de observación en espacio pendiente MSP',
-      })
-    } catch (err: any) {
-      if (err.code === 'PLANT_NOT_APPROVED') plotPendingBlocked = true
-    }
-    assert.ok(plotPendingBlocked, 'Debe bloquear actividades dirigidas al espacio mientras la planta esté pendiente MSP')
-
-    let sowingOnPendingBlocked = false
-    try {
-      await createGardenActivity({
-        gardenId: garden.id,
-        actorUserId: user.id,
-        type: 'sowing',
-        performedDate: '2026-11-02',
-        targetKind: 'plot',
-        plotIndex: 1,
-        notes: 'Intento de siembra en espacio ocupado/pendiente',
-      })
-    } catch (err: any) {
-      if (err.code === 'PLANT_NOT_APPROVED') sowingOnPendingBlocked = true
-    }
-    assert.ok(sowingOnPendingBlocked, 'Debe bloquear siembra adicional en un espacio con planta pendiente MSP')
-
-    // Aprobar la planta para continuar el flujo de cuidados válidos
-    await prisma.cultivatedPlant.update({
-      where: { id: plant.id },
-      data: { reviewStatus: 'APPROVED' },
+    // Regresión: incluso plantas heredadas PENDING aceptan observaciones, que nacen APPROVED.
+    const pendingCare = await createGardenActivity({
+      gardenId: garden.id, actorUserId: user.id, type: 'observation',
+      performedDate: '2026-11-01', targetKind: 'plant', plantId: plant.id,
+      notes: 'Observación en planta todavía pendiente',
     })
+    assert.equal(pendingCare.activity?.reviewStatus, 'APPROVED')
+    const pendingPlot = await createGardenActivity({
+      gardenId: garden.id, actorUserId: user.id, type: 'observation',
+      performedDate: '2026-11-01', targetKind: 'plot', plotIndex: 1,
+      notes: 'Historial del espacio con planta en revisión',
+    })
+    assert.equal(pendingPlot.activity?.reviewStatus, 'APPROVED')
+    // Una siembra real nueva se almacena como APPROVED, con actividad y puntos inmediatos.
+    const beforeSowing = (await getUserRewardsSummary(user.id)).points
+    const registeredPlant = await registerPlant({
+      realGardenId: garden.id,
+      speciesId: species.id,
+      plotIndex: 2,
+      customName: 'Toronjil registrado desde aplicación',
+      notes: 'Siembra de prueba con evidencia fotográfica',
+      registeredById: user.id,
+      file: {
+        path: '/tmp/registro-toronjil.jpg',
+        filename: 'registro-toronjil.jpg',
+        mimetype: 'image/jpeg',
+        size: 15000,
+      } as Express.Multer.File,
+    })
+    assert.equal(registeredPlant.reviewStatus, 'APPROVED')
+    const sowingRecord = await prisma.gardenActivity.findFirst({
+      where: { plantId: registeredPlant.id, type: 'sowing', voidedAt: null },
+      include: { evidences: true },
+    })
+    assert.ok(sowingRecord, 'Toda planta registrada debe tener siembra en Bitácora')
+    assert.equal(sowingRecord!.reviewStatus, 'APPROVED')
+    assert.equal(sowingRecord!.reviewedAt, null, 'El registro automático no suplanta auditoría MSP')
+    assert.equal(sowingRecord!.evidences.length, 1)
+    const afterSowing = await getUserRewardsSummary(user.id)
+    assert.equal(afterSowing.points - beforeSowing, 20)
+    assert.ok(afterSowing.badges.some(b => b.badgeId === 'first-sowing'))
+
+    // No permitir sembrar dos plantas en el mismo espacio físico.
+    await assert.rejects(() => createGardenActivity({
+      gardenId: garden.id, actorUserId: user.id, type: 'sowing',
+      performedDate: '2026-11-01', targetKind: 'plot', plotIndex: 1,
+    }), { code: 'PLOT_OCCUPIED' })
 
     // Seguridad de extremo a extremo: una cuenta ajena no debe leer ni editar
     // plantas o fotos del huerto de otra comunidad.
@@ -153,7 +146,6 @@ export async function runActivityTests() {
       performedDate: '2026-11-01',
       targetKind: 'garden',
       notes: 'Descompactación y volteo de suelo según práctica andina',
-      autoApprove: true,
     })
 
     assert.ok(prepResult.activity)

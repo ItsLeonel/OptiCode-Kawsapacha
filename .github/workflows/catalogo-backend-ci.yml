@@ -42,3 +42,25 @@ jobs:
         run: npm test
       - name: Integración actividades, MSP, permisos y recompensas
         run: npm run test:activities
+      - name: Migración V1 sobre SQLite heredada y conciliación idempotente
+        env:
+          DATABASE_URL: file:./migration-legacy-ci.db
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration="prisma/migrations/20261115051000_validacion_automatica_v1"
+          hidden="$RUNNER_TEMP/kawsapacha-migration-v1"
+          mv "$migration" "$hidden"
+          trap 'if [ -d "$hidden" ]; then mv "$hidden" "$migration"; fi' EXIT
+          # Construir esquema anterior real y guardar comunidad/planta/actividades antiguas.
+          npx prisma migrate deploy
+          node tests/legacy-msp-migration.cjs seed
+          mv "$hidden" "$migration"
+          # Aplicar únicamente la nueva migración sobre esos mismos datos.
+          npx prisma migrate deploy
+          node tests/legacy-msp-migration.cjs after-migrate
+          npm run reconcile:msp-v1
+          node tests/legacy-msp-migration.cjs after-reconcile
+          # Un segundo pase jamás puede duplicar Semillas.
+          npm run reconcile:msp-v1
+          node tests/legacy-msp-migration.cjs after-reconcile

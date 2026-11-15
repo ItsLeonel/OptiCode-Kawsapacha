@@ -262,13 +262,6 @@ export async function addCareLog(
     include: { species: true, careLogs: true },
   })
   if (!plantForValidation) throw new Error('Planta no encontrada')
-  if (plantForValidation.reviewStatus !== 'APPROVED') {
-    throw Object.assign(
-      new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su aprobación oficial.'),
-      { code: 'PLANT_NOT_APPROVED' }
-    )
-  }
-
   const { allowed, warningMessage } = await validateCareAction(plantId, actionType, {
     lifecycleStatus: plantForValidation.lifecycleStatus,
     species: plantForValidation.species,
@@ -296,11 +289,11 @@ export async function addCareLog(
     },
   })
   if (freshPlant && freshPlant.lifecycleStatus !== 'HARVESTED') {
-    const approvedCareLogs = freshPlant.careLogs.filter(cl => {
+    const effectiveCareLogs = freshPlant.careLogs.filter(cl => {
       if (!cl.activities || cl.activities.length === 0) return true
-      return cl.activities.some(a => a.reviewStatus === 'APPROVED' && !a.voidedAt)
+      return cl.activities.some(a => a.reviewStatus !== 'REJECTED' && !a.voidedAt)
     })
-    const growth = calculateGrowthData(freshPlant, freshPlant.species, approvedCareLogs)
+    const growth = calculateGrowthData(freshPlant, freshPlant.species, effectiveCareLogs)
     if (growth.percentage >= 76 && freshPlant.lifecycleStatus !== 'REGROWING') {
       await prisma.cultivatedPlant.update({
         where: { id: plantId },
@@ -342,30 +335,13 @@ export async function calculateGrowth(plantId: string) {
   })
   if (!plant) throw new Error('Planta no encontrada')
 
-  if (plant.reviewStatus !== 'APPROVED') {
-    return {
-      percentage: 0,
-      stage: 'Siembra pendiente de aprobación MSP ⏳',
-      daysUntilHarvest: plant.species.growthCycleDays,
-      needsWatering: false,
-      needsFertilizer: false,
-      overWatered: false,
-      overFertilized: false,
-      overPruned: false,
-      healthStatus: 'VIGOROSA' as const,
-      lifecycleStatus: plant.lifecycleStatus,
-      plantingDate: plant.plantingDate,
-      lastHarvestDate: plant.lastHarvestDate,
-    }
-  }
-
-  const approvedCareLogs = plant.careLogs.filter(cl => {
+  const effectiveCareLogs = plant.careLogs.filter(cl => {
     if (!cl.activities || cl.activities.length === 0) return true
-    return cl.activities.some(a => a.reviewStatus === 'APPROVED' && !a.voidedAt)
+    return cl.activities.some(a => a.reviewStatus !== 'REJECTED' && !a.voidedAt)
   })
 
   return {
-    ...calculateGrowthData(plant, plant.species, approvedCareLogs),
+    ...calculateGrowthData(plant, plant.species, effectiveCareLogs),
     lifecycleStatus: plant.lifecycleStatus,
     plantingDate: plant.plantingDate,
     lastHarvestDate: plant.lastHarvestDate,

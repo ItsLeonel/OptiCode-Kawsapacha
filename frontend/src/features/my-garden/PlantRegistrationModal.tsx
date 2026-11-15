@@ -255,7 +255,7 @@ export default function PlantRegistrationModal({ plants, initialPlot, initialSpe
           {recordSowing && <label className="plant-registration-field">Persona responsable de la siembra<input required minLength={2} maxLength={100} value={responsible} onChange={event => setResponsible(event.target.value)}/></label>}
           {initialPlotPending && initialPlotOccupant && (
             <p className="plant-registration-notice" role="status">
-              ⏳ El Espacio {initialPlotOccupant.plot + 1} ya tiene a «{initialPlotOccupant.name}» pendiente de aprobación por el MSP y no puede utilizarse hasta su revisión.
+              🌱 El Espacio {initialPlotOccupant.plot + 1} ya está sembrado con «{initialPlotOccupant.name}». Puedes cuidarla mientras el MSP revisa la siembra, pero no registrar otra planta en la misma parcela.
             </p>
           )}
           {notice && <p className="plant-registration-notice">{notice}</p>}

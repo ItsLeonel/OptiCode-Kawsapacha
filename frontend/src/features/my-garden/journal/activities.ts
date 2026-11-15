@@ -66,12 +66,8 @@ export function validateActivity(activity: GardenActivity, plants: readonly Gard
   const plant = target.kind === 'plant' ? plants.find(item => item.id === target.plantId) : undefined
   if (target.kind === 'plant' && (!plant || plant.archivedAt || plant.plot !== target.plot)) return 'La planta ya no ocupa ese espacio. Revisa la ubicación antes de guardar.'
   const plantInPlot = target.kind === 'plot' ? plants.find(item => !item.archivedAt && item.plot === target.plot) : undefined
-  const blockedPendingPlant = [plant, plantInPlot].find(
-    item => item && (item.reviewStatus === 'PENDING' || item.reviewStatus === 'NEEDS_CHANGES')
-  )
-  if (blockedPendingPlant) {
-    return `El Espacio ${blockedPendingPlant.plot + 1} ya tiene una planta pendiente de revisión por el MSP (${blockedPendingPlant.name}). No se pueden registrar actividades ni utilizar este espacio hasta su aprobación.`
-  }
+  // Una planta sembrada permanece disponible para cuidados, incluso si el MSP
+  // aún no auditó registros históricos. Solo se impide ocupar dos veces la parcela.
   if (plantInPlot && (activity.type === 'sowing' || activity.type === 'preparation')) {
     return `El Espacio ${plantInPlot.plot + 1} ya está ocupado por «${plantInPlot.name}».`
   }

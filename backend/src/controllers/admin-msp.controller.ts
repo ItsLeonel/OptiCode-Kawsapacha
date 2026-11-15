@@ -90,7 +90,7 @@ export async function postReviewActivity(req: AuthRequest, res: Response): Promi
 
   try {
     const result = await reviewActivity(id, action, req.user.userId, reason)
-    ok(res, result, `Actividad ${action === 'APPROVED' ? 'aprobada y puntos otorgados' : 'evaluada'} exitosamente.`)
+    ok(res, result, `Actividad ${action === 'APPROVED' ? 'verificada sin duplicar puntos' : 'evaluada con ajuste de puntos'} exitosamente.`)
   } catch (err: unknown) {
     const e = err as { code?: string; message: string }
     if (e.code === 'VALIDATION_ERROR') {

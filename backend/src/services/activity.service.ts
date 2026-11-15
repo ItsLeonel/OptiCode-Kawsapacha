@@ -42,7 +42,6 @@ export interface CreateActivityInput {
     mimetype: string
     size: number
   } | null
-  autoApprove?: boolean
 }
 
 /**
@@ -75,17 +74,11 @@ export async function assertGardenAccess(
     throw new Error('El huerto especificado no existe.')
   }
 
-  // Si se requiere aprobación de comunidad (ej: registrar o modificar actividades, preparación de terreno)
-  if (requireApproved && garden.community && garden.community.status !== 'APPROVED') {
-    const status = garden.community.status
-    let detail = 'La comunidad se encuentra en revisión por el Ministerio de Salud Pública.'
-    if (status === 'NEEDS_CHANGES') {
-      detail = `El MSP ha solicitado correcciones para la comunidad: "${garden.community.reviewReason || ''}".`
-    } else if (status === 'REJECTED') {
-      detail = `La comunidad fue rechazada por el MSP: "${garden.community.reviewReason || ''}".`
-    }
+  // La supervisión MSP no paraliza comunidades PENDING/NEEDS_CHANGES.
+  // Una comunidad rechazada o suspendida sí necesita resolución institucional.
+  if (requireApproved && garden.community && ['REJECTED', 'SUSPENDED'].includes(garden.community.status)) {
     throw Object.assign(
-      new Error(`${detail} No se pueden registrar actividades ni preparar el terreno hasta que la comunidad sea verificada y aprobada por el MSP.`),
+      new Error('La comunidad está rechazada o suspendida. Solicita su revisión antes de registrar nuevas actividades.'),
       { code: 'COMMUNITY_NOT_APPROVED' }
     )
   }
@@ -187,13 +180,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
       if (!plantInPlot) {
         throw new Error('Ese espacio no tiene una planta sembrada. En espacios vacíos solo se permite la preparación del terreno.')
       }
-      // Bloquear cuidados en plantas cuya siembra aún no ha sido aprobada por el MSP
-      if (plantInPlot.reviewStatus !== 'APPROVED') {
-        throw Object.assign(
-          new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta que sea aprobada oficialmente.'),
-          { code: 'PLANT_NOT_APPROVED' }
-        )
-      }
+      // La siembra PENDING ya existe en el huerto: sus cuidados no esperan revisión MSP.
       targetKind = 'plant'
       plantId = plantInPlot.id
       plantRecord = plantInPlot
@@ -213,13 +200,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
       if (plantRecord.archivedAt || plantRecord.lifecycleStatus === 'REMOVED') {
         throw new Error('La planta seleccionada no se encuentra activa en el huerto.')
       }
-      // Bloquear cuidados en plantas cuya siembra aún no ha sido aprobada por el MSP
-      if (plantRecord.reviewStatus !== 'APPROVED') {
-        throw Object.assign(
-          new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar actividades ni cuidados hasta que sea aprobada oficialmente.'),
-          { code: 'PLANT_NOT_APPROVED' }
-        )
-      }
+      // El estado de verificación de la siembra no impide registrar cuidados.
       plotIndex = plantRecord.plotIndex
     }
   } else if (type === 'preparation') {
@@ -250,12 +231,6 @@ export async function createGardenActivity(input: CreateActivityInput) {
     if (plantRecord.archivedAt || plantRecord.lifecycleStatus === 'REMOVED') {
       throw new Error('La planta seleccionada no se encuentra activa en el huerto.')
     }
-    if (plantRecord.reviewStatus !== 'APPROVED') {
-      throw Object.assign(
-        new Error('La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar actividades hasta que sea aprobada oficialmente.'),
-        { code: 'PLANT_NOT_APPROVED' }
-      )
-    }
     if (type === 'sowing') {
       throw Object.assign(
         new Error(`El Espacio ${(plantRecord.plotIndex ?? 0) + 1} ya está ocupado por «${plantRecord.customName || plantRecord.species.name}».`),
@@ -272,14 +247,6 @@ export async function createGardenActivity(input: CreateActivityInput) {
       include: { species: true },
     })
     if (plantInPlot) {
-      if (plantInPlot.reviewStatus !== 'APPROVED') {
-        throw Object.assign(
-          new Error(
-            `El Espacio ${plotIndex + 1} ya tiene una planta pendiente de revisión por el MSP (${plantInPlot.customName || plantInPlot.species.name}). No se puede utilizar ni registrar actividades en este espacio hasta que sea revisada.`
-          ),
-          { code: 'PLANT_NOT_APPROVED' }
-        )
-      }
       if (type === 'sowing') {
         throw Object.assign(
           new Error(`El Espacio ${plotIndex + 1} ya está ocupado por una planta activa.`),
@@ -291,51 +258,9 @@ export async function createGardenActivity(input: CreateActivityInput) {
     throw new Error('La siembra debe registrarse en un espacio o planta específica del huerto.')
   }
 
-  // 5b. Bloquear actividad repetida mientras exista una del mismo tipo pendiente de revisión MSP
-  const pendingDuplicateWhere: Record<string, unknown> = {
-    gardenId,
-    type,
-    targetKind,
-    voidedAt: null,
-    reviewStatus: { in: ['PENDING', 'NEEDS_CHANGES'] },
-  }
-  if (targetKind === 'plant') {
-    pendingDuplicateWhere['plantId'] = plantId
-  } else if (targetKind === 'plot') {
-    pendingDuplicateWhere['plotIndex'] = plotIndex
-  }
-
-  const pendingSameType = await prisma.gardenActivity.findFirst({
-    where: pendingDuplicateWhere,
-    select: {
-      id: true,
-      actorUser: { select: { name: true } },
-    },
-  })
-
-  if (pendingSameType) {
-    const ACTIVITY_NAMES_ES: Record<string, string> = {
-      preparation: 'Preparación del terreno',
-      weeding: 'Limpieza y mantenimiento',
-      sowing: 'Siembra',
-      watering: 'Riego',
-      fertilizing: 'Abonado orgánico',
-      hilling: 'Aporque',
-      observation: 'Seguimiento / Observación',
-      harvest: 'Cosecha',
-      sowing_ritual: 'Ritual de siembra',
-      gratitude_ritual: 'Ritual de gratitud',
-      signage: 'Señalética medicinal',
-      postharvest: 'Poscosecha y conservación',
-    }
-    const actNameEs = ACTIVITY_NAMES_ES[type] || type
-    throw Object.assign(
-      new Error(
-        `La actividad «${actNameEs}» ya fue registrada${pendingSameType.actorUser?.name ? ` por ${pendingSameType.actorUser.name}` : ''} y está pendiente de revisión por el MSP. No se puede volver a realizar hasta que sea validada o rechazada.`
-      ),
-      { code: 'ACTIVITY_ALREADY_PENDING' }
-    )
-  }
+  // No impedir nuevas actividades porque una anterior siga PENDING.
+  // La idempotencia por clientActivityId, los límites diarios de recompensas
+  // y la validación de frecuencia de cuidados siguen protegiendo de duplicados.
 
   // 6. Sincronización con cuidados y cosechas existentes
   let linkedCareLogId: string | null = null
@@ -424,6 +349,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
       clientActivityId: clientActivityId || null,
       careLogId: linkedCareLogId,
       harvestRecordId: linkedHarvestRecordId,
+      reviewStatus: 'APPROVED', // Válida al registrarse; reviewedAt null hasta una auditoría MSP.
     },
   })
 
@@ -440,35 +366,18 @@ export async function createGardenActivity(input: CreateActivityInput) {
     })
   }
 
-  // 9. Flujo de auditoría MSP y recompensa en Semillas de Vida:
-  // Si autoApprove === true (ej: suite de pruebas o invocación administrativa), se aprueba de inmediato.
-  // En el flujo normal, la actividad queda reviewStatus: 'PENDING' y los puntos se asignan formalmente al aprobarse por el MSP.
-  let reward = null
-  if (input.autoApprove) {
-    await prisma.gardenActivity.update({
-      where: { id: activity.id },
-      data: { reviewStatus: 'APPROVED', reviewedAt: new Date() },
-    })
-    reward = await evaluateActivityReward({
-      id: activity.id,
-      actorUserId,
-      type,
-      performedDate,
-      targetKind,
-      plantId: activity.plantId,
-      plotIndex: activity.plotIndex,
-    })
-    await syncUserMissionsAndBadges(actorUserId)
-  } else {
-    reward = {
-      awarded: false,
-      pointsAwarded: 0,
-      totalPoints: 0,
-      level: 'Aprendiz',
-      reason: 'Actividad registrada exitosamente. En espera de auditoría y aprobación del MSP para acreditar puntos.',
-      pendingReview: true,
-    }
-  }
+  // La actividad queda activa y sus Semillas se acreditan de inmediato.
+  // El MSP puede verificarla después sin duplicar los puntos, o invalidarla y revertirlos.
+  const reward = await evaluateActivityReward({
+    id: activity.id,
+    actorUserId,
+    type,
+    performedDate,
+    targetKind,
+    plantId: activity.plantId,
+    plotIndex: activity.plotIndex,
+  })
+  await syncUserMissionsAndBadges(actorUserId)
 
   // 11. Retornar actividad completa con evidencias
   const fullActivity = await prisma.gardenActivity.findUnique({
@@ -593,22 +502,25 @@ export async function voidGardenActivity(activityId: string, userId: string, voi
     throw new Error('Solo el autor de la actividad o el responsable del huerto pueden anularla.')
   }
 
-  // Marcar como anulada
-  const updatedActivity = await prisma.gardenActivity.update({
-    where: { id: activityId },
-    data: {
-      voidedAt: new Date(),
-      voidReason,
-      voidedByUserId: userId,
-    },
-    include: {
-      evidences: true,
-      actorUser: { select: { id: true, name: true, email: true } },
-    },
+  // Anulación y reversión forman una sola transacción: nunca descontar puntos a medias.
+  const { updatedActivity, pointsReverted } = await prisma.$transaction(async tx => {
+    const changed = await tx.gardenActivity.updateMany({
+      where: { id: activityId, voidedAt: null },
+      data: { voidedAt: new Date(), voidReason, voidedByUserId: userId },
+    })
+    if (changed.count !== 1) {
+      throw Object.assign(new Error('Esta actividad ya fue anulada.'), { code: 'ACTIVITY_VOIDED' })
+    }
+    const pointsReverted = await revertActivityReward(activityId, voidReason, tx)
+    const updatedActivity = await tx.gardenActivity.findUniqueOrThrow({
+      where: { id: activityId },
+      include: {
+        evidences: true,
+        actorUser: { select: { id: true, name: true, email: true } },
+      },
+    })
+    return { updatedActivity, pointsReverted }
   })
-
-  // Revertir recompensas en el ledger
-  const pointsReverted = await revertActivityReward(activityId, voidReason)
 
   // Re-sincronizar misiones e insignias del usuario autor
   await syncUserMissionsAndBadges(activity.actorUserId)

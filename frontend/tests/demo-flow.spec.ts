@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './e2e'
-import { createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo } from './community-helpers'
+import { createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo, navigateModule, openGardenSection } from './community-helpers'
 import { registerGround, expectReady, canvasSlot, configureTerrain, confirmTerrain } from './garden-helpers'
 
 const photo = 'src/features/real-gardens/assets/en-tierra-v1.jpg'
@@ -23,7 +23,7 @@ for (const mobile of [false, true]) test.describe(mobile ? 'recorrido móvil con
     await nextCommunityStep(page)
     await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
     await expect(page.locator('.community-overview')).toContainText('Comunidad Kawsapacha')
-    await mainNavigation(page).getByRole('button', { name: 'Mi Jardín', exact: true }).click(); await expectReady(page)
+    await navigateModule(page, 'Mi Huerto'); await expectReady(page)
     await canvasSlot(page, 4, mobile)
     if (mobile) { await page.getByRole('button', { name: 'Cámara', exact: true }).click(); await page.getByRole('button', { name: 'Tomar fotografía', exact: true }).click() }
     else { const chooser = page.waitForEvent('filechooser'); await page.getByRole('button', { name: 'Galería', exact: true }).click(); await (await chooser).setFiles(photo) }
@@ -34,12 +34,12 @@ for (const mobile of [false, true]) test.describe(mobile ? 'recorrido móvil con
     await expect(passport).toContainText('Espacio 5'); await expect(passport).toContainText('Matricaria chamomilla')
     expect(await passport.locator('.garden-passport-photo').evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
     await closePassport(page)
-    await mainNavigation(page).getByRole('button', { name: 'Descubrir plantas', exact: true }).click()
+    await openGardenSection(page, 'Catálogo medicinal')
     await page.getByLabel('Buscar plantas').fill('especie inexistente')
     await expect(page.getByText('No se encontraron especies con ese nombre.')).toBeVisible()
     await page.goBack(); await expectReady(page)
     await page.goForward(); await expect(page.getByRole('heading', { name: 'Descubrir plantas', exact: true })).toBeVisible()
-    await mainNavigation(page).getByRole('button', { name: 'Mi historia', exact: true }).click()
+    await openGardenSection(page, 'Bitácora')
     await page.getByRole('button', { name: /Abrir Pasaporte Vivo/ }).click(); await expect(passport).toBeVisible()
     await closePassport(page)
     await page.getByRole('button', { name: 'Volver a bienvenida', exact: true }).click()
@@ -54,7 +54,7 @@ for (const mobile of [false, true]) test.describe(mobile ? 'recorrido móvil con
 
 test('planta en pausa conserva foto, especie, espacio y siembra al registrar comunidad y terreno', async ({ page }) => {
   await page.goto('/'); await page.getByRole('button', { name: 'Descubrir Kawsapacha' }).click()
-  await mainNavigation(page).getByRole('button', { name: 'Descubrir plantas', exact: true }).click()
+  await openGardenSection(page, 'Catálogo medicinal')
   await page.locator('.species-card').filter({ hasText: 'Lavanda' }).getByRole('button').click()
   await page.locator('#plant-photo').setInputFiles(photo)
   await page.getByLabel('Posición de cultivo').selectOption('3'); await page.getByLabel('Fecha de siembra').fill('2026-10-30')
@@ -67,7 +67,7 @@ test('planta en pausa conserva foto, especie, espacio y siembra al registrar com
   await page.getByRole('button', { name: 'Guardar mi terreno', exact: true }).click()
   await expect(page.locator('.rg-feedback[role=status]')).toContainText('Primero crea o selecciona una comunidad')
   await createCommunity(page)
-  await mainNavigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
+  await openGardenSection(page, 'Mi terreno')
   await confirmTerrain(page)
   await page.getByRole('button', { name: 'Volver a Mi Jardín', exact: true }).click()
   await expect(page.getByLabel('Especie medicinal')).toHaveValue('Lavanda')
@@ -82,7 +82,7 @@ test('edición inválida y cancelación conservan terreno, comunidad y fotograf�
   await registerGround(page, '/'); await expectReady(page)
   await canvasSlot(page, 0); await page.locator('#plant-photo').setInputFiles(photo)
   await page.getByRole('button', { name: 'Añadir a mi huerto', exact: true }).click(); await closePassport(page)
-  await mainNavigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
+  await openGardenSection(page, 'Mi terreno')
   await page.getByRole('button', { name: 'Editar información', exact: true }).click()
   await page.getByLabel('Nombre del huerto').fill('  '); await page.getByLabel('Superficie aproximada').fill('0')
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
@@ -94,7 +94,7 @@ test('edición inválida y cancelación conservan terreno, comunidad y fotograf�
   await page.getByRole('button', { name: 'Editar comunidad', exact: true }).click()
   await openCommunityInfo(page); await page.getByLabel('Nombre de la comunidad').fill('  '); await nextCommunityStep(page)
   await expect(page.getByRole('alert')).toBeVisible(); await page.keyboard.press('Escape')
-  await mainNavigation(page).getByRole('button', { name: 'Mi Jardín', exact: true }).click(); await expectReady(page)
+  await navigateModule(page, 'Mi Huerto'); await expectReady(page)
   await canvasSlot(page, 0); await expect(page.getByRole('dialog', { name: 'Romero', exact: true })).toBeVisible()
   expect(await page.locator('.garden-passport-photo').evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
 })

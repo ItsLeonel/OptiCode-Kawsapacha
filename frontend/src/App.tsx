@@ -474,7 +474,7 @@ export default function App({
               growthStage: isGrowthStage(p.growthStage) ? p.growthStage : undefined,
               observations: p.notes || '',
               archivedAt: p.archivedAt ? new Date(p.archivedAt).toISOString() : (p.lifecycleStatus === 'ARCHIVED' ? new Date().toISOString() : undefined),
-              reviewStatus: p.reviewStatus ?? 'APPROVED', // Propagar estado de aprobación de siembra al frontend
+              reviewStatus: p.reviewStatus ?? 'APPROVED', // Registro válido; el MSP puede auditar la siembra después
             }))
           )
         } else {
@@ -798,7 +798,7 @@ export default function App({
           createdAt: (apiPlant as any).createdAt || new Date(apiPlant.plantingDate).toISOString(),
           state: 'observed',
           growthStage: isGrowthStage(apiPlant.growthStage) ? apiPlant.growthStage : input.growthStage,
-          reviewStatus: apiPlant.reviewStatus || 'PENDING',
+          reviewStatus: apiPlant.reviewStatus || 'APPROVED',
         }
         setBackendPlants(existing => [...existing, record])
         setRegistration(null)
@@ -808,7 +808,7 @@ export default function App({
         if (activeGardenId) {
           void reloadBackendActivities(activeGardenId)
         }
-        setNotice('🌱 ¡Siembra registrada! La planta está pendiente de aprobación por el MSP. No se podrán realizar cuidados hasta su verificación oficial.')
+        setNotice('🌱 Siembra guardada. Puedes empezar a cuidarla; el MSP revisará la evidencia posteriormente.')
         goto('Inicio')
         return { ok: true }
       } catch (err: unknown) {
@@ -878,7 +878,7 @@ export default function App({
         const isPending = occupant.reviewStatus === 'PENDING' || occupant.reviewStatus === 'NEEDS_CHANGES'
         setNotice(
           isPending
-            ? `⏳ El Espacio ${plot + 1} ya tiene a «${occupant.name}» pendiente de aprobación por el MSP y no puede utilizarse.`
+            ? `El Espacio ${plot + 1} ya está sembrado con «${occupant.name}». Puedes cuidarla, pero no sembrar otra en el mismo espacio.`
             : `El Espacio ${plot + 1} ya está ocupado por «${occupant.name}».`
         )
         setDetailId(occupant.id)
@@ -1026,9 +1026,6 @@ export default function App({
 
   async function saveActivity(draft: ActivityDraft) {
     if (user) {
-      if (backendCommunity && backendCommunity.status !== 'APPROVED') {
-        throw new Error('Tu comunidad aún no ha sido aprobada por el MSP. La actividad no se ha guardado.')
-      }
       if (!activeGardenId) {
         throw new Error('Selecciona un huerto sincronizado antes de registrar la actividad. No se guardó en IndexedDB.')
       }
@@ -1050,7 +1047,11 @@ export default function App({
         if (draft.photo) {
           formData.append('photo', draft.photo, `activity.${photoExtension(draft.photo)}`)
         }
-        await activityApi.create(activeGardenId, formData)
+        const created = await activityApi.create(activeGardenId, formData)
+        const earned = Number(created.reward?.pointsAwarded ?? 0)
+        setNotice(earned > 0
+          ? `✅ Actividad registrada. +${earned} Semillas de vida acreditadas.`
+          : '✅ Actividad guardada en Bitácora. El MSP puede auditarla posteriormente.')
         await reloadBackendActivities(activeGardenId)
 
         if (activeCommunityId) {
@@ -1061,7 +1062,7 @@ export default function App({
 
       setActivityForm(null)
       setServerActivityRevision(r => r + 1)
-      setNotice('✅ Actividad registrada — pendiente de aprobación por el MSP para acreditar tus Semillas de vida 🌱')
+
       if (screen === 'Inicio') {
         setFeedback({ id: draft.id, type: draft.type, plot: draft.details.destinationPlot ?? (draft.target.kind === 'garden' ? null : draft.target.plot) })
       }
@@ -1148,19 +1149,12 @@ export default function App({
   }
 
   const ready = user ? Boolean(communityRecord && activeGardenId) : Boolean(communityRecord && realGarden)
+  // Las subpantallas del jardín siguen perteneciendo a Mi Huerto.
   const activeNavigation: GardenDestination =
     screen === 'Comunidades'
       ? 'community'
-      : screen === 'Plantas medicinales'
-      ? 'plants'
-      : screen === 'Mis plantas'
-      ? 'my-plants'
-      : screen === 'Mi historia' || screen === 'Bitácora'
-      ? 'history'
-      : screen === 'Mi camino verde'
+      : screen === 'Mi camino verde' || screen === 'Mi historia'
       ? 'progress'
-      : screen === 'Mi terreno'
-      ? 'real-garden'
       : 'garden'
 
   const immersiveGarden = screen === 'Inicio' && Boolean(realGarden)
@@ -1219,50 +1213,6 @@ export default function App({
         pendingInvitationsCount={totalNotificationsCount}
         onOpenNotifications={() => setNotificationsOpen(true)}
         region={regionForProvince(realGarden?.location?.province ?? communityRecord?.province ?? '')}
-        progress={
-          user
-            ? (serverRewards
-                ? {
-                    points: serverRewards.points,
-                    level: serverRewards.level,
-                    progressPercent: serverRewards.progressPercent,
-                    nextLevel: serverRewards.nextLevel ?? undefined,
-                    badges: (['first-sowing', 'care', 'observer', 'harvest'] as const).map(id => {
-                      const meta: Record<string, { label: string; criterion: string }> = {
-                        'first-sowing': { label: 'La primera semilla', criterion: 'Una siembra registrada con fotografía' },
-                        care: { label: 'Raíces cuidadas', criterion: 'Riego documentado en tres fechas distintas' },
-                        observer: { label: 'Mirada atenta', criterion: 'Seguimiento con foto en tres fechas distintas' },
-                        harvest: { label: 'Cosecha con memoria', criterion: 'Una cosecha registrada con evidencia fotográfica' },
-                      }
-                      const badgeMap: Record<string, string> = {
-                        FIRST_SOWING: 'first-sowing',
-                        'first-sowing': 'first-sowing',
-                        CARE_ROOTS: 'care',
-                        care: 'care',
-                        OBSERVATION_JOURNAL: 'observer',
-                        observer: 'observer',
-                        HARVEST_MEMORY: 'harvest',
-                        harvest: 'harvest',
-                      }
-                      const earned = serverRewards.badges.some(b => badgeMap[(b as any).badgeId || (b as any).code] === id)
-                      return {
-                        id,
-                        label: meta[id].label,
-                        criterion: meta[id].criterion,
-                        earned,
-                      }
-                    }),
-                  }
-                : undefined)
-            : {
-                points: progress.points,
-                level: progress.level,
-                progressPercent: progress.progressPercent,
-                nextLevel: progress.nextLevel,
-                badges: progress.badges,
-              }
-        }
-        onRetryRewards={reloadServerRewards}
       />
 
       {screen === 'Inicio' || screen === 'Mi terreno' ? (
@@ -1354,7 +1304,7 @@ export default function App({
             </span>
           </header>
           <div className="page">
-            {screen !== 'Plantas medicinales' && (user ? (
+            {screen !== 'Plantas medicinales' && screen !== 'Mis plantas' && (user ? (
               <div
                 className="prototype-alert"
                 style={{ background: 'rgba(56, 161, 105, 0.15)', borderColor: '#38a169', color: '#2f855a' }}
@@ -1385,7 +1335,7 @@ export default function App({
               </button>
             </div>}
 
-            {(screen === 'Mis plantas' || screen === 'Bitácora') && (
+            {screen === 'Bitácora' && (
               <nav className="garden-internal-nav" aria-label="Secciones de Mi Huerto Vivo">
                 <button type="button" onClick={() => goto('Inicio')}>
                   Jardín
@@ -1402,7 +1352,6 @@ export default function App({
                 </button>
                 <button
                   type="button"
-                  aria-current={screen === 'Mis plantas' ? 'page' : undefined}
                   onClick={() => goto('Mis plantas')}
                 >
                   Mis plantas
@@ -1425,6 +1374,7 @@ export default function App({
                   authenticated={Boolean(user)}
                   official={serverRewards ? toAuthoritativeRewards(serverRewards) : null}
                   review={serverRewards?.review ?? null}
+                  onRetryRewards={reloadServerRewards}
                   currentUser={user?.name || communityRecord?.responsible}
                 />
               </>

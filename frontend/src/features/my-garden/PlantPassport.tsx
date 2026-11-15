@@ -8,7 +8,6 @@ import BotanicalSignage from './BotanicalSignage'
 import {
   careApi,
   catalogApi,
-  harvestApi,
   activityApi,
   resolveMediaUrl,
   type CareLog,
@@ -17,6 +16,7 @@ import {
   type CalendarTips,
   type UserSession,
 } from '../../services/api'
+import { localDate } from './plant-record'
 import './garden-journal.css'
 import './plant-passport-clean.css'
 
@@ -154,16 +154,6 @@ export default function PlantPassport({
     if (!plant) return
     setError('')
     setMessage('')
-    if (isSowingPending) {
-      setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
-      return
-    }
-    const targetActType: GardenActivity['type'] =
-      actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
-    if (hasPendingActivityType(targetActType)) {
-      setError('⏳ Esta actividad ya fue realizada y está pendiente de revisión por el MSP. No se puede repetir hasta que sea validada o rechazada.')
-      return
-    }
     const label =
       actionType === 'WATERING' ? 'Riego 💧' : actionType === 'FERTILIZER' ? 'Abono 🧪' : 'Poda ✂️'
 
@@ -190,14 +180,12 @@ export default function PlantPassport({
     }
 
     try {
-      if (user && activeGardenId && !plant.id.includes('-')) {
+      if (!activeGardenId) throw new Error('No se identificó el huerto activo. Regresa a Mi Huerto antes de guardar el cuidado.')
+      {
         const type = actionType === 'WATERING' ? 'watering' : actionType === 'FERTILIZER' ? 'fertilizing' : 'weeding'
-        if (actionType === 'PRUNING') {
-          await careApi.add(plant.id, actionType, actionNotes || `Cuidado rápido: ${label}`)
-        }
         const formData = new FormData()
         formData.append('type', type)
-        formData.append('performedDate', new Date().toISOString().split('T')[0])
+        formData.append('performedDate', localDate())
         formData.append('targetKind', 'plant')
         formData.append('plantId', plant.id)
         formData.append('plotIndex', String(plant.plot ?? 0))
@@ -205,11 +193,9 @@ export default function PlantPassport({
         formData.append('details', JSON.stringify({ method: 'Acción rápida desde Pasaporte Vivo' }))
 
         await activityApi.create(activeGardenId, formData)
-      } else {
-        await careApi.add(plant.id, actionType, actionNotes || `Cuidado aplicado: ${label}`)
       }
       const actionName = actionType === 'WATERING' ? 'Riego' : actionType === 'FERTILIZER' ? 'Abono' : 'Limpieza'
-      setMessage(`✅ ${actionName} registrado — pendiente de aprobación por el MSP para acreditar tus Semillas de vida 🌱`)
+      setMessage(`✅ ${actionName} guardado en Bitácora. Las recompensas elegibles se acreditan de inmediato.`)
       setTimeout(() => setMessage(''), 5000)
       setActionNotes('')
       await loadPlantData()
@@ -225,32 +211,20 @@ export default function PlantPassport({
     if (!plant) return
     setError('')
     setMessage('')
-    if (isSowingPending) {
-      setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP.')
-      return
-    }
-    if (isHarvestPending) {
-      setError('⏳ Ya existe una cosecha pendiente de revisión por el MSP para esta planta.')
-      return
-    }
     try {
       if (user && !plant.id.includes('-')) {
-        if (activeGardenId) {
-          const formData = new FormData()
-          formData.append('type', 'harvest')
-          formData.append('performedDate', new Date().toISOString().split('T')[0])
-          formData.append('targetKind', 'plant')
-          formData.append('plantId', plant.id)
-          formData.append('plotIndex', String(plant.plot ?? 0))
-          formData.append('notes', actionNotes || `Cosecha: ${harvestQuantity}`)
-          formData.append('details', JSON.stringify({ method: harvestQuantity, harvestMode: 'partial' }))
-          await activityApi.create(activeGardenId, formData)
-          if (onActivityCreated) onActivityCreated()
-          setMessage('🌾 ¡Cosecha registrada y enviada a revisión MSP! La planta permanece sembrada.')
-        } else {
-          await harvestApi.harvest(plant.id, harvestQuantity, actionNotes || 'Cosecha realizada desde Pasaporte Vivo')
-          setMessage('🌾 ¡Cosecha recolectada e ingresada al almacén! La planta permanece sembrada y ha iniciado un nuevo ciclo de rebrote.')
-        }
+        if (!activeGardenId) throw new Error('No se identificó el huerto activo para registrar esta cosecha.')
+        const formData = new FormData()
+        formData.append('type', 'harvest')
+        formData.append('performedDate', localDate())
+        formData.append('targetKind', 'plant')
+        formData.append('plantId', plant.id)
+        formData.append('plotIndex', String(plant.plot ?? 0))
+        formData.append('notes', actionNotes || `Cosecha: ${harvestQuantity}`)
+        formData.append('details', JSON.stringify({ method: harvestQuantity, harvestMode: 'partial' }))
+        await activityApi.create(activeGardenId, formData)
+        if (onActivityCreated) onActivityCreated()
+        setMessage('🌾 ¡Cosecha registrada en Bitácora! La planta permanece sembrada y el MSP puede auditarla posteriormente.')
       } else {
         setMessage(`🌾 ¡Cosecha de ${harvestQuantity} registrada! La planta sigue en su parcela iniciando rebrote.`)
       }
@@ -271,7 +245,7 @@ export default function PlantPassport({
   const recentlyPruned = logs.some(l => l.actionType === 'PRUNING' && (Date.now() - new Date(l.performedAt).getTime()) < 7 * 24 * 60 * 60 * 1000) || growth?.healthStatus === 'ESTRES_PODA'
   const isResponsible = !user || currentCommunityRole === 'RESPONSABLE'
 
-  // Planta con siembra pendiente de aprobación MSP — bloquear todos los cuidados
+  // Estado informativo: el MSP no bloquea cuidados de una planta real.
   const isSowingPending = plant?.reviewStatus === 'PENDING' || plant?.reviewStatus === 'NEEDS_CHANGES'
 
   const hasPendingActivityType = (actType: GardenActivity['type']) =>
@@ -290,6 +264,7 @@ export default function PlantPassport({
   const isFertilizingPending = hasPendingActivityType('fertilizing')
   const isWeedingPending = hasPendingActivityType('weeding')
   const isHarvestPending = hasPendingActivityType('harvest')
+  const pendingCareCount = [isWateringPending, isFertilizingPending, isWeedingPending, isHarvestPending].filter(Boolean).length
 
   const visualEvidence = (plant?.evidences ?? [])
     .filter(item => item.visualProfile)
@@ -423,13 +398,14 @@ export default function PlantPassport({
               }}
             >
               <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⚠️ Siembra pendiente de aprobación por el MSP
+                ℹ️ Siembra anterior todavía sin revisión institucional
               </div>
               <div style={{ marginTop: '4px', fontSize: '0.85rem', fontWeight: 400, lineHeight: 1.4 }}>
-                Esta siembra ha sido registrada y está en proceso de verificación por el Ministerio de Salud Pública. Todos los miembros de la comunidad pueden observar el cultivo, pero ningún cuidado, riego o cosecha podrá realizarse sobre esta planta hasta que sea formalmente aprobada por el MSP.
+                La planta está registrada y se puede cuidar normalmente. Su evidencia también está disponible para auditoría posterior del MSP.
               </div>
             </div>
           )}
+          {pendingCareCount > 0 && <p role="status" style={{ fontSize: '0.8rem', color: '#92400e' }}>{pendingCareCount} tipo(s) de actividad en revisión MSP. Puedes seguir documentando tareas reales.</p>}
 
           {message && (
             <div className="pending-approval-notice" style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem' }}>
@@ -461,14 +437,14 @@ export default function PlantPassport({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div>
                 <strong style={{ color: isRegrowing ? '#744210' : '#22543d', fontSize: '1rem' }}>
-                  Estimación agronómica: {isSowingPending ? 'Siembra pendiente de aprobación MSP ⏳' : (growth?.stage || 'Calculando...')}
+                  Estimación agronómica: {growth?.stage || 'Calculando...'}
                 </strong>
                 <div style={{ fontSize: '0.82rem', color: '#4a5568', marginTop: '2px' }}>
                   Estado documentado: <strong>{PLANT_STATES[plant.state ?? 'not-documented'] ?? plant.state}</strong>
                 </div>
               </div>
               <span style={{ fontWeight: 'bold', color: isRegrowing ? '#d69e2e' : '#2f855a', fontSize: '1.1rem' }}>
-                {isSowingPending ? '0%' : (growth ? `${growth.percentage}%` : '0%')}
+                {growth ? `${growth.percentage}%` : '0%'}
               </span>
             </div>
 
@@ -476,7 +452,7 @@ export default function PlantPassport({
             <div style={{ width: '100%', height: '14px', background: '#e2e8f0', borderRadius: '7px', overflow: 'hidden', marginBottom: '10px' }}>
               <div
                 style={{
-                  width: `${isSowingPending ? 0 : (growth ? growth.percentage : 0)}%`,
+                  width: `${growth ? growth.percentage : 0}%`,
                   height: '100%',
                   background: isRegrowing
                     ? 'linear-gradient(90deg, #f6e05e 0%, #d69e2e 100%)'
@@ -531,97 +507,73 @@ export default function PlantPassport({
               <button
                 type="button"
                 onClick={() => {
-                  if (isSowingPending) {
-                    setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
-                    return
-                  }
-                  if (isWateringPending) {
-                    setError('⏳ El riego de esta planta ya fue realizado y está pendiente de revisión por el MSP.')
-                    return
-                  }
                   if (!growth?.needsWatering) {
                     setError('⚠️ Esta planta ya tiene suficiente humedad. Regar en exceso puede pudrir sus raíces.')
                     return
                   }
                   void handleApplyCare('WATERING')
                 }}
-                disabled={loading || isSowingPending || isWateringPending}
-                title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isWateringPending ? 'Riego ya realizado y pendiente de revisión MSP' : (!growth?.needsWatering ? 'Suelo húmedo — no requiere riego ahora' : 'Registrar riego')}
+                disabled={loading}
+                title={!growth?.needsWatering ? 'Suelo húmedo — no requiere riego ahora' : 'Registrar riego'}
                 style={{
                   flex: 1, padding: '10px', borderRadius: '8px',
-                  border: (isSowingPending || isWateringPending) ? '1px solid #cbd5e0' : (growth?.needsWatering ? '1px solid #bee3f8' : '1px solid #c6f6d5'),
-                  background: (isSowingPending || isWateringPending) ? '#edf2f7' : (growth?.needsWatering ? '#ebf8ff' : '#f0fff4'),
-                  color: (isSowingPending || isWateringPending) ? '#a0aec0' : (growth?.needsWatering ? '#2b6cb0' : '#276749'),
-                  fontWeight: 600, cursor: (isSowingPending || isWateringPending) ? 'not-allowed' : 'pointer',
+                  border: (growth?.needsWatering ? '1px solid #bee3f8' : '1px solid #c6f6d5'),
+                  background: (growth?.needsWatering ? '#ebf8ff' : '#f0fff4'),
+                  color: (growth?.needsWatering ? '#2b6cb0' : '#276749'),
+                  fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  opacity: (loading || isSowingPending || isWateringPending) ? 0.6 : 1,
+                  opacity: loading ? 0.6 : 1,
                 }}
               >
-                {isSowingPending ? '⏳ Riego bloqueado' : isWateringPending ? '⏳ Riego en revisión MSP' : (growth?.needsWatering ? '💧 Regué la planta' : '✓ Suelo húmedo')}
+                {growth?.needsWatering ? '💧 Regué la planta' : '✓ Suelo húmedo'}
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  if (isSowingPending) {
-                    setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
-                    return
-                  }
-                  if (isFertilizingPending) {
-                    setError('⏳ El abonado de esta planta ya fue realizado y está pendiente de revisión por el MSP.')
-                    return
-                  }
                   if (!growth?.needsFertilizer) {
                     setError('⚠️ El suelo ya está nutrido. El exceso de abono quema las raíces por toxicidad de sales.')
                     return
                   }
                   void handleApplyCare('FERTILIZER')
                 }}
-                disabled={loading || isSowingPending || isFertilizingPending}
-                title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isFertilizingPending ? 'Abonado ya realizado y pendiente de revisión MSP' : (!growth?.needsFertilizer ? 'Suelo nutrido — no requiere abono ahora' : 'Registrar abono')}
+                disabled={loading}
+                title={!growth?.needsFertilizer ? 'Suelo nutrido — no requiere abono ahora' : 'Registrar abono'}
                 style={{
                   flex: 1, padding: '10px', borderRadius: '8px',
-                  border: (isSowingPending || isFertilizingPending) ? '1px solid #cbd5e0' : (growth?.needsFertilizer ? '1px solid #feebc8' : '1px solid #c6f6d5'),
-                  background: (isSowingPending || isFertilizingPending) ? '#edf2f7' : (growth?.needsFertilizer ? '#fffaf0' : '#f0fff4'),
-                  color: (isSowingPending || isFertilizingPending) ? '#a0aec0' : (growth?.needsFertilizer ? '#c05621' : '#276749'),
-                  fontWeight: 600, cursor: (isSowingPending || isFertilizingPending) ? 'not-allowed' : 'pointer',
+                  border: (growth?.needsFertilizer ? '1px solid #feebc8' : '1px solid #c6f6d5'),
+                  background: (growth?.needsFertilizer ? '#fffaf0' : '#f0fff4'),
+                  color: (growth?.needsFertilizer ? '#c05621' : '#276749'),
+                  fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  opacity: (loading || isSowingPending || isFertilizingPending) ? 0.6 : 1,
+                  opacity: loading ? 0.6 : 1,
                 }}
               >
-                {isSowingPending ? '⏳ Abono bloqueado' : isFertilizingPending ? '⏳ Abono en revisión MSP' : (growth?.needsFertilizer ? '🧪 Apliqué abono' : '✓ Suelo nutrido')}
+                {growth?.needsFertilizer ? '🧪 Apliqué abono' : '✓ Suelo nutrido'}
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  if (isSowingPending) {
-                    setError('⚠️ La siembra de esta planta está pendiente de aprobación por el MSP. No se pueden registrar cuidados hasta su validación oficial.')
-                    return
-                  }
-                  if (isWeedingPending) {
-                    setError('⏳ La limpieza / poda de esta planta ya fue realizada y está pendiente de revisión por el MSP.')
-                    return
-                  }
                   if (recentlyPruned) {
                     setError('⚠️ La planta ya se encuentra podada y con su mantenimiento al día. Podar con demasiada frecuencia causa estrés a la planta.')
                     return
                   }
                   void handleApplyCare('PRUNING')
                 }}
-                disabled={loading || isSowingPending || isWeedingPending}
-                title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isWeedingPending ? 'Poda / limpieza ya realizada y pendiente de revisión MSP' : (recentlyPruned ? 'Poda y mantenimiento al día' : 'Registrar poda o mantenimiento')}
+                disabled={loading}
+                title={recentlyPruned ? 'Poda y mantenimiento al día' : 'Registrar poda o mantenimiento'}
                 style={{
                   flex: 1, padding: '10px', borderRadius: '8px',
-                  border: (isSowingPending || isWeedingPending) ? '1px solid #cbd5e0' : (recentlyPruned ? '1px solid #c6f6d5' : '1px solid #e2e8f0'),
-                  background: (isSowingPending || isWeedingPending) ? '#edf2f7' : (recentlyPruned ? '#f0fff4' : '#edf2f7'),
-                  color: (isSowingPending || isWeedingPending) ? '#a0aec0' : (recentlyPruned ? '#276749' : '#4a5568'),
-                  fontWeight: 600, cursor: (isSowingPending || isWeedingPending) ? 'not-allowed' : 'pointer',
+                  border: (recentlyPruned ? '1px solid #c6f6d5' : '1px solid #e2e8f0'),
+                  background: (recentlyPruned ? '#f0fff4' : '#edf2f7'),
+                  color: (recentlyPruned ? '#276749' : '#4a5568'),
+                  fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  opacity: (loading || isSowingPending || isWeedingPending) ? 0.6 : 1,
+                  opacity: loading ? 0.6 : 1,
                 }}
               >
-                {isSowingPending ? '⏳ Poda bloqueada' : isWeedingPending ? '⏳ Poda en revisión MSP' : (recentlyPruned ? '✓ Poda al día' : '✂️ Poda / Mantenimiento')}
+                {recentlyPruned ? '✓ Poda al día' : '✂️ Poda / Mantenimiento'}
               </button>
             </div>
             <input
@@ -664,16 +616,16 @@ export default function PlantPassport({
                 <button
                   type="button"
                   onClick={() => setShowHarvestDialog(true)}
-                  disabled={!canHarvest || loading || isSowingPending || isHarvestPending}
-                  title={isSowingPending ? 'Siembra pendiente de aprobación por el MSP' : isHarvestPending ? 'Ya existe una cosecha pendiente de revisión MSP' : (!canHarvest ? (isRegrowing ? `La planta aún está en rebrote. Espera ${growth?.daysUntilHarvest ?? 0} días más.` : 'Espera a que la planta madure (≥75%)') : 'Cosechar')}
+                  disabled={!canHarvest || loading}
+                  title={!canHarvest ? (isRegrowing ? `La planta aún está en rebrote. Espera ${growth?.daysUntilHarvest ?? 0} días más.` : 'Espera a que la planta madure (≥75%)') : 'Cosechar'}
                   style={{
-                    padding: '8px 16px', background: (canHarvest && !isSowingPending && !isHarvestPending) ? '#38a169' : '#a0aec0', color: '#fff', border: 'none',
+                    padding: '8px 16px', background: canHarvest ? '#38a169' : '#a0aec0', color: '#fff', border: 'none',
                     borderRadius: '8px', fontWeight: 600,
-                    cursor: (canHarvest && !isSowingPending && !isHarvestPending) ? 'pointer' : 'not-allowed',
-                    opacity: (canHarvest && !isSowingPending && !isHarvestPending) ? 1 : 0.65,
+                    cursor: canHarvest ? 'pointer' : 'not-allowed',
+                    opacity: canHarvest ? 1 : 0.65,
                   }}
                 >
-                  {isHarvestPending ? '⏳ Cosecha en revisión MSP' : '🌾 Cosechar planta'}
+                  {'🌾 Cosechar planta'}
                 </button>
               </div>
             ) : (

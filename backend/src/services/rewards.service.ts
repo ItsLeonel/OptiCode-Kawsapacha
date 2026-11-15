@@ -3,6 +3,7 @@
 // Motor de recompensas centralizado "Semillas de vida" con Ledger inmutable
 
 import { prisma } from '../config/prisma'
+import { Prisma } from '@prisma/client'
 
 export type ActivityType =
   | 'preparation'
@@ -116,14 +117,14 @@ export async function getUserRewardsSummary(userId: string) {
     progressPercent = Math.min(100, Math.max(0, Math.round((totalPoints / 100) * 100)))
   }
 
-  const confirmedPoints = ledgerEntries
-    .filter(e => e.pointsDelta > 0)
-    .reduce((sum, e) => sum + e.pointsDelta, 0)
+  // Los puntos del ledger son definitivos al registrarse.
+  // El MSP solo puede descontarlos mediante movimientos negativos auditados.
+  const confirmedPoints = totalPoints
+  const provisionalPoints = 0 // Campo heredado del contrato API: ya no se generan puntos provisionales.
   const revertedPoints = ledgerEntries
     .filter(e => e.pointsDelta < 0)
     .reduce((sum, e) => sum + Math.abs(e.pointsDelta), 0)
 
-  let provisionalPoints = 0
   const reviewEntries = userActivities.map(act => {
     const status = (['PENDING', 'NEEDS_CHANGES', 'APPROVED', 'REJECTED'].includes(act.reviewStatus)
       ? act.reviewStatus
@@ -136,23 +137,17 @@ export async function getUserRewardsSummary(userId: string) {
       .filter(e => e.sourceId === act.id && e.pointsDelta < 0)
       .reduce((s, e) => s + Math.abs(e.pointsDelta), 0)
 
-    const baseExpected = BASE_POINTS[act.type as ActivityType] ?? 0
     let effect: 'provisional' | 'confirmed' | 'reverted' | 'none' = 'none'
     let entryPoints: number | null = 0
 
-    if (actReverted > 0) {
+    const net = Math.max(0, actPositive - actReverted)
+    if (actReverted > 0 && net === 0) {
       effect = 'reverted'
       entryPoints = actReverted
-    } else if (status === 'APPROVED') {
-      effect = actPositive > 0 ? 'confirmed' : 'none'
-      entryPoints = actPositive
-    } else if (status === 'PENDING' || status === 'NEEDS_CHANGES') {
-      effect = baseExpected > 0 ? 'provisional' : 'none'
-      entryPoints = baseExpected
-      provisionalPoints += baseExpected
     } else {
-      effect = 'none'
-      entryPoints = 0
+      // Incluso las actividades heredadas sin auditoría conservan los puntos ya ganados.
+      effect = net > 0 ? 'confirmed' : 'none'
+      entryPoints = net
     }
 
     return {
@@ -202,7 +197,7 @@ export async function getUserRewardsSummary(userId: string) {
       updatedAt: new Date().toISOString(),
       totals: {
         provisional: provisionalPoints,
-        confirmed: Math.max(0, confirmedPoints - revertedPoints),
+        confirmed: confirmedPoints,
         reverted: revertedPoints,
       },
       entries: reviewEntries,
@@ -237,6 +232,21 @@ export async function evaluateActivityReward(activity: {
     }
   }
 
+  // La aprobación MSP de una actividad ya registrada confirma puntos existentes;
+  // no debe intentar insertar el mismo asiento y provocar errores de unicidad.
+  const existingAward = await prisma.rewardLedger.findUnique({
+    where: {
+      userId_eventType_sourceId: { userId, eventType: `activity.${type}`, sourceId: activityId },
+    },
+  })
+  if (existingAward) {
+    const summary = await getUserRewardsSummary(userId)
+    return {
+      awarded: false, pointsAwarded: 0, totalPoints: summary.points,
+      level: summary.level, reason: 'Recompensa ya registrada para esta actividad.',
+    }
+  }
+
   // Objetivo identificable: huerto general, parcela específica o planta específica
   const targetKey = targetKind === 'plant' && plantId
     ? `plant:${plantId}`
@@ -268,6 +278,11 @@ export async function evaluateActivityReward(activity: {
   })
 
   // Filtrar si alguna de esas actividades ya se premió para el mismo target
+  const reversed = await prisma.rewardLedger.findMany({
+    where: { userId, reversalOfLedgerId: { not: null } },
+    select: { reversalOfLedgerId: true },
+  })
+  const reversedIds = new Set(reversed.map(item => item.reversalOfLedgerId))
   const alreadyRewarded = existingActivitiesSameDay.some(act => {
     const actTarget = act.targetKind === 'plant' && act.plantId
       ? `plant:${act.plantId}`
@@ -276,7 +291,7 @@ export async function evaluateActivityReward(activity: {
       : 'garden'
     if (actTarget !== targetKey) return false
     // Verificar si tiene ledger de puntos positivo
-    return act.actorUser.rewardLedgers.some(ledger => ledger.sourceId === act.id)
+    return act.actorUser.rewardLedgers.some(ledger => ledger.sourceId === act.id && !reversedIds.has(ledger.id))
   })
 
   if (alreadyRewarded) {
@@ -303,7 +318,8 @@ export async function evaluateActivityReward(activity: {
       },
     })
   } catch (err: unknown) {
-    // Si ya existía el registro único (reintento idempotente)
+    // Un error de base de datos no se interpreta falsamente como duplicidad.
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err
     const summary = await getUserRewardsSummary(userId)
     return {
       awarded: false,
@@ -327,8 +343,9 @@ export async function evaluateActivityReward(activity: {
 /**
  * Revierte la recompensa asociada a una actividad cuando esta es anulada.
  */
-export async function revertActivityReward(activityId: string, voidReason: string): Promise<number> {
-  const originalLedger = await prisma.rewardLedger.findFirst({
+export async function revertActivityReward(activityId: string, voidReason: string, tx?: Prisma.TransactionClient): Promise<number> {
+  const db = tx ?? prisma
+  const originalLedger = await db.rewardLedger.findFirst({
     where: {
       sourceId: activityId,
       pointsDelta: { gt: 0 },
@@ -340,7 +357,7 @@ export async function revertActivityReward(activityId: string, voidReason: strin
   }
 
   // Verificar si ya fue revertido
-  const existingReversal = await prisma.rewardLedger.findFirst({
+  const existingReversal = await db.rewardLedger.findFirst({
     where: {
       reversalOfLedgerId: originalLedger.id,
     },
@@ -352,7 +369,7 @@ export async function revertActivityReward(activityId: string, voidReason: strin
 
   const pointsToDeduct = -Math.abs(originalLedger.pointsDelta)
 
-  await prisma.rewardLedger.create({
+  await db.rewardLedger.create({
     data: {
       userId: originalLedger.userId,
       eventType: `${originalLedger.eventType}.reversal`,

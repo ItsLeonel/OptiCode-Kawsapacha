@@ -2,7 +2,7 @@
 import { prisma } from '../config/prisma'
 import { logAudit } from './audit.service'
 import { createNotification } from './notification.service'
-import { evaluateActivityReward, getUserRewardsSummary } from './rewards.service'
+import { evaluateActivityReward, getUserRewardsSummary, revertActivityReward } from './rewards.service'
 import { syncUserMissionsAndBadges } from './missions.service'
 import { calculateGrowth } from './care.service'
 
@@ -242,12 +242,11 @@ export async function reviewActivity(
     throw Object.assign(new Error('No se puede revisar una actividad anulada.'), { code: 'ACTIVITY_VOIDED' })
   }
 
-  // Una decisión final no puede convertirse en otra sin una operación explícita
-  // de reversión auditada. Impide conservar puntos después de un rechazo.
-  if ((activity.reviewStatus === 'APPROVED' && action !== 'APPROVED')
-    || (activity.reviewStatus === 'REJECTED' && action !== 'REJECTED')) {
+  // Una actividad es válida desde el registro. Su auditoría humana se distingue
+  // por reviewedById/reviewedAt. Una actividad rechazada no se reabre sin apelación.
+  if (activity.reviewStatus === 'REJECTED' && action !== 'REJECTED') {
     throw Object.assign(
-      new Error('Esta actividad ya tiene una resolución definitiva. No se puede cambiar sin un proceso de reversión auditado.'),
+      new Error('Transición no permitida sin proceso de corrección o apelación.'),
       { code: 'REVIEW_FINALIZED' }
     )
   }
@@ -260,7 +259,7 @@ export async function reviewActivity(
   }
 
   // Reintentos idempotentes: no generar otra notificación ni auditoría por la misma resolución.
-  if (activity.reviewStatus === action && action === 'APPROVED') {
+  if (activity.reviewStatus === action && action === 'APPROVED' && activity.reviewedAt) {
     const current = await getUserRewardsSummary(activity.actorUserId)
     return {
       activity,
@@ -273,21 +272,16 @@ export async function reviewActivity(
       },
     }
   }
-  if (activity.reviewStatus === action && action === 'REJECTED') {
+  if (activity.reviewStatus === action && (action === 'REJECTED' || action === 'NEEDS_CHANGES')) {
     return { activity, reward: null }
   }
 
   if (action === 'APPROVED') {
-    if (activity.garden?.community && activity.garden.community.status !== 'APPROVED') {
-      throw Object.assign(
-        new Error(`No se puede aprobar una actividad de la comunidad «${activity.garden.community.name}» porque su estado actual es "${activity.garden.community.status}". Primero debe aprobar la comunidad antes de evaluar sus actividades.`),
-        { code: 'COMMUNITY_NOT_APPROVED' }
-      )
-    }
+    // La verificación de evidencias no depende de que la comunidad PENDING esté aprobada.
 
     // 1. Actualizar actividad a APPROVED
-    const updated = await prisma.gardenActivity.update({
-      where: { id: activityId },
+    const changed = await prisma.gardenActivity.updateMany({
+      where: { id: activityId, reviewStatus: activity.reviewStatus, reviewedAt: activity.reviewedAt },
       data: {
         reviewStatus: 'APPROVED',
         reviewedById: reviewerId,
@@ -295,6 +289,10 @@ export async function reviewActivity(
         reviewedAt: new Date(),
       },
     })
+    if (changed.count !== 1) {
+      throw Object.assign(new Error('La actividad ya fue revisada por otra persona.'), { code: 'REVIEW_FINALIZED' })
+    }
+    const updated = await prisma.gardenActivity.findUniqueOrThrow({ where: { id: activityId } })
 
     // 1b. Si es actividad de siembra y tiene planta vinculada, aprobar también la planta
     if (activity.type === 'sowing' && activity.plantId) {
@@ -304,7 +302,7 @@ export async function reviewActivity(
       })
     }
 
-    // 2. Acreditar formalmente los puntos al usuario (Flujo auditado)
+    // 2. No crear nuevos puntos si ya fueron acreditados al registrar.
     const rewardResult = await evaluateActivityReward({
       id: activity.id,
       actorUserId: activity.actorUserId,
@@ -315,7 +313,7 @@ export async function reviewActivity(
       plotIndex: activity.plotIndex,
     })
 
-    // 3. Sincronizar misiones e insignias del usuario tras ganar los puntos oficiales
+    // 3. Sincronizar misiones e insignias verificadas.
     await syncUserMissionsAndBadges(activity.actorUserId)
 
     // 3b. Si la actividad está ligada a una planta, recalcular su crecimiento y ciclo de vida
@@ -336,6 +334,7 @@ export async function reviewActivity(
       details: {
         pointsAwarded: rewardResult.pointsAwarded,
         totalPoints: rewardResult.totalPoints,
+        previousStatus: activity.reviewStatus,
         level: rewardResult.level,
       },
     })
@@ -345,8 +344,8 @@ export async function reviewActivity(
     await createNotification({
       userId: activity.actorUserId,
       type: 'ACTIVITY_APPROVED',
-      title: '🌟 ¡Evidencia de actividad aprobada por el MSP!',
-      message: `Tu actividad de «${actNameEs}» del ${activity.performedDate} fue aprobada. +${rewardResult.pointsAwarded} Semillas de vida acreditadas oficialmente a tu cuenta.`,
+      title: '🌟 Actividad comprobada por el MSP',
+      message: `Tu actividad de «${actNameEs}» del ${activity.performedDate} fue comprobada por el MSP. No se duplicaron sus puntos.`,
       resourceId: activityId,
     })
 
@@ -364,8 +363,7 @@ export async function reviewActivity(
       },
     })
 
-    // Si es siembra, mantener la planta en PENDING para que el usuario corrija y reenvíe
-    // (no cambiamos el reviewStatus de la planta, se queda PENDING hasta que el MSP la apruebe)
+    // Solicitar corrección no elimina la planta ni revierte puntos: solo el rechazo invalida.
 
     await logAudit({
       actorId: reviewerId,
@@ -380,50 +378,55 @@ export async function reviewActivity(
       userId: activity.actorUserId,
       type: 'ACTIVITY_NEEDS_CHANGES',
       title: '📷 El MSP solicita mejorar la evidencia fotográfica',
-      message: `En tu actividad de «${actNameEs}»: ${reason}. Por favor sube una fotografía más clara para validar tus puntos.`,
+      message: `En tu actividad de «${actNameEs}»: ${reason}. Corrige o complementa la evidencia. Los puntos se mantienen salvo invalidación explícita.`,
       resourceId: activityId,
     })
 
     return { activity: updated, reward: null }
   }
 
-  // action === 'REJECTED'
-  const updated = await prisma.gardenActivity.update({
-    where: { id: activityId },
-    data: {
-      reviewStatus: 'REJECTED',
-      reviewedById: reviewerId,
-      reviewReason: reason || null,
-      reviewedAt: new Date(),
-    },
-  })
-
-  // Si es siembra rechazada, marcar la planta también como REJECTED (bloqueada permanentemente)
-  if (activity.type === 'sowing' && activity.plantId) {
-    await prisma.cultivatedPlant.update({
-      where: { id: activity.plantId },
-      data: { reviewStatus: 'REJECTED' },
+  // action === 'REJECTED': estado y reversión deben confirmarse juntos.
+  const { updated, pointsReverted } = await prisma.$transaction(async tx => {
+    const changed = await tx.gardenActivity.updateMany({
+      where: { id: activityId, reviewStatus: activity.reviewStatus, voidedAt: null },
+      data: {
+        reviewStatus: 'REJECTED',
+        reviewedById: reviewerId,
+        reviewReason: reason || null,
+        reviewedAt: new Date(),
+      },
     })
-  }
+    if (changed.count !== 1) {
+      throw Object.assign(new Error('La actividad fue revisada por otra persona. Actualiza la bandeja.'), { code: 'REVIEW_FINALIZED' })
+    }
+    if (activity.type === 'sowing' && activity.plantId) {
+      await tx.cultivatedPlant.update({
+        where: { id: activity.plantId },
+        data: { reviewStatus: 'REJECTED' },
+      })
+    }
+    const pointsReverted = await revertActivityReward(activityId, `Invalidación MSP: ${reason}`, tx)
+    const updated = await tx.gardenActivity.findUniqueOrThrow({ where: { id: activityId } })
+    return { updated, pointsReverted }
+  })
+  await syncUserMissionsAndBadges(activity.actorUserId)
 
   await logAudit({
     actorId: reviewerId,
     action: 'ACTIVITY_REJECTED',
     targetResource: 'activity',
     targetId: activityId,
-    details: { reason },
+    details: { reason, previousStatus: activity.reviewStatus, pointsReverted },
   })
-
   const actNameEs = ACTIVITY_NAMES_ES[activity.type] || activity.type
   await createNotification({
     userId: activity.actorUserId,
     type: 'ACTIVITY_REJECTED',
-    title: '⚠️ Actividad no aprobada por el MSP',
-    message: `Tu actividad de «${actNameEs}» no fue aprobada por el siguiente motivo: ${reason}.`,
+    title: '⚠️ Actividad invalidada por el MSP',
+    message: `Tu actividad de «${actNameEs}» fue invalidada: ${reason}. Ajuste de puntos: ${pointsReverted} Semillas.`,
     resourceId: activityId,
   })
-
-  return { activity: updated, reward: null }
+  return { activity: updated, reward: null, pointsReverted }
 }
 
 // ─── EVENTOS INSTITUCIONALES DEL MSP ──────────────────────────────────────────
@@ -510,3 +513,4 @@ export async function createEducationalResource(input: {
 export async function deleteEducationalResource(id: string) {
   return prisma.mspEducationalResource.delete({ where: { id } })
 }
+

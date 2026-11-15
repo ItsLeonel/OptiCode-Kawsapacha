@@ -151,7 +151,8 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
   const [allCommunities, setAllCommunities] = useState<any[]>([])
   const [selectedCommunityFilter, setSelectedCommunityFilter] = useState('')
   const [pendingComms, setPendingComms] = useState<any[]>([])
-  const [pendingActs, setPendingActs] = useState<any[]>([])
+  const [activitiesForReview, setActivitiesForReview] = useState<any[]>([])
+  const [reviewStatusFilter, setReviewStatusFilter] = useState('ALL')
   const [modLoading, setModLoading] = useState(false)
   const [modMsg, setModMsg] = useState('')
   const [modError, setModError] = useState('')
@@ -168,7 +169,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       const comms = commRes.communities || []
       setAllCommunities(comms)
       setPendingComms(comms.filter((c: any) => c.status === 'PENDING' || c.status === 'NEEDS_CHANGES'))
-      setPendingActs((actRes.activities || []).filter((a: any) => a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES'))
+      setActivitiesForReview(actRes.activities || [])
     }).catch(err => setModError(err instanceof Error ? err.message : 'No se pudo cargar la bandeja de moderación.'))
       .finally(() => setModLoading(false))
   }, [])
@@ -309,8 +310,8 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
     setModError('')
     try {
       const res = await adminApi.reviewActivity(id, { action, reason })
-      const pts = res.reward?.pointsAwarded
-      setModMsg(`✓ Actividad ${action === 'APPROVED' ? `aprobada${pts ? ` (+${pts} Semillas)` : ''}` : action === 'NEEDS_CHANGES' ? 'requiere correcciones' : 'rechazada'} correctamente.`)
+      const reverted = res.pointsReverted ?? 0
+      setModMsg(`✓ Actividad ${action === 'APPROVED' ? 'verificada (sin duplicar puntos)' : action === 'NEEDS_CHANGES' ? 'requiere correcciones' : `invalidada (${Math.abs(reverted)} Semillas revertidas)`} correctamente.`)
       loadModeration()
       onRefresh?.()
     } catch (err: unknown) {
@@ -682,9 +683,11 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
       const filteredComms = selectedCommunityFilter
         ? pendingComms.filter((c: any) => c.id === selectedCommunityFilter)
         : pendingComms
-      const filteredActs = selectedCommunityFilter
-        ? pendingActs.filter((a: any) => a.garden?.communityId === selectedCommunityFilter)
-        : pendingActs
+      const filteredActs = activitiesForReview.filter((a: any) =>
+        (!selectedCommunityFilter || a.garden?.communityId === selectedCommunityFilter) &&
+        (reviewStatusFilter === 'ALL' || (reviewStatusFilter === 'UNAUDITED' ? (a.reviewStatus === 'APPROVED' && !a.reviewedAt) : a.reviewStatus === reviewStatusFilter))
+      )
+      const pendingCount = activitiesForReview.filter((a: any) => (a.reviewStatus === 'APPROVED' && !a.reviewedAt) || a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES').length
 
       return (
         <div className="kap-moderation-grid">
@@ -709,7 +712,7 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
               <AdminIcon name="users" size={18} />
               <label htmlFor="msp-comm-filter" style={{ fontSize: '0.88rem', fontWeight: 600, color: '#2d3748' }}>
-                Filtrar solicitudes por comunidad:
+                Filtrar historial por comunidad:
               </label>
               <select
                 id="msp-comm-filter"
@@ -725,9 +728,9 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
                   minWidth: '240px'
                 }}
               >
-                <option value="">Todas las comunidades ({pendingComms.length + pendingActs.length} pendientes)</option>
+                <option value="">Todas las comunidades ({pendingCount} sin auditoría)</option>
                 {allCommunities.map((c: any) => {
-                  const commPending = (c.status === 'PENDING' ? 1 : 0) + pendingActs.filter((a: any) => a.garden?.communityId === c.id).length
+                  const commPending = (c.status === 'PENDING' ? 1 : 0) + activitiesForReview.filter((a: any) => a.garden?.communityId === c.id && ((a.reviewStatus === 'APPROVED' && !a.reviewedAt) || a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES')).length
                   return (
                     <option key={c.id} value={c.id}>
                       {c.name} {commPending > 0 ? `(${commPending} pendientes)` : ''}
@@ -755,6 +758,19 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
             )}
           </div>
 
+          <label style={{ gridColumn: '1/-1', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+            Estado de actividades
+            <select aria-label="Filtrar actividades por estado MSP" value={reviewStatusFilter} onChange={e => setReviewStatusFilter(e.target.value)}
+              style={{ padding: '0.4rem 0.7rem', borderRadius: '6px', border: '1px solid #cbd5e0' }}>
+              <option value="ALL">Todo el historial</option>
+              <option value="UNAUDITED">Válidas sin auditoría MSP</option>
+              <option value="PENDING">Pendientes heredadas</option>
+              <option value="NEEDS_CHANGES">Requieren corrección</option>
+              <option value="APPROVED">Válidas (con o sin auditoría)</option>
+              <option value="REJECTED">Invalidadas</option>
+            </select>
+          </label>
+
           {/* Comunidades pendientes */}
           <AdminPanel title={`Comunidades pendientes de revisión (${filteredComms.length})`} icon="users" action={<button className="kap-icon-button" type="button" onClick={loadModeration} title="Recargar" aria-label="Recargar"><AdminIcon name="refresh" size={17}/></button>}>
             {modLoading ? <p style={{ padding: '1rem', color: '#718096' }}>Cargando…</p> : filteredComms.length === 0 ? (
@@ -775,10 +791,10 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
             )}
           </AdminPanel>
 
-          {/* Evidencias fotográficas pendientes */}
-          <AdminPanel title={`Siembras y actividades por revisar (${filteredActs.length})`} icon="image" action={<button className="kap-icon-button" type="button" onClick={loadModeration} title="Recargar" aria-label="Recargar"><AdminIcon name="refresh" size={17}/></button>}>
+          {/* Historial completo de evidencias agrícolas: los registros nuevos son válidos automáticamente. */}
+          <AdminPanel title={`Historial de actividades (${filteredActs.length})`} icon="image" action={<button className="kap-icon-button" type="button" onClick={loadModeration} title="Recargar" aria-label="Recargar"><AdminIcon name="refresh" size={17}/></button>}>
             {modLoading ? <p style={{ padding: '1rem', color: '#718096' }}>Cargando…</p> : filteredActs.length === 0 ? (
-              <EmptyState title="Sin actividades pendientes" detail={selectedCommunityFilter ? "Esta comunidad no tiene siembras ni actividades pendientes de revisión." : "Todas las siembras y actividades han sido revisadas."} illustration={communityForum}/>
+              <EmptyState title="Sin actividades en este filtro" detail="Prueba con otro estado o comunidad." illustration={communityForum}/>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filteredActs.map((a: any) => {
@@ -800,16 +816,16 @@ function MspDetail({ tab, data, setTab, onRefresh }: { tab: AdminNavKey; data?: 
                             <span style={{ color: '#4a5568', fontSize: '0.82rem', fontWeight: 500 }}>(Parcela #{a.plotIndex + 1})</span>
                           ) : null}
                         </strong>
-                        <ValueBadge tone="gold">{a.reviewStatus === 'NEEDS_CHANGES' ? 'Requiere correcciones' : 'Pendiente de revisión'}</ValueBadge>
+                        <ValueBadge tone={a.reviewStatus === 'APPROVED' ? 'green' : a.reviewStatus === 'REJECTED' ? 'red' : 'gold'}>{a.reviewStatus === 'APPROVED' ? (a.reviewedAt ? 'Comprobada MSP' : 'Válida · Sin auditoría') : a.reviewStatus === 'REJECTED' ? 'Invalidada' : a.reviewStatus === 'NEEDS_CHANGES' ? 'Requiere correcciones' : 'Pendiente'}</ValueBadge>
                       </div>
                       <p style={{ margin: '0.2rem 0 0.1rem', fontSize: '0.8rem', color: '#718096' }}>
                         <AdminIcon name="users" size={13}/> {a.actorUser?.name || '—'} · {a.performedDate ? new Date(a.performedDate).toLocaleDateString('es-EC') : '—'}
                       </p>
                       {a.notes && <p style={{ margin: '0.1rem 0 0.5rem', fontSize: '0.8rem', color: '#4a5568', fontStyle: 'italic' }}>"{a.notes}"</p>}
                       <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                        <button type="button" onClick={() => handleReviewActivity(a.id, 'APPROVED')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: 'none', background: '#276749', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>✓ Aprobar</button>
-                        <button type="button" onClick={() => openReasonModal('activity', a.id, 'NEEDS_CHANGES')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #d69e2e', background: '#fffff0', color: '#744210', cursor: 'pointer' }}>✏️ Pedir corrección</button>
-                        <button type="button" onClick={() => openReasonModal('activity', a.id, 'REJECTED')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #c53030', background: '#fff5f5', color: '#c53030', cursor: 'pointer' }}>✗ Rechazar</button>
+                        {(a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES' || (a.reviewStatus === 'APPROVED' && !a.reviewedAt)) && <button type="button" onClick={() => handleReviewActivity(a.id, 'APPROVED')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: 'none', background: '#276749', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>✓ Verificar</button>}
+                        {a.reviewStatus !== 'REJECTED' && <button type="button" onClick={() => openReasonModal('activity', a.id, 'NEEDS_CHANGES')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #d69e2e', background: '#fffff0', color: '#744210', cursor: 'pointer' }}>✏️ Pedir corrección</button>}
+                        {a.reviewStatus !== 'REJECTED' && <button type="button" onClick={() => openReasonModal('activity', a.id, 'REJECTED')} style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '4px', border: '1px solid #c53030', background: '#fff5f5', color: '#c53030', cursor: 'pointer' }}>✗ Invalidar</button>}
                       </div>
                     </div>
                   </div>
@@ -1206,7 +1222,7 @@ export default function AdminDashboard({ kind, userName, isPreview = false, onLo
         const resources = resRes.resources || []
         const approvedCount = communities.filter((c: any) => c.status === 'APPROVED').length
         const pendingCommCount = communities.filter((c: any) => c.status === 'PENDING' || c.status === 'NEEDS_CHANGES').length
-        const pendingActCount = activities.filter((a: any) => a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES').length
+        const pendingActCount = activities.filter((a: any) => (a.reviewStatus === 'APPROVED' && !a.reviewedAt) || a.reviewStatus === 'PENDING' || a.reviewStatus === 'NEEDS_CHANGES').length
         setRealMspData({
           communitiesTotal: communities.length,
           communitiesApproved: approvedCount,

@@ -157,6 +157,9 @@ export async function createGardenActivity(input: CreateActivityInput) {
       include: { evidences: true, actorUser: { select: { id: true, name: true, email: true } } },
     })
     if (existing) {
+      if (existing.gardenId !== gardenId || existing.actorUserId !== actorUserId) {
+        throw Object.assign(new Error('El identificador de actividad ya pertenece a otra operación o cuenta.'), { code: 'ACTIVITY_ID_CONFLICT' })
+      }
       return { activity: existing, isDuplicate: true, reward: null }
     }
   }

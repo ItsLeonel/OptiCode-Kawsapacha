@@ -48,9 +48,8 @@
     width: 44px; min-width: 44px; min-height: 44px; padding: 6px;
   }
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count {
-    top: calc(133px + env(safe-area-inset-top)); bottom: auto;
-    left: 8px; right: auto; max-width: calc(100% - 78px);
-    padding: 5px 8px; font-size: 11px; line-height: 1.2;
+    /* The six green parcel shortcuts communicate occupancy without covering plots. */
+    display: none;
   }
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count small { display: none; }
   /* The help button above replaces the large guide illustration on narrow screens. */
@@ -65,9 +64,9 @@
   /* Controls are separate from the canvas; they never alter Phaser's artwork. */
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-zoom {
     position: absolute; z-index: 7; right: 8px;
-    top: calc(187px + env(safe-area-inset-top));
-    display: flex; flex-direction: column; gap: 5px;
-    padding: 4px; border: 1px solid #d8c082;
+    top: calc(135px + env(safe-area-inset-top));
+    display: flex; flex-direction: row; gap: 4px;
+    padding: 3px; border: 1px solid #d8c082;
     border-radius: 15px; background: #193e2acb;
     backdrop-filter: blur(8px);
   }
@@ -77,6 +76,9 @@
   }
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-zoom button:last-child {
     font-size: 19px;
+  }
+  .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world:has(.garden-poc-panel) :is(.garden-poc-mobile-zoom, .garden-poc-mobile-plots) {
+    display: none;
   }
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-plots {
     position: absolute; z-index: 7;
@@ -154,7 +156,7 @@
 @media (max-width: 700px) and (max-height: 600px) {
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count { display: none; }
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-mobile-zoom {
-    top: calc(136px + env(safe-area-inset-top));
+    top: calc(135px + env(safe-area-inset-top));
   }
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-panel {
     max-height: calc(100% - 240px);

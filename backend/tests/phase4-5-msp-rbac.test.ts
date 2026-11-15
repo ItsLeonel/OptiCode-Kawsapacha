@@ -241,13 +241,13 @@ export async function runPhase45MspRbacTests() {
   const afterReApprove = await getUserRewardsSummary(registrationResult.user.id)
   assert.equal(afterReApprove.points, 5)
 
-  // Una aprobación ya acreditada no puede pasar a REJECTED y dejar puntos inconsistentes
-  await assert.rejects(
-    () => reviewActivity(act1Result.activity!.id, 'REJECTED', mspUser.id, 'Rechazo posterior a aprobación'),
-    { code: 'REVIEW_FINALIZED' }
-  )
-  const afterBlockedRejection = await getUserRewardsSummary(registrationResult.user.id)
-  assert.equal(afterBlockedRejection.points, 5, 'No se deben perder ni conservar saldos inconsistentes tras una revisión inválida')
+  // Una evidencia verificada puede invalidarse con reversión auditada.
+  const retrospective = await reviewActivity(act1Result.activity!.id, 'REJECTED', mspUser.id, 'La evidencia no coincide con el riego registrado')
+  assert.equal(retrospective.pointsReverted, -5)
+  const afterRetrospective = await getUserRewardsSummary(registrationResult.user.id)
+  assert.equal(afterRetrospective.points, 0)
+  await reviewActivity(act1Result.activity!.id, 'REJECTED', mspUser.id, 'La evidencia no coincide con el riego registrado')
+  assert.equal((await getUserRewardsSummary(registrationResult.user.id)).points, 0)
 
   // El usuario debe tener la notificación de actividad aprobada
   const notifsAfterApprove = await listUserNotifications(registrationResult.user.id)
@@ -283,9 +283,9 @@ export async function runPhase45MspRbacTests() {
   assert.equal(rejectResult.activity.reviewStatus, 'REJECTED')
   assert.equal(rejectResult.reward, null)
 
-  // El saldo debe seguir intacto en 5 puntos (sin cambios ni puntos sumados indebidamente)
+  // El abonado también pierde sus puntos provisionales al invalidarse.
   const afterRejectSummary = await getUserRewardsSummary(registrationResult.user.id)
-  assert.equal(afterRejectSummary.points, 5)
+  assert.equal(afterRejectSummary.points, 0)
 
   // El usuario debe recibir la notificación de rechazo con la justificación
   const notifsAfterReject = await listUserNotifications(registrationResult.user.id)

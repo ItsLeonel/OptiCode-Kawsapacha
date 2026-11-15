@@ -8,7 +8,8 @@ import {
   voidGardenActivity,
   VALID_ACTIVITY_TYPES,
 } from '../src/services/activity.service'
-import { listPlantsByGarden, getPlantPassport, updatePlantDetails } from '../src/services/plant.service'
+import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/services/plant.service'
+import { getUserRewardsSummary } from '../src/services/rewards.service'
 
 export async function runActivityTests() {
   console.log('🧪 Iniciando pruebas de Bitácora Viva y Actividades Agrícolas...')
@@ -71,6 +72,35 @@ export async function runActivityTests() {
       notes: 'Historial del espacio con planta en revisión',
     })
     assert.equal(pendingPlot.activity?.reviewStatus, 'APPROVED')
+    // Una siembra real nueva se almacena como APPROVED, con actividad y puntos inmediatos.
+    const beforeSowing = (await getUserRewardsSummary(user.id)).points
+    const registeredPlant = await registerPlant({
+      realGardenId: garden.id,
+      speciesId: species.id,
+      plotIndex: 2,
+      customName: 'Toronjil registrado desde aplicación',
+      notes: 'Siembra de prueba con evidencia fotográfica',
+      registeredById: user.id,
+      file: {
+        path: '/tmp/registro-toronjil.jpg',
+        filename: 'registro-toronjil.jpg',
+        mimetype: 'image/jpeg',
+        size: 15000,
+      } as Express.Multer.File,
+    })
+    assert.equal(registeredPlant.reviewStatus, 'APPROVED')
+    const sowingRecord = await prisma.gardenActivity.findFirst({
+      where: { plantId: registeredPlant.id, type: 'sowing', voidedAt: null },
+      include: { evidences: true },
+    })
+    assert.ok(sowingRecord, 'Toda planta registrada debe tener siembra en Bitácora')
+    assert.equal(sowingRecord!.reviewStatus, 'APPROVED')
+    assert.equal(sowingRecord!.reviewedAt, null, 'El registro automático no suplanta auditoría MSP')
+    assert.equal(sowingRecord!.evidences.length, 1)
+    const afterSowing = await getUserRewardsSummary(user.id)
+    assert.equal(afterSowing.points - beforeSowing, 20)
+    assert.ok(afterSowing.badges.some(b => b.badgeId === 'first-sowing'))
+
     // No permitir sembrar dos plantas en el mismo espacio físico.
     await assert.rejects(() => createGardenActivity({
       gardenId: garden.id, actorUserId: user.id, type: 'sowing',

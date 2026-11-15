@@ -33,6 +33,8 @@ jobs:
         run: KAWSAPACHA_E2E_OFFLINE_CATALOG=1 npx playwright test --config playwright.config.ts tests/my-garden.spec.ts --grep "menú principal|Mis plantas no muestra" --reporter=line
       - name: Pasaporte Vivo V1 - acciones y navegación visual
         run: KAWSAPACHA_E2E_OFFLINE_CATALOG=1 npx playwright test --config playwright.config.ts tests/passport-ui.spec.ts --reporter=line
+      - name: Actualizar planta - formulario claro y evidencia fotográfica
+        run: KAWSAPACHA_E2E_OFFLINE_CATALOG=1 npx playwright test --config playwright.config.ts tests/plant-editor-ui.spec.ts --reporter=line
       - name: Prueba de render regional y características
         run: npx playwright test --config playwright.garden-poc.config.ts tests/garden-poc-regions-render.spec.ts tests/garden-poc-art.spec.ts
       - name: Suite completa del jardín (Playwright)

@@ -242,11 +242,9 @@ export async function reviewActivity(
     throw Object.assign(new Error('No se puede revisar una actividad anulada.'), { code: 'ACTIVITY_VOIDED' })
   }
 
-  // Permitir invalidar posteriormente una evidencia APPROVED, pero siempre
-  // revirtiendo su ledger en una operación transaccional y auditable.
-  // Reabrir un REJECTED requiere un proceso de apelación aparte.
-  if ((activity.reviewStatus === 'APPROVED' && action === 'NEEDS_CHANGES')
-    || (activity.reviewStatus === 'REJECTED' && action !== 'REJECTED')) {
+  // Una actividad es válida desde el registro. Su auditoría humana se distingue
+  // por reviewedById/reviewedAt. Una actividad rechazada no se reabre sin apelación.
+  if (activity.reviewStatus === 'REJECTED' && action !== 'REJECTED') {
     throw Object.assign(
       new Error('Transición no permitida sin proceso de corrección o apelación.'),
       { code: 'REVIEW_FINALIZED' }
@@ -261,7 +259,7 @@ export async function reviewActivity(
   }
 
   // Reintentos idempotentes: no generar otra notificación ni auditoría por la misma resolución.
-  if (activity.reviewStatus === action && action === 'APPROVED') {
+  if (activity.reviewStatus === action && action === 'APPROVED' && activity.reviewedAt) {
     const current = await getUserRewardsSummary(activity.actorUserId)
     return {
       activity,
@@ -274,7 +272,7 @@ export async function reviewActivity(
       },
     }
   }
-  if (activity.reviewStatus === action && action === 'REJECTED') {
+  if (activity.reviewStatus === action && (action === 'REJECTED' || action === 'NEEDS_CHANGES')) {
     return { activity, reward: null }
   }
 
@@ -282,8 +280,8 @@ export async function reviewActivity(
     // La verificación de evidencias no depende de que la comunidad PENDING esté aprobada.
 
     // 1. Actualizar actividad a APPROVED
-    const updated = await prisma.gardenActivity.update({
-      where: { id: activityId },
+    const changed = await prisma.gardenActivity.updateMany({
+      where: { id: activityId, reviewStatus: activity.reviewStatus, reviewedAt: activity.reviewedAt },
       data: {
         reviewStatus: 'APPROVED',
         reviewedById: reviewerId,
@@ -291,6 +289,10 @@ export async function reviewActivity(
         reviewedAt: new Date(),
       },
     })
+    if (changed.count !== 1) {
+      throw Object.assign(new Error('La actividad ya fue revisada por otra persona.'), { code: 'REVIEW_FINALIZED' })
+    }
+    const updated = await prisma.gardenActivity.findUniqueOrThrow({ where: { id: activityId } })
 
     // 1b. Si es actividad de siembra y tiene planta vinculada, aprobar también la planta
     if (activity.type === 'sowing' && activity.plantId) {
@@ -300,7 +302,7 @@ export async function reviewActivity(
       })
     }
 
-    // 2. Confirmar los puntos ya ganados; el ledger evita una segunda acreditación.
+    // 2. No crear nuevos puntos si ya fueron acreditados al registrar.
     const rewardResult = await evaluateActivityReward({
       id: activity.id,
       actorUserId: activity.actorUserId,
@@ -342,8 +344,8 @@ export async function reviewActivity(
     await createNotification({
       userId: activity.actorUserId,
       type: 'ACTIVITY_APPROVED',
-      title: '🌟 ¡Evidencia de actividad aprobada por el MSP!',
-      message: `Tu actividad de «${actNameEs}» del ${activity.performedDate} fue verificada. Sus puntos registrados quedan confirmados; no se duplican recompensas.`,
+      title: '🌟 Actividad comprobada por el MSP',
+      message: `Tu actividad de «${actNameEs}» del ${activity.performedDate} fue comprobada por el MSP. No se duplicaron sus puntos.`,
       resourceId: activityId,
     })
 
@@ -361,8 +363,7 @@ export async function reviewActivity(
       },
     })
 
-    // Si es siembra, mantener la planta en PENDING para que el usuario corrija y reenvíe
-    // (no cambiamos el reviewStatus de la planta, se queda PENDING hasta que el MSP la apruebe)
+    // Solicitar corrección no elimina la planta ni revierte puntos: solo el rechazo invalida.
 
     await logAudit({
       actorId: reviewerId,
@@ -377,7 +378,7 @@ export async function reviewActivity(
       userId: activity.actorUserId,
       type: 'ACTIVITY_NEEDS_CHANGES',
       title: '📷 El MSP solicita mejorar la evidencia fotográfica',
-      message: `En tu actividad de «${actNameEs}»: ${reason}. Por favor sube una fotografía más clara para validar tus puntos.`,
+      message: `En tu actividad de «${actNameEs}»: ${reason}. Corrige o complementa la evidencia. Los puntos se mantienen salvo invalidación explícita.`,
       resourceId: activityId,
     })
 

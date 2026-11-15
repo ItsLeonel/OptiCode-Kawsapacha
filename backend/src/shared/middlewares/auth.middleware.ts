@@ -1,7 +1,7 @@
 import type { Response, NextFunction } from 'express'
 import { verifyToken } from '../utils/jwt'
 import { fail } from '../utils/response'
-import { prisma } from '../../infrastructure/database/prisma'
+import { checkGlobalRole } from '../../modules/auth/auth.module'
 import type { AuthRequest, UserRole } from '../types/index'
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction): void {
@@ -31,29 +31,21 @@ export function requireGlobalRole(allowedRoles: UserRole[]) {
     }
 
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.userId },
-        select: { id: true, role: true, isActive: true },
-      })
-
-      if (!user) {
+      const result = await checkGlobalRole(req.user.userId, allowedRoles)
+      if (result.status === 'USER_NOT_FOUND') {
         fail(res, 'USER_NOT_FOUND', 'El usuario no existe o fue eliminado.', 401)
         return
       }
-
-      if (!user.isActive) {
+      if (result.status === 'ACCOUNT_DEACTIVATED') {
         fail(res, 'ACCOUNT_DEACTIVATED', 'Tu cuenta se encuentra desactivada.', 403)
         return
       }
-
-      const currentRole = user.role as UserRole
-      if (!allowedRoles.includes(currentRole)) {
+      if (result.status === 'FORBIDDEN') {
         fail(res, 'FORBIDDEN', `Acceso denegado. Se requiere uno de los siguientes roles: ${allowedRoles.join(', ')}.`, 403)
         return
       }
-
-      // Sincronizar rol actual confirmado por la base de datos
-      req.user.role = currentRole
+      // Sincronizar el rol confirmado contra la base de datos.
+      req.user.role = result.role
       next()
     } catch {
       fail(res, 'INTERNAL_ERROR', 'Error al verificar permisos de usuario.', 500)

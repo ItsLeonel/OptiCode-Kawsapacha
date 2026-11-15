@@ -3,7 +3,7 @@
 
 import type { Response, NextFunction } from 'express'
 import { fail } from '../utils/response'
-import { prisma } from '../../infrastructure/database/prisma'
+import { checkCommunityRole } from '../../modules/communities/community.module'
 import type { AuthRequest } from '../types/index'
 
 type CommunityRole = 'RESPONSABLE' | 'CUIDADOR' | 'PARTICIPANTE'
@@ -29,29 +29,14 @@ export function requireCommunityRole(allowedRoles: CommunityRole[]) {
     }
 
     try {
-      const member = await prisma.communityMember.findFirst({
-        where: {
-          communityId,
-          userId: req.user.userId,
-          status: 'ACCEPTED',
-        },
-        select: { roleInCommunity: true },
-      })
-
-      if (!member) {
+      const result = await checkCommunityRole(communityId, req.user.userId, allowedRoles)
+      if (result === 'NOT_MEMBER') {
         fail(res, 'FORBIDDEN', 'No eres miembro activo de esta comunidad.', 403)
         return
       }
-
-      const role = member.roleInCommunity as CommunityRole
-      if (!allowedRoles.includes(role)) {
+      if (result === 'FORBIDDEN') {
         const rolesStr = allowedRoles.join(' o ')
-        fail(
-          res,
-          'FORBIDDEN',
-          `No tienes permisos suficientes. Esta acción requiere rol: ${rolesStr}.`,
-          403
-        )
+        fail(res, 'FORBIDDEN', `No tienes permisos suficientes. Esta acción requiere rol: ${rolesStr}.`, 403)
         return
       }
 

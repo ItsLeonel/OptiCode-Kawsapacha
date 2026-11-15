@@ -27,7 +27,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '../src/modules/notifications/notification.module'
-import { listAuditLogs } from '../src/modules/administration/application/audit.service'
+import { listAuditLogs } from '../src/modules/administration/audit.module'
 
 export async function runPhase45MspRbacTests() {
   console.log('========================================================================')

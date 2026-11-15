@@ -7,7 +7,7 @@ import {
   toggleUserStatus,
   listAdministrativeUsers,
 } from '../application/admin-technical.service'
-import { listAuditLogs } from '../application/audit.service'
+import { listAuditLogs } from '../audit.module'
 
 export async function createMspAccount(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

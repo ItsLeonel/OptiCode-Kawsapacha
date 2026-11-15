@@ -1,7 +1,7 @@
 // backend/src/modules/administration/application/admin-technical.service.ts
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../../infrastructure/database/prisma'
-import { logAudit } from './audit.service'
+import { logAudit } from '../audit.module'
 import type { UserRole } from '../../../shared/types/index'
 
 export async function provisionMspUser(

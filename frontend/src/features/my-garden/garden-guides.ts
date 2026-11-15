@@ -1,4 +1,4 @@
-import type { GardenRegion } from '../real-gardens/garden-region'
+import type { GardenRegion } from '../../shared/geo/region'
 
 /** Approved original characters, kept independent from every landscape and crop. */
 export const GARDEN_GUIDES: Record<GardenRegion, string> = {

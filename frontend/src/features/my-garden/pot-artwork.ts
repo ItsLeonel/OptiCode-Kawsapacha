@@ -1,4 +1,4 @@
-import type { GardenRegion } from '../real-gardens/garden-region'
+import type { GardenRegion } from '../../shared/geo/region'
 
 const POT_ORDER: Record<GardenRegion, readonly number[]> = {
   sierra: [0, 5, 3, 1, 4, 2],

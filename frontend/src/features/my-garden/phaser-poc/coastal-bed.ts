@@ -1,4 +1,4 @@
-import type { SoilType } from '../../real-gardens/real-garden'
+import type { SoilType } from '../../../shared/contracts/real-garden'
 import type { SoilStyle } from './visual-config'
 import type { VisualSlot } from './model'
 

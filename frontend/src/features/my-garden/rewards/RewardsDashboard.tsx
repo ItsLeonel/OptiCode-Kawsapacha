@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react'
-import { GARDEN_REGIONS, type GardenRegion } from '../../real-gardens/garden-region'
+import { GARDEN_REGIONS, type GardenRegion } from '../../../shared/geo/region'
 import type { GardenJournal } from '../journal/journal'
 import { calculateProgress } from '../journal/progress'
 import { BADGE_DEFINITIONS, DOCUMENTED_LEVELS, MISSION_DEFINITIONS, type AuthoritativeRewards, type RewardBadgeId, type RewardMissionId } from './rewards-types'

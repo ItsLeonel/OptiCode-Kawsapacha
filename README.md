@@ -4,6 +4,37 @@
 
 > **Estado actual (rama integrada con Fase 4.5 y `main`):** cuentas, comunidades (con flujo de aprobación MSP), huertos, plantas, fotos, calendario lunar, bitácora de actividades, misiones/recompensas auditables, notificaciones, roles `ADMIN_TECNICO` / `ADMIN_MSP` / `USUARIO` y Espejo Digital V2 por etapas están persistidos en el servidor (API REST + SQLite). En **modo visitante** (sin sesión), los datos y la bitácora local permanecen en IndexedDB. La poscosecha, rituales y señalética se registran como actividades documentales (0 puntos base) con respaldo en bitácora del servidor. Revisar [trazabilidad del cliente](docs/analisis/trazabilidad-cliente-2026-11-14.md).
 
+## 🏛️ Arquitectura modular (rama PR #72)
+
+La aplicación sigue siendo **un solo repositorio y un solo backend desplegable**. Se adopta **monolito modular** con límites de Clean Architecture; no se introducen microservicios y se preservan los contratos HTTP y las bases de datos existentes.
+
+```text
+OptiCode-Kawsapacha/
+├── frontend/
+│   └── src/
+│       ├── app/           # Composición y navegación
+│       ├── features/      # Áreas funcionales de la interfaz
+│       └── shared/        # Contratos HTTP, UI y utilidades sin dependencias de features
+├── backend/
+│   ├── src/
+│   │   ├── app/           # Composición Express
+│   │   ├── modules/       # Dominio, aplicación, puertos, infraestructura y presentación
+│   │   ├── infrastructure/
+│   │   └── shared/
+│   ├── prisma/            # Esquema y migraciones existentes, conservados
+│   └── tests/
+├── docs/
+│   ├── architecture/
+│   ├── requirements/
+│   └── quality/
+├── deploy/
+└── .github/workflows/
+```
+
+**Criterios ejecutables:** `cd backend && npm run check:architecture` impide que dominio/aplicación dependan de infraestructura o HTTP y rechaza ciclos de módulos; `node tools/check-frontend-architecture.cjs` comprueba que `frontend/src/shared` no importa áreas de negocio. Los tests unitarios, de integración y la regresión Playwright son independientes de estas comprobaciones estructurales.
+
+La [decisión arquitectónica](docs/architecture/ADR-0001-monolito-modular.md), [visión de módulos](docs/architecture/README.md) y [evidencia de regresión](docs/quality/regresion-arquitectura.md) documentan la implementación y sus límites. **La rama de trabajo y el PR no implican una fusión a `main`.**
+
 Kawsapacha es una aplicación web educativa para que comunidades del Ecuador registren **huertos medicinales reales** y los representen en un **huerto virtual interactivo**. Cada planta podrá asociarse con su especie, una fotografía real y una ficha (*Pasaporte Vivo*).
 
 ## 🎯 Producto que vamos a desarrollar (V1)

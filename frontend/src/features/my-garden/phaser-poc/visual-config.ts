@@ -1,5 +1,5 @@
-import type { GardenRegion } from '../../real-gardens/garden-region'
-import type { SoilType } from '../../real-gardens/real-garden'
+import type { GardenRegion } from '../../../shared/geo/region'
+import type { SoilType } from '../../../shared/contracts/real-garden'
 
 export type SoilStyle = Readonly<{ earth: number; shade: number; light: number; grain: number }>
 

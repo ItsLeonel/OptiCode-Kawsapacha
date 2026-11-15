@@ -1,14 +1,14 @@
 // backend/tests/rewards-missions.test.ts
 import assert from 'assert'
-import { prisma } from '../src/config/prisma'
+import { prisma } from '../src/infrastructure/database/prisma'
 import {
   BASE_POINTS,
   evaluateActivityReward,
   getUserRewardsSummary,
   revertActivityReward,
-} from '../src/services/rewards.service'
-import { syncUserMissionsAndBadges } from '../src/services/missions.service'
-import { calculateDayLunarInfo } from '../src/services/lunar-calendar.service'
+} from '../src/modules/rewards/rewards.module'
+import { syncUserMissionsAndBadges } from '../src/modules/rewards/missions.module'
+import { calculateDayLunarInfo } from '../src/modules/lunar-calendar/application/lunar-calendar.service'
 
 export async function runRewardsAndMissionsTests() {
   console.log('🧪 Iniciando pruebas de Motor de Recompensas (Semillas de vida) y Misiones...')

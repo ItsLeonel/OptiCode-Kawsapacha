@@ -1,0 +1,16 @@
+import { Router } from 'express'
+import { create, list, getById, update } from './garden.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { uploadEntityPhoto } from '../../../shared/middlewares/entity-photo.middleware'
+
+const router = Router()
+
+router.get('/', requireAuth, list)
+// Crear huerto: solo usuarios autenticados (la verificación de que sea RESPONSABLE
+// se hace opcionalmente; cualquier usuario puede crear su propio huerto)
+router.post('/', requireAuth, uploadEntityPhoto, create)
+router.get('/:id', requireAuth, getById)
+// Actualizar huerto: solo el creador (verificado en el controlador)
+router.put('/:id', requireAuth, uploadEntityPhoto, update)
+
+export default router

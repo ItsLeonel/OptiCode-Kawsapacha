@@ -1,9 +1,10 @@
 // backend/tests/run-all-tests.ts
+import { runCatalogArchitectureTests } from './catalog-architecture.test'
 import { runLunarTests } from './lunar-calendar.test'
 import { runRewardsAndMissionsTests } from './rewards-missions.test'
 import { runActivityTests } from './activity.test'
 import { runPhase45MspRbacTests } from './phase4-5-msp-rbac.test'
-import { prisma } from '../src/config/prisma'
+import { prisma } from '../src/infrastructure/database/prisma'
 
 async function main() {
   console.log('==================================================================')
@@ -11,6 +12,8 @@ async function main() {
   console.log('==================================================================\n')
 
   try {
+    await runCatalogArchitectureTests()
+    console.log('')
     await runLunarTests()
     console.log('')
     await runRewardsAndMissionsTests()

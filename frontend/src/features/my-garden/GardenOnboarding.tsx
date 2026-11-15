@@ -1,6 +1,6 @@
 import { GameButton, GameGuide, GamePanel } from '../../shared/ui/game-ui/GameUI'
-import type { Community } from '../communities/communities'
-import type { GardenRegion } from '../real-gardens/garden-region'
+import type { Community } from '../../shared/contracts/community'
+import type { GardenRegion } from '../../shared/geo/region'
 import GardenIcon from './GardenIcon'
 import './garden-onboarding.css'
 import GameDecoration from '../../shared/ui/game-ui/GameDecoration'

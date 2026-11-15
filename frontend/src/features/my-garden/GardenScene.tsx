@@ -7,8 +7,8 @@ import GardenPergola from './GardenPergola'
 import GardenVerticalStructure from './GardenVerticalStructure'
 import { HANGING_POINTS, potArtwork, REGIONAL_SURFACES, VERTICAL_POINTS } from './scene-art'
 import { PLOT_COUNT, type GardenPlant } from './garden'
-import { formatGardenArea, type GardenKind } from '../real-gardens/real-garden'
-import type { GardenRegion } from '../real-gardens/garden-region'
+import { formatGardenArea, type GardenKind } from '../../shared/contracts/real-garden'
+import type { GardenRegion } from '../../shared/geo/region'
 
 const SCENES = {
   ground: { title: 'Tu huerto en tierra', unit: 'Punto de siembra', empty: 'Punto de siembra vacío', icon: 'seed' },

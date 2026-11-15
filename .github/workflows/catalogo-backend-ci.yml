@@ -32,6 +32,18 @@ jobs:
           npx prisma migrate deploy
       - name: Sembrar el catálogo regional sin borrar datos
         run: npm run prisma:seed
+      - name: Auditoría no destructiva de copia SQLite en CI
+        shell: bash
+        run: |
+          db=$(find prisma -maxdepth 2 -name catalog-ci.db -type f -print -quit)
+          test -n "$db"
+          node ../tools/verify-local-snapshot.cjs --db "$db" --uploads uploads
+      - name: Límites de arquitectura modular
+        run: npm run check:architecture
+      - name: Métricas reproducibles de mantenibilidad
+        run: node ../tools/maintainability-report.cjs
+      - name: Inventario de activos gráficos potencialmente obsoletos
+        run: node ../tools/audit-assets.cjs
       - name: TypeScript y build backend
         run: |
           npm run typecheck

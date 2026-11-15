@@ -1,13 +1,13 @@
 // backend/tests/phase4-5-msp-rbac.test.ts
 import assert from 'assert'
 import bcrypt from 'bcryptjs'
-import { prisma } from '../src/config/prisma'
-import { registerUser, loginUser } from '../src/services/auth.service'
+import { prisma } from '../src/infrastructure/database/prisma'
+import { registerUser, loginUser } from '../src/modules/auth/auth.module'
 import {
   provisionMspUser,
   toggleUserStatus,
   listAdministrativeUsers,
-} from '../src/services/admin-technical.service'
+} from '../src/modules/administration/admin-technical.module'
 import {
   listCommunitiesForMsp,
   reviewCommunity,
@@ -19,15 +19,15 @@ import {
   listEducationalResources,
   createEducationalResource,
   deleteEducationalResource,
-} from '../src/services/admin-msp.service'
-import { createGardenActivity } from '../src/services/activity.service'
-import { getUserRewardsSummary } from '../src/services/rewards.service'
+} from '../src/modules/administration/admin-msp.module'
+import { createGardenActivity } from '../src/modules/activities/activity.module'
+import { getUserRewardsSummary } from '../src/modules/rewards/rewards.module'
 import {
   listUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-} from '../src/services/notification.service'
-import { listAuditLogs } from '../src/services/audit.service'
+} from '../src/modules/notifications/notification.module'
+import { listAuditLogs } from '../src/modules/administration/audit.module'
 
 export async function runPhase45MspRbacTests() {
   console.log('========================================================================')

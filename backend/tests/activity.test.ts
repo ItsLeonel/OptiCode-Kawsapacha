@@ -1,15 +1,15 @@
 // backend/tests/activity.test.ts
 import assert from 'assert'
-import { prisma } from '../src/config/prisma'
+import { prisma } from '../src/infrastructure/database/prisma'
 import {
   createGardenActivity,
   listGardenActivities,
   getGardenActivityDetail,
   voidGardenActivity,
   VALID_ACTIVITY_TYPES,
-} from '../src/services/activity.service'
-import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/services/plant.service'
-import { getUserRewardsSummary } from '../src/services/rewards.service'
+} from '../src/modules/activities/activity.module'
+import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/modules/plants/plant.module'
+import { getUserRewardsSummary } from '../src/modules/rewards/rewards.module'
 
 export async function runActivityTests() {
   console.log('🧪 Iniciando pruebas de Bitácora Viva y Actividades Agrícolas...')

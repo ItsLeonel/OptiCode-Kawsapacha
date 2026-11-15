@@ -1,5 +1,5 @@
-import type { Community } from '../../communities/communities'
-import type { RealGarden } from '../../real-gardens/real-garden'
+import type { Community } from '../../../shared/contracts/community'
+import type { RealGarden } from '../../../shared/contracts/real-garden'
 import { PLANT_STATES, type GardenPlant } from '../garden'
 import { isGrowthStage } from '../growth-stages'
 import { isPlantVisualProfile } from '../plant-visual-profile'

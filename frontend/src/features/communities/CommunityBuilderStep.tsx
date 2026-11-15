@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { GameButton, gameRegionAssets } from '../../shared/ui/game-ui/GameUI'
-import { regionForProvince } from '../real-gardens/garden-region'
+import { regionForProvince } from '../../shared/geo/region'
 import { COMMUNITY_TYPES, communityTypeArt } from './community-art'
 import { CommunityTerritorySummary } from './CommunityTerritoryStep'
 import type { CommunityTerritory } from './community-territory'
 import type { Community, CommunityMember, CommunityType } from './communities'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import CommunityCoverPhoto from './CommunityCoverPhoto'
 import { userApi, memberApi } from '../../services/api'
 

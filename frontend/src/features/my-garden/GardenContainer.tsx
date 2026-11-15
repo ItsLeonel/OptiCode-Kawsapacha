@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import type { GardenRegion } from '../real-gardens/garden-region'
+import type { GardenRegion } from '../../shared/geo/region'
 import { potArtwork, SCENE_ART } from './scene-art'
 
 /** A single empty artisan vessel. Its photograph and interactive control belong to GardenScene. */

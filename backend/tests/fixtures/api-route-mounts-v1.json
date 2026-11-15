@@ -1,0 +1,22 @@
+[
+  "USE /auth",
+  "USE /admin",
+  "USE /notifications",
+  "USE /lunar-calendar",
+  "USE /users/me/invitations",
+  "USE /users/me",
+  "USE /users",
+  "USE /communities",
+  "USE /communities/:id/members",
+  "USE /communities/:id/resources",
+  "USE /communities/:id/harvests",
+  "USE /invitations",
+  "USE /gardens",
+  "USE /gardens/:gardenId/activities",
+  "USE /gardens/:id/harvests",
+  "USE /catalog",
+  "USE /plants",
+  "USE /plants/:id/care",
+  "USE /plants/:id/harvest",
+  "GET /catalog/:id/calendar"
+]

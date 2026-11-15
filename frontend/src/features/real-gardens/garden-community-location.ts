@@ -1,4 +1,4 @@
-import type { Community } from '../communities/communities'
+import type { Community } from '../../shared/contracts/community'
 import type { RealGardenDraft } from './real-garden'
 
 export function withCommunityLocation(draft: RealGardenDraft, community: Community): RealGardenDraft {

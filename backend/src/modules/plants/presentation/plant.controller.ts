@@ -1,0 +1,131 @@
+import type { Response } from 'express'
+import { registerPlant, listPlantsByGarden, getPlantPassport, removePlant, archivePlant, updatePlantDetails } from '../plant.module'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../shared/types/index'
+
+export async function register(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  if (!req.file) return void fail(res, 'MISSING_PHOTO', 'Se requiere una fotografía de la planta.', 400)
+
+  const gardenId = String(req.params['gardenId'] ?? '')
+  const b = req.body as Record<string, string>
+  const plotIndex = parseInt(b['plotIndex'] ?? '-1', 10)
+
+  if (!b['speciesId']) return void fail(res, 'VALIDATION_ERROR', 'Selecciona una especie del catálogo.', 400)
+  if (!Number.isInteger(plotIndex) || plotIndex < 0 || plotIndex > 5)
+    return void fail(res, 'VALIDATION_ERROR', 'La parcela debe ser un número del 0 al 5.', 400)
+
+  try {
+    const plant = await registerPlant({
+      realGardenId: gardenId,
+      speciesId: b['speciesId'],
+      plotIndex,
+      customName: (b['customName'] ?? '').trim(),
+      notes: (b['notes'] ?? '').trim(),
+      plantedOn: b['plantedOn'] ? b['plantedOn'].trim() : undefined,
+      growthStage: b['growthStage'] ? b['growthStage'].trim() : undefined,
+      registeredById: req.user.userId,
+      file: req.file,
+    })
+    ok(res, { plant }, 'Planta registrada en el huerto virtual.', 201)
+  } catch (err: unknown) {
+    const e = err as { code?: string; message: string }
+    if (e.code === 'FORBIDDEN' || e.code === 'COMMUNITY_NOT_APPROVED') return void fail(res, e.code, e.message, 403)
+    if (e.code === 'PLOT_OCCUPIED') return void fail(res, 'PLOT_OCCUPIED', e.message, 409)
+    if (e.code === 'INVALID_PLOT') return void fail(res, 'INVALID_PLOT', e.message, 400)
+    if (e.code === 'GARDEN_NOT_FOUND') return void fail(res, 'GARDEN_NOT_FOUND', e.message, 404)
+    if (e.code === 'SPECIES_NOT_FOUND') return void fail(res, 'SPECIES_NOT_FOUND', e.message, 404)
+    if (e.code === 'SPECIES_REGION_MISMATCH' || e.code === 'SPECIES_INFORMATION_ONLY') return void fail(res, e.code, e.message, 400)
+    fail(res, 'INTERNAL_ERROR', 'Error al registrar la planta.', 500)
+  }
+}
+
+export async function listByGarden(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  try {
+    const plants = await listPlantsByGarden(String(req.params['gardenId'] ?? ''), req.user.userId)
+    ok(res, { plants }, 'Plantas del huerto virtual.')
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code
+    if (code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', 'No tienes acceso a las plantas de este huerto.', 403)
+    fail(res, 'INTERNAL_ERROR', 'Error al obtener las plantas.', 500)
+  }
+}
+
+export async function passport(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  try {
+    const plant = await getPlantPassport(String(req.params['id'] ?? ''), req.user.userId)
+    if (!plant) return void fail(res, 'NOT_FOUND', 'Planta no encontrada.', 404)
+    ok(res, { passport: plant }, 'Pasaporte Vivo de la planta.')
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code
+    if (code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', 'No tienes acceso al Pasaporte de esta planta.', 403)
+    fail(res, 'INTERNAL_ERROR', 'Error al obtener el Pasaporte Vivo.', 500)
+  }
+}
+
+export async function remove(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  const plantId = String(req.params['id'] ?? '')
+  if (!plantId) return void fail(res, 'VALIDATION_ERROR', 'ID de planta requerido.', 400)
+
+  try {
+    await removePlant(plantId, req.user.userId)
+    ok(res, {}, '🗑️ Planta desarraigada. La parcela ha quedado libre para un nuevo cultivo.')
+  } catch (err: unknown) {
+    const e = err as { code?: string; message: string }
+    if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
+    if (e.code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', e.message, 403)
+    fail(res, 'INTERNAL_ERROR', 'Error al desarraigar la planta.', 500)
+  }
+}
+
+export async function archive(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  const plantId = String(req.params['id'] ?? '')
+  if (!plantId) return void fail(res, 'VALIDATION_ERROR', 'ID de planta requerido.', 400)
+
+  try {
+    const plant = await archivePlant(plantId, req.user.userId)
+    ok(res, { plant }, '📦 Planta archivada. La parcela ha quedado libre para un nuevo cultivo.')
+  } catch (err: unknown) {
+    const e = err as { code?: string; message: string }
+    if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
+    if (e.code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', e.message, 403)
+    fail(res, 'INTERNAL_ERROR', 'Error al archivar la planta.', 500)
+  }
+}
+
+export async function update(req: AuthRequest, res: Response): Promise<void> {
+  if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)
+  const plantId = String(req.params['id'] ?? '')
+  if (!plantId) return void fail(res, 'VALIDATION_ERROR', 'ID de planta requerido.', 400)
+
+  const b = req.body as Record<string, string>
+  const plotIndex = b['plotIndex'] !== undefined && b['plotIndex'] !== '' ? parseInt(b['plotIndex'], 10) : undefined
+  const heightCm = b['heightCm'] ? parseFloat(b['heightCm']) : undefined
+
+  try {
+    const plant = await updatePlantDetails({
+      plantId,
+      requestingUserId: req.user.userId,
+      customName: b['customName'] ?? b['name'],
+      plantingDate: b['plantingDate'] ?? b['plantedOn'],
+      notes: b['notes'] ?? b['observations'],
+      observedState: b['observedState'] ?? b['state'],
+      growthStage: b['growthStage'] ? b['growthStage'].trim() : undefined,
+      plotIndex,
+      heightCm,
+      file: req.file,
+    })
+    ok(res, { plant }, 'Planta actualizada exitosamente.')
+  } catch (err: unknown) {
+    const e = err as { code?: string; message: string }
+    if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
+    if (e.code === 'PLANT_NOT_APPROVED' || e.code === 'FORBIDDEN') return void fail(res, e.code, e.message, 403)
+    if (e.code === 'EVIDENCE_REQUIRED') return void fail(res, 'EVIDENCE_REQUIRED', e.message, 400)
+    if (e.code === 'PLOT_OCCUPIED') return void fail(res, 'PLOT_OCCUPIED', e.message, 409)
+    fail(res, 'INTERNAL_ERROR', 'Error al actualizar la planta.', 500)
+  }
+}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import RealGardenField from './RealGardenField'
 import type { RealGardenDraft, RealGardenErrors } from './real-garden'
 

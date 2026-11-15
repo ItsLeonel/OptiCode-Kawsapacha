@@ -9,21 +9,9 @@ import { localDate, recordId, validDate } from './plant-record'
 import { MAX_PHOTO_BYTES, optimizeMobilePhoto, PHOTO_ACCEPT } from '../../shared/photo-validation'
 import { usePlantVisualAnalysis } from './usePlantVisualAnalysis'
 import PlantVisualAnalysis from './PlantVisualAnalysis'
-import type { PlantVisualProfile } from './plant-visual-profile'
 
-// Held only in App memory while the visitor sets up their real garden.
-export type PlantRegistrationDraft = {
-  plot: number | null
-  species: string
-  photo: Blob | null
-  plantedOn: string
-  notice?: string
-  requestId?: string
-  recordSowing?: boolean
-  growthStage?: GrowthStage
-  visualProfile?: PlantVisualProfile
-  responsible?: string
-}
+import type { PlantRegistrationDraft } from './plant-registration-draft'
+export type { PlantRegistrationDraft } from './plant-registration-draft'
 
 export default function PlantRegistrationModal({ plants, initialPlot, initialSpecies, initialPhoto, initialPlantedOn, ready, notice, onConfirm, onClose, onSetup, initialSowing = false, initialGrowthStage, growthStageEnabled = true, initialResponsible = '', initialRequestId, speciesOptions = PLANT_SPECIES as unknown as PlantSpecies[] }: {
   plants: GardenPlant[]

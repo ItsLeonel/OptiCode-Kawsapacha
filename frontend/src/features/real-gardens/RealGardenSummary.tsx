@@ -1,4 +1,4 @@
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import RealGardenIcon from './RealGardenIcon'
 import { formatCoordinates } from './ExactLocationPicker'
 import { GARDEN_TYPE_IMAGES } from './garden-type-assets'

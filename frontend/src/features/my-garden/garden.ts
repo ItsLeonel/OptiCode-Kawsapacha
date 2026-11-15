@@ -10,6 +10,7 @@ export type PlantState = keyof typeof PLANT_STATES
 export type PlantEvidence = {
   id: string; date: string; notes: string; photo?: string; photoId?: string
   state?: PlantState; heightCm?: number; growthStage?: GrowthStage; visualProfile?: PlantVisualProfile
+  reviewStatus?: string
 }
 
 export type GardenPlant = {

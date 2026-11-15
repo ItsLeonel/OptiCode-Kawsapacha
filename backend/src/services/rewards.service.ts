@@ -3,6 +3,7 @@
 // Motor de recompensas centralizado "Semillas de vida" con Ledger inmutable
 
 import { prisma } from '../config/prisma'
+import { Prisma } from '@prisma/client'
 
 export type ActivityType =
   | 'preparation'
@@ -68,7 +69,7 @@ const ACTIVITY_LABELS_ES: Record<string, string> = {
  * Calcula el balance, historial de moderación y nivel de un usuario a partir del ledger y actividades.
  */
 export async function getUserRewardsSummary(userId: string) {
-  const [ledgerEntries, badges, missions, userActivities] = await Promise.all([
+  const [ledgerEntries, badges, missions, userActivities, activityStatuses] = await Promise.all([
     prisma.rewardLedger.findMany({
       where: { userId },
       orderBy: { awardedAt: 'desc' },
@@ -90,6 +91,7 @@ export async function getUserRewardsSummary(userId: string) {
       orderBy: { createdAt: 'desc' },
       take: 100,
     }),
+    prisma.gardenActivity.findMany({ where: { actorUserId: userId }, select: { id: true, reviewStatus: true } }),
   ])
 
   const totalPoints = Math.max(0, ledgerEntries.reduce((sum, entry) => sum + entry.pointsDelta, 0))
@@ -116,14 +118,28 @@ export async function getUserRewardsSummary(userId: string) {
     progressPercent = Math.min(100, Math.max(0, Math.round((totalPoints / 100) * 100)))
   }
 
-  const confirmedPoints = ledgerEntries
-    .filter(e => e.pointsDelta > 0)
-    .reduce((sum, e) => sum + e.pointsDelta, 0)
+  // El saldo incluye puntos provisionales hasta que el MSP los invalide.
+  // Clasificarlos desde movimientos efectivos, no desde puntos hipotéticos.
+  const activityStatus = new Map(activityStatuses.map(a => [a.id, a.reviewStatus]))
+  const reversalAmounts = new Map<string, number>()
+  for (const entry of ledgerEntries) {
+    if (entry.reversalOfLedgerId) {
+      reversalAmounts.set(entry.reversalOfLedgerId, (reversalAmounts.get(entry.reversalOfLedgerId) ?? 0) + entry.pointsDelta)
+    }
+  }
+  let confirmedPoints = 0
+  let provisionalPoints = 0
+  for (const entry of ledgerEntries) {
+    if (entry.pointsDelta <= 0) continue
+    const net = Math.max(0, entry.pointsDelta + (reversalAmounts.get(entry.id) ?? 0))
+    const status = activityStatus.get(entry.sourceId)
+    if (status === 'PENDING' || status === 'NEEDS_CHANGES') provisionalPoints += net
+    else if (status === 'APPROVED' || !status) confirmedPoints += net
+  }
   const revertedPoints = ledgerEntries
     .filter(e => e.pointsDelta < 0)
     .reduce((sum, e) => sum + Math.abs(e.pointsDelta), 0)
 
-  let provisionalPoints = 0
   const reviewEntries = userActivities.map(act => {
     const status = (['PENDING', 'NEEDS_CHANGES', 'APPROVED', 'REJECTED'].includes(act.reviewStatus)
       ? act.reviewStatus
@@ -136,20 +152,19 @@ export async function getUserRewardsSummary(userId: string) {
       .filter(e => e.sourceId === act.id && e.pointsDelta < 0)
       .reduce((s, e) => s + Math.abs(e.pointsDelta), 0)
 
-    const baseExpected = BASE_POINTS[act.type as ActivityType] ?? 0
     let effect: 'provisional' | 'confirmed' | 'reverted' | 'none' = 'none'
     let entryPoints: number | null = 0
 
-    if (actReverted > 0) {
+    const net = Math.max(0, actPositive - actReverted)
+    if (actReverted > 0 && net === 0) {
       effect = 'reverted'
       entryPoints = actReverted
     } else if (status === 'APPROVED') {
-      effect = actPositive > 0 ? 'confirmed' : 'none'
-      entryPoints = actPositive
+      effect = net > 0 ? 'confirmed' : 'none'
+      entryPoints = net
     } else if (status === 'PENDING' || status === 'NEEDS_CHANGES') {
-      effect = baseExpected > 0 ? 'provisional' : 'none'
-      entryPoints = baseExpected
-      provisionalPoints += baseExpected
+      effect = net > 0 ? 'provisional' : 'none'
+      entryPoints = net
     } else {
       effect = 'none'
       entryPoints = 0
@@ -202,7 +217,7 @@ export async function getUserRewardsSummary(userId: string) {
       updatedAt: new Date().toISOString(),
       totals: {
         provisional: provisionalPoints,
-        confirmed: Math.max(0, confirmedPoints - revertedPoints),
+        confirmed: confirmedPoints,
         reverted: revertedPoints,
       },
       entries: reviewEntries,
@@ -268,6 +283,11 @@ export async function evaluateActivityReward(activity: {
   })
 
   // Filtrar si alguna de esas actividades ya se premió para el mismo target
+  const reversed = await prisma.rewardLedger.findMany({
+    where: { userId, reversalOfLedgerId: { not: null } },
+    select: { reversalOfLedgerId: true },
+  })
+  const reversedIds = new Set(reversed.map(item => item.reversalOfLedgerId))
   const alreadyRewarded = existingActivitiesSameDay.some(act => {
     const actTarget = act.targetKind === 'plant' && act.plantId
       ? `plant:${act.plantId}`
@@ -276,7 +296,7 @@ export async function evaluateActivityReward(activity: {
       : 'garden'
     if (actTarget !== targetKey) return false
     // Verificar si tiene ledger de puntos positivo
-    return act.actorUser.rewardLedgers.some(ledger => ledger.sourceId === act.id)
+    return act.actorUser.rewardLedgers.some(ledger => ledger.sourceId === act.id && !reversedIds.has(ledger.id))
   })
 
   if (alreadyRewarded) {
@@ -327,8 +347,9 @@ export async function evaluateActivityReward(activity: {
 /**
  * Revierte la recompensa asociada a una actividad cuando esta es anulada.
  */
-export async function revertActivityReward(activityId: string, voidReason: string): Promise<number> {
-  const originalLedger = await prisma.rewardLedger.findFirst({
+export async function revertActivityReward(activityId: string, voidReason: string, tx?: Prisma.TransactionClient): Promise<number> {
+  const db = tx ?? prisma
+  const originalLedger = await db.rewardLedger.findFirst({
     where: {
       sourceId: activityId,
       pointsDelta: { gt: 0 },
@@ -340,7 +361,7 @@ export async function revertActivityReward(activityId: string, voidReason: strin
   }
 
   // Verificar si ya fue revertido
-  const existingReversal = await prisma.rewardLedger.findFirst({
+  const existingReversal = await db.rewardLedger.findFirst({
     where: {
       reversalOfLedgerId: originalLedger.id,
     },
@@ -352,7 +373,7 @@ export async function revertActivityReward(activityId: string, voidReason: strin
 
   const pointsToDeduct = -Math.abs(originalLedger.pointsDelta)
 
-  await prisma.rewardLedger.create({
+  await db.rewardLedger.create({
     data: {
       userId: originalLedger.userId,
       eventType: `${originalLedger.eventType}.reversal`,

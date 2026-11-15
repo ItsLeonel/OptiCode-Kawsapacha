@@ -2,7 +2,7 @@
 import { prisma } from '../config/prisma'
 import { logAudit } from './audit.service'
 import { createNotification } from './notification.service'
-import { evaluateActivityReward, getUserRewardsSummary } from './rewards.service'
+import { evaluateActivityReward, getUserRewardsSummary, revertActivityReward } from './rewards.service'
 import { syncUserMissionsAndBadges } from './missions.service'
 import { calculateGrowth } from './care.service'
 
@@ -242,12 +242,13 @@ export async function reviewActivity(
     throw Object.assign(new Error('No se puede revisar una actividad anulada.'), { code: 'ACTIVITY_VOIDED' })
   }
 
-  // Una decisión final no puede convertirse en otra sin una operación explícita
-  // de reversión auditada. Impide conservar puntos después de un rechazo.
-  if ((activity.reviewStatus === 'APPROVED' && action !== 'APPROVED')
+  // Permitir invalidar posteriormente una evidencia APPROVED, pero siempre
+  // revirtiendo su ledger en una operación transaccional y auditable.
+  // Reabrir un REJECTED requiere un proceso de apelación aparte.
+  if ((activity.reviewStatus === 'APPROVED' && action === 'NEEDS_CHANGES')
     || (activity.reviewStatus === 'REJECTED' && action !== 'REJECTED')) {
     throw Object.assign(
-      new Error('Esta actividad ya tiene una resolución definitiva. No se puede cambiar sin un proceso de reversión auditado.'),
+      new Error('Transición no permitida sin proceso de corrección o apelación.'),
       { code: 'REVIEW_FINALIZED' }
     )
   }
@@ -278,12 +279,7 @@ export async function reviewActivity(
   }
 
   if (action === 'APPROVED') {
-    if (activity.garden?.community && activity.garden.community.status !== 'APPROVED') {
-      throw Object.assign(
-        new Error(`No se puede aprobar una actividad de la comunidad «${activity.garden.community.name}» porque su estado actual es "${activity.garden.community.status}". Primero debe aprobar la comunidad antes de evaluar sus actividades.`),
-        { code: 'COMMUNITY_NOT_APPROVED' }
-      )
-    }
+    // La verificación de evidencias no depende de que la comunidad PENDING esté aprobada.
 
     // 1. Actualizar actividad a APPROVED
     const updated = await prisma.gardenActivity.update({
@@ -304,7 +300,7 @@ export async function reviewActivity(
       })
     }
 
-    // 2. Acreditar formalmente los puntos al usuario (Flujo auditado)
+    // 2. Confirmar los puntos ya ganados; el ledger evita una segunda acreditación.
     const rewardResult = await evaluateActivityReward({
       id: activity.id,
       actorUserId: activity.actorUserId,
@@ -315,7 +311,7 @@ export async function reviewActivity(
       plotIndex: activity.plotIndex,
     })
 
-    // 3. Sincronizar misiones e insignias del usuario tras ganar los puntos oficiales
+    // 3. Sincronizar misiones e insignias verificadas.
     await syncUserMissionsAndBadges(activity.actorUserId)
 
     // 3b. Si la actividad está ligada a una planta, recalcular su crecimiento y ciclo de vida
@@ -336,6 +332,7 @@ export async function reviewActivity(
       details: {
         pointsAwarded: rewardResult.pointsAwarded,
         totalPoints: rewardResult.totalPoints,
+        previousStatus: activity.reviewStatus,
         level: rewardResult.level,
       },
     })
@@ -346,7 +343,7 @@ export async function reviewActivity(
       userId: activity.actorUserId,
       type: 'ACTIVITY_APPROVED',
       title: '🌟 ¡Evidencia de actividad aprobada por el MSP!',
-      message: `Tu actividad de «${actNameEs}» del ${activity.performedDate} fue aprobada. +${rewardResult.pointsAwarded} Semillas de vida acreditadas oficialmente a tu cuenta.`,
+      message: `Tu actividad de «${actNameEs}» del ${activity.performedDate} fue verificada. Sus puntos registrados quedan confirmados; no se duplican recompensas.`,
       resourceId: activityId,
     })
 
@@ -387,42 +384,47 @@ export async function reviewActivity(
     return { activity: updated, reward: null }
   }
 
-  // action === 'REJECTED'
-  const updated = await prisma.gardenActivity.update({
-    where: { id: activityId },
-    data: {
-      reviewStatus: 'REJECTED',
-      reviewedById: reviewerId,
-      reviewReason: reason || null,
-      reviewedAt: new Date(),
-    },
-  })
-
-  // Si es siembra rechazada, marcar la planta también como REJECTED (bloqueada permanentemente)
-  if (activity.type === 'sowing' && activity.plantId) {
-    await prisma.cultivatedPlant.update({
-      where: { id: activity.plantId },
-      data: { reviewStatus: 'REJECTED' },
+  // action === 'REJECTED': estado y reversión deben confirmarse juntos.
+  const { updated, pointsReverted } = await prisma.$transaction(async tx => {
+    const changed = await tx.gardenActivity.updateMany({
+      where: { id: activityId, reviewStatus: activity.reviewStatus, voidedAt: null },
+      data: {
+        reviewStatus: 'REJECTED',
+        reviewedById: reviewerId,
+        reviewReason: reason || null,
+        reviewedAt: new Date(),
+      },
     })
-  }
+    if (changed.count !== 1) {
+      throw Object.assign(new Error('La actividad fue revisada por otra persona. Actualiza la bandeja.'), { code: 'REVIEW_FINALIZED' })
+    }
+    if (activity.type === 'sowing' && activity.plantId) {
+      await tx.cultivatedPlant.update({
+        where: { id: activity.plantId },
+        data: { reviewStatus: 'REJECTED' },
+      })
+    }
+    const pointsReverted = await revertActivityReward(activityId, `Invalidación MSP: ${reason}`, tx)
+    const updated = await tx.gardenActivity.findUniqueOrThrow({ where: { id: activityId } })
+    return { updated, pointsReverted }
+  })
+  await syncUserMissionsAndBadges(activity.actorUserId)
 
   await logAudit({
     actorId: reviewerId,
     action: 'ACTIVITY_REJECTED',
     targetResource: 'activity',
     targetId: activityId,
-    details: { reason },
+    details: { reason, previousStatus: activity.reviewStatus, pointsReverted },
   })
-
   const actNameEs = ACTIVITY_NAMES_ES[activity.type] || activity.type
   await createNotification({
     userId: activity.actorUserId,
     type: 'ACTIVITY_REJECTED',
-    title: '⚠️ Actividad no aprobada por el MSP',
-    message: `Tu actividad de «${actNameEs}» no fue aprobada por el siguiente motivo: ${reason}.`,
+    title: '⚠️ Actividad invalidada por el MSP',
+    message: `Tu actividad de «${actNameEs}» fue invalidada: ${reason}. Ajuste de puntos: ${pointsReverted} Semillas.`,
     resourceId: activityId,
   })
-
   return { activity: updated, reward: null }
 }
 
@@ -509,4 +511,7 @@ export async function createEducationalResource(input: {
 
 export async function deleteEducationalResource(id: string) {
   return prisma.mspEducationalResource.delete({ where: { id } })
+}
+
+  return { activity: updated, reward: null, pointsReverted }
 }

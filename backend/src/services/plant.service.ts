@@ -1,6 +1,7 @@
 import { prisma } from '../config/prisma'
 import path from 'path'
 import { assertGardenAccess } from './activity.service'
+import { evaluateActivityReward } from './rewards.service'
 
 const MAX_PLOTS = 6
 
@@ -50,19 +51,7 @@ export async function registerPlant(input: RegisterPlantInput) {
     }
   }
 
-  // Verificar que el huerto existe y si pertenece a una comunidad, que esté aprobada por el MSP
-  const garden = await prisma.realGarden.findUnique({
-    where: { id: input.realGardenId },
-    include: { community: true },
-  })
-  if (!garden) throw Object.assign(new Error('El huerto no existe.'), { code: 'GARDEN_NOT_FOUND' })
-
-  if (garden.community && garden.community.status !== 'APPROVED') {
-    throw Object.assign(
-      new Error('La comunidad aún no ha sido aprobada por el MSP. No se puede sembrar hasta su verificación institucional.'),
-      { code: 'COMMUNITY_NOT_APPROVED' }
-    )
-  }
+  // assertGardenAccess ya verificó existencia y permisos; PENDING no bloquea siembra.
 
   // Verificar que la especie existe
   const species = await prisma.medicinalCatalog.findUnique({ where: { id: input.speciesId } })
@@ -89,7 +78,7 @@ export async function registerPlant(input: RegisterPlantInput) {
       photoPath: input.file.path,
       photoMime: input.file.mimetype,
       photoSize: input.file.size,
-      reviewStatus: 'PENDING', // Siembra inicia en estado PENDING: requiere aprobación del MSP
+      reviewStatus: 'PENDING', // Registrada y utilizable; la revisión MSP es posterior.
     },
     include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },
   })
@@ -133,8 +122,16 @@ export async function registerPlant(input: RegisterPlantInput) {
       })
     }
 
-    // La actividad de siembra queda en reviewStatus: 'PENDING' para auditoría del MSP.
-    // Los puntos (Semillas de vida) se acreditarán formalmente al aprobarse la evidencia fotográfica.
+    // Puntos provisionales inmediatos; el MSP confirmará o revertirá el crédito.
+    await evaluateActivityReward({
+      id: sowingActivity.id,
+      actorUserId: input.registeredById,
+      type: 'sowing',
+      performedDate,
+      targetKind: 'plant',
+      plantId: createdPlant.id,
+      plotIndex: input.plotIndex,
+    })
   } catch (actErr) {
     console.error('Error al registrar actividad automática de siembra en Bitácora:', actErr)
   }
@@ -147,8 +144,8 @@ export async function registerPlant(input: RegisterPlantInput) {
 
 function extractGrowthStage(activities: Array<{ details: string; type: string; reviewStatus: string }>): string | undefined {
   for (const act of activities) {
-    // Una etapa proveniente de seguimiento solo aplica cuando fue aprobada, mientras que la etapa inicial de siembra conserva la evidencia de registro.
-    if (act.type !== 'sowing' && act.reviewStatus !== 'APPROVED') continue
+    // La etapa registrada se refleja de inmediato; una evidencia rechazada no gobierna el espejo.
+    if (act.reviewStatus === 'REJECTED') continue
     try {
       const parsed = JSON.parse(act.details || '{}') as { growthStage?: string }
       if (parsed.growthStage && typeof parsed.growthStage === 'string') {

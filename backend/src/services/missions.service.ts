@@ -137,6 +137,11 @@ export async function syncUserMissionsAndBadges(userId: string) {
     }
   }
 
+  // Una invalidación posterior puede deshacer misiones ya acreditadas.
+  for (const missionId of ['care', 'observer', 'lunar-cycle']) {
+    await reconcileMissionBonus(userId, missionId, desiredBadges.has(missionId))
+  }
+
   // Obtener estado final
   const badges = await prisma.userBadge.findMany({
     where: { userId },
@@ -209,23 +214,34 @@ async function updateMissionProgress(
 }
 
 async function awardMissionBonusIfMissing(userId: string, missionId: string) {
-  const existing = await prisma.rewardLedger.findUnique({
-    where: {
-      userId_eventType_sourceId: {
-        userId,
-        eventType: 'mission.completed',
-        sourceId: missionId,
-      },
-    },
+  await reconcileMissionBonus(userId, missionId, true)
+}
+
+async function reconcileMissionBonus(userId: string, missionId: string, completed: boolean) {
+  const entries = await prisma.rewardLedger.findMany({
+    where: { userId, sourceId: missionId, eventType: { startsWith: 'mission.completed' } },
+    orderBy: { awardedAt: 'asc' },
   })
-  if (!existing) {
+  const reversedIds = new Set(entries.filter(e => e.reversalOfLedgerId).map(e => e.reversalOfLedgerId))
+  const current = entries.filter(e => e.pointsDelta > 0 && !reversedIds.has(e.id)).at(-1)
+  if (!completed && current) {
+    await prisma.rewardLedger.create({
+      data: {
+        userId, eventType: `${current.eventType}.reversal`,
+        ruleKey: `mission.${missionId}.reversal`, sourceId: missionId,
+        pointsDelta: -current.pointsDelta,
+        reversalOfLedgerId: current.id,
+        reason: 'Misión revertida tras invalidación de evidencia',
+      },
+    })
+  } else if (completed && !current) {
     const title = MISSION_TITLES[missionId] || missionId
+    const awardedCount = entries.filter(e => e.pointsDelta > 0).length
     await prisma.rewardLedger.create({
       data: {
         userId,
-        eventType: 'mission.completed',
-        ruleKey: `mission.${missionId}.completed`,
-        sourceId: missionId,
+        eventType: awardedCount === 0 ? 'mission.completed' : `mission.completed.reactivated.${awardedCount}`,
+        ruleKey: `mission.${missionId}.completed`, sourceId: missionId,
         pointsDelta: 20,
         reason: `Misión completada: «${title}» (+20 Semillas de vida)`,
       },

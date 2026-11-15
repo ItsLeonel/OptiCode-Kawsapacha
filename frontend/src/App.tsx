@@ -345,6 +345,8 @@ export default function App({
       reviewedById: b.reviewedById ?? undefined,
       reviewReason: b.reviewReason ?? undefined,
       reviewedAt: b.reviewedAt ?? undefined,
+      careLogId: b.careLogId ?? null,
+      harvestRecordId: b.harvestRecordId ?? null,
     }
   }
 

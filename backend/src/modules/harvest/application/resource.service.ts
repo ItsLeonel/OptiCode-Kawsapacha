@@ -1,49 +1,12 @@
-// backend/src/modules/harvest/application/resource.service.ts
-import { prisma } from '../../../infrastructure/database/prisma'
+import type { ResourceInput } from '../domain/resource'
+import type { ResourceRepository } from './ports/resource.repository'
 
-export async function listResources(communityId: string) {
-  return prisma.communityResource.findMany({
-    where: { communityId },
-    orderBy: { createdAt: 'asc' },
-  })
-}
-
-export async function createResource(
-  communityId: string,
-  data: {
-    name: string
-    category: string
-    quantity: number
-    unit: string
-    status: string
-    description: string
+/** Casos de uso sin dependencia directa de Prisma, SQLite o HTTP. */
+export function createResourceService<T>(repository: ResourceRepository<T>) {
+  return {
+    listResources: (communityId: string) => repository.findMany(communityId),
+    createResource: (communityId: string, data: ResourceInput) => repository.create(communityId, data),
+    updateResource: (resourceId: string, data: Partial<ResourceInput>) => repository.update(resourceId, data),
+    deleteResource: (resourceId: string) => repository.delete(resourceId),
   }
-) {
-  return prisma.communityResource.create({
-    data: { communityId, ...data },
-  })
 }
-
-export async function updateResource(
-  resourceId: string,
-  data: Partial<{
-    name: string
-    category: string
-    quantity: number
-    unit: string
-    status: string
-    description: string
-  }>
-) {
-  return prisma.communityResource.update({
-    where: { id: resourceId },
-    data,
-  })
-}
-
-export async function deleteResource(resourceId: string) {
-  return prisma.communityResource.delete({
-    where: { id: resourceId },
-  })
-}
-

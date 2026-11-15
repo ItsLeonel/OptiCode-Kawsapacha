@@ -2,7 +2,7 @@
 import type { Response } from 'express'
 import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
-import * as resourceService from '../application/resource.service'
+import * as resourceService from '../resource.module'
 
 export async function list(req: AuthRequest, res: Response): Promise<void> {
   try {

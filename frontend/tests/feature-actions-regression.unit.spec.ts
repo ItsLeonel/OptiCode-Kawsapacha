@@ -16,6 +16,7 @@ test('registro de planta visitante conserva comando, fotografía y navegación',
     },
   }
   const actions = createPlantActions({
+    plantApi: {} as any, resolveMediaUrl: (url: string) => url,
     user: null, activeGardenId: null, activeCommunityId: null, activePlants: [],
     plants: [], communityRecord: {} as any, realGarden: {} as any, journal,
     editingPlant: undefined, detail: null, currentCommunityRole: null,
@@ -59,6 +60,7 @@ test('actividad visitante conserva evidencia local y anulación', async () => {
     },
   }
   const actions = createActivityActions({
+    activityApi: {} as any,
     user: null, activeGardenId: null, backendPlants: [],
     realGarden: {} as any, communityRecord: {} as any, plants: [],
     backendCommunity: null, activeCommunityId: null, selectedPlot: null,

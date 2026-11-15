@@ -19,6 +19,9 @@ import { type GardenAction, type GardenDestination, type GardenPlant } from '../
 import type { AuthSubmission } from '../features/auth/auth'
 import {
   authApi,
+  plantApi,
+  activityApi,
+  resolveMediaUrl,
   communityApi,
   invitationApi,
   notificationApi,
@@ -402,11 +405,11 @@ export default function App({
 
   const { addPlant, selectPlant, registerInPlot, updatePlant, archivePlant, restorePlant,
     handlePlantHarvested, handlePlantRemoved } = createPlantActions({
-    user, activeGardenId, activeCommunityId, activePlants, plants, communityRecord, realGarden, journal, editingPlant, detail, currentCommunityRole, setNotice, setBackendPlants, setRegistration, setDetailId, setSelectedPlot, setServerActivityRevision, setEditingId, setPendingRegistration, reloadBackendActivities, loadGardenForCommunity, goto
+    plantApi, resolveMediaUrl, user, activeGardenId, activeCommunityId, activePlants, plants, communityRecord, realGarden, journal, editingPlant, detail, currentCommunityRole, setNotice, setBackendPlants, setRegistration, setDetailId, setSelectedPlot, setServerActivityRevision, setEditingId, setPendingRegistration, reloadBackendActivities, loadGardenForCommunity, goto
   })
 
   const { openActivity, saveActivity, voidActivity } = createActivityActions({
-    user, activeGardenId, backendPlants, realGarden, communityRecord, plants, backendCommunity, activeCommunityId, selectedPlot, setDetailId, setActivityForm, goto, setNotice, reloadBackendActivities, loadGardenForCommunity, reloadServerRewards, loadPendingInvitations, setServerActivityRevision, screen, setFeedback, journal
+    activityApi, user, activeGardenId, backendPlants, realGarden, communityRecord, plants, backendCommunity, activeCommunityId, selectedPlot, setDetailId, setActivityForm, goto, setNotice, reloadBackendActivities, loadGardenForCommunity, reloadServerRewards, loadPendingInvitations, setServerActivityRevision, screen, setFeedback, journal
   })
 
   function navigateGarden(destination: GardenDestination) {

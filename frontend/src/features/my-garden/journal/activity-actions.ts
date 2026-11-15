@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { activityApi, type UserSession } from '../../../shared/api/client'
+import type { activityApi as ActivityApiSingleton, UserSession } from '../../../shared/api/client'
 import type { Community } from '../../communities/communities'
 import type { RealGarden } from '../../real-gardens/real-garden'
 import type { GardenPlant } from '../garden'
@@ -13,6 +13,7 @@ type ActivityForm = {plantId?: string; plot?: number | null; type?: ActivityType
 type ActivityFeedback = {id: string; type: ActivityType; plot: number | null} | null
 
 type ActivityActionsContext = {
+  activityApi: typeof ActivityApiSingleton
   user: UserSession | null
   activeGardenId: string | null
   backendPlants: GardenPlant[]
@@ -37,7 +38,7 @@ type ActivityActionsContext = {
 }
 
 /** Orquesta registros en servidor y modo visitante; no administra navegación global. */
-export function createActivityActions({user, activeGardenId, backendPlants, realGarden, communityRecord, plants, backendCommunity, activeCommunityId, selectedPlot, setDetailId, setActivityForm, goto, setNotice, reloadBackendActivities, loadGardenForCommunity, reloadServerRewards, loadPendingInvitations, setServerActivityRevision, screen, setFeedback, journal}: ActivityActionsContext) {
+export function createActivityActions({activityApi, user, activeGardenId, backendPlants, realGarden, communityRecord, plants, backendCommunity, activeCommunityId, selectedPlot, setDetailId, setActivityForm, goto, setNotice, reloadBackendActivities, loadGardenForCommunity, reloadServerRewards, loadPendingInvitations, setServerActivityRevision, screen, setFeedback, journal}: ActivityActionsContext) {
   function openActivity(plant?: GardenPlant, type?: ActivityType) {
     if (user && (activeGardenId || backendPlants.length > 0)) {
       setDetailId(null)

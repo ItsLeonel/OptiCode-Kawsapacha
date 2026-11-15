@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { plantApi, resolveMediaUrl, type UserSession } from '../../shared/api/client'
+import type { plantApi as PlantApiSingleton, resolveMediaUrl as ResolveMediaUrl, UserSession } from '../../shared/api/client'
 import type { Community } from '../communities/communities'
 import type { RealGarden } from '../real-gardens/real-garden'
 import { PLOT_COUNT, type GardenPlant } from './garden'
@@ -12,6 +12,8 @@ import { useGardenJournal } from './journal/useGardenJournal'
 import { photoExtension } from '../../shared/utils/photo-extension'
 
 type PlantActionsContext = {
+  plantApi: typeof PlantApiSingleton
+  resolveMediaUrl: typeof ResolveMediaUrl
   user: UserSession | null
   activeGardenId: string | null
   activeCommunityId: string | null
@@ -37,7 +39,7 @@ type PlantActionsContext = {
 }
 
 /** Comandos de plantas: misma semántica para sesión SQLite y visitante IndexedDB. */
-export function createPlantActions({user, activeGardenId, activeCommunityId, activePlants, plants, communityRecord, realGarden, journal, editingPlant, detail, currentCommunityRole, setNotice, setBackendPlants, setRegistration, setDetailId, setSelectedPlot, setServerActivityRevision, setEditingId, setPendingRegistration, reloadBackendActivities, loadGardenForCommunity, goto}: PlantActionsContext) {
+export function createPlantActions({plantApi, resolveMediaUrl, user, activeGardenId, activeCommunityId, activePlants, plants, communityRecord, realGarden, journal, editingPlant, detail, currentCommunityRole, setNotice, setBackendPlants, setRegistration, setDetailId, setSelectedPlot, setServerActivityRevision, setEditingId, setPendingRegistration, reloadBackendActivities, loadGardenForCommunity, goto}: PlantActionsContext) {
   async function addPlant(input: PlantRegistration): Promise<PlantRegistrationResult> {
     if (user) {
       if (!activeGardenId) {

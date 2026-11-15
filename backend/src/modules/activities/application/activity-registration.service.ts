@@ -1,13 +1,11 @@
-import { prisma } from '../../../infrastructure/database/prisma'
-import { harvestPlant } from '../../harvest/harvest.module'
-import { evaluateActivityReward } from '../../rewards/application/rewards.service'
-import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
+import type { ActivityRegistrationRepository, ActivityRegistrationServices } from './ports/activity-registration.repository'
 import { validateCareAction } from '../domain/care-validation'
-import { assertGardenAccess } from '../../gardens/garden-access.module'
 import type { CreateActivityInput } from './activity-input'
 import { VALID_ACTIVITY_TYPES } from '../domain/activity-types'
 
-export async function createGardenActivity(input: CreateActivityInput) {
+export function createActivityRegistrationService(repository:ActivityRegistrationRepository,services:ActivityRegistrationServices) {
+const {assertGardenAccess,harvestPlant,evaluateActivityReward,syncUserMissionsAndBadges}=services
+return async function createGardenActivity(input: CreateActivityInput) {
   const {
     gardenId,
     actorUserId,
@@ -49,10 +47,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
 
   // 4. Idempotencia: si ya existe una actividad con el clientActivityId, devolverla
   if (clientActivityId) {
-    const existing = await prisma.gardenActivity.findUnique({
-      where: { clientActivityId },
-      include: { evidences: true, actorUser: { select: { id: true, name: true, email: true } } },
-    })
+    const existing = await repository.findClientActivity(clientActivityId)
     if (existing) {
       if (existing.gardenId !== gardenId || existing.actorUserId !== actorUserId) {
         throw Object.assign(new Error('El identificador de actividad ya pertenece a otra operación o cuenta.'), { code: 'ACTIVITY_ID_CONFLICT' })
@@ -71,10 +66,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
         throw new Error('Índice de parcela inválido (debe ser entre 0 y 5).')
       }
       // Verificar si hay una planta viva en esa parcela
-      const plantInPlot = await prisma.cultivatedPlant.findFirst({
-        where: { realGardenId: gardenId, plotIndex, archivedAt: null, lifecycleStatus: { not: 'REMOVED' } },
-        include: { species: true },
-      })
+      const plantInPlot = await repository.findPlantInPlot(gardenId,plotIndex as number)
       if (!plantInPlot) {
         throw new Error('Ese espacio no tiene una planta sembrada. En espacios vacíos solo se permite la preparación del terreno.')
       }
@@ -88,10 +80,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
       if (!plantId) {
         throw new Error('Se requiere especificar plantId cuando el objetivo es una planta.')
       }
-      plantRecord = await prisma.cultivatedPlant.findUnique({
-        where: { id: plantId },
-        include: { species: true },
-      })
+      plantRecord = await repository.findPlant(plantId as string)
       if (!plantRecord || plantRecord.realGardenId !== gardenId) {
         throw new Error('La planta seleccionada no pertenece a este huerto.')
       }
@@ -108,9 +97,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
       if (plotIndex === null || plotIndex === undefined || plotIndex < 0 || plotIndex >= 6) {
         throw new Error('Índice de parcela inválido (debe ser entre 0 y 5).')
       }
-      const plantInPlot = await prisma.cultivatedPlant.findFirst({
-        where: { realGardenId: gardenId, plotIndex, archivedAt: null, lifecycleStatus: { not: 'REMOVED' } },
-      })
+      const plantInPlot = await repository.findPlantInPlot(gardenId,plotIndex as number)
       if (plantInPlot) {
         throw new Error('Ese espacio ya tiene una planta sembrada. No se puede realizar preparación del terreno.')
       }
@@ -119,10 +106,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
     if (!plantId) {
       throw new Error('Se requiere especificar plantId cuando el objetivo es una planta.')
     }
-    plantRecord = await prisma.cultivatedPlant.findUnique({
-      where: { id: plantId },
-      include: { species: true },
-    })
+    plantRecord = await repository.findPlant(plantId as string)
     if (!plantRecord || plantRecord.realGardenId !== gardenId) {
       throw new Error('La planta seleccionada no pertenece a este huerto.')
     }
@@ -140,10 +124,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
     if (plotIndex === null || plotIndex === undefined || plotIndex < 0 || plotIndex >= 6) {
       throw new Error('Índice de parcela inválido (debe ser entre 0 y 5).')
     }
-    const plantInPlot = await prisma.cultivatedPlant.findFirst({
-      where: { realGardenId: gardenId, plotIndex, archivedAt: null, lifecycleStatus: { not: 'REMOVED' } },
-      include: { species: true },
-    })
+    const plantInPlot = await repository.findPlantInPlot(gardenId,plotIndex as number)
     if (plantInPlot) {
       if (type === 'sowing') {
         throw Object.assign(
@@ -170,10 +151,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
       const actionType = type === 'watering' ? 'WATERING' : type === 'fertilizing' ? 'FERTILIZER' : 'PRUNING'
 
       // Validar sobrecuidado antes de registrar el cuidado
-      const plantForCare = await prisma.cultivatedPlant.findUnique({
-        where: { id: plantId },
-        include: { species: true, careLogs: true },
-      })
+      const plantForCare = await repository.findPlantForCare(plantId as string)
       if (plantForCare) {
         const careValidation = await validateCareAction(plantId, actionType, {
           lifecycleStatus: plantForCare.lifecycleStatus,
@@ -187,28 +165,17 @@ export async function createGardenActivity(input: CreateActivityInput) {
         }
       }
 
-      const careLog = await prisma.careLog.create({
-        data: {
+      const careLog = await repository.createCareLog({
           plantId,
           actionType,
           notes: notes || `Registrado desde Bitácora Viva (${type})`,
           userId: actorUserId,
           performedAt: new Date(performedDate + 'T12:00:00.000Z'),
-        },
-      })
+        })
       linkedCareLogId = careLog.id
     } else if (type === 'hilling') {
       // Validar que no se repita aporque en los últimos 7 días
-      const recentHilling = await prisma.gardenActivity.findFirst({
-        where: {
-          plantId,
-          type: 'hilling',
-          voidedAt: null,
-          performedDate: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          },
-        },
-      })
+      const recentHilling = await repository.findRecentHilling(plantId as string,new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
       if (recentHilling) {
         throw Object.assign(
           new Error('La planta ya cuenta con aporque reciente en su base. El exceso de aporque puede compactar la tierra o cubrir tallos tiernos.'),
@@ -233,8 +200,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
   }
 
   // 7. Persistir la actividad en la base de datos
-  const activity = await prisma.gardenActivity.create({
-    data: {
+  const activity = await repository.createActivity({
       gardenId,
       actorUserId,
       type,
@@ -248,20 +214,17 @@ export async function createGardenActivity(input: CreateActivityInput) {
       careLogId: linkedCareLogId,
       harvestRecordId: linkedHarvestRecordId,
       reviewStatus: 'APPROVED', // Válida al registrarse; reviewedAt null hasta una auditoría MSP.
-    },
-  })
+    })
 
   // 8. Si se adjuntó fotografía de evidencia, persistirla
   if (evidenceFile) {
-    await prisma.activityEvidence.create({
-      data: {
+    await repository.createEvidence({
         activityId: activity.id,
         filePath: evidenceFile.path,
         fileUrl: `/uploads/activities/${evidenceFile.filename}`,
         mimeType: evidenceFile.mimetype,
         fileSize: evidenceFile.size,
-      },
-    })
+      })
   }
 
   // La actividad queda activa y sus Semillas se acreditan de inmediato.
@@ -278,18 +241,12 @@ export async function createGardenActivity(input: CreateActivityInput) {
   await syncUserMissionsAndBadges(actorUserId)
 
   // 11. Retornar actividad completa con evidencias
-  const fullActivity = await prisma.gardenActivity.findUnique({
-    where: { id: activity.id },
-    include: {
-      evidences: true,
-      actorUser: { select: { id: true, name: true, email: true } },
-      plant: { select: { id: true, customName: true, plotIndex: true, species: true } },
-    },
-  })
+  const fullActivity = await repository.findFullActivity(activity.id)
 
   return {
     activity: fullActivity,
     isDuplicate: false,
     reward,
   }
+}
 }

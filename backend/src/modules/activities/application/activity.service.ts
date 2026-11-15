@@ -1,11 +1,11 @@
-// backend/src/services/activity.service.ts
+// backend/src/modules/activities/application/activity.service.ts
 // Responsable: Ronny Veloz (Rodni15)
 // Bitácora Viva: Servicio de registro, consulta y anulación de actividades agrícolas con evidencias
 
-import { prisma } from '../config/prisma'
-import { harvestPlant } from './harvest.service'
-import { evaluateActivityReward, revertActivityReward } from './rewards.service'
-import { syncUserMissionsAndBadges } from './missions.service'
+import { prisma } from '../../../infrastructure/database/prisma'
+import { harvestPlant } from '../../harvest/application/harvest.service'
+import { evaluateActivityReward, revertActivityReward } from '../../rewards/application/rewards.service'
+import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 import { validateCareAction } from './care.service'
 
 export const VALID_ACTIVITY_TYPES = [

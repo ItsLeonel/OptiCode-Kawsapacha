@@ -1,7 +1,7 @@
-// backend/src/services/community.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/communities/application/community.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 import { isCommunityResponsable } from './member.service'
-import { withEntityPhoto } from './entity-photo.service'
+import { withEntityPhoto } from '../../media/application/entity-photo.service'
 
 export interface CreateCommunityInput {
   name: string

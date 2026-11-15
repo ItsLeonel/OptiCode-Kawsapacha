@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import { mkdir, writeFile, unlink } from 'fs/promises'
 import path from 'path'
 
-export const uploadsRoot = path.resolve(process.env['UPLOADS_DIR'] || path.resolve(__dirname, '../../uploads'))
+export const uploadsRoot = path.resolve(process.env['UPLOADS_DIR'] || path.resolve(__dirname, '../../../../uploads'))
 export const PHOTO_MAX_BYTES = 3 * 1024 * 1024
 export const PHOTO_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 type PhotoFolder = 'communities' | 'gardens'

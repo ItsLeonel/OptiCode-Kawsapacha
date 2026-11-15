@@ -1,5 +1,5 @@
-// backend/src/services/care.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/activities/application/care.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 
 // ─── Días de rebrote por especie (catálogo botánico andino) ───────────────────
 // Menta / Hierbabuena: 14-18 días | Manzanilla: 12-15 | Llantén: 12-16

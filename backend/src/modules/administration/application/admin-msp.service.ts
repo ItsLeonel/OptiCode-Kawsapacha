@@ -1,10 +1,10 @@
-// backend/src/services/admin-msp.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/administration/application/admin-msp.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 import { logAudit } from './audit.service'
-import { createNotification } from './notification.service'
-import { evaluateActivityReward, getUserRewardsSummary, revertActivityReward } from './rewards.service'
-import { syncUserMissionsAndBadges } from './missions.service'
-import { calculateGrowth } from './care.service'
+import { createNotification } from '../../notifications/application/notification.service'
+import { evaluateActivityReward, getUserRewardsSummary, revertActivityReward } from '../../rewards/application/rewards.service'
+import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
+import { calculateGrowth } from '../../activities/application/care.service'
 
 // ─── SUPERVISIÓN DE COMUNIDADES (MSP) ─────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import { prisma } from '../config/prisma'
+import { prisma } from '../../../infrastructure/database/prisma'
 
 export const CATALOG_REGIONS = ['costa', 'sierra', 'oriente', 'galapagos'] as const
 export type CatalogRegion = typeof CATALOG_REGIONS[number]

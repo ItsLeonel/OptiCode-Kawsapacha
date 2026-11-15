@@ -1,7 +1,7 @@
-// backend/src/services/garden.service.ts
-import { prisma } from '../config/prisma'
-import { isCommunityResponsable } from './member.service'
-import { withEntityPhoto } from './entity-photo.service'
+// backend/src/modules/gardens/application/garden.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
+import { isCommunityResponsable } from '../../communities/application/member.service'
+import { withEntityPhoto } from '../../media/application/entity-photo.service'
 
 export interface CreateGardenInput {
   name: string

@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
-import { prisma } from '../config/prisma'
-import { signToken } from '../utils/jwt'
-import type { AuthenticatedUser, UserRole } from '../types'
+import { prisma } from '../../../infrastructure/database/prisma'
+import { signToken } from '../../../shared/utils/jwt'
+import type { AuthenticatedUser, UserRole } from '../../../shared/types/index'
 
 const SALT_ROUNDS = 10
 

@@ -1,5 +1,5 @@
-// backend/src/services/harvest.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/harvest/application/harvest.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 
 export async function harvestPlant(
   plantId: string,

@@ -1,8 +1,8 @@
-// backend/src/services/admin-technical.service.ts
+// backend/src/modules/administration/application/admin-technical.service.ts
 import bcrypt from 'bcryptjs'
-import { prisma } from '../config/prisma'
+import { prisma } from '../../../infrastructure/database/prisma'
 import { logAudit } from './audit.service'
-import type { UserRole } from '../types'
+import type { UserRole } from '../../../shared/types/index'
 
 export async function provisionMspUser(
   input: { name: string; email: string; password: string },

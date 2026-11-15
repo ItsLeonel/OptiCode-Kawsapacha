@@ -1,5 +1,5 @@
-// backend/src/services/audit.service.ts
-import { prisma } from '../config/prisma'
+// backend/src/modules/administration/application/audit.service.ts
+import { prisma } from '../../../infrastructure/database/prisma'
 
 export interface LogAuditInput {
   actorId: string

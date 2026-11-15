@@ -438,7 +438,9 @@ export default function App({
 
   async function reloadBackendActivities(gId: string) {
     try {
-      const list = await activityApi.list(gId)
+      // Recuperar también las anuladas: conservan enlaces a cuidados/cosechas
+      // y evitan que la Bitácora vuelva a mostrarlas como registros legados activos.
+      const list = await activityApi.list(gId, { includeVoided: true })
       if (list && Array.isArray(list)) {
         setBackendActivities(list.map(mapBackendActivity))
       }

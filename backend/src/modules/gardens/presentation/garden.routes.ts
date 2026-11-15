@@ -1,8 +1,6 @@
 import { Router } from 'express'
 import { create, list, getById, update } from './garden.controller'
-import { register as registerPlant, listByGarden } from '../../plants/presentation/plant.controller'
 import { requireAuth } from '../../../shared/middlewares/auth.middleware'
-import { uploadPlantPhoto } from '../../../shared/middlewares/upload.middleware'
 import { uploadEntityPhoto } from '../../../shared/middlewares/entity-photo.middleware'
 
 const router = Router()
@@ -14,9 +12,5 @@ router.post('/', requireAuth, uploadEntityPhoto, create)
 router.get('/:id', requireAuth, getById)
 // Actualizar huerto: solo el creador (verificado en el controlador)
 router.put('/:id', requireAuth, uploadEntityPhoto, update)
-
-// Plantas del huerto virtual (anidadas bajo el huerto)
-router.get('/:gardenId/plants', requireAuth, listByGarden)
-router.post('/:gardenId/plants', requireAuth, uploadPlantPhoto, registerPlant)
 
 export default router

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import authRoutes from '../modules/auth/presentation/auth.routes'
 import communityRoutes from '../modules/communities/presentation/community.routes'
-import gardenRoutes from '../modules/gardens/presentation/garden.routes'
+import gardenRoutes from './garden-router'
 import catalogRoutes from '../modules/catalog/presentation/catalog.routes'
 import plantRoutes from '../modules/plants/presentation/plant.routes'
 import memberRoutes from '../modules/communities/presentation/member.routes'

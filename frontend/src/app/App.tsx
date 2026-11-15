@@ -51,37 +51,13 @@ import { type ActivityDraft, type ActivityType, type GardenActivity } from '../f
 import '../features/my-garden/garden-journal.css'
 import GardenProgress from '../features/my-garden/GardenProgress'
 import { calculateProgress } from '../features/my-garden/journal/progress'
+import { currentScreen, SCREEN_PATHS, type Screen } from './navigation'
+import { draftKey } from '../features/real-gardens/draft-key'
+import { photoExtension } from '../shared/utils/photo-extension'
 
-type Screen = 'Bienvenida' | 'Inicio' | 'Usuarios' | 'Comunidades' | 'Mi terreno' | 'Plantas medicinales' | 'Mis plantas' | 'Bitácora' | 'Mi historia' | 'Mi camino verde'
 
-const SCREEN_PATHS: Record<Screen, string> = {
-  Bienvenida: '#bienvenida',
-  Inicio: '#mi-jardin',
-  Usuarios: '#usuarios',
-  Comunidades: '#comunidades',
-  'Mi terreno': '#mi-jardin/terreno',
-  'Plantas medicinales': '#plantas',
-  'Mis plantas': '#mis-plantas',
-  'Bitácora': '#bitacora',
-  'Mi historia': '#mi-historia',
-  'Mi camino verde': '#progreso',
-}
 
-function currentScreen(): Screen {
-  if (window.location.hash.startsWith('#plantas/')) return 'Plantas medicinales'
-  if (window.location.hash === '#huerto-real') return 'Mi terreno'
-  return (Object.keys(SCREEN_PATHS) as Screen[]).find(key => SCREEN_PATHS[key] === window.location.hash) ?? 'Bienvenida'
-}
 
-const draftKey = (draft: RealGardenDraft) =>
-  JSON.stringify({ ...draft, photo: draft.photo ? [draft.photo.name, draft.photo.size, draft.photo.lastModified] : null })
-
-function photoExtension(blob: Blob): string {
-  const mime = (blob.type || '').toLowerCase()
-  if (mime === 'image/png') return 'png'
-  if (mime === 'image/webp') return 'webp'
-  return 'jpg'
-}
 
 export default function App({
   onAuthenticate,

@@ -238,6 +238,14 @@ export async function runPhase45MspRbacTests() {
   const afterReApprove = await getUserRewardsSummary(registrationResult.user.id)
   assert.equal(afterReApprove.points, 5)
 
+  // Una aprobación ya acreditada no puede pasar a REJECTED y dejar puntos inconsistentes
+  await assert.rejects(
+    () => reviewActivity(act1Result.activity!.id, 'REJECTED', mspUser.id, 'Rechazo posterior a aprobación'),
+    { code: 'REVIEW_FINALIZED' }
+  )
+  const afterBlockedRejection = await getUserRewardsSummary(registrationResult.user.id)
+  assert.equal(afterBlockedRejection.points, 5, 'No se deben perder ni conservar saldos inconsistentes tras una revisión inválida')
+
   // El usuario debe tener la notificación de actividad aprobada
   const notifsAfterApprove = await listUserNotifications(registrationResult.user.id)
   assert.ok(notifsAfterApprove.notifications.some(n => n.type === 'ACTIVITY_APPROVED'))

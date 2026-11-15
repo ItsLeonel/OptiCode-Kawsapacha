@@ -3,7 +3,8 @@ import { test, expect } from './e2e'
 test('art direction: all regions and kinds, soil changes and removal of registered infrastructure', async ({ page }) => {
   test.skip(process.env.GARDEN_POC_PREVIEW === '1', 'Visual fixture is deliberately absent from the application builds.')
   const errors: string[] = []
-  page.on('pageerror', error => errors.push(error.message))
+  page.on('pageerror', error => { errors.push(error.message); console.log('[CI][Garden pageerror]', error.stack ?? error.message) })
+  page.on('console', msg => { if (msg.type() === 'error') console.log('[CI][Garden console]', msg.text()) })
   await page.goto('/tests/fixtures/garden-art.html?renderer=canvas')
   const stage = page.locator('.garden-poc-stage')
   await expect(stage).toHaveAttribute('data-ready', 'true', { timeout: 45_000 })

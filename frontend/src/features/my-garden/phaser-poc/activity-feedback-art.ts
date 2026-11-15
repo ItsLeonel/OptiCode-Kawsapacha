@@ -55,3 +55,37 @@ export function feedbackMotion(activity: IllustratedActivity, index: number) {
   if (activity === 'weeding') return { fromY: 0, toY: -58, duration: 730, delay: index * 90, count: 3 }
   return { fromY: -18, toY: -53, duration: 940, delay: 0, count: 1 }
 }
+
+/**
+ * Señales temporales para las otras actividades registradas. Ilustran la
+ * acción, sin recrear una planta, cosecha inexistente o un ritual cultural.
+ */
+export function paintSecondaryFeedback(g: Phaser.GameObjects.Graphics, type: ActivityType) {
+  if (type === 'preparation' || type === 'hilling') {
+    g.lineStyle(4, 0xa16e42, .96)
+    for (let i = -1; i <= 1; i++) g.strokeEllipse(i * 23, 0, type === 'hilling' ? 26 : 39, type === 'hilling' ? 19 : 12)
+  } else if (type === 'sowing') {
+    g.fillStyle(0x987044, .98)
+    for (let i = -1; i <= 1; i++) g.fillEllipse(i * 17, (i % 2) * 8, 8, 12)
+  } else if (type === 'observation') {
+    g.lineStyle(5, 0xffe6b7, .98).strokeCircle(-6, -6, 18)
+    g.lineStyle(6, 0x875d39, .98).lineBetween(7, 7, 33, 34)
+    g.fillStyle(0xd5f0f0, .18).fillCircle(-6, -6, 15)
+  } else if (type === 'signage') {
+    g.fillStyle(0x946139, .98).fillRoundedRect(-30, -29, 60, 34, 6)
+    g.fillStyle(0xffdf9c, .9).fillRoundedRect(-22, -24, 44, 24, 3)
+    g.lineStyle(7, 0x6c4b30).lineBetween(0, 6, 0, 39)
+  } else if (type === 'postharvest') {
+    g.fillStyle(0xd0a469, .9).fillRoundedRect(-28, -18, 56, 40, 5)
+    g.lineStyle(3, 0x79543a).strokeRoundedRect(-28, -18, 56, 40, 5)
+    g.lineBetween(-18, -18, 18, 22).lineBetween(18, -18, -18, 22)
+  } else if (type === 'sowing_ritual' || type === 'gratitude_ritual') {
+    // Un destello neutro indica que se documentó una actividad cultural.
+    g.fillStyle(0xecc57b, .93).fillCircle(0, 0, 8)
+    g.lineStyle(3, 0xf9e1aa, .95)
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4
+      g.lineBetween(Math.cos(a) * 15, Math.sin(a) * 15, Math.cos(a) * 29, Math.sin(a) * 29)
+    }
+  }
+}

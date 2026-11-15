@@ -71,7 +71,10 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
     import('./createGardenGame').then(({ createGardenGame }) => {
       if (cancelled || !host.current) return
       destroy = createGardenGame(host.current, bridge, renderer)
-    }).catch(() => { if (!cancelled) setError('No se pudo iniciar el escenario. Utiliza la selección accesible del jardín.') })
+    }).catch(cause => {
+      console.error('[Kawsapacha][Phaser] No se pudo iniciar el motor del huerto', cause)
+      if (!cancelled) setError('No se pudo iniciar el escenario. Utiliza la selección accesible del jardín.')
+    })
     return () => { cancelled = true; unsubscribe(); destroy?.() }
   }, [bridge, renderer])
 

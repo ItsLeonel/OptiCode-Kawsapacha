@@ -1,6 +1,6 @@
 /** Fachada compatible. Casos separados por responsabilidad, sin modificar los contratos REST. */
 export { assertGardenAccess } from './activity-access.service'
-export { createGardenActivity } from './activity-registration.service'
+export { createGardenActivity } from '../activity-registration.module'
 export { listGardenActivities, getGardenActivityDetail } from '../activity-read.module'
 export { voidGardenActivity } from '../activity-void.module'
 export type { CreateActivityInput } from './activity-input'

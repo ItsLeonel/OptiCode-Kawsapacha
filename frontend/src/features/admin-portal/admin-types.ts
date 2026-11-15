@@ -91,6 +91,7 @@ export type MspDashboardData = {
   resources?: ResourceRow[]
   moderation?: ModerationRow[]
   evidences?: EvidenceReviewRow[]
+  activities?: Array<{ id: string; type: string; reviewStatus: string; performedDate?: string; garden?: { province?: string } }>
 }
 export type TechDashboardData = {
   accountsTotal?: number

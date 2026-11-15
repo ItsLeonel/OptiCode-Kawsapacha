@@ -392,14 +392,21 @@ class ModularGardenScene extends Phaser.Scene {
       const maxY = Math.max(...ys)
       // Keep all six plots visible between the compact header and action dock.
       const safeHeight = Math.max(160, this.scale.height - 340)
-      const zoom = Math.max(.14, Math.min(
+      const kind = this.bridge.snapshot.model.kind
+      // Las macetas tienen una base decorativa más ancha que sus anclas táctiles.
+      // Ajustar exclusivamente el encuadre móvil evita recortar el tercer recipiente.
+      const contentZoom = Math.max(.14, Math.min(
         (this.scale.width - 24) / (maxX - minX + 380),
         safeHeight / (maxY - minY + 360),
         1.1,
       ))
+      const zoom = contentZoom * (kind === 'pots' ? .86 : kind === 'hanging' || kind === 'vertical' ? .91 : 1)
       this.mobileBaseZoom = zoom
       this.mobileMaxZoom = Math.max(zoom * 3, 1.15)
-      this.cameras.main.setZoom(zoom).centerOn((minX + maxX) / 2, (minY + maxY) / 2)
+      this.cameras.main.setZoom(zoom).centerOn(
+        (minX + maxX) / 2 + (kind === 'pots' ? 90 : 0),
+        (minY + maxY) / 2,
+      )
       this.clampMobileCamera()
       return
     }

@@ -164,6 +164,22 @@
 }
 
 
+/* El estado de guardado comparte la franja del calendario, sin tapar parcelas. */
+@media (max-width: 700px) {
+  .garden-shell--immersive .garden-storage-status {
+    top: auto;
+    bottom: calc(200px + env(safe-area-inset-bottom));
+    left: 8px;
+    right: auto;
+    width: max-content;
+    max-width: min(160px, calc(50vw - 14px));
+    padding: 6px 8px;
+    font-size: 9px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+}
+
 /* Calendario lunar: acceso conservado, sin interceptar zoom ni parcelas. */
 @media (max-width: 700px) {
   .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .lunar-garden-widget {

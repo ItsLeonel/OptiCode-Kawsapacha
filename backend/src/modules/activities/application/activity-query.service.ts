@@ -56,3 +56,22 @@ export async function listGardenActivities(
 
   return activities
 }
+
+export async function getGardenActivityDetail(activityId: string, userId: string) {
+  const activity = await prisma.gardenActivity.findUnique({
+    where: { id: activityId },
+    include: {
+      evidences: true,
+      actorUser: { select: { id: true, name: true, email: true } },
+      plant: { select: { id: true, customName: true, plotIndex: true, species: true } },
+    },
+  })
+
+  if (!activity) {
+    throw new Error('Actividad no encontrada.')
+  }
+
+  await assertGardenAccess(activity.gardenId, userId)
+
+  return activity
+}

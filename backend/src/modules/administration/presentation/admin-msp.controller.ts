@@ -13,7 +13,7 @@ import {
   listEducationalResources,
   createEducationalResource,
   deleteEducationalResource,
-} from '../application/admin-msp.service'
+} from '../admin-msp.module'
 
 export async function getCommunitiesMsp(req: AuthRequest, res: Response): Promise<void> {
   const page = parseInt(String(req.query['page'] ?? '1'), 10)

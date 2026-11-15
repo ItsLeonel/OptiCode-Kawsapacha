@@ -7,8 +7,8 @@ import {
   getGardenActivityDetail,
   voidGardenActivity,
   VALID_ACTIVITY_TYPES,
-} from '../src/modules/activities/application/activity.service'
-import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/modules/plants/application/plant.service'
+} from '../src/modules/activities/activity.module'
+import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/modules/plants/plant.module'
 import { getUserRewardsSummary } from '../src/modules/rewards/rewards.module'
 
 export async function runActivityTests() {

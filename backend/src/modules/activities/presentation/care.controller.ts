@@ -4,7 +4,7 @@ import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
 import * as careService from '../care.module'
 import { prisma } from '../../../infrastructure/database/prisma'
-import { assertGardenAccess } from '../application/activity.service'
+import { assertGardenAccess } from '../../gardens/garden-access.module'
 
 async function requirePlantAccess(plantId: string, userId: string, approved: boolean): Promise<void> {
   const plant = await prisma.cultivatedPlant.findUnique({ where: { id: plantId }, select: { realGardenId: true } })

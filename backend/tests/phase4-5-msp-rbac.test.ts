@@ -19,8 +19,8 @@ import {
   listEducationalResources,
   createEducationalResource,
   deleteEducationalResource,
-} from '../src/modules/administration/application/admin-msp.service'
-import { createGardenActivity } from '../src/modules/activities/application/activity.service'
+} from '../src/modules/administration/admin-msp.module'
+import { createGardenActivity } from '../src/modules/activities/activity.module'
 import { getUserRewardsSummary } from '../src/modules/rewards/rewards.module'
 import {
   listUserNotifications,

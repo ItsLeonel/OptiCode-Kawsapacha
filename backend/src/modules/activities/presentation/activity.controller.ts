@@ -8,7 +8,7 @@ import {
   getGardenActivityDetail,
   voidGardenActivity,
   type ActivityType,
-} from '../application/activity.service'
+} from '../activity.module'
 
 export async function createActivity(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user?.userId

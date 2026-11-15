@@ -8,22 +8,9 @@ import { evaluateActivityReward, revertActivityReward } from '../../rewards/appl
 import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 import { validateCareAction } from './care.service'
 
-export const VALID_ACTIVITY_TYPES = [
-  'preparation',
-  'weeding',
-  'sowing',
-  'watering',
-  'fertilizing',
-  'hilling',
-  'observation',
-  'harvest',
-  'sowing_ritual',
-  'gratitude_ritual',
-  'signage',
-  'postharvest',
-] as const
-
-export type ActivityType = typeof VALID_ACTIVITY_TYPES[number]
+import { VALID_ACTIVITY_TYPES, type ActivityType } from '../domain/activity-types'
+export { VALID_ACTIVITY_TYPES } from '../domain/activity-types'
+export type { ActivityType } from '../domain/activity-types'
 
 export interface CreateActivityInput {
   gardenId: string

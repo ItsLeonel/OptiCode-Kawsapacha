@@ -1,5 +1,19 @@
 # Entrega UI/UX V1 — Kawsapacha
 
+> **Actualización de revisión PM — 15/11/2026:** esta entrega y sus 12 imágenes son **evidencias históricas de la revisión local de noviembre 9**, útiles para el informe V1; no se han capturado nuevamente en este PR. El **escritorio de `main`** es la referencia para documentar el proyecto vigente (SHA consultado `3f3547b`); el trabajo de **adaptación móvil y correcciones visuales del jardín** está en la rama distinta [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74) (SHA inicial de comparación `6d7750a9`), todavía **borrador y sin fusionar**. No presentar las capturas del 09/11 como evidencia del responsive final ni afirmar que la versión pública ya está actualizada.
+>
+> **Alcance de la actualización:** se conserva la autoría y el análisis de Dylan; se documenta qué observaciones pertenecen a la versión antigua. El diseño nuevo **requiere captura e inspección real** para cambiar el estado de sus hallazgos. Pruebas automáticas verdes del PR #74 no equivalen a revisión UX física.
+
+### Pendientes para convertir esta entrega histórica en evidencia del producto actual
+- [ ] Recorrer `main` de escritorio y actualizar las capturas de bienvenida/login, comunidad, Mi terreno, catálogo, jardín, registro de planta/foto, Pasaporte y Bitácora. Registrar **fecha, navegador, resolución y SHA** de cada imagen; marcar cambios desde las capturas del 09/11.
+- [ ] Comparar con el [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74) en 320, 360, 390, 430 y 768 px; revisar textos, menús, accesos, seis parcelas, HUD, botones, guía regional, zoom, arrastre y gestos. Marcar cada problema antiguo como **corregido según código**, **verificado manualmente** o **pendiente**; no confundir las etiquetas.
+- [ ] Revisar las **cuatro regiones y cuatro modalidades** (16 configuraciones) con capturas o matriz de revisión visual. Los casos Playwright del PR #74 y su CI verde muestran regresión automatizada, no aprobación estética ni prueba de dispositivo real.
+- [ ] Revisar los estados visuales de Comunidad, pero **foro, eventos, experiencias y ranking de comunidades** son desarrollo pendiente de Santiago en [#48](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/48); no dibujarlos como funcionalidades finales ni crear pantallas ficticias.
+- [ ] Verificar si Figma/prototipo enlazado sigue siendo accesible y representa el producto actual. Etiquetar pantallas distintas como maquetas, no capturas de ejecución.
+- [ ] Entregar a Leonardo ([#15](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/15)) guía visual, capturas reales y decisiones UI/UX verificadas; registrar hallazgos P0/P1/P2 con captura y pasos. La prueba de despliegue real HTTPS corresponde a Santiago [#75](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/75).
+
+
+
 **Issue:** [UI-002 #32](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/32)
 
 **Responsable UI/UX:** Dylan Maldonado (`DylanIMM`) · **Revisión para:** Leonel (PM) · **Documentación:** Leonardo Lugmaña

@@ -2,7 +2,7 @@
 import type { Response } from 'express'
 import type { AuthRequest } from '../../../shared/types/index'
 import { ok, fail } from '../../../shared/utils/response'
-import * as invitationService from '../application/invitation.service'
+import * as invitationService from '../invitation.module'
 
 export async function getMyInvitations(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

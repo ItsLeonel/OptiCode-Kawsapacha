@@ -1,11 +1,11 @@
-// backend/src/middlewares/harvestRole.middleware.ts
+// backend/src/shared/middlewares/harvestRole.middleware.ts
 // Verifica que el usuario tiene rol RESPONSABLE o CUIDADOR en la comunidad del huerto
 // antes de permitir la cosecha de una planta.
 
 import type { Response, NextFunction } from 'express'
 import { fail } from '../utils/response'
-import { prisma } from '../config/prisma'
-import type { AuthRequest } from '../types'
+import { prisma } from '../../infrastructure/database/prisma'
+import type { AuthRequest } from '../types/index'
 
 /**
  * Middleware para POST /api/plants/:id/harvest

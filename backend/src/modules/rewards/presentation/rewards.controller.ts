@@ -1,9 +1,9 @@
-// backend/src/controllers/rewards.controller.ts
+// backend/src/modules/rewards/presentation/rewards.controller.ts
 import type { Response } from 'express'
-import type { AuthRequest } from '../types'
-import { ok, fail } from '../utils/response'
-import { getUserRewardsSummary } from '../services/rewards.service'
-import { syncUserMissionsAndBadges } from '../services/missions.service'
+import type { AuthRequest } from '../../../shared/types/index'
+import { ok, fail } from '../../../shared/utils/response'
+import { getUserRewardsSummary } from '../application/rewards.service'
+import { syncUserMissionsAndBadges } from '../application/missions.service'
 
 export async function getMyRewards(req: AuthRequest, res: Response): Promise<void> {
   const userId = req.user?.userId

@@ -1,13 +1,13 @@
-// backend/src/routes/activity.routes.ts
+// backend/src/modules/activities/presentation/activity.routes.ts
 import { Router } from 'express'
-import { requireAuth } from '../middlewares/auth.middleware'
-import { uploadActivityPhoto } from '../middlewares/upload.middleware'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
+import { uploadActivityPhoto } from '../../../shared/middlewares/upload.middleware'
 import {
   createActivity,
   getActivities,
   getActivityDetail,
   voidActivity,
-} from '../controllers/activity.controller'
+} from './activity.controller'
 
 // mergeParams: true permite acceder a :gardenId desde el router padre
 const router = Router({ mergeParams: true })

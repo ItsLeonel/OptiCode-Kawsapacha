@@ -1,7 +1,7 @@
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { uploadsRoot } from '../services/entity-photo.service'
+import { uploadsRoot } from '../../modules/media/application/entity-photo.service'
 
 const ALLOWED_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // Margen de seguridad (el cliente comprime a <= 3 MB)
@@ -40,7 +40,7 @@ export const uploadPlantPhoto = multer({
 }).single('picture')
 
 // ─── Subida de fotos de actividades de la Bitácora Viva ─────────────────────────
-const activityUploadDir = path.resolve(__dirname, '../../uploads/activities')
+const activityUploadDir = path.join(uploadsRoot, 'activities')
 if (!fs.existsSync(activityUploadDir)) fs.mkdirSync(activityUploadDir, { recursive: true })
 
 const activityStorage = multer.diskStorage({

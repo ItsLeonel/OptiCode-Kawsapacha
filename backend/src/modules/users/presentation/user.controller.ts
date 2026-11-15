@@ -1,7 +1,7 @@
 import type { Response } from 'express'
-import { prisma } from '../config/prisma'
-import { ok, fail } from '../utils/response'
-import type { AuthRequest } from '../types'
+import { prisma } from '../../../infrastructure/database/prisma'
+import { ok, fail } from '../../../shared/utils/response'
+import type { AuthRequest } from '../../../shared/types/index'
 
 /**
  * Consulta si un correo electrónico corresponde a un usuario registrado en el sistema.

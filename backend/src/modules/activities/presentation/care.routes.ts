@@ -1,7 +1,7 @@
-// backend/src/routes/care.routes.ts
+// backend/src/modules/activities/presentation/care.routes.ts
 import { Router } from 'express'
-import { addCare, getCare, getGrowth } from '../controllers/care.controller'
-import { requireAuth } from '../middlewares/auth.middleware'
+import { addCare, getCare, getGrowth } from './care.controller'
+import { requireAuth } from '../../../shared/middlewares/auth.middleware'
 
 const router = Router({ mergeParams: true })
 

@@ -1,10 +1,10 @@
-// backend/src/middlewares/communityRole.middleware.ts
+// backend/src/shared/middlewares/communityRole.middleware.ts
 // Middleware RBAC: verifica que el usuario tenga el rol requerido dentro de la comunidad.
 
 import type { Response, NextFunction } from 'express'
 import { fail } from '../utils/response'
-import { prisma } from '../config/prisma'
-import type { AuthRequest } from '../types'
+import { prisma } from '../../infrastructure/database/prisma'
+import type { AuthRequest } from '../types/index'
 
 type CommunityRole = 'RESPONSABLE' | 'CUIDADOR' | 'PARTICIPANTE'
 

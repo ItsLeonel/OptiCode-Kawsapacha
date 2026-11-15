@@ -1,8 +1,8 @@
 import type { Response, NextFunction } from 'express'
 import { verifyToken } from '../utils/jwt'
 import { fail } from '../utils/response'
-import { prisma } from '../config/prisma'
-import type { AuthRequest, UserRole } from '../types'
+import { prisma } from '../../infrastructure/database/prisma'
+import type { AuthRequest, UserRole } from '../types/index'
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction): void {
   const header = req.headers.authorization

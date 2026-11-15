@@ -1,12 +1,12 @@
-// backend/src/routes/admin.routes.ts
+// backend/src/modules/administration/presentation/admin.routes.ts
 import { Router } from 'express'
-import { requireAuth, requireGlobalRole } from '../middlewares/auth.middleware'
+import { requireAuth, requireGlobalRole } from '../../../shared/middlewares/auth.middleware'
 import {
   createMspAccount,
   updateUserActiveStatus,
   getAdminUsers,
   getAuditLogs,
-} from '../controllers/admin-technical.controller'
+} from './admin-technical.controller'
 import {
   getCommunitiesMsp,
   postReviewCommunity,
@@ -18,7 +18,7 @@ import {
   getResourcesMsp,
   postResourceMsp,
   deleteResourceMsp,
-} from '../controllers/admin-msp.controller'
+} from './admin-msp.controller'
 
 const router = Router()
 

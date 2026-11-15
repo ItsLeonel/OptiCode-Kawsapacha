@@ -68,10 +68,10 @@ export const SCENE_LAYERS = ['landscape', 'ground', 'structures', 'parcels', 'pl
 
 /** Implementos originales sobre transparencia: nunca incluyen plantas ni parcelas. */
 export const ACTIVITY_TOOL_ASSETS = {
-  watering: new URL('./art/activity-tools/watering-can.svg?no-inline', import.meta.url).href,
-  fertilizing: new URL('./art/activity-tools/compost-basket.svg?no-inline', import.meta.url).href,
-  weeding: new URL('./art/activity-tools/hand-rake.svg?no-inline', import.meta.url).href,
-  harvest: new URL('./art/activity-tools/harvest-basket.svg?no-inline', import.meta.url).href,
+  watering: '/activity-tools/watering-can.svg',
+  fertilizing: '/activity-tools/compost-basket.svg',
+  weeding: '/activity-tools/hand-rake.svg',
+  harvest: '/activity-tools/harvest-basket.svg',
 } as const
 
 /** Hand calibrated transparent frames. Source files are never modified. */

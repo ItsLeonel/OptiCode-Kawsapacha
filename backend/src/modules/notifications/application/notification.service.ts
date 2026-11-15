@@ -1,80 +1,51 @@
-// backend/src/modules/notifications/application/notification.service.ts
-import { prisma } from '../../../infrastructure/database/prisma'
+import type { CreateNotificationInput } from '../domain/notification'
+import type { NotificationRepository } from './ports/notification.repository'
 
-export interface CreateNotificationInput {
-  userId: string
-  type: string
-  title: string
-  message: string
-  resourceId?: string | null
-}
+export type { CreateNotificationInput } from '../domain/notification'
 
-export async function createNotification(input: CreateNotificationInput) {
-  return prisma.notification.create({
-    data: {
-      userId: input.userId,
-      type: input.type,
-      title: input.title,
-      message: input.message,
-      resourceId: input.resourceId,
+/**
+ * Casos de uso inyectables; conservan respuestas, errores y política de
+ * depuración existentes. No contienen consultas SQL ni dependencias HTTP.
+ */
+export function createNotificationService(repository: NotificationRepository) {
+  return {
+    createNotification(input: CreateNotificationInput) {
+      return repository.create(input)
     },
-  })
-}
 
-export async function listUserNotifications(userId: string) {
-  // Depuración automática: eliminar notificaciones leídas de más de 7 días
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  try {
-    await prisma.notification.deleteMany({
-      where: {
-        userId,
-        isRead: true,
-        createdAt: { lt: sevenDaysAgo },
-      },
-    })
-  } catch (err) {
-    console.warn('Error en auto-depuración de notificaciones:', err)
+    async listUserNotifications(userId: string) {
+      // Depuración automática: eliminar notificaciones leídas de más de 7 días
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      try {
+        await repository.deleteReadBefore(userId, sevenDaysAgo)
+      } catch (err) {
+        console.warn('Error en auto-depuración de notificaciones:', err)
+      }
+
+      const [notifications, unreadCount] = await Promise.all([
+        repository.findLatestByUser(userId, 100),
+        repository.countUnreadByUser(userId),
+      ])
+
+      return { notifications, unreadCount }
+    },
+
+    async clearReadNotifications(userId: string) {
+      const deleted = await repository.deleteReadByUser(userId)
+      return { deleted }
+    },
+
+    async markNotificationAsRead(id: string, userId: string) {
+      const notification = await repository.findById(id)
+      if (!notification || notification.userId !== userId) {
+        throw Object.assign(new Error('Notificación no encontrada o no pertenece al usuario.'), { code: 'NOT_FOUND' })
+      }
+      return repository.markRead(id)
+    },
+
+    async markAllNotificationsAsRead(userId: string) {
+      const updated = await repository.markAllUnreadByUser(userId)
+      return { updated }
+    },
   }
-
-  const [notifications, unreadCount] = await Promise.all([
-    prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    }),
-    prisma.notification.count({
-      where: { userId, isRead: false },
-    }),
-  ])
-
-  return { notifications, unreadCount }
-}
-
-export async function clearReadNotifications(userId: string) {
-  const result = await prisma.notification.deleteMany({
-    where: { userId, isRead: true },
-  })
-  return { deleted: result.count }
-}
-
-export async function markNotificationAsRead(id: string, userId: string) {
-  const notification = await prisma.notification.findUnique({
-    where: { id },
-  })
-  if (!notification || notification.userId !== userId) {
-    throw Object.assign(new Error('Notificación no encontrada o no pertenece al usuario.'), { code: 'NOT_FOUND' })
-  }
-
-  return prisma.notification.update({
-    where: { id },
-    data: { isRead: true },
-  })
-}
-
-export async function markAllNotificationsAsRead(userId: string) {
-  const result = await prisma.notification.updateMany({
-    where: { userId, isRead: false },
-    data: { isRead: true },
-  })
-  return { updated: result.count }
 }

@@ -7,7 +7,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   clearReadNotifications,
-} from '../application/notification.service'
+} from '../notification.module'
 
 export async function getNotifications(req: AuthRequest, res: Response): Promise<void> {
   if (!req.user) return void fail(res, 'UNAUTHORIZED', 'No autenticado.', 401)

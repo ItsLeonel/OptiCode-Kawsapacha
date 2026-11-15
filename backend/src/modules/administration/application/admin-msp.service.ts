@@ -1,7 +1,7 @@
 // backend/src/modules/administration/application/admin-msp.service.ts
 import { prisma } from '../../../infrastructure/database/prisma'
 import { logAudit } from './audit.service'
-import { createNotification } from '../../notifications/application/notification.service'
+import { createNotification } from '../../notifications/notification.module'
 import { evaluateActivityReward, getUserRewardsSummary, revertActivityReward } from '../../rewards/application/rewards.service'
 import { syncUserMissionsAndBadges } from '../../rewards/application/missions.service'
 import { calculateGrowth } from '../../activities/application/care.service'

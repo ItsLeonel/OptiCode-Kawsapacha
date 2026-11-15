@@ -26,14 +26,14 @@ function analyze(file) {
   const relative = path.relative(modulesRoot, file).replaceAll('\\', '/')
   const moduleName = relative.split('/')[0]
   const domain = relative.includes('/domain/')
-  const catalogApplication = relative.startsWith('catalog/application/')
+  const isolatedApplication = relative.startsWith('catalog/application/') || relative.startsWith('notifications/application/')
   const matches = content.matchAll(/(?:\bfrom\s*|\brequire\s*\(|\bimport\s*\()\s*['"]([^'"]+)['"]/g)
   for (const match of matches) {
     const spec = match[1]
     if (domain && (forbiddenPackages.test(spec) || /(?:^|\/)(?:infrastructure|application|presentation|middlewares)(?:\/|$)/.test(spec))) {
       errors.push(relative + ' depende de ' + spec)
     }
-    if (catalogApplication && (forbiddenPackages.test(spec) || /(?:^|\/)(?:infrastructure|presentation)(?:\/|$)/.test(spec))) {
+    if (isolatedApplication && (forbiddenPackages.test(spec) || /(?:^|\/)(?:infrastructure|presentation)(?:\/|$)/.test(spec))) {
       errors.push(relative + ' depende de ' + spec)
     }
     if (spec.startsWith('.')) {

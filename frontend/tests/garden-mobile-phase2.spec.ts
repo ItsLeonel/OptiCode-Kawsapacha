@@ -204,6 +204,7 @@ test('Fase 3: encuadre del jardín en cinco tamaños, imágenes y controles acce
     if (width <= 700) {
       await sixVisible(page)
       await expect(page.getByRole('button', { name: 'Acercar jardín' })).toBeVisible()
+      await expect(page.locator('.garden-poc-heading p')).toHaveCSS('white-space', 'normal')
       await expect(page.locator('.garden-quick-actions button')).toHaveCount(6)
     } else {
       await expect(page.locator('.garden-poc-mobile-zoom')).toBeHidden()

@@ -139,6 +139,12 @@ export async function createGardenActivity(input: CreateActivityInput) {
     throw new Error(`Tipo de actividad inválido: "${type}".`)
   }
 
+  // La etapa del Espejo Digital solo puede declararse con evidencia real;
+  // esta regla debe vivir también en el servidor, no solo en React.
+  if (type === 'observation' && (details.growthStage !== undefined || details.visualProfile !== undefined) && !evidenceFile) {
+    throw Object.assign(new Error('Para documentar una etapa o perfil visual, adjunta una fotografía real.'), { code: 'EVIDENCE_REQUIRED' })
+  }
+
   // 3. Validar fecha (formato y no futura considerando hora de Ecuador UTC-5)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(performedDate)) {
     throw new Error(`Fecha realizada inválida: "${performedDate}". Debe ser formato YYYY-MM-DD.`)

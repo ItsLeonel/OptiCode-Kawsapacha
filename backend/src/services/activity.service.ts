@@ -42,7 +42,6 @@ export interface CreateActivityInput {
     mimetype: string
     size: number
   } | null
-  autoApprove?: boolean
 }
 
 /**
@@ -350,6 +349,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
       clientActivityId: clientActivityId || null,
       careLogId: linkedCareLogId,
       harvestRecordId: linkedHarvestRecordId,
+      reviewStatus: 'APPROVED', // Válida al registrarse; reviewedAt null hasta una auditoría MSP.
     },
   })
 
@@ -366,15 +366,9 @@ export async function createGardenActivity(input: CreateActivityInput) {
     })
   }
 
-  // 9. El registro agrícola y su puntuación provisional son inmediatos.
-  // El MSP confirma la evidencia posteriormente sin volver a acreditar puntos.
-  if (input.autoApprove) {
-    await prisma.gardenActivity.update({
-      where: { id: activity.id },
-      data: { reviewStatus: 'APPROVED', reviewedAt: new Date() },
-    })
-  }
-  const award = await evaluateActivityReward({
+  // La actividad queda activa y sus Semillas se acreditan de inmediato.
+  // El MSP puede verificarla después sin duplicar los puntos, o invalidarla y revertirlos.
+  const reward = await evaluateActivityReward({
     id: activity.id,
     actorUserId,
     type,
@@ -383,8 +377,7 @@ export async function createGardenActivity(input: CreateActivityInput) {
     plantId: activity.plantId,
     plotIndex: activity.plotIndex,
   })
-  const reward = { ...award, pendingReview: !input.autoApprove }
-  if (input.autoApprove) await syncUserMissionsAndBadges(actorUserId)
+  await syncUserMissionsAndBadges(actorUserId)
 
   // 11. Retornar actividad completa con evidencias
   const fullActivity = await prisma.gardenActivity.findUnique({

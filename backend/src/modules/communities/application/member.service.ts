@@ -1,187 +1,75 @@
-// backend/src/modules/communities/application/member.service.ts
-import { prisma } from '../../../infrastructure/database/prisma'
+import type { CommunityMemberRepository, CommunityRole } from './ports/member.repository'
+export type { CommunityRole } from './ports/member.repository'
 
-export type CommunityRole = 'RESPONSABLE' | 'PARTICIPANTE'
+export function createMemberService(repository:CommunityMemberRepository) {
+ async function isCommunityResponsable(communityId:string,userId:string):Promise<boolean> {
+  const creatorId=await repository.getCreatorId(communityId)
+  if(creatorId===userId)return true
+  const member=await repository.getMember(communityId,userId)
+  return member?.status==='ACCEPTED'&&member.roleInCommunity==='RESPONSABLE'
+ }
 
-/**
- * Verifica si un usuario es Responsable de una comunidad (bien sea el creador o con rol RESPONSABLE activo).
- */
-export async function isCommunityResponsable(communityId: string, userId: string): Promise<boolean> {
-  const community = await prisma.community.findUnique({
-    where: { id: communityId },
-    select: { creatorId: true },
-  })
-  if (community?.creatorId === userId) return true
-
-  const member = await prisma.communityMember.findUnique({
-    where: { communityId_userId: { communityId, userId } },
-    select: { roleInCommunity: true, status: true },
-  })
-  return member?.status === 'ACCEPTED' && member.roleInCommunity === 'RESPONSABLE'
-}
-
-export async function inviteMember(
-  communityId: string,
-  email: string,
-  role: string,
-  invitedById: string
-) {
-  // 1. Validar que quien invita tenga rol de RESPONSABLE en la comunidad
-  const isResponsable = await isCommunityResponsable(communityId, invitedById)
-  if (!isResponsable) {
-    const error = new Error('Solo el Responsable de la comunidad tiene permisos para enviar invitaciones.')
-    ;(error as any).code = 'FORBIDDEN'
-    throw error
+ async function inviteMember(communityId:string,email:string,role:string,invitedById:string) {
+  const isResponsable=await isCommunityResponsable(communityId,invitedById)
+  if(!isResponsable){
+   const error=new Error('Solo el Responsable de la comunidad tiene permisos para enviar invitaciones.')
+   ;(error as {code?:string}).code='FORBIDDEN'
+   throw error
   }
-
-  // 2. Validar que el rol propuesto sea estrictamente RESPONSABLE o PARTICIPANTE
-  const normalizedRole: CommunityRole = role === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE'
-
-  // 3. Verificar si el usuario existe en la tabla User (búsqueda tolerante a mayúsculas/minúsculas)
-  const normalizedEmail = email.trim().toLowerCase()
-  const existingUser = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { email: normalizedEmail },
-        { email: email.trim() },
-      ],
-    },
-  })
-  if (!existingUser) {
-    const error = new Error('No existe ningún usuario registrado con el correo ingresado')
-    ;(error as any).code = 'USER_NOT_FOUND'
-    throw error
+  const normalizedRole:CommunityRole=role==='RESPONSABLE'?'RESPONSABLE':'PARTICIPANTE'
+  const normalizedEmail=email.trim().toLowerCase()
+  const existingUser=await repository.findUserByEmails(normalizedEmail,email.trim())
+  if(!existingUser){
+   const error=new Error('No existe ningún usuario registrado con el correo ingresado')
+   ;(error as {code?:string}).code='USER_NOT_FOUND'
+   throw error
   }
-
-  // 4. Verificar si ya es miembro con estado ACCEPTED
-  const alreadyMember = await prisma.communityMember.findUnique({
-    where: { communityId_userId: { communityId, userId: existingUser.id } },
-  })
-  if (alreadyMember && alreadyMember.status === 'ACCEPTED') {
-    const error = new Error('El usuario ya es miembro activo de esta comunidad.')
-    ;(error as any).code = 'ALREADY_MEMBER'
-    throw error
+  const alreadyMember=await repository.getMember(communityId,existingUser.id)
+  if(alreadyMember?.status==='ACCEPTED'){
+   const error=new Error('El usuario ya es miembro activo de esta comunidad.')
+   ;(error as {code?:string}).code='ALREADY_MEMBER'
+   throw error
   }
-
-  // 5. Crear o actualizar membresía con status PENDING (NO unir automáticamente)
-  if (alreadyMember) {
-    await prisma.communityMember.update({
-      where: { id: alreadyMember.id },
-      data: {
-        roleInCommunity: normalizedRole,
-        status: 'PENDING',
-      },
-    })
-  } else {
-    await prisma.communityMember.create({
-      data: {
-        communityId,
-        userId: existingUser.id,
-        roleInCommunity: normalizedRole,
-        status: 'PENDING',
-      },
-    })
+  if(alreadyMember){
+   await repository.updateMembershipPending(alreadyMember.id,normalizedRole)
+  }else{
+   await repository.createMembershipPending(communityId,existingUser.id,normalizedRole)
   }
-
-  // 6. Crear o actualizar la invitación en CommunityInvitation
-  const existingInvitation = await prisma.communityInvitation.findFirst({
-    where: {
-      communityId,
-      OR: [
-        { email: normalizedEmail },
-        { email: existingUser.email },
-      ],
-      status: 'PENDING',
-    },
-  })
-
-  let invitation
-  if (existingInvitation) {
-    invitation = await prisma.communityInvitation.update({
-      where: { id: existingInvitation.id },
-      data: {
-        role: normalizedRole,
-        invitedById,
-        email: normalizedEmail,
-        status: 'PENDING',
-      },
-    })
-  } else {
-    invitation = await prisma.communityInvitation.create({
-      data: {
-        communityId,
-        email: normalizedEmail,
-        role: normalizedRole,
-        invitedById,
-        status: 'PENDING',
-      },
-    })
+  const invitation=await repository.findPendingInvitation(communityId,normalizedEmail,existingUser.email)
+  if(invitation){
+   return repository.updatePendingInvitation(invitation.id,normalizedRole,invitedById,normalizedEmail)
   }
+  return repository.createInvitation(communityId,normalizedEmail,normalizedRole,invitedById)
+ }
 
-  return invitation
-}
+ function listMembers(communityId:string){return repository.listMembers(communityId)}
 
-export async function listMembers(communityId: string) {
-  return prisma.communityMember.findMany({
-    where: { communityId },
-    include: {
-      user: {
-        select: { id: true, name: true, email: true, role: true },
-      },
-    },
-    orderBy: { joinedAt: 'asc' },
-  })
-}
-
-export async function updateMemberRole(
-  communityId: string,
-  userId: string,
-  newRole: string,
-  requestUserId: string
-) {
-  // Solo el responsable puede cambiar roles
-  const isResponsable = await isCommunityResponsable(communityId, requestUserId)
-  if (!isResponsable) {
-    const error = new Error('Solo el Responsable de la comunidad puede modificar roles.')
-    ;(error as any).code = 'FORBIDDEN'
-    throw error
+ async function updateMemberRole(communityId:string,userId:string,newRole:string,requestUserId:string){
+  const isResponsable=await isCommunityResponsable(communityId,requestUserId)
+  if(!isResponsable){
+   const error=new Error('Solo el Responsable de la comunidad puede modificar roles.')
+   ;(error as {code?:string}).code='FORBIDDEN'
+   throw error
   }
-
-  const normalizedRole: CommunityRole = newRole === 'RESPONSABLE' ? 'RESPONSABLE' : 'PARTICIPANTE'
-
-  const member = await prisma.communityMember.update({
-    where: { communityId_userId: { communityId, userId } },
-    data: { roleInCommunity: normalizedRole },
-  })
-
-  // Sincronizar el rol propuesto en invitaciones pendientes si existen
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
-  if (user) {
-    await prisma.communityInvitation.updateMany({
-      where: { communityId, email: user.email, status: 'PENDING' },
-      data: { role: normalizedRole },
-    })
+  const normalizedRole:CommunityRole=newRole==='RESPONSABLE'?'RESPONSABLE':'PARTICIPANTE'
+  const member=await repository.updateMemberRole(communityId,userId,normalizedRole)
+  const user=await repository.findUserById(userId)
+  if(user){
+   await repository.updatePendingInvitationRoles(communityId,user.email,normalizedRole)
   }
-
   return member
-}
+ }
 
-export async function removeMember(communityId: string, userId: string, requestUserId: string) {
-  // Solo el responsable puede expulsar o cancelar invitaciones
-  const isResponsable = await isCommunityResponsable(communityId, requestUserId)
-  if (!isResponsable) {
-    const error = new Error('Solo el Responsable de la comunidad puede eliminar miembros o cancelar invitaciones.')
-    ;(error as any).code = 'FORBIDDEN'
-    throw error
+ async function removeMember(communityId:string,userId:string,requestUserId:string){
+  const isResponsable=await isCommunityResponsable(communityId,requestUserId)
+  if(!isResponsable){
+   const error=new Error('Solo el Responsable de la comunidad puede eliminar miembros o cancelar invitaciones.')
+   ;(error as {code?:string}).code='FORBIDDEN'
+   throw error
   }
-
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
-  if (user) {
-    await prisma.communityInvitation.deleteMany({
-      where: { communityId, email: user.email },
-    })
-  }
-  return prisma.communityMember.delete({
-    where: { communityId_userId: { communityId, userId } },
-  })
+  const user=await repository.findUserById(userId)
+  if(user)await repository.deleteInvitationsForEmail(communityId,user.email)
+  return repository.deleteMember(communityId,userId)
+ }
+ return {isCommunityResponsable,inviteMember,listMembers,updateMemberRole,removeMember}
 }

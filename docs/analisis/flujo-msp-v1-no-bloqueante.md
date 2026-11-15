@@ -2,6 +2,9 @@
 
 **Decisión funcional del equipo (14/11/2026).** Esta regla sustituye las instrucciones anteriores que exigían aprobación institucional antes de crear un huerto, cuidar una planta o registrar tareas agrícolas. El ranking competitivo queda fuera de la V1.
 
+## Navegación principal acordada
+La barra lateral del usuario muestra **solo cuatro módulos**: **Mi Huerto**, **Comunidad**, **Mi Camino Verde** y **Notificaciones** (este último al iniciar sesión). **Mi terreno**, **Catálogo medicinal**, **Mis plantas**, **Bitácora general** y el registro de actividades son funciones internas de **Mi Huerto**; sus rutas existentes se conservan para no perder historial ni enlaces. Los puntos, niveles e insignias se consultan dentro de **Mi Camino Verde**, no como otro enlace de la barra lateral.
+
 ## Comunidades
 - **PENDING / NEEDS_CHANGES:** la comunidad permanece visible y operativa. Su creador y sus miembros autorizados pueden crear huertos, plantar y registrar actividades.
 - **APPROVED:** el MSP confirmó los datos institucionales de la comunidad; no se crean nuevas actividades ni puntos por aprobarla.

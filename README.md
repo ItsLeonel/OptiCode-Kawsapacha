@@ -1,218 +1,128 @@
-# 🌱 Kawsapacha — Mi Huerto Vivo | Equipo OptiCode
+# 🌱 Kawsapacha — Mi Huerto Vivo
 
-**Calidad de Software · EPN · V1 + Fase 4.5 (Moderación MSP, Actividades, Recompensas) y Espejo Digital V2 integrados (14/11/2026)**
+### Cultivamos en la tierra. Hacemos visible cada historia.
 
-> **Estado actual (rama integrada con Fase 4.5 y `main`):** cuentas, comunidades (con flujo de aprobación MSP), huertos, plantas, fotos, calendario lunar, bitácora de actividades, misiones/recompensas auditables, notificaciones, roles `ADMIN_TECNICO` / `ADMIN_MSP` / `USUARIO` y Espejo Digital V2 por etapas están persistidos en el servidor (API REST + SQLite). En **modo visitante** (sin sesión), los datos y la bitácora local permanecen en IndexedDB. La poscosecha, rituales y señalética se registran como actividades documentales (0 puntos base) con respaldo en bitácora del servidor. Revisar [trazabilidad del cliente](docs/analisis/trazabilidad-cliente-2026-11-14.md).
+**Kawsapacha** es una aplicación web educativa e interactiva para acompañar la creación y el cuidado de **huertos medicinales comunitarios en Ecuador**. Conecta lo que sucede en un huerto real con un jardín virtual, permitiendo registrar plantas, fotografías, actividades y su evolución.
 
-## 🏛️ Arquitectura modular (rama PR #72)
+Desarrollado por **OptiCode**, como proyecto académico de **Calidad de Software de la Escuela Politécnica Nacional (EPN)**.
 
-La aplicación sigue siendo **un solo repositorio y un solo backend desplegable**. Se adopta **monolito modular** con límites de Clean Architecture; no se introducen microservicios y se preservan los contratos HTTP y las bases de datos existentes.
+> **Nuestra idea:** que cuidar y documentar un huerto medicinal sea una experiencia sencilla, visual, participativa y motivadora.
 
-```text
-OptiCode-Kawsapacha/
-├── frontend/
-│   └── src/
-│       ├── app/           # Composición y navegación
-│       ├── features/      # Áreas funcionales de la interfaz
-│       └── shared/        # Contratos HTTP, UI y utilidades sin dependencias de features
-├── backend/
-│   ├── src/
-│   │   ├── app/           # Composición Express
-│   │   ├── modules/       # Dominio, aplicación, puertos, infraestructura y presentación
-│   │   ├── infrastructure/
-│   │   └── shared/
-│   ├── prisma/            # Esquema y migraciones existentes, conservados
-│   └── tests/
-├── docs/
-│   ├── architecture/
-│   ├── requirements/
-│   └── quality/
-├── deploy/
-└── .github/workflows/
-```
+---
 
-**Criterios ejecutables:** `cd backend && npm run check:architecture` impide que dominio/aplicación dependan de infraestructura o HTTP y rechaza ciclos de módulos; `node tools/check-frontend-architecture.cjs` comprueba que `frontend/src/shared` no importa áreas de negocio. Los tests unitarios, de integración y la regresión Playwright son independientes de estas comprobaciones estructurales.
+## 🌿 ¿Qué problema buscamos resolver?
 
-La [decisión arquitectónica](docs/architecture/ADR-0001-monolito-modular.md), [visión de módulos](docs/architecture/README.md) y [evidencia de regresión](docs/quality/regresion-arquitectura.md) documentan la implementación y sus límites. **La rama de trabajo y el PR no implican una fusión a `main`.**
+En una comunidad, el trabajo de sembrar, regar, cuidar y cosechar puede quedar repartido entre cuadernos, fotografías y recuerdos. Así resulta difícil consultar qué se hizo, cómo evoluciona cada planta y qué personas participan.
 
-Kawsapacha es una aplicación web educativa para que comunidades del Ecuador registren **huertos medicinales reales** y los representen en un **huerto virtual interactivo**. Cada planta podrá asociarse con su especie, una fotografía real y una ficha (*Pasaporte Vivo*).
+**Kawsapacha reúne ese seguimiento en un mismo lugar** y lo presenta de una manera accesible, combinando el registro de información con una experiencia inspirada en los videojuegos.
 
-## 🎯 Producto que vamos a desarrollar (V1)
+## ✨ ¿Qué puedes hacer con Kawsapacha?
 
-1. **Usuarios:** registro, inicio de sesión, cierre de sesión y roles básicos.
-2. **Comunidades:** creación, edición y gestión de integrantes.
-3. **Huertos reales:** registro de características y ubicación; elección de provincia mediante un **mapa interactivo del Ecuador**.
-4. **Catálogo medicinal:** consulta de especies, fotografías e información botánica y educativa.
-5. **Huerto virtual 2D:** parcelas interactivas, registro de plantas cultivadas con fotos propias y consulta de su Pasaporte Vivo.
+| Funcionalidad | ¿Para qué sirve? |
+| --- | --- |
+| 👥 **Comunidades** | Crear y administrar comunidades de cultivo y sus integrantes. |
+| 🏡 **Mi Huerto** | Registrar un huerto real, su ubicación y características de cultivo. |
+| 🎮 **Mi Jardín Vivo** | Visualizar el huerto en un escenario interactivo con seis parcelas. |
+| 📸 **Registro de plantas** | Asociar cada cultivo a una especie, una parcela y fotografías reales. |
+| 🌱 **Pasaporte Vivo** | Consultar la información, las evidencias y la etapa observada de cada planta. |
+| 📖 **Bitácora Viva** | Documentar actividades y consultar el historial de cuidados del cultivo. |
+| 🌙 **Calendario y catálogo medicinal** | Consultar especies e información educativa sobre el cultivo y el calendario lunar. |
+| 🏅 **Mi Camino Verde** | Incentivar la participación mediante puntos, misiones y recompensas. |
+| 🛡️ **Gestión institucional** | Ofrecer funciones de revisión y administración según los permisos del sistema. |
 
-**Flujo de la demostración:** crear cuenta → iniciar sesión → crear comunidad → registrar huerto y provincia → elegir especie → subir foto real → colocar planta en una parcela → abrir su ficha → comprobar que los datos persisten.
+## 🕹️ ¿Por qué tiene una apariencia de videojuego?
 
-> **Estado al 8/11/2026 (PR #30, #31):** frontend y backend están integrados en `main`. Con sesión iniciada, cuentas, comunidades, integrantes, huertos, plantas, fotos, cuidados, cosechas y bodega se guardan en el servidor (API REST + SQLite). En **modo visitante** los datos se conservan solo en el navegador (IndexedDB). Puntos, niveles e insignias se calculan en el navegador. El estado de cada función está en las [historias de usuario](docs/historias-usuario/historias-usuario-v1.md); los resultados de prueba los publica QA en [docs/casos-prueba/](docs/casos-prueba/).
+Porque **Kawsapacha no quiere que el cuidado de un huerto se convierta únicamente en llenar formularios**.
 
-## 👥 Equipo: empiecen por estas tareas
+Su jardín virtual muestra paisajes inspirados en las cuatro regiones naturales del Ecuador: **Costa, Sierra, Amazonía y Galápagos**. Además, contempla distintas formas de cultivar: **en tierra, macetas, vertical y colgante**.
 
-Las tareas de V1 y las fases posteriores están organizadas en GitHub Issues. Cada responsable debe revisar los criterios de aceptación y las dependencias actuales, especialmente #35, #43, #45, #48 y #49.
+Las parcelas, los paisajes y las recompensas ayudan a que el proceso resulte más comprensible y atractivo. **Las actividades siguen correspondiendo a un cultivo real**: el entorno gráfico es una forma de representarlas, no un juego de agricultura ficticia.
 
-| Responsable | Qué empieza a hacer ahora | Issues iniciales |
-|---|---|---|
-| **Leonel — PM / Frontend** (`ItsLeonel`) | Ejecutar el frontend existente; preparar pantallas y formularios de registro/login; acordar con Ronny el contrato de API y coordinar la integración. | [#6](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/6), [#8](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/8) |
-| **Ronny — Backend / BD** (`Rodni15`) | Definir arquitectura, entidades y endpoints; configurar servidor y base de datos; comenzar autenticación real. | [#4](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/4), [#7](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/7), [#8](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/8) |
-| **Dylan — Diseño UI/UX** (`DylanIMM`) | Diseñar en Figma login, dashboard, mapa provincial y huerto visual; compartir prototipo navegable, recursos y guía visual para implementación. | [#3](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/3) |
-| **Leonardo — Análisis / Documentación** (`kened-leonardo`) | Redactar historias de usuario con plantilla docente; organizar la documentación y preparar el informe final, recopilando los aportes verificables de cada compañero. | [#2](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/2), [#15](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/15) |
-| **Santiago — QA / Pruebas** (`TonyTiago`) | Elaborar plan y casos de prueba con plantilla docente; ejecutar cada flujo cuando esté integrado, registrando resultados reales, errores y capturas. | [#5](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/5), [#14](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues/14) |
+## 📷 Conoce el proyecto
 
-**Implementación compartida:** los Issues [#8 al #13](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues) pertenecen a **Leonel (frontend)** y **Ronny (backend)**. No deben esperar a que Dylan o Leonardo terminen todo para empezar. **Primera prioridad conjunta: registro e inicio de sesión con persistencia real.**
+| Mi Jardín Vivo | Pasaporte Vivo |
+| :---: | :---: |
+| ![Captura del jardín virtual en Costa](docs/diseno/evidencias-diseno/04-jardin-costa-desktop.png) | ![Captura del Pasaporte Vivo de una planta](docs/diseno/evidencias-diseno/06-pasaporte-vivo-desktop.png) |
+| Escenario de cultivo interactivo | Información y seguimiento de una planta registrada |
 
-### 🛠️ Herramientas y arquitectura
+*Capturas de una versión de trabajo del proyecto. La apariencia puede cambiar conforme evoluciona el producto.*
 
-- **Frontend:** React 19 + TypeScript 5.9 + Vite 7; Phaser 3.90 para el huerto virtual; Leaflet 1.9 / React Leaflet 5 para el mapa detallado.
-- **Backend:** Node.js 22 + Express 4 + TypeScript 5.6; JWT y bcrypt para autenticación; Multer para fotos. Ver [arquitectura del backend](docs/arquitectura/backend.md).
-- **Base de datos:** **SQLite** con Prisma ORM 5.22 (archivo local, sin servidor externo).
-- **Intercambio:** API REST con JSON. Contratos en [docs/arquitectura/contratos-api.md](docs/arquitectura/contratos-api.md).
-- **Diseño:** Figma; mapa provincial con GeoJSON y catálogo territorial INEC DPA 2026.
-- **Gestión y pruebas:** GitHub Issues/PR; Playwright para pruebas automatizadas del frontend; casos de prueba documentados con la plantilla docente.
+## 🔄 ¿Cómo funciona?
 
-**Identificación automática por fotografía:** no forma parte de los flujos actuales y no debe presentarse como existente. El Espejo Digital usa la especie seleccionada y la etapa declarada por la persona; el sistema no valida automáticamente la identidad botánica. Requiere revisión de fuentes y no sustituye criterio sanitario. Una identificación automática siempre requiere confirmación del usuario y no constituye consejo médico.
+1. **Crea una cuenta** y, si corresponde, registra tu comunidad.
+2. **Registra tu huerto real:** ubicación, modalidad y características del terreno.
+3. **Entra a Mi Jardín Vivo** y selecciona uno de sus espacios de cultivo.
+4. **Registra una planta** con su especie, fotografía y observaciones.
+5. **Documenta sus cuidados** y consulta su evolución desde el Pasaporte Vivo, la Bitácora y las actividades del jardín.
 
-### ▶️ Ejecutar la aplicación
+### Un espejo digital del huerto real
 
-Requiere Node.js 20.19+ o 22 LTS y npm. Se usan **dos terminales**: primero el backend y luego el frontend.
+El **Espejo Digital Evolutivo** vincula los registros de una planta real con su representación visual. Cuando una persona añade nuevas fotografías y observaciones, el sistema puede reflejar la etapa documentada del cultivo y conservar su historial.
 
-**1. Backend** (API en `http://localhost:3000`):
+**Importante:** Kawsapacha no identifica automáticamente las especies ni diagnostica el estado de una planta mediante inteligencia artificial. La especie y las observaciones son registradas por la persona usuaria.
 
-```bash
-git clone https://github.com/ItsLeonel/OptiCode-Kawsapacha.git
-cd OptiCode-Kawsapacha/backend
-cp .env.example .env          # PowerShell: Copy-Item .env.example .env
-npm install
-npx prisma migrate deploy     # crea o actualiza la base SQLite sin perder datos (o: npx prisma migrate dev)
-npm run prisma:seed           # carga el catálogo regional (30 entradas) y asegura admin1/admin2
-npm run dev
-```
+## 💚 ¿A quién está dirigido?
 
-Comprobar: `http://localhost:3000/api/health` debe responder `"status": "ok"`.
+A comunidades barriales, familias, grupos de cultivo, iniciativas educativas y personas interesadas en registrar y acompañar el cuidado de huertos medicinales.
 
-**2. Frontend** (en otra terminal):
+También contempla perfiles institucionales para revisar información y actividades, de acuerdo con los permisos establecidos en el software.
 
-```bash
-cd OptiCode-Kawsapacha/frontend
-npm install
-npm run dev
-```
+## 🚀 Estado del proyecto
 
-Abrir `http://localhost:5173`. Vite redirige las llamadas `/api` al backend en el puerto 3000. Si el backend no está encendido, la aplicación lo indica y solo funciona el modo visitante.
+Kawsapacha cuenta con una base funcional de gestión de cuentas, comunidades, huertos, plantas, fotografías, jardín interactivo, actividades y seguimiento del cultivo. **Es un proyecto académico en evolución**, por lo que algunas funciones y validaciones siguen en desarrollo.
 
-Para comprobar tipos y compilación, en cada carpeta: `npm run typecheck` y `npm run build`. Más detalles en [backend/README.md](backend/README.md) y [frontend/README.md](frontend/README.md).
+Entre las ampliaciones previstas están el **foro comunitario**, los **eventos**, el **ranking entre comunidades** y otras herramientas de participación. No se presentan aquí como funcionalidades terminadas.
 
-> El `JWT_SECRET` de `.env.example` es solo para desarrollo local.
+**Acceso:** este repositorio contiene el código y la documentación. La disponibilidad de una instancia pública debe confirmarse con el equipo; no se incluye una URL de producción sin verificarla.
 
-## 👤 Cuentas, Credenciales en Base de Datos y Actualización de SQLite
+## 🛠️ ¿Cómo está construido?
 
-> 📘 **Guía completa:** revisa [docs/CREDENCIALES-Y-ACTUALIZACION-BD.md](docs/CREDENCIALES-Y-ACTUALIZACION-BD.md) para ver el detalle de credenciales administrativas, creación de cuentas desde la app y actualización desde versiones anteriores de la base de datos.
+El proyecto combina una interfaz web con un jardín 2D interactivo y un backend que guarda los datos registrados.
 
-### 1. Credenciales grabadas en la base de datos (`ADMIN_TECNICO`)
+| Área | Tecnologías principales |
+| --- | --- |
+| Interfaz web | React, TypeScript y Vite |
+| Jardín interactivo | Phaser 3 |
+| Servidor y API | Node.js, Express y TypeScript |
+| Persistencia | Prisma ORM y SQLite |
+| Pruebas | Playwright y GitHub Actions |
+| Preparación de despliegue | Docker y Caddy |
 
-Al ejecutar `npm run prisma:seed` en `backend/`, además de las 30 fichas del catálogo medicinal regional, se aseguran de forma no destructiva las dos cuentas técnicas iniciales en la tabla `users`:
+La organización del código sigue un **monolito modular con principios de Clean Architecture**, para separar responsabilidades y facilitar el mantenimiento.
 
-| Nombre | Correo | Contraseña | Rol global | Panel |
-|---|---|---|---|---|
-| **Administrador Técnico 1** | `admin1@mail.com` | `Password123` | `ADMIN_TECNICO` | `#admin-tecnico` |
-| **Administrador Técnico 2** | `admin2@mail.com` | `Password123` | `ADMIN_TECNICO` | `#admin-tecnico` |
+### Para desarrolladores
 
-*(Opcional: `npx ts-node src/scripts/bootstrap-admin.ts` permite aprovisionar un `ADMIN_TECNICO` distinto pasando `<email> <password> "<nombre>"`, o usa por defecto `admin.tecnico@kawsapacha.gob.ec` / `AdminTecnico2026*`.)*
+- [Iniciar el frontend](frontend/README.md)
+- [Configurar y ejecutar el backend](backend/README.md)
+- [Arquitectura y módulos](docs/architecture/README.md)
+- [Instrucciones de despliegue Docker/HTTPS](docs/arquitectura/despliegue-docker-https.md)
 
-### 2. Cuentas creadas desde el programa (`ADMIN_MSP` y `USUARIO`)
+## 📚 Documentación del proyecto
 
-- **Funcionarios MSP (`ADMIN_MSP`):** se crean desde la interfaz web iniciando sesión como `admin1@mail.com` o `admin2@mail.com` en `#admin-tecnico` (gestión de usuarios / alta MSP).
-- **Usuarios comunitarios (`USUARIO`):** se crean directamente desde la pantalla de bienvenida en la pestaña **"Crear cuenta"**. Se sugieren las siguientes cuentas para probar distintos escenarios:
+La documentación de análisis, diseño y calidad está disponible para quienes quieran conocer cómo se desarrolló Kawsapacha:
 
-| Nombre | Correo Sugerido | Contraseña Sugerida | Rol Comunitario | Escenario de Prueba |
-|---|---|---|---|---|
-| **Ronny Veloz** | `ronny@kawsapacha.ec` | `Password123` | **RESPONSABLE** | Crear la primera comunidad y registrar el huerto real. Cuenta con permisos para invitar miembros, cambiar roles y administrar el huerto. |
-| **María Quispe** | `maria@mail.com` | `Password123` | **PARTICIPANTE** | Unirse a la comunidad invitada (puede sembrar, cuidar y cosechar) y probar el botón para crear una comunidad propia (selector multi-comunidad). |
-| **Carlos Sanchez** | `carlos@kawsapacha.ec` | `Password123` | **PARTICIPANTE** | Recibir invitación a la comunidad y probar la campana de notificaciones (aceptar/rechazar). |
-| **Juan Lopez** | `juan@mail.com` | `Password123` | **PARTICIPANTE** | Usuario independiente con estado inicial limpio (0 comunidades y 0 huertos) para verificar aislamiento de datos. |
+- [Historias de usuario y requisitos](docs/historias-usuario/historias-usuario-v1.md)
+- [Alcance de la primera versión](docs/analisis/alcance-v1.md)
+- [Diseño y evidencias visuales](docs/diseno/entrega-ui-ux-v1.md)
+- [Casos de prueba y resultados](docs/casos-prueba/README.md)
+- [Informe del proyecto](docs/informe/informe-v1.md)
+- [Organización general de la documentación](docs/README.md)
 
-### 3. Cómo pasar de una base de datos antigua a la versión actual (paso a paso)
+## 👨‍💻 Equipo OptiCode
 
-Si ya tienes una base SQLite de una versión anterior (por ejemplo de V1 o de ramas previas) y quieres **actualizarla conservando tus usuarios, comunidades, huertos, plantas y fotos**:
+Proyecto desarrollado en la **Escuela Politécnica Nacional**:
 
-1. **Detén el servidor backend** (`Ctrl + C` en la terminal donde corría `npm run dev`) para evitar bloqueos de lectura/escritura en SQLite.
-2. **Verifica la ruta de tu base antigua en `backend/.env`:**
-   - Prisma resuelve `DATABASE_URL` respecto a `backend/prisma/schema.prisma`. Por defecto `.env.example` usa `DATABASE_URL="file:./kawsapacha.db"`, que corresponde al archivo `backend/prisma/kawsapacha.db`.
-   - Si tu versión anterior guardaba los datos en otro archivo (por ejemplo `backend/prisma/dev.db`), copia ese archivo como `backend/prisma/kawsapacha.db` o ajusta `DATABASE_URL` en `backend/.env` antes de migrar.
-3. **Haz una copia de respaldo** de la base y de **todo** `backend/uploads/` (fotos de plantas, actividades y comunidades) antes de migrar. Detén el backend primero y comprueba el respaldo:
-   ```powershell
-   # Windows PowerShell (desde OptiCode-Kawsapacha/backend)
-   Copy-Item prisma/kawsapacha.db prisma/kawsapacha.db.bak
-   Copy-Item uploads uploads-backup -Recurse
-   ```
-   ```bash
-   # Linux / macOS (desde OptiCode-Kawsapacha/backend)
-   cp prisma/kawsapacha.db prisma/kawsapacha.db.bak
-   cp -a uploads uploads-backup
-   ```
-4. **Instala dependencias y revisa qué migraciones faltan:**
-   ```bash
-   cd OptiCode-Kawsapacha/backend
-   npm install
-   npx prisma migrate status
-   ```
-   Verás listadas las migraciones pendientes (por ejemplo `20261114044500_catalogo_medicinal_regional` y `20261114190000_fase4_5_msp_moderacion_auditoria_y_espejo_v2`).
-5. **Aplica las migraciones de forma aditiva (sin borrar registros):**
-   ```bash
-   npx prisma migrate deploy
-   npx prisma generate
-   ```
-   Esto agrega las nuevas tablas (`notifications`, `audit_logs`, `reward_rules`, `mission_definitions`, `msp_institutional_events`, `msp_educational_resources`) y las columnas nuevas en `users`, `communities`, `cultivated_plants`, `garden_activities`, `reward_ledgers` y `medicinal_catalog`, preservando tus filas existentes.
-6. **Actualiza el catálogo medicinal y asegura las cuentas técnicas (`admin1` y `admin2`):**
-   ```bash
-   npm run prisma:seed
-   ```
-   Este comando actualiza las 30 especies del catálogo regional manteniendo intactos los 8 IDs históricos y crea `admin1@mail.com` y `admin2@mail.com` (`Password123`, rol `ADMIN_TECNICO`) únicamente si aún no existen en tu base.
-7. **Verifica qué sucede con los datos antiguos y posibles casos especiales:**
-   - **Estados iniciales tras migrar desde V1:** las comunidades, plantas y actividades creadas antes de Fase 4.5 reciben automáticamente `status = 'PENDING'` / `reviewStatus = 'PENDING'`. Inicia sesión con `admin1@mail.com` (`Password123`) o crea una cuenta `ADMIN_MSP` para aprobarlas en `#admin-msp`.
-   - **Si aparece `duplicate column name` o falla una migración:** **detén el proceso; no ejecutes `migrate resolve --applied` a ciegas.** Ese error puede indicar una base modificada con `prisma db push` o un esquema parcialmente aplicado. Conserva la copia `.bak` y `backend/uploads/`, consulta `npx prisma migrate status` e inspecciona en una **copia de la BD** el esquema y `_prisma_migrations`. Solo un responsable técnico debe marcar **la migración específica** como aplicada después de comprobar que **todos** sus cambios ya existen; de lo contrario se omitirían columnas o tablas necesarias. Si no está claro, restaura el respaldo y revisa la migración antes de reintentar.
-   - **Si prefieres empezar con una BD nueva sin conservar datos antiguos:** ejecuta `npx prisma migrate reset --force` y luego `npm run prisma:seed`.
-8. **Comprueba que todo quedó operativo:** levanta `npm run dev` en `backend/` y `frontend/`, verifica `http://localhost:3000/api/health` (`"status": "ok"`) e inicia sesión con `admin1@mail.com` / `Password123` o con tus cuentas comunitarias previas. Más detalles y ejemplos en [docs/CREDENCIALES-Y-ACTUALIZACION-BD.md](docs/CREDENCIALES-Y-ACTUALIZACION-BD.md).
+- **Leonel Morales:** dirección del proyecto y desarrollo frontend.
+- **Ronny Veloz:** backend, base de datos y arquitectura.
+- **Dylan Maldonado:** diseño y experiencia de usuario.
+- **Leonardo Lugmaña:** análisis de requisitos y documentación.
+- **Santiago Guamán:** aseguramiento de calidad y despliegue.
 
+## ℹ️ Nota de uso
 
+Kawsapacha es un **proyecto académico**, no una plataforma oficial del Ministerio de Salud Pública del Ecuador. Toma como referencia información educativa y lineamientos relacionados con huertos medicinales; **no reemplaza el asesoramiento profesional de salud** ni debe interpretarse como prescripción médica.
 
+---
 
-## ✅ Reglas para trabajar desde hoy
-
-1. Entrar a [Issues](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues), abrir las tareas asignadas y revisar sus **criterios de aceptación**.
-2. Cambiar el estado a **In Progress** en Projects al comenzar, si el Issue está vinculado al tablero.
-3. Crear una **rama por tarea**, subir avances y abrir un **Pull Request** indicando el Issue relacionado. No trabajar directamente en `main`.
-4. Comunicar bloqueos temprano y compartir las decisiones, diseños, pruebas y evidencias con **Leonardo**, responsable del informe.
-5. Marcar **Done** o cerrar un Issue **solo cuando su entregable esté verificado**. No inventar resultados de pruebas.
-
-## 📆 Objetivos y entrega
-
-| Fecha objetivo | Resultado |
-|---|---|
-| **4 nov.** | Diseño prioritario, primeras historias, arquitectura acordada y proyectos frontend/backend funcionando localmente. |
-| **6 nov.** | Flujo principal de los cinco módulos desarrollado e integrado. |
-| **8 nov.** | Pruebas ejecutadas, correcciones y documentación final consolidada. |
-| **10 nov.** | Demostración y entrega de V1. |
-
-> El milestone de preparación M1 tenía fecha 30 de octubre y ya venció: las tareas que sigan pendientes deben atenderse ahora, sin frenar el desarrollo paralelo.
-
-## 📁 Documentación y entregables
-
-- [Credenciales en BD y actualización de SQLite](docs/CREDENCIALES-Y-ACTUALIZACION-BD.md)
-- [Alcance de V1](docs/analisis/alcance-v1.md)
-- [Estado y trazabilidad del cliente (14/11/2026)](docs/analisis/trazabilidad-cliente-2026-11-14.md)
-- [Contrato propuesto de integración Espejo Digital V2](docs/arquitectura/contrato-espejo-digital-v2.md)
-- [Plan de pruebas manuales ciclo agrícola V2](docs/casos-prueba/ciclo-agricola-v2-manual.md)
-- [Despliegue reproducible Docker y HTTPS (aún no público)](docs/arquitectura/despliegue-docker-https.md)
-- [Historias de usuario V1](docs/historias-usuario/historias-usuario-v1.md)
-- [Arquitectura del backend](docs/arquitectura/backend.md) y [contratos de API](docs/arquitectura/contratos-api.md)
-- [Lineamientos MSP aplicados](docs/analisis/lineamientos-msp-aplicados.md) · [Preguntas al cliente](docs/analisis/preguntas-al-cliente.md) · [Dudas y decisiones](docs/analisis/dudas-y-decisiones-pendientes.md)
-- [Esquema del informe final](docs/informe/esquema-informe-v1.md)
-- [Organización de documentos](docs/README.md)
-- [Reglas de trabajo](docs/organizacion/REGLAS-DE-TRABAJO.md)
-- [Distribución de responsabilidades](docs/organizacion/REPARTO-DE-TAREAS-V1.md)
-- [Issues y avances](https://github.com/ItsLeonel/OptiCode-Kawsapacha/issues)
-
-**La entrega académica requiere:** historias de usuario, arquitectura y diseño, tecnologías, código, producto operativo, casos de prueba **ejecutados con resultados y evidencias**, instrucciones de ejecución e informe PDF final. **Leonardo consolida el informe; Leonel revisa y realiza la entrega oficial.**
+**🌱 Kawsapacha — Mi Huerto Vivo**  
+*Cada planta tiene una historia. Hagamos que su crecimiento se pueda compartir.*

@@ -8,7 +8,7 @@
       "qa-v1/playwright.qa.config.ts"
     ],
     "configFile": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1\\playwright.qa.config.ts",
-    "rootDir": "C:/Users/ASUS TUF/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa/frontend/qa-v1",
+    "rootDir": "<entorno-temporal>/qa/frontend/qa-v1",
     "failOnFlakyTests": false,
     "forbidOnly": false,
     "fullyParallel": false,
@@ -24,7 +24,7 @@
     "preserveOutput": "always",
     "projects": [
       {
-        "outputDir": "C:/Users/ASUS TUF/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa/frontend/qa-v1/qa-test-results",
+        "outputDir": "<entorno-temporal>/qa/frontend/qa-v1/qa-test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -32,7 +32,7 @@
         },
         "id": "",
         "name": "",
-        "testDir": "C:/Users/ASUS TUF/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa/frontend/qa-v1",
+        "testDir": "<entorno-temporal>/qa/frontend/qa-v1",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -75,7 +75,7 @@
       [
         "json",
         {
-          "outputFile": "C:/Users/ASUSTU~1/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa-run/ui-final.json"
+          "outputFile": "<entorno-temporal>"
         }
       ]
     ],

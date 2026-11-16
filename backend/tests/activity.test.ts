@@ -8,7 +8,7 @@ import {
   voidGardenActivity,
   VALID_ACTIVITY_TYPES,
 } from '../src/services/activity.service'
-import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant } from '../src/services/plant.service'
+import { listPlantsByGarden, getPlantPassport, updatePlantDetails, registerPlant, archivePlant } from '../src/services/plant.service'
 import { getUserRewardsSummary } from '../src/services/rewards.service'
 
 export async function runActivityTests() {
@@ -246,6 +246,50 @@ export async function runActivityTests() {
     // Comprobar que con includeVoided sí aparece
     const listWithVoided = await listGardenActivities(garden.id, user.id, { includeVoided: true })
     assert.ok(listWithVoided.some(a => a.id === prepAct.id))
+
+    // 8. Archivar planta y liberar parcela (múltiples archivadas con plotIndex = null en el mismo huerto)
+    const archivedPlant1 = await archivePlant(plant.id, user.id)
+    assert.equal(archivedPlant1.plotIndex, null, 'Archivar debe liberar la parcela (plotIndex = null)')
+    assert.equal(archivedPlant1.lifecycleStatus, 'ARCHIVED')
+    assert.ok(archivedPlant1.archivedAt, 'Debe registrar fecha archivedAt')
+
+    // Sembrar segunda planta en la parcela 1 recién liberada y archivarla también
+    const secondPlantInFreedPlot = await prisma.cultivatedPlant.create({
+      data: {
+        realGardenId: garden.id,
+        speciesId: species.id,
+        plotIndex: 1,
+        customName: 'Toronjil reemplazo 1',
+        registeredById: user.id,
+        reviewStatus: 'APPROVED',
+      },
+    })
+    assert.equal(secondPlantInFreedPlot.plotIndex, 1)
+    const archivedPlant2 = await archivePlant(secondPlantInFreedPlot.id, user.id)
+    assert.equal(archivedPlant2.plotIndex, null, 'Segunda planta archivada en el mismo huerto tampoco debe colisionar')
+    assert.equal(archivedPlant2.lifecycleStatus, 'ARCHIVED')
+
+    // Sembrar tercera planta activa en la parcela 1
+    const thirdActivePlant = await prisma.cultivatedPlant.create({
+      data: {
+        realGardenId: garden.id,
+        speciesId: species.id,
+        plotIndex: 1,
+        customName: 'Toronjil activo actual',
+        registeredById: user.id,
+        reviewStatus: 'APPROVED',
+      },
+    })
+    assert.equal(thirdActivePlant.plotIndex, 1)
+
+    const gardenPlants = await listPlantsByGarden(garden.id, user.id)
+    assert.ok(gardenPlants.some(p => p.id === plant.id && p.plotIndex === null && p.lifecycleStatus === 'ARCHIVED'))
+    assert.ok(gardenPlants.some(p => p.id === secondPlantInFreedPlot.id && p.plotIndex === null && p.lifecycleStatus === 'ARCHIVED'))
+    assert.ok(gardenPlants.some(p => p.id === thirdActivePlant.id && p.plotIndex === 1 && p.lifecycleStatus !== 'ARCHIVED'))
+
+    // Verificar que las actividades históricas de la planta archivada se conservaron intactas
+    const preservedDetail = await getGardenActivityDetail(waterAct.id, user.id)
+    assert.equal(preservedDetail.plant?.id, plant.id)
 
     console.log('Pruebas de Bitácora Viva y Actividades Agrícolas superadas con éxito.')
   } finally {

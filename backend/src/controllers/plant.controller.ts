@@ -93,6 +93,7 @@ export async function archive(req: AuthRequest, res: Response): Promise<void> {
     const e = err as { code?: string; message: string }
     if (e.code === 'NOT_FOUND') return void fail(res, 'NOT_FOUND', e.message, 404)
     if (e.code === 'FORBIDDEN') return void fail(res, 'FORBIDDEN', e.message, 403)
+    console.error('[plant.controller] Error al archivar la planta:', err)
     fail(res, 'INTERNAL_ERROR', 'Error al archivar la planta.', 500)
   }
 }

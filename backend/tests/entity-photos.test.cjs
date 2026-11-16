@@ -106,4 +106,47 @@ test('real SQLite migration, uploads, persistence and authorization', async t =>
     await assert.rejects(withEntityPhoto('gardens', { buffer: png, size: png.length, mimetype: 'image/png' }, false, null, async () => { throw new Error('Simulated database failure') }), /Simulated/)
     assert.deepEqual(fs.readdirSync(path.join(database.uploads, 'gardens')), before)
   })
+  await t.test('archiving multiple plants in the same plot sets plotIndex to null and frees the plot for new sowing', async () => {
+    const species = await prisma.medicinalCatalog.create({
+      data: { id: 'archive-test-romero', name: 'Romero', latinName: 'Salvia rosmarinus', icon: '🌿', regions: '["costa","sierra","oriente","galapagos"]' },
+    })
+    const plant1Res = await call(`/api/gardens/${garden.id}/plants`, owner.token, form({ speciesId: species.id, plotIndex: 1, customName: 'Romero 1', notes: 'Primera siembra' }))
+    assert.equal(plant1Res.status, 201)
+    const plant1 = plant1Res.json.data.plant
+    assert.equal(plant1.plotIndex, 1)
+
+    // Participante no puede archivar
+    const forbiddenRes = await call(`/api/plants/${plant1.id}/archive`, outsider.token, undefined, 'PATCH')
+    assert.equal(forbiddenRes.status, 403)
+
+    // Responsable archiva la primera planta y libera la parcela 1
+    const arch1 = await call(`/api/plants/${plant1.id}/archive`, owner.token, undefined, 'PATCH')
+    assert.equal(arch1.status, 200)
+    assert.equal(arch1.json.data.plant.plotIndex, null)
+    assert.equal(arch1.json.data.plant.lifecycleStatus, 'ARCHIVED')
+    assert.ok(arch1.json.data.plant.archivedAt)
+
+    // Sembrar segunda planta en la misma parcela 1 liberada y archivarla también (verifica que múltiples plotIndex=null no colisionen en SQLite)
+    const plant2Res = await call(`/api/gardens/${garden.id}/plants`, owner.token, form({ speciesId: species.id, plotIndex: 1, customName: 'Romero 2', notes: 'Segunda siembra' }))
+    assert.equal(plant2Res.status, 201)
+    const plant2 = plant2Res.json.data.plant
+    assert.equal(plant2.plotIndex, 1)
+
+    const arch2 = await call(`/api/plants/${plant2.id}/archive`, owner.token, undefined, 'PATCH')
+    assert.equal(arch2.status, 200)
+    assert.equal(arch2.json.data.plant.plotIndex, null)
+
+    // Sembrar tercera planta activa en la parcela 1
+    const plant3Res = await call(`/api/gardens/${garden.id}/plants`, owner.token, form({ speciesId: species.id, plotIndex: 1, customName: 'Romero 3', notes: 'Tercera siembra activa' }))
+    assert.equal(plant3Res.status, 201)
+    assert.equal(plant3Res.json.data.plant.plotIndex, 1)
+
+    // El listado conserva las 2 archivadas y la 1 activa
+    const listRes = await call(`/api/gardens/${garden.id}/plants`, owner.token, undefined, 'GET')
+    assert.equal(listRes.status, 200)
+    const allPlants = listRes.json.data.plants
+    assert.equal(allPlants.length, 3)
+    assert.equal(allPlants.filter(p => p.plotIndex === null && p.lifecycleStatus === 'ARCHIVED').length, 2)
+    assert.equal(allPlants.filter(p => p.plotIndex === 1 && p.lifecycleStatus !== 'ARCHIVED').length, 1)
+  })
 })

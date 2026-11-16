@@ -974,14 +974,16 @@ export default function App({
     if (!detail) return
     if (user) {
       if (currentCommunityRole && currentCommunityRole !== 'RESPONSABLE') {
-        setNotice('Solo las personas con rol Responsable pueden archivar plantas y liberar parcelas.')
-        return
+        const msg = 'Solo las personas con rol Responsable pueden archivar plantas y liberar parcelas.'
+        setNotice(msg)
+        throw new Error(msg)
       }
-      await plantApi.archive(detail.id)
+      const archived = await plantApi.archive(detail.id)
+      const archivedIso = archived.archivedAt ? new Date(archived.archivedAt).toISOString() : new Date().toISOString()
       setBackendPlants(prev =>
         prev.map(p =>
           p.id === detail.id
-            ? { ...p, plot: -1, archivedAt: new Date().toISOString() }
+            ? { ...p, plot: -1, archivedAt: archivedIso }
             : p
         )
       )

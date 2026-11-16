@@ -226,6 +226,7 @@ export async function archivePlant(plantId: string, requestingUserId: string) {
     where: { id: plantId },
     select: {
       id: true,
+      archivedAt: true,
       registeredById: true,
       realGarden: {
         select: {
@@ -276,7 +277,7 @@ export async function archivePlant(plantId: string, requestingUserId: string) {
     where: { id: plantId },
     data: {
       lifecycleStatus: 'ARCHIVED',
-      archivedAt: new Date(),
+      archivedAt: plant.archivedAt ?? new Date(),
       plotIndex: null,
     },
     include: { species: true, realGarden: { select: { id: true, name: true, province: true } } },

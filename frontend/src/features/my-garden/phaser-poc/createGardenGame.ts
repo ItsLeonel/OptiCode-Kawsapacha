@@ -31,7 +31,7 @@ class ModularGardenScene extends Phaser.Scene {
 
   create() {
     this.painter = new GardenScenePainter(this)
-    this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height).setBackgroundColor('#28462c')
+    this.cameras.main.setBounds(0, -2000, WORLD.width, WORLD.height + 4000).setBackgroundColor('#28462c')
     this.ready = true
     this.input.enabled = !this.bridge.snapshot.blocked
     this.load.on(Phaser.Loader.Events.COMPLETE, this.draw, this)
@@ -281,6 +281,7 @@ class ModularGardenScene extends Phaser.Scene {
     this.viewportSize = `${this.scale.width}:${this.scale.height}`
     this.drag = null
     const ground = this.bridge.snapshot.model.kind === 'ground'
+    const isMobile = this.scale.width < 700
     // Flat garden regions share a fit-to-width frame that keeps all six plots and the entry in view.
     const zoom = ground
       // Fit Costa to the viewport width. Height fitting can expose world X
@@ -290,15 +291,25 @@ class ModularGardenScene extends Phaser.Scene {
           Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2),
           Math.min(this.scale.width / 1750, this.scale.height / 1100, 1.3),
         )
-    // En móvil, encuadrar los seis centros táctiles; no dejar fuera la última maceta.
-    const anchors = this.bridge.snapshot.model.slots.map(slot => slot.anchor.x)
-    const minSlotX = Math.min(...anchors)
-    const maxSlotX = Math.max(...anchors)
-    const slotWidth = Math.max(1, maxSlotX - minSlotX)
+    // En móvil, encuadrar los seis centros táctiles; no dejar fuera la última maceta ni desplazar el terreno al cielo.
+    const anchorsX = this.bridge.snapshot.model.slots.map(slot => slot.anchor.x)
+    const anchorsY = this.bridge.snapshot.model.slots.map(slot => slot.anchor.y)
+    const minSlotX = Math.min(...anchorsX)
+    const maxSlotX = Math.max(...anchorsX)
+    const minSlotY = Math.min(...anchorsY)
+    const maxSlotY = Math.max(...anchorsY)
+    const kind = this.bridge.snapshot.model.kind
+    const itemExtra = kind === 'pots' ? 300 : 180
+    const slotWidth = Math.max(1, (maxSlotX - minSlotX) + (isMobile ? itemExtra : 0))
     const touchPadding = Math.min(44, this.scale.width * .12)
     const fittedZoom = ground ? zoom : Math.min(zoom, (this.scale.width - touchPadding) / slotWidth)
     const centerX = ground ? WORLD.width / 2 : (minSlotX + maxSlotX) / 2
-    const centerY = ground ? 800 : WORLD.centerY
+    const slotCenterY = (minSlotY + maxSlotY) / 2
+    const centerY = isMobile
+      ? (ground
+          ? slotCenterY - (0.08 * this.scale.height) / fittedZoom
+          : slotCenterY - (0.06 * this.scale.height) / fittedZoom)
+      : (ground ? 800 : WORLD.centerY)
     this.cameras.main.setZoom(fittedZoom).centerOn(centerX, centerY)
   }
 

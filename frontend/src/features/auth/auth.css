@@ -822,14 +822,102 @@
 .auth-journey { position: relative; z-index: 2; }
 @media (max-width: 900px) {
   .auth-page { display: block; }
-  .auth-brand.auth-brand-floating { top: 12px; left: 12px; padding: 5px 11px 5px 6px; }
+  .auth-brand.auth-brand-floating { top: calc(12px + env(safe-area-inset-top, 0px)); left: 12px; padding: 5px 11px 5px 6px; }
   .auth-brand.auth-brand-floating .auth-brand-symbol { width: 34px; height: 34px; }
   .auth-brand.auth-brand-floating .auth-brand-symbol .auth-icon { width: 24px; height: 24px; }
   .auth-brand.auth-brand-floating strong { font-size: 21px; }
   .auth-brand.auth-brand-floating small { font-size: 7px; }
-  .auth-layout { padding-top: 72px; }
+  .auth-layout { padding-top: calc(72px + env(safe-area-inset-top, 0px)); }
 }
 @media (max-width: 600px) {
-  .auth-brand.auth-brand-floating { top: 9px; left: 9px; }
-  .auth-layout { padding-top: 68px; }
+  .auth-brand.auth-brand-floating { top: calc(9px + env(safe-area-inset-top, 0px)); left: 9px; }
+  .auth-layout { padding-top: calc(68px + env(safe-area-inset-top, 0px)); }
+}
+
+/* ── Fix mobile: evitar que auth-journey quede oculto bajo el chrome del navegador y solucionar solapamiento de textos ── */
+@media (max-width: 900px) {
+  .auth-page { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .auth-journey {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+    width: min(calc(100% - 24px), 520px);
+    margin: 16px auto 16px;
+    padding: 16px 14px max(16px, env(safe-area-inset-bottom, 16px));
+    box-sizing: border-box;
+  }
+  .auth-journey h2 {
+    font-size: 15px;
+    margin: 0;
+    justify-content: center;
+    width: 100%;
+  }
+  .auth-journey ol {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: flex-start;
+    width: 100%;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .auth-journey li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+    gap: 5px;
+    max-width: none;
+  }
+  .auth-journey li:not(:last-child)::after {
+    display: none;
+  }
+  .auth-journey strong {
+    font-size: 12px;
+  }
+  .auth-journey small {
+    font-size: 10px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .auth-journey-signature {
+    grid-column: auto;
+    font-size: 10px;
+    margin-top: 4px;
+    text-align: center;
+  }
+}
+@media (max-width: 600px) {
+  .auth-journey {
+    padding: 14px 10px max(14px, env(safe-area-inset-bottom, 14px));
+    gap: 10px;
+  }
+  .auth-journey h2 {
+    font-size: 13px;
+    gap: 5px;
+  }
+  .auth-journey h2 .auth-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .auth-journey-number {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  .auth-journey strong {
+    font-size: 11px;
+  }
+  .auth-journey small {
+    font-size: 9px;
+  }
+  .auth-journey-signature {
+    font-size: 9px;
+  }
 }

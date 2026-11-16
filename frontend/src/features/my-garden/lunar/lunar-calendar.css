@@ -236,10 +236,10 @@
   .lunar-day-detail { order: 2; }
   .lunar-modal-heading h2 { font-size: 28px; }
 }
-@media (max-width: 650px) {
-  /* Dejar libre la franja de interacción de las seis parcelas en móvil. */
-  .lunar-garden-widget { top: clamp(270px, 36dvh, 360px); right: 9px; width: min(310px, calc(100vw - 18px)); }
-  .lunar-widget-toggle { min-height: 36px; padding: 6px 10px; font-size: 11px; }
+@media (max-width: 700px) {
+  /* Agrupar junto al HUD superior para dejar libre toda la franja central de las seis parcelas en móvil. */
+  .lunar-garden-widget { top: 132px; right: 10px; width: min(310px, calc(100vw - 20px)); }
+  .lunar-widget-toggle { min-height: 36px; padding: 6px 10px; font-size: 11px; max-width: 100%; }
   .lunar-today-panel { max-height: calc(100dvh - 220px); }
   .lunar-modal-backdrop { padding: 0; }
   .lunar-modal { height: 100dvh; width: 100%; border: 0; border-radius: 0; padding: 12px 10px 18px; }

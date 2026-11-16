@@ -1,0 +1,78 @@
+name: Catálogo medicinal - Backend
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/catalogo-backend-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/catalogo-backend-ci.yml'
+jobs:
+  catalogo-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: file:./catalog-ci.db
+      JWT_SECRET: github-actions-test-key-not-a-real-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dependencias
+        run: npm ci --no-audit --no-fund
+      - name: Generar Prisma
+        run: npx prisma generate
+      - name: Comprobar esquema y migración
+        run: |
+          npx prisma validate
+          npx prisma migrate deploy
+      - name: Sembrar el catálogo regional sin borrar datos
+        run: npm run prisma:seed
+      - name: Auditoría no destructiva de copia SQLite en CI
+        shell: bash
+        run: |
+          db=$(find prisma -maxdepth 2 -name catalog-ci.db -type f -print -quit)
+          test -n "$db"
+          node ../tools/verify-local-snapshot.cjs --db "$db" --uploads uploads
+      - name: Límites de arquitectura modular
+        run: npm run check:architecture
+      - name: Métricas reproducibles de mantenibilidad
+        run: node ../tools/maintainability-report.cjs
+      - name: Inventario de activos gráficos potencialmente obsoletos
+        run: node ../tools/audit-assets.cjs
+      - name: TypeScript y build backend
+        run: |
+          npm run typecheck
+          npm run build
+      - name: Prueba de datos regionales
+        run: node --test tests/catalog-regional.test.cjs
+      - name: Pruebas API y migraciones previas
+        run: npm test
+      - name: Integración actividades, MSP, permisos y recompensas
+        run: npm run test:activities
+      - name: Migración V1 sobre SQLite heredada y conciliación idempotente
+        env:
+          DATABASE_URL: file:./migration-legacy-ci.db
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration="prisma/migrations/20261115051000_validacion_automatica_v1"
+          hidden="$RUNNER_TEMP/kawsapacha-migration-v1"
+          mv "$migration" "$hidden"
+          trap 'if [ -d "$hidden" ]; then mv "$hidden" "$migration"; fi' EXIT
+          # Construir esquema anterior real y guardar comunidad/planta/actividades antiguas.
+          npx prisma migrate deploy
+          node tests/legacy-msp-migration.cjs seed
+          mv "$hidden" "$migration"
+          # Aplicar únicamente la nueva migración sobre esos mismos datos.
+          npx prisma migrate deploy
+          node tests/legacy-msp-migration.cjs after-migrate
+          npm run reconcile:msp-v1
+          node tests/legacy-msp-migration.cjs after-reconcile
+          # Un segundo pase jamás puede duplicar Semillas.
+          npm run reconcile:msp-v1
+          node tests/legacy-msp-migration.cjs after-reconcile

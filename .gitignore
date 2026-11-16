@@ -20,6 +20,10 @@ backend/prisma/*.db
 backend/prisma/*.db-journal
 backend/uploads/plants/*
 !backend/uploads/plants/.gitkeep
+backend/uploads/activities/*
+!backend/uploads/activities/.gitkeep
+backend/uploads/communities/
+backend/uploads/gardens/
 
 # Editor / operating system
 .DS_Store
@@ -33,6 +37,7 @@ Thumbs.db
 *.tsbuildinfo
 
 # Generated review outputs and local-only design experiments
+docs/PLAN_*.md
 frontend/artifacts/
 VISTA_PREVIA.webp
 kawsapacha_codex_*.zip
@@ -40,3 +45,11 @@ PROMPT_UNICO_CODEX.md
 referencias/PROMPT_CODEX_JARDIN_FASES_1_A_7.md
 referencias/jardin-v1-referencias/
 referencias/jardin-v3/
+
+# Local backups, exploratory references and one-off artifacts
+*.bak
+*.bak-*
+/INSTALAR_FASE4.ps1
+/estructura-proyecto.txt
+/backend/uploads-backup/
+/referencias/

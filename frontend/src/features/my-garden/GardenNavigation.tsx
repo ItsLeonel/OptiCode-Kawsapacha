@@ -5,18 +5,10 @@ import { useEffect, useRef, useState } from 'react'
 import './garden-navigation-v3.css'
 
 type PrimaryDestination = 'garden' | 'community' | 'progress'
-type SidebarProgress = {
-  points: number
-  level: string
-  progressPercent: number
-  nextLevel?: string
-  badges: { id: string; label: string; earned: boolean }[]
-}
-
-const ITEMS: { destination: PrimaryDestination; label: string; icon: 'garden' | 'community' | 'target' }[] = [
-  { destination: 'garden', label: 'Mi Huerto Vivo', icon: 'garden' },
+const ITEMS: { destination: GardenDestination; label: string; icon: 'garden' | 'community' | 'target' }[] = [
+  { destination: 'garden', label: 'Mi Huerto', icon: 'garden' },
   { destination: 'community', label: 'Comunidad', icon: 'community' },
-  { destination: 'progress', label: 'Mi camino verde', icon: 'target' },
+  { destination: 'progress', label: 'Mi Camino Verde', icon: 'target' },
 ]
 
 export default function GardenNavigation({
@@ -24,18 +16,17 @@ export default function GardenNavigation({
   onNavigate,
   onWelcome,
   demo = true,
-  progress,
   user,
   onLogout,
   pendingInvitationsCount = 0,
   onOpenNotifications,
+  region: _region,
   overlayMode = false,
 }: {
   active: GardenDestination | PrimaryDestination
   onNavigate: (destination: GardenDestination) => void
   onWelcome: () => void
   demo?: boolean
-  progress?: SidebarProgress
   user?: { name: string; role: string } | null
   onLogout?: () => void
   pendingInvitationsCount?: number
@@ -43,7 +34,6 @@ export default function GardenNavigation({
   region?: string
   overlayMode?: boolean
 }) {
-  const earnedBadges = progress?.badges.filter(badge => badge.earned) ?? []
   const [open, setOpen] = useState(false)
   const sidebarRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -141,7 +131,10 @@ export default function GardenNavigation({
             className={`garden-nav-notif-btn ${pendingInvitationsCount > 0 ? 'is-pending' : ''}`}
             aria-label={`Notificaciones ${pendingInvitationsCount > 0 ? `(${pendingInvitationsCount} pendientes)` : ''}`}
           >
-            <GardenIcon name="bell" />
+            <span className="garden-nav-bell-wrap">
+              <GardenIcon name="bell" />
+              {pendingInvitationsCount > 0 && <span className="garden-notif-red-dot" aria-hidden="true" />}
+            </span>
             <span>Notificaciones</span>
             {pendingInvitationsCount > 0 && (
               <span className="garden-nav-badge">{pendingInvitationsCount}</span>
@@ -150,39 +143,7 @@ export default function GardenNavigation({
         )}
       </nav>
 
-      {progress && (
-        <button
-          className="garden-path-preview"
-          type="button"
-          onClick={() => onNavigate('progress')}
-          aria-label={`Ver Mi camino verde: ${progress.points} Semillas de vida, nivel ${progress.level}`}
-        >
-          <span className="garden-progress-heading">
-            <GardenIcon name="seed" />
-            <strong>Mi progreso</strong>
-          </span>
-          <span className="garden-progress-level">
-            <strong>{progress.level}</strong>
-            <output>{progress.points} Semillas</output>
-          </span>
-          <progress aria-label="Avance al siguiente nivel" max={100} value={progress.progressPercent} />
-          <span className="garden-progress-next">
-            {progress.nextLevel ? `Siguiente: ${progress.nextLevel}` : 'Nivel Maestro'}
-          </span>
-          <span className="garden-progress-badges" aria-label={`${earnedBadges.length} insignias obtenidas`}>
-            {earnedBadges.length ? (
-              earnedBadges.map(badge => (
-                <span key={badge.id} title={badge.label} aria-label={badge.label}>
-                  ✦
-                </span>
-              ))
-            ) : (
-              <small>Sin insignias obtenidas</small>
-            )}
-          </span>
-        </button>
-      )}
-
+      {/* El progreso y las insignias se consultan dentro de Mi Camino Verde. */}
       <div className="garden-sidebar-footer">
         {user ? (
           <>

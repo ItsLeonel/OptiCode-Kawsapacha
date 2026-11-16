@@ -9,11 +9,16 @@ export const test = base.extend({
     // Isolated guest E2E intentionally has no backend; fail catalog calls fast
     // rather than waiting for the Vite proxy. Never fake a successful API.
     if (process.env.KAWSAPACHA_E2E_OFFLINE_CATALOG === '1') {
-      await page.route('**/api/catalog**', route => route.fulfill({
-        status: 503,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Catálogo no disponible en prueba aislada' }),
-      }))
+      // La suite aislada no inicia Express: fallar rápido y explícitamente.
+      // Evita cientos de reintentos al proxy Vite que ralentizan el navegador
+      // y vuelven intermitentes los escenarios largos de parcelas.
+      for (const endpoint of ['catalog', 'lunar-calendar']) {
+        await page.route(new RegExp('/api/' + endpoint + '(?:[/?]|$)'), route => route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: endpoint + ' sin backend en prueba aislada' }),
+        }))
+      }
     }
     await use(page)
   },

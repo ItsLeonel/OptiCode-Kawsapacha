@@ -1,9 +1,10 @@
 # Recursos de Comunidad V3
 
-Copias de los recursos independientes entregados en `referencias/comunidad-v3/`.
-Los PNG conservan sus bytes, transparencia y metadatos originales. Las referencias
-de `pantallas-aprobadas/` se usan solo para revisión visual; ninguna captura forma
-parte de la interfaz ni se importa desde React o CSS.
+Recursos de producción extraídos del paquete de diseño entregado para Comunidad V3.
+Los PNG conservan los bytes, transparencia y metadatos originales. Durante la
+limpieza del 14/11/2026 se retiró la carpeta histórica `referencias/comunidad-v3/`
+porque duplicaba los recursos de producción. Las seis capturas de pantallas aprobadas
+eran solo guías visuales y no se importaban desde React ni CSS.
 
 | Región | Fondo original | Personaje original |
 | --- | --- | --- |
@@ -22,6 +23,7 @@ y `personajes/personaje_{region}_v3.png`. La selección reutiliza `regionForProv
 tablones, flores y cosecha. Textos, controles, tarjetas, emblemas y formularios son
 elementos independientes de React, CSS y SVG.
 
-La procedencia y las condiciones de uso son las de los archivos entregados; este
-directorio no añade una licencia distinta. Se conservan los originales y las
-licencias existentes del repositorio, incluidos los datos del mapa.
+La procedencia y las condiciones de uso son las de los recursos entregados; este
+directorio no añade una licencia distinta. Se conservan los PNG de producción y
+las licencias existentes del repositorio, incluidos los datos del mapa. Las
+referencias eliminadas siguen recuperables desde el historial Git anterior a la limpieza.

@@ -76,3 +76,33 @@ test('a new photo with the same observation keeps both evidences with one daily 
   expect(projectPlants(state)[0].photoId).toBe('observation-b')
   expect(calculateProgress(state).points).toBe(12)
 })
+
+test('un estado MSP heredado pendiente no bloquea riego ni observación; la parcela sigue ocupada', () => {
+  const state = setup()
+  const pendingPlants = state.plants.map(p => ({ ...p, reviewStatus: 'PENDING' }))
+  const watering = activity(state.gardenId, { type: 'watering' })
+  expect(validateActivity(watering, pendingPlants)).toBeNull()
+  expect(validateActivity(activity(state.gardenId, {
+    type: 'observation',
+    details: { state: 'observed' },
+  }), pendingPlants)).toBeNull()
+  expect(validateActivity(activity(state.gardenId, {
+    type: 'sowing',
+    target: { kind: 'plot', plot: 0 },
+  }), pendingPlants)).toContain('ocupado')
+})
+
+test('mobile photo normalization accepts image/jpg and extension fallback for phone uploads', async () => {
+  const { isAcceptedImageInput, optimizeMobilePhoto } = await import('../src/shared/photo-validation')
+  const jpgMobile = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00])], 'CAM_2026.jpg', { type: 'image/jpg' })
+  const emptyMimeJpg = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00])], 'IMG_001.JPG', { type: '' })
+  const txtFile = new File(['hola'], 'nota.txt', { type: 'text/plain' })
+
+  expect(isAcceptedImageInput(jpgMobile)).toBe(true)
+  expect(isAcceptedImageInput(emptyMimeJpg)).toBe(true)
+  expect(isAcceptedImageInput(txtFile)).toBe(false)
+
+  const normalized = await optimizeMobilePhoto(jpgMobile, 'actividad')
+  expect(normalized.type).toBe('image/jpeg')
+  expect(normalized.name.endsWith('.jpg')).toBe(true)
+})

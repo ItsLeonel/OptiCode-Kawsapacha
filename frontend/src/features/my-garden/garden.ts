@@ -1,3 +1,6 @@
+import type { GrowthStage } from './growth-stages'
+import type { PlantVisualProfile } from './plant-visual-profile'
+
 export const PLOT_COUNT = 6
 
 export const PLANT_STATES = {
@@ -6,7 +9,8 @@ export const PLANT_STATES = {
 export type PlantState = keyof typeof PLANT_STATES
 export type PlantEvidence = {
   id: string; date: string; notes: string; photo?: string; photoId?: string
-  state?: PlantState; heightCm?: number
+  state?: PlantState; heightCm?: number; growthStage?: GrowthStage; visualProfile?: PlantVisualProfile
+  reviewStatus?: string
 }
 
 export type GardenPlant = {
@@ -22,8 +26,11 @@ export type GardenPlant = {
   photoId?: string
   observations?: string
   state?: PlantState
+  growthStage?: GrowthStage
+  visualProfile?: PlantVisualProfile
   evidences?: PlantEvidence[]
   archivedAt?: string
+  reviewStatus?: string   // Estado de aprobación de la siembra por el MSP: PENDING | APPROVED | NEEDS_CHANGES | REJECTED
 }
 
 export type GardenDestination = 'garden' | 'community' | 'real-garden' | 'plants' | 'my-plants' | 'history' | 'progress'

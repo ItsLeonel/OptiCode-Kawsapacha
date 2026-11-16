@@ -1,11 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 import GardenLocation from './GardenLocation'
 import GardenCharacteristics from './GardenCharacteristics'
 import RealGardenSummary from './RealGardenSummary'
 import RealGardenIcon from './RealGardenIcon'
 import GardenRegistrationDetails from './GardenRegistrationDetails'
-import type { Community } from '../communities/communities'
+import type { Community } from '../../shared/contracts/community'
 import { withCommunityLocation } from './garden-community-location'
 import { parseRealGarden, toGardenDraft, type RealGarden, type RealGardenDraft, type RealGardenErrors } from './real-garden'
 import type { UserSession } from '../../services/api'
@@ -28,7 +28,7 @@ export default function RealGardenPage({
   garden: RealGarden | null
   community?: Community | null
   communityName?: string | null
-  onSave: (garden: RealGarden) => void | Promise<void>
+  onSave: (garden: RealGarden) => RealGarden | void | Promise<RealGarden | void>
   draft: RealGardenDraft
   onDraftChange: (draft: RealGardenDraft) => void
   onConnect: () => void
@@ -72,6 +72,7 @@ export default function RealGardenPage({
       ...(field === 'province' && value !== values.province ? { cantonCode: '', parishCode: '', coordinates: null } : {}),
       ...(field === 'cantonCode' && value !== values.cantonCode ? { parishCode: '', coordinates: null } : {}),
       ...(field === 'parishCode' && value !== values.parishCode ? { coordinates: null } : {}),
+      ...(field === 'photo' ? { removePhoto: !value } : {}),
     })
     setErrors(current => ({
       ...current,
@@ -134,10 +135,11 @@ export default function RealGardenPage({
       return
     }
     saveGuard.current = true
-    try { await onSave(result.garden) }
+    let saved: RealGarden | void
+    try { saved = await onSave(result.garden) }
     catch (cause) { saveGuard.current = false; setNotice(cause instanceof Error ? cause.message : 'No se pudo guardar el terreno.'); return }
     saveGuard.current = false
-    setValues(toGardenDraft(result.garden))
+    setValues(toGardenDraft(saved ?? result.garden))
     setEditing(false)
     setRegistrationDetailsOpen(false)
     setErrors({})

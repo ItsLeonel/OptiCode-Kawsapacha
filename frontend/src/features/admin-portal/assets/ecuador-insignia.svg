@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 100" role="img" aria-label="Insignia decorativa inspirada en el escudo del Ecuador">
+  <g fill="none" stroke="#ead7ac" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M45 8c-9-7-23-6-37-1 9 3 17 7 24 15M45 8c9-7 23-6 37-1-9 3-17 7-24 15" stroke-width="3"/>
+    <path d="M45 8 35 23M45 8l10 15" stroke-width="3"/>
+    <path d="M23 24c0 35 1 53 22 69 21-16 22-34 22-69H23Z" stroke-width="3"/>
+    <path d="M29 30h32v35c-4 10-10 17-16 21-6-4-12-11-16-21V30Z" stroke-width="1.4"/>
+    <path d="M31 46h28M31 47l10-10 7 7 5-6 8 10" stroke-width="2.3"/>
+    <path d="M31 56c7-4 15-4 28 0M31 61c7-4 15-4 28 0" stroke-width="1.8"/>
+    <circle cx="45" cy="34" r="4" fill="#c9a351" stroke="none"/>
+    <path d="M18 36c-12 9-12 23 2 33M72 36c12 9 12 23-2 33M15 44l-6 0M16 52l-7 4M18 61l-4 7M75 44l6 0M74 52l7 4M72 61l4 7" stroke-width="2"/>
+  </g>
+  <path d="M31 67h28" stroke="#dabc62" stroke-width="2"/>
+</svg>

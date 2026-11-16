@@ -12,7 +12,6 @@ frontend/src/
   EcuadorMap.tsx
   assets/
     fondo-kawsapacha.png
-    jardin-andino-v1.png
     jardin-andino-v2.png
     cama-cultivo-v2.png
   features/

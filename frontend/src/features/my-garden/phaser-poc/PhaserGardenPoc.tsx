@@ -1,9 +1,10 @@
-﻿import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { GardenSceneRendererProps } from '../garden-scene-renderer'
-import { SOIL_OPTIONS, IRRIGATION_OPTIONS, formatGardenArea } from '../../real-gardens/real-garden'
-import { GARDEN_FEATURE_OPTIONS } from '../../real-gardens/garden-characteristics'
-import { GARDEN_REGIONS } from '../../real-gardens/garden-region'
+import { SOIL_OPTIONS, IRRIGATION_OPTIONS, formatGardenArea } from '../../../shared/contracts/real-garden'
+import { GARDEN_FEATURE_OPTIONS } from '../../../shared/contracts/garden-features'
+import { GARDEN_REGIONS } from '../../../shared/geo/region'
 import GardenIcon from '../GardenIcon'
+import { GROWTH_STAGES, documentedGrowthStage } from '../growth-stages'
 import { LAYOUT_PROFILES } from './layouts'
 import { GardenSceneBridge, type CameraState, type SceneCommand } from './bridge'
 import { toGardenVisualModel } from './adapter'
@@ -70,7 +71,10 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
     import('./createGardenGame').then(({ createGardenGame }) => {
       if (cancelled || !host.current) return
       destroy = createGardenGame(host.current, bridge, renderer)
-    }).catch(() => { if (!cancelled) setError('No se pudo iniciar el escenario. Utiliza la selección accesible del jardín.') })
+    }).catch(cause => {
+      console.error('[Kawsapacha][Phaser] No se pudo iniciar el motor del huerto', cause)
+      if (!cancelled) setError('No se pudo iniciar el escenario. Utiliza la selección accesible del jardín.')
+    })
     return () => { cancelled = true; unsubscribe(); destroy?.() }
   }, [bridge, renderer])
 
@@ -85,7 +89,7 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
 
   function command(value: SceneCommand) { bridge.command(value) }
   function slotKeyboard(event: KeyboardEvent<HTMLButtonElement>, plot: number) {
-    const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }
+    const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: model.kind === 'vertical' ? -2 : -3, ArrowDown: model.kind === 'vertical' ? 2 : 3 }
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? 5 : event.key in offsets ? Math.max(0, Math.min(5, plot + offsets[event.key])) : null
     if (next !== null) { event.preventDefault(); slotButtons.current[next]?.focus({ preventScroll: true }) }
   }
@@ -106,12 +110,12 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
         <button type="button" aria-label="Ver características de mi terreno" aria-controls={infoId} aria-expanded={infoOpen} onClick={() => { setInfoOpen(!infoOpen); setHelpOpen(false) }}><GardenIcon name="map"/><span>Mi terreno</span></button>
         <button type="button" aria-label="Ayuda del jardín" aria-controls={helpId} aria-expanded={helpOpen} onClick={() => { setHelpOpen(!helpOpen); setInfoOpen(false) }}>?</button>
       </div>
-      <div className="garden-poc-record-count"><GardenIcon name="leaf"/>{plants.length ? plants.length + (plants.length === 1 ? ' planta registrada' : ' plantas registradas') : 'Tu tierra, una historia por comenzar'}<small>{plants.length ? 'Fotografías de tu huerto real' : 'Selecciona una zona para registrar tu primera planta'}</small></div>
+      <div className="garden-poc-record-count"><GardenIcon name="leaf"/>{plants.length ? plants.length + (plants.length === 1 ? ' planta registrada' : ' plantas registradas') : 'Tu tierra, una historia por comenzar'}<small>{plants.length ? 'Etapas ilustradas solo con observaciones documentadas' : 'Selecciona una zona para registrar tu primera planta'}</small></div>
       <button type="button" className="garden-poc-guide" data-guide-region={model.region} aria-label={'Consejo del guía de ' + GARDEN_REGIONS[model.region].label} aria-expanded={helpOpen} aria-controls={helpId} onClick={() => { setHelpOpen(!helpOpen); setInfoOpen(false) }}>
         <img src={GARDEN_GUIDES[model.region]} alt="" aria-hidden="true"/><span>Tu huerto cuenta una historia<small>¿Exploramos juntos?</small></span>
       </button>
       {contextual && <div className="garden-poc-context" role="status" style={{ left: Math.max(100, Math.min((host.current?.clientWidth ?? 400) - 100, (contextual.anchor.x - camera.left) * camera.zoom)), top: Math.max(185, Math.min((host.current?.clientHeight ?? 600) - 130, (contextual.anchor.y - camera.top) * camera.zoom - 35)) }}>
-        <GardenIcon name={contextual.plant ? 'leaf' : 'seed'}/><strong>{contextual.plant?.name ?? 'Aquí comienza una vida'}</strong><span>{contextual.plant ? 'Abrir Pasaporte Vivo' : 'Registrar una planta'}</span>
+        <GardenIcon name={contextual.plant ? 'leaf' : 'seed'}/><strong>{contextual.plant?.name ?? 'Aquí comienza una vida'}</strong><span>{contextual.plant ? (contextual.plant.reviewStatus === 'PENDING' ? '⏳ Siembra pendiente MSP · Pasaporte Vivo' : (documentedGrowthStage(contextual.plant) ? GROWTH_STAGES[documentedGrowthStage(contextual.plant)!] + ' · Pasaporte Vivo' : 'Etapa sin documentar · Pasaporte Vivo')) : 'Registrar una planta'}</span>
       </div>}
       <p id={hintId} className="garden-poc-sr-only">El jardín tiene cámara fija. Pulsa Tab para seleccionar una zona; Enter abre el registro o el Pasaporte Vivo.</p>
       {helpOpen && <div id={helpId} className="garden-poc-help garden-poc-panel">
@@ -134,7 +138,7 @@ export default function PhaserGardenPoc(props: GardenSceneRendererProps & { rend
           data-slot-id={slot.id} data-plant-id={slot.plant?.id} data-plot-index={slot.plot} data-world-x={slot.anchor.x} data-world-y={slot.anchor.y}
           onFocus={() => { setFocused(slot.id); command({ type: 'focus-slot', slot: slot.id }) }} onBlur={() => { setFocused(null); command({ type: 'clear-focus' }) }}
           onKeyDown={event => slotKeyboard(event, slot.plot)} onClick={() => bridge.emit({ type: 'activate-slot', slot: slot.id })} aria-haspopup="dialog">
-          {slot.plant ? slot.plant.name + ' · Pasaporte Vivo' : 'Zona de cultivo ' + (slot.plot + 1) + ' · Registrar una planta'}
+          {slot.plant ? slot.plant.name + ' · ' + (documentedGrowthStage(slot.plant) ? GROWTH_STAGES[documentedGrowthStage(slot.plant)!] + ' · ' : '') + 'Pasaporte Vivo' : 'Zona de cultivo ' + (slot.plot + 1) + ' · Registrar una planta'}
         </button>)}
       </div>
     </div>

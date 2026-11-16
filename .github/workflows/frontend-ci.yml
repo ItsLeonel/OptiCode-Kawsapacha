@@ -4,11 +4,21 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - 'tools/check-frontend-architecture.cjs'
+      - 'tools/check-legacy-facades.cjs'
   pull_request:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - 'tools/check-frontend-architecture.cjs'
+      - 'tools/check-legacy-facades.cjs'
 jobs:
+  compatibilidad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar consumidores de fachadas heredadas
+        run: node tools/check-legacy-facades.cjs
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -21,6 +31,8 @@ jobs:
           node-version: '22'
       - name: Instalar dependencias
         run: npm ci --no-audit --no-fund
+      - name: Verificar dependencias entre capas frontend
+        run: node ../tools/check-frontend-architecture.cjs
       - name: Verificar TypeScript
         run: npm run typecheck
       - name: Compilar
@@ -29,6 +41,12 @@ jobs:
         run: npm run test:unit
       - name: Instalar navegador para pruebas del jardín
         run: npx playwright install --with-deps chrome
+      - name: Navegación V1 - menú principal y pantalla Mis plantas
+        run: KAWSAPACHA_E2E_OFFLINE_CATALOG=1 npx playwright test --config playwright.config.ts tests/my-garden.spec.ts --grep "menú principal|Mis plantas no muestra" --reporter=line
+      - name: Pasaporte Vivo V1 - acciones y navegación visual
+        run: KAWSAPACHA_E2E_OFFLINE_CATALOG=1 npx playwright test --config playwright.config.ts tests/passport-ui.spec.ts --reporter=line
+      - name: Actualizar planta - formulario claro y evidencia fotográfica
+        run: KAWSAPACHA_E2E_OFFLINE_CATALOG=1 npx playwright test --config playwright.config.ts tests/plant-editor-ui.spec.ts --reporter=line
       - name: Prueba de render regional y características
         run: npx playwright test --config playwright.garden-poc.config.ts tests/garden-poc-regions-render.spec.ts tests/garden-poc-art.spec.ts
       - name: Suite completa del jardín (Playwright)

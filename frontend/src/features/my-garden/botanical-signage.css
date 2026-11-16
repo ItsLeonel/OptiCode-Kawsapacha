@@ -1,0 +1,23 @@
+.botanical-signage { margin: 19px 0; padding: 16px; border-radius: 14px; border: 1px solid #c6c8a5; background: #f7f0dc; color: #27452e; }
+.botanical-signage-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.botanical-signage-toolbar h3 { font-size: 1.05rem; margin: 0 0 4px; color: #27452e; }
+.botanical-signage-toolbar p { margin: 0; font-size: .83rem; color: #4b6253; }
+.botanical-signage-print { border: 2px solid #6b8b58; border-left: 9px solid #8b9d7b; background: #fffdf6; border-radius: 9px; padding: 16px; }
+.botanical-signage-print[data-classification='hot'] { border-left-color: #c6593d; }
+.botanical-signage-print[data-classification='cold'] { border-left-color: #4d9365; }
+.botanical-signage-print header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .67rem; letter-spacing: .07em; font-weight: 750; color: #4f6d52; }
+.botanical-signage-print h4 { font-size: 1.7rem; margin: 12px 0 0; line-height: 1.16; }
+.botanical-signage-latin { font-size: .94rem; font-style: italic; margin: 3px 0 13px; }
+.botanical-signage-print dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(125px,1fr)); gap: 8px; }
+.botanical-signage-print dt { font-size: .7rem; font-weight: 650; color: #607062; }
+.botanical-signage-print dd { font-size: .89rem; margin: 2px 0 0; font-weight: 600; }
+.botanical-signage-print footer { display: grid; gap: 3px; border-top: 1px solid #c5d3bc; margin-top: 13px; padding-top: 9px; font-size: .69rem; color: #57695a; }
+.botanical-signage-note { font-size: .77rem; line-height: 1.5; margin: 9px 0 0; color: #465749; }
+@media print {
+  @page { size: A5 landscape; margin: 12mm; }
+  body:has(.botanical-signage-print) * { visibility: hidden !important; }
+  .botanical-signage-print, .botanical-signage-print * { visibility: visible !important; }
+  .botanical-signage-print { position: fixed; top: 14mm; left: 14mm; width: calc(100vw - 28mm); box-sizing: border-box; background: white !important; padding: 20mm !important; }
+  .botanical-signage-print h4 { font-size: 36pt; }
+}
+@media (max-width: 500px) { .botanical-signage-print h4 { font-size: 1.4rem; } .botanical-signage-print { padding: 12px; } }

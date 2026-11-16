@@ -1,7 +1,7 @@
 /* Shared by the lab and the production garden. The agricultural interface stays in React. */
 .garden-poc-heading { background: linear-gradient(100deg,#7b4526f5,#a16532ef 55%,#744226f5); border: 2px solid #efc470; border-radius: 18px 25px 19px 22px; box-shadow: inset 0 3px #fff0b147,inset 0 -4px #4c301f66,0 6px 12px #1c302b50; }
 .garden-poc-heading::after { content:''; width:10px; position:absolute; right:7px; inset-block:10px; border-block:4px solid #d69336; background:repeating-linear-gradient(45deg,#9e3542 0 5px,#f3b849 5px 10px,#634466 10px 15px); border-radius:6px; }
-.garden-poc-guide { position:absolute; z-index:2; left:12px; bottom:10px; width:176px; height:264px; padding:0!important; border:0!important; background:none!important; box-shadow:none!important; }
+.garden-poc-guide { position:absolute; z-index:2; left:9px; bottom:8px; width:214px; height:321px; padding:0!important; border:0!important; background:none!important; box-shadow:none!important; }
 .garden-poc-guide img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(2px 8px 5px #18342065); }
 .garden-poc-guide > span { position:absolute; left:8px; bottom:calc(100% + 10px); width:205px; padding:10px 13px; color:#3c4f28; background:#fff1cdeb; border:1px solid #c6a45d; border-radius:15px 15px 15px 2px; box-shadow:0 3px 8px #1c351b40; font-size:12px; font-weight:700; text-align:left; }
 .garden-poc-guide small { display:block; font-size:11px; font-weight:400; margin-top:4px; }
@@ -57,7 +57,7 @@
 .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-progress { top: 18px; left: 50%; transform: translateX(-50%); }
 .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-world-actions { top: 104px; right: 18px; }
 .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-toolbar { right: 18px; bottom: 82px; }
-.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide { left: 12px; bottom: 96px; width: 176px; height: 264px; }
+.garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide { left: 9px; bottom: 92px; width: 214px; height: 321px; }
 .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-guide > span { left: 8px; bottom: calc(100% + 10px); width: 205px; }
 .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-poc-record-count { left: 18px; top: 112px; bottom: auto; max-width: min(360px, calc(100% - 36px)); font-size: 12px; }
 .garden-shell--immersive .my-garden-page[data-fullscreen-garden="true"] .garden-quick-actions {

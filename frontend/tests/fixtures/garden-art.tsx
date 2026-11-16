@@ -7,6 +7,10 @@ import { GARDEN_FEATURE_OPTIONS, type GardenFeatures } from '../../src/features/
 // Explicit test fixture, outside both application build entries and visit records.
 const params = new URLSearchParams(location.search)
 const presets: Record<string, Partial<GardenFeatures>> = {
+  ...Object.fromEntries((['beds', 'furrows', 'raisedBeds', 'terraces'] as const).map(design => [`design-${design}`, {
+    groundDesigns: [design], fences: ['natural'], waterSources: ['stored', 'well'],
+    irrigationMethods: ['drip', 'sprinkler'], naturalFertilizers: ['compost'],
+  }])),
   stored: { waterSources: ['stored'] }, well: { waterSources: ['well'] }, channel: { waterSources: ['channel'] }, rain: { waterSources: ['rain'] },
   manual: { irrigationMethods: ['manual'] }, hose: { irrigationMethods: ['hose'] }, sprinkler: { irrigationMethods: ['sprinkler'] }, drip: { irrigationMethods: ['drip'] },
   'fence-living': { fences: ['living'] }, 'fence-natural': { fences: ['natural'] }, 'fence-recycled': { fences: ['recycled'] }, 'fence-metal': { fences: ['metal'] }, 'fence-conventional': { fences: ['conventional'] },

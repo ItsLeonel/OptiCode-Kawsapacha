@@ -1,6 +1,6 @@
-import type { GardenRegion } from '../../real-gardens/garden-region'
-import { toGardenFeatures, type GardenFeatures } from '../../real-gardens/garden-characteristics'
-import type { GardenKind, RealGarden } from '../../real-gardens/real-garden'
+import type { GardenRegion } from '../../../shared/geo/region'
+import { toGardenFeatures, type GardenFeatures } from '../../../shared/contracts/garden-features'
+import type { GardenKind, RealGarden } from '../../../shared/contracts/real-garden'
 import { PLOT_COUNT, type GardenPlant } from '../garden'
 import { layoutSlot, type WorldPoint } from './layouts'
 import { SOIL_STYLES, type SoilStyle } from './visual-config'
@@ -21,6 +21,8 @@ export type VisualSlot = Readonly<{
   plant: Readonly<GardenPlant> | null
   lastPreparedAt?: string
   lastFertilizedAt?: string
+  lastWateredAt?: string
+  lastWeededAt?: string
 }>
 
 export type GardenVisualModel = Readonly<{
@@ -58,11 +60,24 @@ export function buildGardenVisualModel(garden: RealGarden, plants: readonly Gard
     characteristics,
     slots: Array.from({ length: PLOT_COUNT }, (_, plot) => {
       const { anchor, base } = layoutSlot(garden.kind, plot, footprintScale, region)
-      const plant = plants.find(record => record.plot === plot)
+      const plant = plants.find(record => record.plot === plot && !record.archivedAt)
       // Multiple recorded designs are shown schematically; no physical plot assignment is saved.
       const designs = garden.kind === 'ground' ? characteristics.groundDesigns : []
-      const latest = (type: GardenActivity['type']) => activities?.filter(activity => activity.type === type && activityAffectsPlot(activity, plot)).map(activity => activity.date).sort().at(-1)
-      return { id: `garden-slot-${plot}`, plot, anchor, base, depth: base.y, design: designs.length ? designs[plot % designs.length] : null, plant: plant ? { ...plant } : null, lastPreparedAt: latest('preparation'), lastFertilizedAt: latest('fertilizing') }
+      // Marcas de cuidado (riego, abono, deshierbe): solo cuando hay una planta activa en este espacio;
+      // la preparación del terreno sí se refleja en espacios vacíos antes de sembrar.
+      const latest = (type: GardenActivity['type']) => {
+        if (!plant && type !== 'preparation') return undefined
+        return activities
+          ?.filter(activity =>
+            activity.type === type &&
+            activityAffectsPlot(activity, plot) &&
+            (activity.target.kind !== 'plant' || activity.target.plantId === plant?.id)
+          )
+          .map(activity => activity.date)
+          .sort()
+          .at(-1)
+      }
+      return { id: `garden-slot-${plot}`, plot, anchor, base, depth: base.y, design: designs.length ? designs[plot % designs.length] : null, plant: plant ? { ...plant } : null, lastPreparedAt: latest('preparation'), lastFertilizedAt: latest('fertilizing'), lastWateredAt: latest('watering'), lastWeededAt: latest('weeding') }
     }),
     activitySource: activities ? 'local-records' : 'not-connected',
   }

@@ -3,40 +3,41 @@ erDiagram
     User ||--o{ CommunityMember : "integra"
     User ||--o{ RealGarden : "registra"
     User ||--o{ CultivatedPlant : "siembra"
-    User ||--o{ CareLog : "realiza"
-    User ||--o{ HarvestRecord : "cosecha"
+    User ||--o{ GardenActivity : "realiza"
     Community ||--o{ CommunityMember : "tiene"
     Community ||--o{ CommunityInvitation : "envía"
     Community |o--o{ RealGarden : "vincula"
     Community ||--o{ CommunityResource : "almacena"
     Community |o--o{ HarvestRecord : "acumula"
     RealGarden ||--o{ CultivatedPlant : "6 parcelas"
+    RealGarden ||--o{ GardenActivity : "bitácora"
     RealGarden ||--o{ HarvestRecord : "produce"
     MedicinalCatalog ||--o{ CultivatedPlant : "especie de"
     CultivatedPlant ||--o{ CareLog : "recibe"
+    CultivatedPlant |o--o{ GardenActivity : "destino"
+    GardenActivity ||--o{ ActivityEvidence : "evidencia"
+    CareLog |o--o{ GardenActivity : "detalla"
+    HarvestRecord |o--o{ GardenActivity : "detalla"
 
     User {
         string id PK
-        string name
         string email UK
-        string passwordHash
-        string role
+        string role "USUARIO, ADMIN_MSP, ADMIN_TECNICO"
+        boolean isActive
     }
     Community {
         string id PK
         string name
-        string responsible
-        string location
-        string description
         string type
+        string province
+        string status "revisión MSP"
         string creatorId FK
     }
     CommunityMember {
         string id PK
         string communityId FK
         string userId FK
-        string roleInCommunity
-        string status
+        string roleInCommunity "RESPONSABLE, CUIDADOR, PARTICIPANTE"
     }
     CommunityInvitation {
         string id PK
@@ -44,19 +45,12 @@ erDiagram
         string email
         string role
         string status
-        string invitedById
     }
     RealGarden {
         string id PK
-        string name
-        string kind
+        string kind "tierra, macetas, vertical, colgante"
         float areaM2
         string province
-        string canton
-        string parish
-        float latitude
-        float longitude
-        string irrigationAvailability
         string soilType
         string communityId FK
         string createdById FK
@@ -65,43 +59,47 @@ erDiagram
         string id PK
         string name
         string latinName
-        string medicinalProperties
-        string contraindications
-        int wateringFrequencyDays
-        int growthCycleDays
-        string lunarPhaseTip
+        string family
+        string regions
+        string sourceLabel
     }
     CultivatedPlant {
         string id PK
-        int plotIndex "0 a 5, unico por huerto"
+        int plotIndex "0 a 5, único por huerto"
         string speciesId FK
         string realGardenId FK
-        string photoUrl
-        datetime plantingDate
         string lifecycleStatus
-        string registeredById FK
+        string observedState "etapa observada"
+    }
+    GardenActivity {
+        string id PK
+        string gardenId FK
+        string actorUserId FK
+        string plantId FK
+        string type
+        string performedDate
+        string reviewStatus
+    }
+    ActivityEvidence {
+        string id PK
+        string activityId FK
+        string fileUrl
     }
     CareLog {
         string id PK
         string plantId FK
         string actionType
-        datetime performedAt
-        string userId FK
     }
     HarvestRecord {
         string id PK
         string realGardenId FK
         string communityId FK
-        string speciesName
         string quantity
-        datetime harvestDate
-        string harvestedById FK
     }
     CommunityResource {
         string id PK
         string communityId FK
-        string name
-        string category
+        string category "herramienta, insumo, semilla"
         int quantity
         string status
     }

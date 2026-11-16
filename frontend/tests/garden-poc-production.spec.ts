@@ -5,6 +5,8 @@ import { navigateModule } from './community-helpers'
 test.beforeEach(async ({ page }) => { await page.emulateMedia({ reducedMotion: 'reduce' }); await page.route('https://tile.openstreetmap.org/**', route => route.abort()) })
 
 test('production: persistent garden, region and kind editing, real progress without duplicate rewards', async ({ page }) => {
+  // Incluye cambio de región/modo con nuevo atlas Phaser y recarga completa.
+  test.setTimeout(240_000)
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message))
   await registerGround(page, '/', 'Imbabura', 'ground', true)
   await expectReady(page)
@@ -18,19 +20,27 @@ test('production: persistent garden, region and kind editing, real progress with
   await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
   async function water() {
     await page.getByRole('navigation', { name: 'Acciones de tu jardín' }).getByRole('button', { name: 'Registrar actividad', exact: true }).click()
-    const form = page.getByRole('dialog', { name: 'Registrar actividad agrícola' })
-    await form.getByLabel('Actividad', { exact: true }).selectOption('watering')
+    const form = page.getByRole('dialog', { name: 'Registrar actividad', exact: true })
+    await expect(form).toBeVisible()
+    await form.locator('.activity-garden-card[title="Riego"]').click()
+    await form.getByRole('button', { name: 'Elegir ubicación' }).click()
     await form.getByLabel('Ubicación de la actividad', { exact: true }).selectOption({ label: 'Romero · Espacio 1' })
-    await form.getByLabel('Persona responsable', { exact: true }).fill('Ana')
-    await form.getByLabel('Observaciones de la actividad', { exact: true }).fill('Riego manual documentado en producción.')
-    await form.getByRole('button', { name: 'Guardar actividad', exact: true }).click()
+    await form.locator('.activity-garden-field-person input').fill('Ana')
+    await form.locator('.activity-garden-observations textarea').fill('Riego manual documentado en producción.')
+    const submit = form.getByRole('button', { name: 'Registrar actividad', exact: true })
+    if (await submit.isDisabled()) {
+      // Misma planta y fecha: un segundo riego se rechaza; no se duplica la recompensa.
+      await form.getByRole('button', { name: 'Cerrar registro' }).click()
+    } else {
+      await submit.click()
+    }
     await expect(form).toHaveCount(0)
   }
   await water()
   await navigateModule(page, 'Mi camino verde')
   await expect(page.getByRole('status', { name: 'Semillas de vida individuales' })).toHaveText('5')
   await page.screenshot({ path: test.info().outputPath('documented-local-progress.png'), fullPage: true })
-  await page.reload()
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('status', { name: 'Semillas de vida individuales' })).toHaveText('5')
   await navigateModule(page, 'Mi Huerto Vivo')
   await expectReady(page)
@@ -50,12 +60,14 @@ test('production: persistent garden, region and kind editing, real progress with
   await expect(page.locator('.garden-poc')).toHaveAttribute('data-region', 'oriente')
   await expect(page.locator('.garden-poc-guide')).toHaveAttribute('data-guide-region', 'oriente')
   await expect(slots(page).nth(0)).toContainText('Romero')
-  await page.reload()
+  await page.reload({ waitUntil: 'domcontentloaded' })
   await expectReady(page)
   await canvasSlot(page, 0)
   await expect(passport.locator('.garden-passport-photo')).toHaveJSProperty('complete', true)
-  await expect(passport).toContainText('Riego')
-  await page.getByRole('button', { name: 'Cerrar Pasaporte Vivo' }).click()
+  // Los cuidados reales están en la Bitácora, no en el resumen compacto del Pasaporte.
+  await passport.getByRole('button', { name: 'Ver Bitácora', exact: true }).click()
+  await expect(page.locator('.bv-entry-card[data-type="watering"]')).toHaveCount(1)
+  await navigateModule(page, 'Mi Huerto Vivo')
   await page.locator('.garden-poc').screenshot({ path: test.info().outputPath('production-amazonia-vertical.png') })
   expect(errors).toEqual([])
 })
@@ -77,7 +89,7 @@ test.describe('production touch', () => {
     }
     await page.setViewportSize({ width: 390, height: 844 })
     await page.locator('.garden-poc').screenshot({ path: test.info().outputPath('production-galapagos-pots-mobile.png') })
-    await page.reload()
+    await page.reload({ waitUntil: 'domcontentloaded' })
     await expectReady(page)
     await canvasSlot(page, 5, true)
     await expect(page.getByRole('dialog', { name: 'Romero', exact: true })).toBeVisible()

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guía Oficial de Plantas Medicinales Andinas | Kawsapacha EPN</title>
+  <style>
+    :root {
+      --primary: #15803d;
+      --primary-dark: #14532d;
+      --accent: #ca8a04;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background-color: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: white;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      border-bottom: 4px solid var(--accent);
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      margin: 0.5rem 0;
+      font-size: 2rem;
+    }
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    main {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--border);
+    }
+    h2 {
+      color: var(--primary-dark);
+      font-size: 1.4rem;
+      margin-top: 0;
+      border-bottom: 2px solid #bbf7d0;
+      padding-bottom: 0.4rem;
+    }
+    .plant-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    @media(min-width: 600px) {
+      .plant-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .plant-card {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .plant-name {
+      font-weight: 700;
+      color: var(--primary-dark);
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+    .plant-sci {
+      font-style: italic;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    ul {
+      padding-left: 1.2rem;
+      margin: 0.5rem 0;
+    }
+    li {
+      margin-bottom: 0.3rem;
+    }
+    .warning {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="badge">Material educativo de simulación · Kawsapacha</span>
+    <h1>🌿 Guía de Plantas Medicinales Andinas</h1>
+    <p class="subtitle">Manual técnico para promotores de salud comunitaria y huertos agroecológicos familiares.</p>
+  </header>
+
+  <main>
+    <section class="card" role="note" style="border-left:4px solid #a67c39">
+      <strong>Material de demostración del proyecto Kawsapacha (EPN).</strong>
+      Este documento no es oficial ni está avalado por el Ministerio de Salud Pública del Ecuador. Su contenido es educativo y no reemplaza asesoramiento profesional.
+    </section>
+    <div class="card">
+      <h2>1. Propósito y Lineamiento Sanitario</h2>
+      <p>
+        El rescate de los saberes ancestrales y el uso de especies medicinales andinas fortalece la atención primaria en salud. Este documento sintetiza las especies seleccionadas para su estudio y cultivo en huertos comunitarios Kawsapacha con fines preventivos y sintomáticos leves.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>2. Especies Prioritarias Validadas</h2>
+      <div class="plant-grid">
+        <div class="plant-card">
+          <div class="plant-name">Manzanilla</div>
+          <div class="plant-sci">Matricaria chamomilla</div>
+          <p><strong>Uso:</strong> Digestivo, antiinflamatorio y relajante suave.</p>
+          <p><strong>Cosecha:</strong> Flores maduras en mañana seca.</p>
+        </div>
+        <div class="plant-card">
+          <div class="plant-name">Menta / Hierbabuena</div>
+          <div class="plant-sci">Mentha spicata</div>
+          <p><strong>Uso:</strong> Alivio estomacal, frescor respiratorio y carminativo.</p>
+          <p><strong>Cosecha:</strong> Hojas y brotes antes de floración plena.</p>
+        </div>
+        <div class="plant-card">
+          <div class="plant-name">Toronjil (Melisa)</div>
+          <div class="plant-sci">Melissa officinalis</div>
+          <p><strong>Uso:</strong> Sedante nervioso, inductor del sueño, antiespasmódico.</p>
+          <p><strong>Cosecha:</strong> Follaje verde en luna creciente.</p>
+        </div>
+        <div class="plant-card">
+          <div class="plant-name">Ruda</div>
+          <div class="plant-sci">Ruta graveolens</div>
+          <p><strong>Uso:</strong> Antiséptico tópico y repelente natural en huerto.</p>
+          <p><strong>Precaución:</strong> No ingerir durante el embarazo.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. Protocolo de Preparación e Inocuidad</h2>
+      <ul>
+        <li><strong>Infusión:</strong> Verter agua recién hervida sobre las hojas o flores secas, tapar durante 5 a 10 minutos antes de colar. No hervir directamente las hojas aromáticas.</li>
+        <li><strong>Secado:</strong> Secar en sombra, en áreas ventiladas sin polvo ni acceso a insectos. Evitar la exposición directa al sol para no volatilizar aceites esenciales.</li>
+        <li><strong>Almacenamiento:</strong> Frascos de vidrio ámbar o bolsas de papel kraft selladas, debidamente etiquetadas con fecha de cosecha.</li>
+      </ul>
+
+      <div class="warning">
+        <strong>⚠️ Importante:</strong> El uso de plantas medicinales complementa la atención médica pero no sustituye el diagnóstico ni el tratamiento médico expedido por el centro de salud comunitario para patologías graves o crónicas.
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Proyecto académico Kawsapacha · Escuela Politécnica Nacional. No es una publicación oficial del MSP.</p>
+  </footer>
+</body>
+</html>

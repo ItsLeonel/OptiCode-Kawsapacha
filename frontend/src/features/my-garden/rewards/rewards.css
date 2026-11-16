@@ -1,0 +1,102 @@
+/* Kawsapacha Fase 4 — estilo pergamino, madera y paisaje regional. */
+.garden-module:has(.kaws-rewards){background:#1d4b20;min-width:0}
+.garden-module:has(.kaws-rewards)>.page{width:100%;max-width:none;margin:0;padding:0}
+.garden-module:has(.kaws-rewards)>.page>.heading,
+.garden-module:has(.kaws-rewards)>.page>.prototype-alert,
+.garden-module:has(.kaws-rewards)>.page>.garden-internal-nav{display:none!important}
+.garden-module:has(.kaws-rewards) .page>.garden-challenges{display:none}
+.kaws-rewards{--rv-brown:#6b3616;--rv-ink:#2f2a12;--rv-gold:#dcb05e;--rv-forest:#1b5725;--rv-green:#4e8a06;position:relative;isolation:isolate;min-height:calc(100dvh - 56px);width:100%;overflow:hidden;background:#397a31;color:var(--rv-ink);font-family:'Trebuchet MS',Arial,sans-serif;box-sizing:border-box;padding-bottom:20px}
+.kaws-rewards *,.kaws-rewards *::before,.kaws-rewards *::after{box-sizing:border-box}
+.kaws-rewards button{font:inherit;cursor:pointer}
+.kaws-rewards button:focus-visible{outline:3px solid #e4bc38;outline-offset:3px}
+.rv-landscape{position:absolute;inset:0;z-index:-2;background-image:linear-gradient(180deg,#24451410 0%,#2b673a03 25%,#2e601639 72%,#16411885 100%),var(--rv-region-background);background-position:center top;background-size:cover;background-repeat:no-repeat}
+.rv-landscape::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#13491e25 0%,transparent 12%,transparent 88%,#13491e27),radial-gradient(ellipse at 50% 85%,#26501d32,transparent 72%)}
+.rv-hero{min-height:135px;display:grid;justify-items:center;align-content:center;gap:0;padding:5px 16px 0;text-align:center}
+.rv-hero-sign{display:flex;align-items:center;justify-content:center;gap:14px;padding:5px clamp(18px,4vw,70px) 7px;min-width:min(68%,470px);max-width:94%;border:4px solid #db9b3e;border-radius:43% 36% 20% 24%/46% 44% 30% 30%;background:repeating-linear-gradient(1deg,#5e290913 0 3px,#3f210c00 3px 14px),linear-gradient(#a55e23,#683411 57%,#51270b 88%);box-shadow:inset 0 3px 0 #ecbd68,inset 0 -5px 0 #472305,0 5px 0 #4b250f,0 9px 15px #11381a7e;position:relative}
+.rv-hero-sign::before,.rv-hero-sign::after{content:'';position:absolute;width:37px;height:26px;top:-14px;background:radial-gradient(ellipse at 24% 66%,#a2c945 0 35%,transparent 38%),radial-gradient(ellipse at 74% 25%,#2d8924 0 30%,transparent 32%);filter:drop-shadow(0 2px 1px #24430c);transform:rotate(-14deg)}
+.rv-hero-sign::before{left:-20px}.rv-hero-sign::after{right:-20px;transform:scaleX(-1)}
+.rv-hero-sign h1{margin:0;white-space:nowrap;color:#ffebc2;font:900 clamp(24px,3.3vw,52px)/1.1 Georgia,'Trebuchet MS',serif;text-shadow:0 2px 0 #5d2507,0 3px 5px #341804;letter-spacing:-1.1px}
+.rv-hero-leaves{color:#96c932;font-size:30px;text-shadow:0 3px #1f4318}
+.rv-hero>p{max-width:80%;margin:3px 0 0;padding:7px 28px;border:2px solid #e9bd6a;border-radius:4px 4px 17px 17px;background:linear-gradient(#ffe4a9,#f9cc7d);font:800 clamp(10px,1.05vw,15px)/1.2 'Trebuchet MS',sans-serif;color:#54300f;box-shadow:0 3px 0 #6e4d1b,0 5px 10px #12341837}
+.rv-content{width:min(97%,1660px);margin:auto;padding:1px clamp(7px,1.35vw,22px) 10px}
+.rv-source{display:inline-flex;margin:3px 0 8px;padding:4px 10px;max-width:100%;border-radius:30px;background:#143c24e3;color:#fff4c7;font-size:clamp(9px,.73vw,11px);line-height:1.3;border:1px solid #bfaa60;text-shadow:0 1px #0d2a17}
+.rv-surface{position:relative;border:4px solid #ac6c21;border-radius:22px;background:repeating-linear-gradient(23deg,#9d702009 0 3px,transparent 3px 12px),radial-gradient(ellipse at 50% 0,#fff9e4,#f7dca4 90%);box-shadow:0 0 0 2px #f9d488,inset 0 0 0 3px #e8b766,inset 0 3px 0 #fff7d8,0 5px 0 #583508,0 8px 15px #182d1e76}
+.rv-summary{min-height:142px;display:grid;grid-template-columns:minmax(0,1.16fr) 130px minmax(0,1fr) minmax(0,1fr);align-items:center;gap:8px;padding:13px clamp(14px,2vw,35px) 11px;margin-bottom:16px}
+.rv-summary-seeds{display:flex;align-items:center;gap:8px;min-width:0;border-right:2px solid #b38648;padding-right:8px}
+.rv-summary h2{margin:0 0 7px;color:#234f18;font-size:clamp(14px,1.5vw,22px);font-weight:900;line-height:1.1}
+.rv-summary-seeds output{display:block;width:fit-content;min-width:94px;padding:2px 18px 3px;background:linear-gradient(#fff4ca,#f5ce7e);border:2px solid #d0a050;border-radius:17px;box-shadow:inset 0 2px #fff9e5,0 3px 1px #967041;color:#19511c;font-size:clamp(26px,2.8vw,42px);font-weight:900;text-align:center;line-height:1}
+.rv-summary-seed-img{width:clamp(67px,8vw,118px);height:94px;object-fit:contain;flex-shrink:0;mix-blend-mode:multiply;mask-image:radial-gradient(ellipse,#000 58%,transparent 85%)}
+.rv-summary-medallion{display:grid;place-items:center;align-self:center;height:112px}
+.rv-summary-medallion img{width:125px;height:115px;object-fit:contain;mix-blend-mode:multiply;mask-image:radial-gradient(ellipse,#000 54%,transparent 80%);filter:drop-shadow(1px 4px 2px #936428)}
+.rv-summary-level{text-align:center;min-width:0}
+.rv-summary-level h2{margin-bottom:10px}
+.rv-level-tag{display:block;margin:auto;min-width:120px;max-width:100%;width:fit-content;padding:7px 20px;border:2px solid #86b838;border-radius:28px;background:linear-gradient(#73b827,#39720d 60%,#21550b);box-shadow:inset 0 2px #c7f369,0 3px 0 #b07828;color:#fff6cf;font:900 clamp(18px,1.7vw,28px)/1 Georgia,serif;text-shadow:0 2px #1c3e0a}
+.rv-summary-next{min-width:0;text-align:center;border:2px solid #deae67;border-radius:15px;padding:14px 10px;background:#ffe5b399}
+.rv-summary-next strong{display:block;font-size:clamp(11px,.95vw,15px);margin-bottom:10px}
+.rv-summary-next progress{display:block;width:100%;height:13px;accent-color:#4ca513}
+.rv-summary-next small{font-weight:800;display:block;margin-top:8px;font-size:11px;color:#4c411c}
+.rv-main-grid{display:grid;grid-template-columns:1fr 1.19fr;gap:16px;margin-bottom:17px;align-items:stretch}
+.rv-panel{min-width:0;padding:54px 14px 18px;min-height:350px}
+.rv-plank{position:absolute;top:-15px;left:15px;display:flex;align-items:center;gap:10px;margin:0;padding:7px 27px 8px 14px;border:3px solid #cd8e35;border-radius:12px 15px 12px 12px;background:repeating-linear-gradient(1deg,#34170019 0 3px,transparent 3px 10px),linear-gradient(#a45c21,#673311 75%);box-shadow:inset 0 2px #f6c970,0 4px #53280e;color:#fff1c5;font:900 clamp(17px,1.55vw,25px)/1.1 Georgia,serif;text-shadow:0 2px #5c2f0f}
+.rv-plank span{font-size:27px;color:#e2bf58}
+.rv-badge-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;align-items:start}
+.rv-badge{display:flex;align-items:center;flex-direction:column;gap:4px;min-width:0;min-height:218px;padding:9px 5px 11px;border:1px solid #b67b32;border-radius:14px;background:linear-gradient(#fffbe7,#f3d99a);box-shadow:inset 0 2px #fff9df,0 3px 0 #c39952;transition:transform .17s ease}
+.rv-badge:hover{transform:translateY(-2px)}
+.rv-badge[aria-pressed=true]{outline:3px solid #81b224;outline-offset:-3px}
+.rv-badge .rv-art{width:min(100%,125px);height:135px;max-height:clamp(85px,10vw,135px);object-fit:contain;mix-blend-mode:multiply;mask-image:radial-gradient(ellipse,#000 65%,transparent 82%)}
+.rv-badge.is-locked .rv-art{filter:grayscale(.82) saturate(.55);opacity:.87}
+.rv-badge strong{display:block;font-size:clamp(10px,1.0vw,16px);text-align:center;line-height:1.1;color:#42300d;min-height:31px}
+.rv-badge small{display:block;margin-top:auto;font-size:clamp(9px,.83vw,12px);font-weight:800;border-radius:20px;background:#295b19;color:#fff4d4;padding:4px 7px}
+.rv-badge.is-locked small{background:#876d4b}
+.rv-subtle-button{display:block;margin:17px auto 0;padding:8px 21px;border-radius:40px;border:2px solid #aa7b3a;background:linear-gradient(#fff0be,#dfb46c);box-shadow:0 3px 0 #825824,inset 0 2px #fff9e7;color:#362a10;font-weight:900;font-size:13px}
+.rv-subtle-button:hover{filter:brightness(1.06)}
+.rv-selected-detail{margin-top:9px;padding:9px 11px;border:1px solid #b0b575;border-radius:12px;background:#e9eed4;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:11px}
+.rv-selected-detail strong{color:#1c551e}.rv-selected-detail small{font-weight:800;color:#76501e}
+.rv-extra-detail{padding:13px 16px;margin:10px 0 0;color:#46351b;background:#fff9debf;border-radius:13px;border:1px solid #dac28c;font-size:12px}
+.rv-extra-detail li+li{margin-top:7px}
+.rv-mission-count{position:absolute;top:8px;right:10px;padding:8px 15px;border:1px solid #d8b97b;border-radius:30px;background:#ffe6ac;font-size:11px;font-weight:900;color:#57401e}
+.rv-mission-list{display:grid;gap:8px}
+.rv-mission{display:grid;grid-template-columns:68px minmax(0,1fr) minmax(73px,.36fr) minmax(76px,.3fr);align-items:center;gap:9px;min-height:80px;padding:5px 8px;border:2px solid #d2ae74;border-radius:16px;background:linear-gradient(#fffaf0,#ffefcb);box-shadow:inset 0 2px #fffdf4,0 3px #dabd88;min-width:0;text-align:left;transition:filter .17s}
+.rv-mission:hover{filter:brightness(1.03)}
+.rv-mission[aria-pressed=true]{border-color:#73a631}
+.rv-mission .rv-art{width:64px;height:60px;object-fit:contain;mix-blend-mode:multiply;mask-image:radial-gradient(ellipse,#000 65%,transparent 90%)}
+.rv-mission-body{display:grid;gap:4px;min-width:0}
+.rv-mission-body strong{font-size:clamp(12px,1.1vw,18px);color:#263b17;line-height:1.1}
+.rv-mission-body small{font-size:clamp(10px,.83vw,13px);line-height:1.25;color:#4f3c22}
+.rv-mission-score{display:grid;justify-items:center;gap:6px;min-width:0}
+.rv-mission-score b{font-size:clamp(11px,1vw,15px);white-space:nowrap;color:#2d3015}
+.rv-meter{height:12px;width:100%;border:2px solid #af9571;border-radius:99px;overflow:hidden;background:#dac9b0}
+.rv-meter>span{display:block;height:100%;border-radius:99px;background:linear-gradient(#a5e23d,#4e9c0d 70%,#397808)}
+.rv-mission-reward{justify-self:center;border:1px solid #c69b52;border-radius:22px;background:linear-gradient(#fff6d2,#e9c887);padding:8px 5px;font:800 clamp(8px,.76vw,12px)/1.1 'Trebuchet MS',sans-serif;text-align:center;color:#68430d;max-width:104px}
+.rv-missions-toggle{margin-top:14px;border-color:#9ebf3c;background:linear-gradient(#76ab15,#3e7206);color:#fff5cd;text-shadow:0 1px #325000}
+.rv-trajectory{border:4px solid #b7782f;border-radius:21px;background:repeating-linear-gradient(30deg,#a06a170b 0 3px,transparent 3px 13px),linear-gradient(#ffebbd,#edc884);box-shadow:0 0 0 2px #f9d584,0 5px 0 #704217,0 8px 10px #1e3d1269;overflow:hidden}
+.rv-trajectory-head{display:flex;width:100%;gap:12px;align-items:center;justify-content:space-between;min-height:77px;padding:8px 13px;border:0;background:transparent;color:#4a2b11;text-align:left}
+.rv-trajectory-head>strong{flex:0 1 360px;padding:8px 17px;border:2px solid #b77832;border-radius:10px 18px 16px 12px;background:linear-gradient(#a8632a,#633211);box-shadow:inset 0 2px #f1ba6a,0 3px #4b270c;color:#fff3c9;text-shadow:0 2px #4d2707;font:900 clamp(17px,2vw,29px) Georgia,serif}
+.rv-trajectory-head>strong span{color:#e8b94f;margin-right:9px}
+.rv-trajectory-head>span:nth-child(2){font:italic 700 clamp(12px,1.5vw,22px) Georgia,serif;color:#583619}
+.rv-trajectory-chevron{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:linear-gradient(#a96529,#714112);border:2px solid #d59a50;box-shadow:inset 0 2px #dfb16e;color:white;font-size:35px;transition:transform .18s}
+.rv-trajectory-chevron.is-open{transform:rotate(180deg)}
+.rv-trajectory-content{padding:12px 22px 18px;border-top:2px solid #c7994a;background:#ffedc8eb}
+.rv-level-path{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:center;position:relative}
+.rv-path-stage{display:grid;place-items:center;gap:4px;z-index:1}
+.rv-path-medal{display:grid;place-items:center;width:74px;height:74px;border:5px double #ad761f;border-radius:50%;background:linear-gradient(#9dba61,#386f31);box-shadow:inset 0 3px #d6e8a3,0 2px 1px #76532e;color:#fffbd4;text-shadow:0 2px #315e22;font:900 32px Georgia,serif}
+.rv-path-stage:nth-child(2) .rv-path-medal{background:linear-gradient(#dfe5d4,#7fa485);color:#2d5a35}
+.rv-path-stage:nth-child(3) .rv-path-medal{background:linear-gradient(#fae4a8,#cc911a);color:#613a05}
+.rv-path-stage.is-current .rv-path-medal{outline:4px solid #c6e851;box-shadow:0 0 13px #bad820}
+.rv-path-stage strong{font:900 19px Georgia,serif;color:#554015}
+.rv-path-stage small{font-size:11px;color:#695336}
+.rv-trajectory-content>p{margin:13px 0 0;text-align:center;font-size:11px;color:#705b34}
+/* Resumen compacto dentro del propio jardín, sin tapar la escena. */
+.my-garden-page.game-v3 .garden-challenges.rv-garden-preview{padding:12px 14px;max-width:300px;background:linear-gradient(#ffefd6ed,#e5c08be8);border:3px solid #b77b2f;border-radius:19px;box-shadow:0 5px 0 #694115,0 9px 22px #1732136b;color:#3c321c}
+.my-garden-page.game-v3 .garden-challenges.rv-garden-preview .garden-challenges-heading{display:flex;gap:7px;align-items:center;border-bottom:1px solid #c8a166;padding-bottom:7px}
+.my-garden-page.game-v3 .garden-challenges.rv-garden-preview .garden-challenges-heading h2{margin:0;color:#462c17;text-shadow:none;font:900 19px Georgia,serif}
+.rv-preview-row{display:flex;align-items:center;gap:7px;margin:9px 0;padding:5px 7px;border-radius:10px;background:#fff9e6;border:1px solid #e1c494}
+.rv-preview-row img{width:31px;height:31px;object-fit:contain;mix-blend-mode:multiply}
+.rv-preview-row span{display:grid;gap:3px;flex:1;min-width:0}
+.rv-preview-row strong{font-size:11px;line-height:1.1;color:#3d3b1a}
+.rv-preview-row small{font-size:10px;color:#735531}
+.my-garden-page.game-v3 .garden-challenges.rv-garden-preview .rv-preview-link{display:flex;align-items:center;justify-content:center;width:100%;margin-top:7px;min-height:37px;border:2px solid #ddbd61;border-radius:99px;background:linear-gradient(#83b626,#397107);color:#fff8df;font-weight:900;font-size:11px;box-shadow:inset 0 2px #c7f383,0 3px #8c5f21}
+@media(max-width:1200px){.rv-badge{min-height:184px}.rv-badge .rv-art{height:108px}.rv-summary{grid-template-columns:1.1fr 98px .9fr 1fr}.rv-summary-medallion img{width:95px}.rv-panel{min-height:300px}.rv-mission{grid-template-columns:53px minmax(0,1fr) 68px 72px;gap:5px}.rv-mission .rv-art{width:52px;height:52px}}
+@media(max-width:960px){.rv-main-grid{grid-template-columns:1fr}.rv-panel{min-height:0}.rv-badge .rv-art{height:110px}.rv-summary{grid-template-columns:1fr 90px 1fr;gap:7px}.rv-summary-next{grid-column:1/-1;max-width:100%;padding:8px 18px}.rv-summary{padding-block:10px}.rv-hero{min-height:120px}.rv-mission{grid-template-columns:66px minmax(0,1fr) 90px 96px}.rv-mission .rv-art{width:62px;height:62px}}
+@media(max-width:620px){.rv-hero-sign h1{font-size:27px}.rv-hero-leaves{font-size:16px}.rv-hero-sign{gap:5px;min-width:0}.rv-hero>p{max-width:94%;font-size:10px}.rv-content{width:100%;padding-inline:10px}.rv-summary{grid-template-columns:minmax(0,1fr) 75px minmax(0,1fr);padding:11px;gap:4px}.rv-summary-seeds{gap:3px}.rv-summary-seeds img{width:42px;height:58px}.rv-summary h2{font-size:12px}.rv-summary-seeds output{font-size:21px;min-width:50px}.rv-summary-medallion{height:80px}.rv-summary-medallion img{width:79px;height:82px}.rv-level-tag{font-size:16px;min-width:0;padding:7px}.rv-summary-next{grid-column:1/-1}.rv-panel{padding:48px 9px 14px}.rv-badge-grid{gap:4px}.rv-badge{min-height:160px;padding:5px 2px}.rv-badge .rv-art{height:78px}.rv-badge strong{font-size:9px;min-height:30px}.rv-badge small{font-size:9px;padding:3px 5px}.rv-plank{font-size:18px}.rv-mission-count{font-size:9px;padding:6px 7px}.rv-mission{grid-template-columns:49px minmax(0,1fr) 54px;gap:5px}.rv-mission .rv-art{width:46px;height:52px}.rv-mission-reward{grid-column:2/-1;width:100%;max-width:100%;padding:4px}.rv-mission-body strong{font-size:12px}.rv-mission-body small{font-size:10px}.rv-mission-score b{font-size:11px}.rv-trajectory-head{padding:8px;gap:5px}.rv-trajectory-head>strong{font-size:16px;flex:1}.rv-trajectory-head>span:nth-child(2){font-size:10px;flex:1}.rv-trajectory-chevron{width:34px;height:34px;font-size:26px}.rv-path-medal{width:55px;height:55px}.rv-path-stage strong{font-size:13px}.rv-path-stage small{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.kaws-rewards *{transition:none!important}}

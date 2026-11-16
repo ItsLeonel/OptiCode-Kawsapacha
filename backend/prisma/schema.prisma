@@ -17,7 +17,8 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
-  role         String   @default("PARTICIPANTE") // RESPONSABLE | PARTICIPANTE
+  role         String   @default("USUARIO") // ADMIN_TECNICO | ADMIN_MSP | USUARIO
+  isActive     Boolean  @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -28,6 +29,12 @@ model User {
   plantsRegistered     CultivatedPlant[] @relation("PlantRegistrar")
   careLogs             CareLog[]
   harvestsPerformed    HarvestRecord[]
+  activitiesPerformed  GardenActivity[]  @relation("ActivityActor")
+  rewardLedgers        RewardLedger[]
+  badges               UserBadge[]
+  missionsProgress     UserMissionProgress[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]        @relation("ActorAuditLogs")
 
   @@map("users")
 }
@@ -41,6 +48,16 @@ model Community {
   location    String
   description String
   type        String  @default("personal")
+  province    String?
+  cantonCode  String?
+  parishCode  String?
+  sector      String?
+  photoUrl    String?
+
+  status       String    @default("PENDING") // PENDING | APPROVED | NEEDS_CHANGES | REJECTED | SUSPENDED
+  reviewedById String?
+  reviewReason String?
+  reviewedAt   DateTime?
 
   creatorId String
   creator   User   @relation("CommunityCreator", fields: [creatorId], references: [id])
@@ -111,6 +128,7 @@ model RealGarden {
   irrigationAvailability String  @default("unknown")
   soilType               String?
   characteristics        String? @default("{}")
+  photoUrl               String?
 
   communityId String?
   community   Community? @relation(fields: [communityId], references: [id])
@@ -121,8 +139,9 @@ model RealGarden {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plants   CultivatedPlant[]
-  harvests HarvestRecord[]
+  plants     CultivatedPlant[]
+  harvests   HarvestRecord[]
+  activities GardenActivity[]
 
   @@map("real_gardens")
 }
@@ -139,6 +158,22 @@ model MedicinalCatalog {
   preparation             String @default("")
   contraindications       String @default("")
   defaultPhotoUrl         String @default("")
+  // Ficha botánica/regional — cadenas JSON: arrays de nombres, regiones y usos.
+  otherNames              String @default("[]")
+  family                  String @default("")
+  altitude                String @default("")
+  provinces               String @default("")
+  regions                 String @default("[]")
+  usageTags               String @default("[]")
+  cycleCategory           String @default("")
+  traditionalClassification String @default("")
+  careNotes               String @default("")
+  sourceLabel             String @default("")
+  sourceUrl               String @default("")
+  regionalNote            String @default("")
+  registerStatus          String @default("DOCUMENTADA")
+  photoSourceUrl          String @default("")
+  photoCredit             String @default("")
   // Calendario agrícola y cuidados
   wateringFrequencyDays   Int    @default(3)
   fertilizerFrequencyDays Int    @default(30)
@@ -177,8 +212,14 @@ model CultivatedPlant {
 
   // Estado del ciclo de vida: GROWING | READY_TO_HARVEST | HARVESTED | REGROWING | ARCHIVED
   lifecycleStatus  String    @default("GROWING")
+  observedState    String    @default("not-documented")
   lastHarvestDate  DateTime?
   archivedAt       DateTime?
+
+  // Estado de revisión institucional (siembra): PENDING | APPROVED | NEEDS_CHANGES | REJECTED
+  // Default histórico de SQLite; el servicio V1 fija APPROVED al registrar.
+  // reviewedAt de la actividad de siembra distingue auditoría humana posterior.
+  reviewStatus     String    @default("PENDING")
 
   registeredById String
   registeredBy   User   @relation("PlantRegistrar", fields: [registeredById], references: [id])
@@ -186,7 +227,8 @@ model CultivatedPlant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  careLogs CareLog[]
+  careLogs   CareLog[]
+  activities GardenActivity[]
 
   @@unique([realGardenId, plotIndex])
   @@map("cultivated_plants")
@@ -203,8 +245,9 @@ model CareLog {
   performedAt DateTime @default(now())
   userId      String
 
-  plant CultivatedPlant @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  user  User            @relation(fields: [userId], references: [id])
+  plant      CultivatedPlant  @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id])
+  activities GardenActivity[]
 
   @@map("care_logs")
 }
@@ -222,9 +265,10 @@ model HarvestRecord {
   harvestedById    String
   notes            String   @default("")
 
-  community   Community?  @relation(fields: [communityId], references: [id])
-  realGarden  RealGarden  @relation(fields: [realGardenId], references: [id])
-  harvestedBy User        @relation(fields: [harvestedById], references: [id])
+  community   Community?       @relation(fields: [communityId], references: [id])
+  realGarden  RealGarden       @relation(fields: [realGardenId], references: [id])
+  harvestedBy User             @relation(fields: [harvestedById], references: [id])
+  activities  GardenActivity[]
 
   @@map("harvest_records")
 }
@@ -249,4 +293,216 @@ model CommunityResource {
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
 
   @@map("community_resources")
+}
+
+// ─── BITÁCORA VIVA Y ACTIVIDADES AGRÍCOLAS ────────────────────────────────────
+
+model GardenActivity {
+  id               String    @id @default(cuid())
+  gardenId         String
+  actorUserId      String
+  // preparation | weeding | sowing | watering | fertilizing | hilling | replanting | observation | harvest
+  type             String
+  performedDate    String    // YYYY-MM-DD
+  createdAt        DateTime  @default(now())
+  targetKind       String    // garden | plot | plant
+  plantId          String?
+  plotIndex        Int?
+  notes            String    @default("")
+  details          String    @default("{}") // JSON string con cantidades, método, etc.
+  clientActivityId String?   @unique       // Idempotencia
+  voidedAt         DateTime?
+  voidReason       String?
+  voidedByUserId   String?
+  careLogId        String?
+  harvestRecordId  String?
+
+  // Estado de auditoría y revisión MSP
+  reviewStatus     String    @default("PENDING") // Default legado; las altas V1 usan APPROVED. PENDING | APPROVED | NEEDS_CHANGES | REJECTED
+  reviewedById     String?
+  reviewReason     String?
+  reviewedAt       DateTime?
+
+  garden        RealGarden       @relation(fields: [gardenId], references: [id], onDelete: Cascade)
+  actorUser     User             @relation("ActivityActor", fields: [actorUserId], references: [id])
+  plant         CultivatedPlant? @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  careLog       CareLog?         @relation(fields: [careLogId], references: [id], onDelete: SetNull)
+  harvestRecord HarvestRecord?   @relation(fields: [harvestRecordId], references: [id], onDelete: SetNull)
+  evidences     ActivityEvidence[]
+
+  @@index([gardenId, performedDate])
+  @@index([actorUserId])
+  @@index([reviewStatus])
+  @@map("garden_activities")
+}
+
+model ActivityEvidence {
+  id         String   @id @default(cuid())
+  activityId String
+  filePath   String
+  fileUrl    String
+  mimeType   String
+  fileSize   Int
+  createdAt  DateTime @default(now())
+
+  activity GardenActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@map("activity_evidences")
+}
+
+// ─── MOTOR DE RECOMPENSAS: SEMILLAS DE VIDA (LEDGER) ──────────────────────────
+
+model RewardLedger {
+  id                 String    @id @default(cuid())
+  userId             String
+  eventType          String    // activity.watering, activity.sowing, etc.
+  ruleKey            String    // activity.watering.daily_limit, etc.
+  sourceId           String    // ID del registro que originó la recompensa
+  pointsDelta        Int       // Puntos (+5, +20, o reversión -5)
+  reason             String
+  status             String    @default("CONFIRMED") // CONFIRMED | REVERSED | PENDING
+  ruleVersion        Int       @default(1)
+  awardedAt          DateTime  @default(now())
+  reversalOfLedgerId String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventType, sourceId])
+  @@index([userId, awardedAt])
+  @@map("reward_ledgers")
+}
+
+// ─── MISIONES E INSIGNIAS FUNCIONALES ─────────────────────────────────────────
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String   // first-sowing | care | observer | harvest | lunar-cycle
+  earnedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+model UserMissionProgress {
+  id           String    @id @default(cuid())
+  userId       String
+  missionId    String    // care | observer | lunar-cycle
+  currentValue Int       @default(0)
+  targetValue  Int
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId])
+  @@map("user_mission_progress")
+}
+
+// ─── NOTIFICACIONES DEL SISTEMA ───────────────────────────────────────────────
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // COMMUNITY_APPROVED | COMMUNITY_REJECTED | COMMUNITY_NEEDS_CHANGES | ACTIVITY_APPROVED | ACTIVITY_REJECTED | ACTIVITY_NEEDS_CHANGES | BADGE_EARNED
+  title      String
+  message    String
+  resourceId String?  // ID de la comunidad o actividad relacionada
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── LOG DE AUDITORÍA INMUTABLE ───────────────────────────────────────────────
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  actorId        String
+  action         String   // REVIEW_COMMUNITY | REVIEW_ACTIVITY | PROVISION_MSP | TOGGLE_USER_STATUS | UPDATE_REWARD_RULE
+  targetResource String   // community | activity | user | reward_rule
+  targetId       String
+  details        String   @default("{}") // JSON string con datos antes/después o motivo
+  ipAddress      String?
+  timestamp      DateTime @default(now())
+
+  actor User @relation("ActorAuditLogs", fields: [actorId], references: [id])
+
+  @@index([targetResource, targetId])
+  @@index([actorId, timestamp])
+  @@map("audit_logs")
+}
+
+// ─── REGLAS DE RECOMPENSAS VERSIONADAS (MSP) ──────────────────────────────────
+
+model RewardRule {
+  id           String    @id @default(cuid())
+  activityType String
+  points       Int
+  dailyCap     Int       @default(50)
+  version      Int       @default(1)
+  isActive     Boolean   @default(true)
+  validFrom    DateTime  @default(now())
+  validTo      DateTime?
+  createdById  String
+  createdAt    DateTime  @default(now())
+
+  @@index([activityType, isActive])
+  @@map("reward_rules")
+}
+
+// ─── DEFINICIÓN DE MISIONES EDITABLES (MSP) ──────────────────────────────────
+
+model MissionDefinition {
+  id          String   @id @default(cuid())
+  code        String   @unique // care | observer | lunar-cycle
+  title       String
+  description String
+  targetValue Int
+  icon        String   @default("🎯")
+  status      String   @default("PUBLISHED") // DRAFT | PUBLISHED | ARCHIVED
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("mission_definitions")
+}
+
+// ─── EVENTOS INSTITUCIONALES DEL MSP ──────────────────────────────────────────
+
+model MspInstitutionalEvent {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @default("")
+  date        String
+  province    String   @default("Pichincha")
+  canton      String?
+  scope       String   @default("NACIONAL") // NACIONAL | PROVINCIAL | CANTONAL
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("msp_institutional_events")
+}
+
+// ─── RECURSOS EDUCATIVOS DEL MSP ──────────────────────────────────────────────
+
+model MspEducationalResource {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  kind        String   @default("GUIA") // GUIA | MANUAL | FICHA | VIDEO
+  fileUrl     String?
+  published   Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("msp_educational_resources")
 }

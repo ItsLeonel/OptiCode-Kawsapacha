@@ -1,5 +1,5 @@
 import CommunityDialog from './CommunityDialog'
-import GardenIcon from '../my-garden/GardenIcon'
+import GardenIcon from '../../shared/components/GardenIcon'
 
 export default function CommunityJoinDialog({ onClose, onCreate, onHome }: {
   onClose: () => void

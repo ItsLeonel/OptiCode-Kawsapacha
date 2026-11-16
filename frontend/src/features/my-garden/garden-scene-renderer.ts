@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { RealGarden } from '../real-gardens/real-garden'
+import type { RealGarden } from '../../shared/contracts/real-garden'
 import type { GardenPlant } from './garden'
 import type { GardenActivity, ActivityType } from './journal/activities'
 

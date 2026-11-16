@@ -338,6 +338,28 @@
 .garden-nav-notif-btn.is-pending {
   color: #fef08a;
 }
+.garden-nav-bell-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.garden-notif-red-dot,
+.garden-header-bell-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.85);
+}
+.garden-header-bell-dot {
+  top: 2px;
+  right: 3px;
+}
 .garden-nav-badge {
   margin-left: auto;
   display: inline-flex;

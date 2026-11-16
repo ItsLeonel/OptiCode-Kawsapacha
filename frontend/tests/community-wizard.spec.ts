@@ -1,6 +1,6 @@
 import { configureTerrain, confirmTerrain } from './garden-helpers'
 import { test, expect, type Page } from './e2e'
-import { chooseCommunityTerritory, createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo } from './community-helpers'
+import { chooseCommunityTerritory, createCommunity, mainNavigation, nextCommunityStep, openCommunityInfo, openGardenSection } from './community-helpers'
 
 test.setTimeout(60_000)
 const errors = new WeakMap<Page, string[]>()
@@ -44,7 +44,8 @@ test('24 provincias reales, cuatro paletas, hover, teclado y mundos regionales',
     await expect(path).toHaveCSS('stroke-width', '3px')
     await expect(page.getByLabel('Provincia de la comunidad')).toHaveValue(province)
     await expect(page.locator('.cw-world')).toHaveAttribute('data-region', region)
-    await expect(page.locator('.cw-world')).toHaveCSS('background-image', new RegExp(`fondo_comunidad_${region}`))
+    const expectedBackground = region === 'costa' ? 'fondo_comunidad_costa' : region === 'sierra' ? 'Paisaje Andino con Volcán Nevado-2.png' : region === 'oriente' ? 'Paraíso Amazónico con Cabaña y Cascada-3.png' : 'Paisaje volcánico de las Galápagos-1.png'
+    await expect.poll(async () => decodeURIComponent(await page.locator('.cw-world').evaluate(el => getComputedStyle(el).backgroundImage))).toContain(expectedBackground)
     await expect(page.locator('.kg-guide__portrait')).toHaveAttribute('src', new RegExp(`personaje_${region}`))
     await expect(page.locator('.kg-region-chip')).toHaveText(`Región: ${label}`)
     await page.locator('.kg-guide__portrait').evaluate(el => (el as HTMLImageElement).decode())
@@ -212,14 +213,14 @@ for (const width of [320,390,768]) {
 }
 
 test('huerto requiere comunidad y preserva el borrador al crearla', async ({ page }) => {
-  await mainNavigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
+  await openGardenSection(page, 'Mi terreno')
   await page.getByRole('button', { name: 'Cambiar ubicaci\u00f3n', exact: true }).click()
   await page.locator('#rg-province').selectOption('Guayas')
   await configureTerrain(page)
   await page.getByRole('button', { name: 'Guardar mi terreno', exact: true }).click()
   await expect(page.locator('.rg-feedback[role=status]')).toContainText('Primero crea o selecciona una comunidad')
   await createCommunity(page, 'Ra\u00edces personales', 'Guayas')
-  await mainNavigation(page).getByRole('button', { name: 'Mi terreno', exact: true }).click()
+  await openGardenSection(page, 'Mi terreno')
   await expect(page.locator('#rg-kind-pots')).toBeChecked()
   await confirmTerrain(page, 'Mi huerto pendiente', '12')
   await expect(page.locator('.rg-summary')).toContainText('Ra\u00edces personales')

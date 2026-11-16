@@ -1,11 +1,41 @@
-import type { GardenRegion } from '../../real-gardens/garden-region'
+import type { GardenRegion } from '../../../shared/geo/region'
 
 /** Existing independent art; no screen capture is used as a texture. */
 export const LANDSCAPES: Record<GardenRegion, string> = {
-  sierra: new URL('./art/paisaje-sierra-v1.png', import.meta.url).href,
-  costa: new URL('./art/paisaje-costa-v1.png', import.meta.url).href,
-  oriente: new URL('./art/paisaje-amazonia-v1.png', import.meta.url).href,
-  galapagos: new URL('./art/paisaje-galapagos-v1.png', import.meta.url).href,
+  sierra: new URL('./art/region-scenes/sierra-integrado.webp', import.meta.url).href,
+  costa: new URL('../../../shared/assets/comunidad-v3/fondos/fondo_comunidad_costa_v3.png', import.meta.url).href,
+  oriente: new URL('./art/region-scenes/oriente-integrado.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-scenes/galapagos-integrado.webp', import.meta.url).href,
+}
+/** Regional empty-container assets: the six crop openings are still separate interactive slots. */
+export const REGIONAL_POTS_ART: Partial<Record<GardenRegion, string>> = {
+  costa: new URL('./art/region-design/costa-pots.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-pots.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-pots.webp', import.meta.url).href,
+}
+export const REGIONAL_PAD_ART: Record<GardenRegion, string> = {
+  costa: new URL('./art/region-design/costa-pad.webp', import.meta.url).href,
+  sierra: new URL('./art/region-design/sierra-pad.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-pad.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-pad.webp', import.meta.url).href,
+}
+export const REGIONAL_BASKETS_ART: Record<GardenRegion, string> = {
+  costa: new URL('./art/region-design/costa-baskets.webp', import.meta.url).href,
+  sierra: new URL('./art/region-design/sierra-baskets.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-baskets.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-baskets.webp', import.meta.url).href,
+}
+export const REGIONAL_TROUGHS_ART: Record<GardenRegion, string> = {
+  costa: new URL('./art/region-design/costa-trough.webp', import.meta.url).href,
+  sierra: new URL('./art/region-design/sierra-trough.webp', import.meta.url).href,
+  oriente: new URL('./art/region-design/oriente-trough.webp', import.meta.url).href,
+  galapagos: new URL('./art/region-design/galapagos-trough.webp', import.meta.url).href,
+}
+export const REGIONAL_SUPPORTS_ART: Record<GardenRegion, { vertical: string; hanging: string }> = {
+  costa: { vertical: new URL('./art/region-design/costa-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/costa-hanging.webp', import.meta.url).href },
+  sierra: { vertical: new URL('./art/region-design/sierra-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/sierra-hanging.webp', import.meta.url).href },
+  oriente: { vertical: new URL('./art/region-design/oriente-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/oriente-hanging.webp', import.meta.url).href },
+  galapagos: { vertical: new URL('./art/region-design/galapagos-vertical.webp', import.meta.url).href, hanging: new URL('./art/region-design/galapagos-hanging.webp', import.meta.url).href },
 }
 export const TRELLIS_ART = new URL('./art/bastidor-natural-v3.png', import.meta.url).href
 export const PERGOLA_ART = new URL('./art/pergola-natural-v3.png', import.meta.url).href
@@ -36,15 +66,17 @@ export const COSTA_FENCE_ART = {
 export const WORLD = { width: 1920, height: 1500, centerX: 1030, centerY: 875 } as const
 export const SCENE_LAYERS = ['landscape', 'ground', 'structures', 'parcels', 'plants', 'effects', 'feedback'] as const
 
+/** Implementos originales sobre transparencia: nunca incluyen plantas ni parcelas. */
+export const ACTIVITY_TOOL_ASSETS = {
+  watering: '/activity-tools/watering-can.svg',
+  fertilizing: '/activity-tools/compost-basket.svg',
+  weeding: '/activity-tools/hand-rake.svg',
+  harvest: '/activity-tools/harvest-basket.svg',
+} as const
+
 /** Hand calibrated transparent frames. Source files are never modified. */
 export const PROP_FRAMES = {
   house: [0, 80, 550, 420], tank: [600, 75, 370, 425], compost: [1035, 75, 500, 430],
   fence: [15, 675, 495, 320], wall: [520, 560, 505, 435], pergola: [1025, 575, 510, 425],
 } as const
 
-export function photoTextureKey(id: string, url: string) {
-  // URLs may change while the plant id stays stable (and may contain private data).
-  let hash = 2166136261
-  for (let index = 0; index < url.length; index++) hash = Math.imul(hash ^ url.charCodeAt(index), 16777619)
-  return `evidence-${id}-${hash >>> 0}`
-}

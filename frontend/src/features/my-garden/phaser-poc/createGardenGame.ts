@@ -2,10 +2,10 @@ import { coastalFootprintRatio } from './coastal-terrain'
 import { COASTAL_RELIEF_ART, COASTAL_RELIEF_KEY, isCoastalRelief } from './coastal-terrain'
 import Phaser from 'phaser'
 import { GardenSceneBridge, type SceneCommand } from './bridge'
-import { BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, photoTextureKey, WORLD } from './assets'
+import { ACTIVITY_TOOL_ASSETS, REGIONAL_POTS_ART, REGIONAL_PAD_ART, REGIONAL_BASKETS_ART, REGIONAL_TROUGHS_ART, REGIONAL_SUPPORTS_ART, BED_ART, BORDER_ART, COSTA_FENCE_ART, COSTA_MARSH_PLOT_ART, COSTA_PLOT_ART, INFRASTRUCTURE_ART, LANDSCAPES, MATERIAL_ART, MODULAR_ART, ORGANIC_SOIL_ART, PERGOLA_ART, POTS_ART, SUPPLIES_ART, TRELLIS_ART, TROUGH_ART, WORLD } from './assets'
 import { LAYOUT_PROFILES } from './layouts'
 import { GardenScenePainter } from './scene-painter'
-import type { SlotId } from './model'
+import type { GardenVisualModel, SlotId } from './model'
 
 class ModularGardenScene extends Phaser.Scene {
   private painter: GardenScenePainter | null = null
@@ -17,6 +17,7 @@ class ModularGardenScene extends Phaser.Scene {
   private focused: SlotId | null = null
   private lastCamera = ''
   private viewportSize = ''
+  private lastDrawnModel: GardenVisualModel | null = null
 
   constructor(private bridge: GardenSceneBridge) { super('modular-garden-poc') }
 
@@ -60,6 +61,7 @@ class ModularGardenScene extends Phaser.Scene {
       window.removeEventListener('scroll', refreshInputBounds, true)
       this.painter?.destroy()
       this.painter = null
+      this.lastDrawnModel = null
       this.events.off(Phaser.Scenes.Events.SHUTDOWN, release)
       this.events.off(Phaser.Scenes.Events.DESTROY, release)
     }
@@ -97,12 +99,22 @@ class ModularGardenScene extends Phaser.Scene {
     this.publishCamera()
     this.game.canvas.setAttribute('aria-hidden', 'true')
     this.bridge.emit({ type: 'ready', renderer: this.game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas' })
+    // Los implementos opcionales se cargan DESPUÉS de emitir ready.
+    // Un SVG defectuoso jamás bloquea el jardín o sus seis parcelas.
+    this.time.delayedCall(800, () => { if (this.ready) this.loadActivityTools() })
   }
 
   private receive(command: SceneCommand) {
     if (command.type === 'snapshot') {
       this.input.enabled = !command.snapshot.blocked
       if (command.snapshot.blocked) { this.drag = null; this.setHover(null) }
+      // Abrir/cerrar un modal o cambiar selección no altera el huerto.
+      // Reconstruir todo el paisaje y sus texturas para esos cambios
+      // bloqueaba la página durante recorridos largos de Playwright.
+      if (command.snapshot.model === this.lastDrawnModel) {
+        this.drawEffects()
+        return
+      }
       this.syncAssets()
       this.draw()
       return
@@ -127,7 +139,7 @@ class ModularGardenScene extends Phaser.Scene {
       ['organic-soil', ORGANIC_SOIL_ART],
     ]
     if (model.kind === 'ground') {
-      if (model.region === 'costa') {
+      if (model.region === 'costa' || model.slots.some(slot => slot.design === null)) {
         if (model.soilType === 'marsh') needed.push(['costa-plot-marsh', COSTA_MARSH_PLOT_ART])
         else COSTA_PLOT_ART.forEach((url, plot) => needed.push([`costa-plot-${plot}`, url]))
       }
@@ -141,14 +153,25 @@ class ModularGardenScene extends Phaser.Scene {
       needed.push(['costa-fence-segment', COSTA_FENCE_ART.segment], ['costa-fence-corner', COSTA_FENCE_ART.corner], ['costa-fence-gate', COSTA_FENCE_ART.gate])
     }
     if (model.kind === 'ground' && model.region !== 'costa' && model.characteristics.groundDesigns.includes('beds')) needed.push(['empty-bed', BED_ART])
-    if (model.kind === 'pots' || model.kind === 'hanging') needed.push(['empty-pots', POTS_ART])
-    if (model.kind === 'vertical') needed.push(['empty-trough', TROUGH_ART], ['garden-trellis', TRELLIS_ART])
-    if (model.kind === 'hanging') needed.push(['garden-pergola', PERGOLA_ART])
+    if (model.kind === 'pots') {
+      needed.push([`regional-pad-${model.region}`, REGIONAL_PAD_ART[model.region]])
+      // Sierra retains its approved ceramic atlas, other regions use local materials.
+      needed.push(['empty-pots', POTS_ART])
+      const art = REGIONAL_POTS_ART[model.region]
+      if (art) needed.push([`regional-pots-${model.region}`, art])
+    }
+    if (model.kind === 'hanging') {
+      needed.push(['empty-pots', POTS_ART], ['garden-pergola', PERGOLA_ART])
+      needed.push([`regional-baskets-${model.region}`, REGIONAL_BASKETS_ART[model.region]])
+      needed.push([`regional-hanging-${model.region}`, REGIONAL_SUPPORTS_ART[model.region].hanging])
+    }
+    if (model.kind === 'vertical') {
+      needed.push(['empty-trough', TROUGH_ART], ['garden-trellis', TRELLIS_ART])
+      needed.push([`regional-trough-${model.region}`, REGIONAL_TROUGHS_ART[model.region]])
+      needed.push([`regional-vertical-${model.region}`, REGIONAL_SUPPORTS_ART[model.region].vertical])
+    }
     if (model.characteristics.naturalFertilizers.some(value => value !== 'fallow') || model.characteristics.irrigationMethods.some(value => value === 'manual' || value === 'hose' || value === 'sprinkler')) needed.push(['garden-supplies', SUPPLIES_ART])
     if (model.characteristics.fences.some(value => value !== 'natural') || model.characteristics.waterSources.some(value => value === 'well' || value === 'mains')) needed.push(['garden-infrastructure', INFRASTRUCTURE_ART])
-    model.slots.forEach(slot => {
-      if (slot.plant) needed.push([photoTextureKey(slot.plant.id, slot.plant.photo), slot.plant.photo])
-    })
     needed.forEach(([key, url]) => {
       if (!this.textures.exists(key) && !this.failedAssets.has(key) && !this.requestedAssets.has(key)) {
         this.requestedAssets.add(key)
@@ -162,11 +185,27 @@ class ModularGardenScene extends Phaser.Scene {
     if (!this.load.isLoading() && this.load.list.size) this.load.start()
   }
 
+  private loadActivityTools() {
+    for (const [activity, url] of Object.entries(ACTIVITY_TOOL_ASSETS)) {
+      const key = 'activity-tool-' + activity
+      if (this.textures.exists(key) || this.failedAssets.has(key) || this.requestedAssets.has(key)) continue
+      try {
+        this.requestedAssets.add(key)
+        this.load.svg(key, url, { width: 240, height: 220 })
+      } catch (cause) {
+        this.failedAssets.add(key)
+        console.warn('[Kawsapacha] Implemento SVG no disponible; se conserva el efecto vectorial.', activity, cause)
+      }
+    }
+    if (!this.load.isLoading() && this.load.list.size) this.load.start()
+  }
+
   private draw() {
     if (!this.ready || !this.painter) return
     const model = this.bridge.snapshot.model
     try {
       this.painter.draw(model)
+      this.lastDrawnModel = model
       this.painter.updateHorizon(this.cameras.main)
       this.drawEffects()
       this.bridge.emit({ type: 'rendered', components: [...this.painter.components] })
@@ -222,11 +261,7 @@ class ModularGardenScene extends Phaser.Scene {
     const profile = LAYOUT_PROFILES[this.bridge.snapshot.model.kind]
     // Keep direct canvas targets at least 44 CSS pixels even on narrow screens.
     const ground = this.bridge.snapshot.model.kind === 'ground'
-    const footprintRatio = ground
-      ? this.bridge.snapshot.model.region === 'costa'
-        ? coastalFootprintRatio(this.bridge.snapshot.model.footprintScale)
-        : Math.max(.9, Math.min(1, this.bridge.snapshot.model.footprintScale))
-      : 1
+    const footprintRatio = ground ? coastalFootprintRatio(this.bridge.snapshot.model.footprintScale) : 1
     const hitX = Math.max(ground ? 160 * footprintRatio : profile.hitX, 22 / this.cameras.main.zoom)
     const hitY = Math.max(ground ? 74 * footprintRatio : profile.hitY, 22 / this.cameras.main.zoom)
     return this.bridge.snapshot.model.slots
@@ -255,9 +290,16 @@ class ModularGardenScene extends Phaser.Scene {
           Math.max(this.scale.width / WORLD.width, this.scale.height / WORLD.height, .2),
           Math.min(this.scale.width / 1750, this.scale.height / 1100, 1.3),
         )
-    const centerX = ground ? WORLD.width / 2 : WORLD.centerX
+    // En móvil, encuadrar los seis centros táctiles; no dejar fuera la última maceta.
+    const anchors = this.bridge.snapshot.model.slots.map(slot => slot.anchor.x)
+    const minSlotX = Math.min(...anchors)
+    const maxSlotX = Math.max(...anchors)
+    const slotWidth = Math.max(1, maxSlotX - minSlotX)
+    const touchPadding = Math.min(44, this.scale.width * .12)
+    const fittedZoom = ground ? zoom : Math.min(zoom, (this.scale.width - touchPadding) / slotWidth)
+    const centerX = ground ? WORLD.width / 2 : (minSlotX + maxSlotX) / 2
     const centerY = ground ? 800 : WORLD.centerY
-    this.cameras.main.setZoom(zoom).centerOn(centerX, centerY)
+    this.cameras.main.setZoom(fittedZoom).centerOn(centerX, centerY)
   }
 
   private publishCamera() {

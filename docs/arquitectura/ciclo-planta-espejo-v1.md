@@ -1,4 +1,6 @@
-# Arquitectura del Ciclo de Planta y Espejo Documental del Huerto (V1)
+# Arquitectura del Ciclo de Planta y Espejo Documental del Huerto (V1 — documento histórico)
+
+> **OBSOLETO para el render actual desde el 14/11/2026:** las secciones que describen fotografía circular en la parcela corresponden a la V1 y **NO describen** el Espejo Digital V2 fusionado en PR #55. El render actual usa **ilustraciones por etapa documentada con fotografía nueva**, nunca crecimiento supuesto; ver [contrato propuesto V2](contrato-espejo-digital-v2.md) y [trazabilidad vigente](../analisis/trazabilidad-cliente-2026-11-14.md). El backend de etapas e historial sigue pendiente de Ronny en #35/#43. Este archivo se conserva para auditoría histórica.
 
 **Hito:** V1 - Entrega y Demostración (10/11/2026)  
 **Módulos / Issues Relacionados:** #12 (Mi Jardín), #13 (Integración Backend/Frontend), #14 (QA), #34 (Acceso Móvil)  

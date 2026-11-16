@@ -1,17 +1,22 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import GardenIcon from './GardenIcon'
 import GardenOnboarding from './GardenOnboarding'
-import type { Community } from '../communities/communities'
+import type { Community } from '../../shared/contracts/community'
 import { GardenRegionalBackground } from './GardenRegionalScenery'
-import { regionForProvince } from '../real-gardens/garden-region'
+import { regionForProvince } from '../../shared/geo/region'
+import { provinceForName } from '../../shared/geo/territory'
+import { communityProvince } from '../../shared/geo/community-territory'
+import { regionalLandscapes } from '../../shared/regional-landscapes'
 import GameTitle from '../../shared/ui/game-ui/GameTitle'
 import GameDecoration from '../../shared/ui/game-ui/GameDecoration'
 import type { GardenAction, GardenDestination, GardenPlant } from './garden'
 import type { GardenSceneRenderer } from './garden-scene-renderer'
 import type { GardenSceneRendererProps } from './garden-scene-renderer'
-import { GARDEN_KINDS, formatGardenArea, type RealGarden } from '../real-gardens/real-garden'
+import { GARDEN_KINDS, formatGardenArea, type RealGarden } from '../../shared/contracts/real-garden'
 import GreenChallenges from './GreenChallenges'
+import LunarCalendarWidget from './lunar/LunarCalendarWidget'
 import type { UserSession } from '../../services/api'
+import type { AuthoritativeRewards } from './rewards/rewards-types'
 import './my-garden.css'
 import './my-garden-v2.css'
 import './garden-scene.css'
@@ -41,6 +46,7 @@ export default function MyGardenPage({
   user,
   pendingInvitationsCount = 0,
   onOpenNotifications,
+  officialRewards = null,
   onCreateCommunity,
   onJoinCommunity,
   terrainView,
@@ -77,9 +83,12 @@ export default function MyGardenPage({
   user?: UserSession | null
   pendingInvitationsCount?: number
   onOpenNotifications?: () => void
+  officialRewards?: AuthoritativeRewards | null
 }) {
-  const territory = (terrainView ? terrainProvince : realGarden?.location?.province) || community?.province || province || ''
-  const region = regionForProvince(territory)
+  const territory = terrainView
+    ? (provinceForName(terrainProvince ?? '') ? terrainProvince : communityProvince(community) || realGarden?.communityProvince || '')
+    : realGarden?.location?.province || community?.province || province || ''
+  const region = regionForProvince(territory ?? '')
 
   return (
     <main
@@ -90,7 +99,7 @@ export default function MyGardenPage({
       data-garden-kind={realGarden?.kind ?? 'unregistered'}
       data-onboarding={community && realGarden ? 'complete' : community ? 'real-garden' : 'community'}
     >
-      <GardenRegionalBackground region={region} variant={realGarden && !terrainView ? 'garden' : 'welcome'} />
+      <GardenRegionalBackground region={region} variant={realGarden && !terrainView ? 'garden' : 'welcome'} background={terrainView ? regionalLandscapes[region] : undefined} />
       {user ? (
         <div className="garden-visitor-notice" style={{ background: 'rgba(56, 161, 105, 0.15)', color: '#276749' }}>
           <span className="garden-visitor-dot" style={{ background: '#38a169' }} />
@@ -101,9 +110,10 @@ export default function MyGardenPage({
               type="button"
               onClick={onOpenNotifications}
               className={`garden-header-bell-btn ${pendingInvitationsCount > 0 ? 'has-pending' : ''}`}
-              title={pendingInvitationsCount > 0 ? `${pendingInvitationsCount} invitaciones pendientes` : 'Notificaciones'}
+              title={pendingInvitationsCount > 0 ? `${pendingInvitationsCount} notificaciones pendientes` : 'Notificaciones'}
             >
               <GardenIcon name="bell" />
+              {pendingInvitationsCount > 0 && <span className="garden-header-bell-dot" aria-hidden="true" />}
               {pendingInvitationsCount > 0 && <span className="garden-header-bell-count">{pendingInvitationsCount}</span>}
             </button>
           )}
@@ -194,8 +204,11 @@ export default function MyGardenPage({
               pendingInvitationsCount={pendingInvitationsCount}
             />
           ))}
-        {!terrainView && <GreenChallenges onNavigate={onNavigate} onAction={onAction} />}
+        {!terrainView && <GreenChallenges onNavigate={onNavigate} activities={activities} authenticated={Boolean(user)} officialRewards={officialRewards} />}
       </div>
+
+      {/* Módulo lunar de React: se superpone a Phaser sin modificar fondos, cámara ni parcelas. */}
+      {!terrainView && <LunarCalendarWidget region={region} onActivity={() => onAction('activity')} />}
 
       <nav className="garden-quick-actions" aria-label="Acciones de tu jardín">
         {ACTIONS.map(item => (

@@ -1,39 +1,5 @@
-export type Community = {
-  id?: string
-  name: string
-  responsible: string
-  location: string
-  description: string
-  /** UI provisional: solo memoria de la visita, sin contrato de API validado. */
-  type?: CommunityType
-  province?: string
-  cantonCode?: string
-  parishCode?: string
-  sector?: string
-  contact?: { phone: string; email: string }
-  members?: CommunityMember[]
-  coverPhoto?: File
-}
-
-export type CommunityType = 'personal' | 'familiar' | 'condominio' | 'barrial'
-export type CommunityMember = {
-  id: string
-  name: string
-  email?: string
-  role?: 'RESPONSABLE' | 'PARTICIPANTE'
-  birthDate?: string
-  gender?: string
-  certifiedTalents?: string
-  experience: 'Aprendiz' | 'Oficial' | 'Maestro'
-  inviteStatus?: 'idle' | 'checking' | 'not_found' | 'verified' | 'ready_to_send' | 'sent' | 'pending' | 'already_member'
-  lookupMessage?: string
-}
-
-/** Únicos campos aceptados por el backend actual. No enviar extensiones de UI. */
-export type CommunityPayload = Pick<Community, 'name' | 'responsible' | 'location' | 'description'>
-export type CommunitySave = (community: Community) => void | Promise<void>
-
-export type CommunitySpace = 'wisdom' | 'experience' | 'practice' | 'conversations' | 'news' | 'communities' | 'garden' | 'activities'
+import type { CommunitySpace } from '../../shared/contracts/community'
+export type { Community, CommunityType, CommunityMember, CommunityPayload, CommunitySave, CommunitySpace } from '../../shared/contracts/community'
 
 export const COMMUNITY_SPACES: Record<CommunitySpace, { title: string; description: string; empty: string; pending?: string }> = {
   wisdom: { title: 'Aprender juntos', description: 'Un espacio para consultar saberes ancestrales, guías y contenido educativo.', empty: 'Aún no hay saberes ni contenido educativo publicados.' },

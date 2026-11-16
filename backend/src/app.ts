@@ -2,11 +2,11 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import path from 'path'
-import { env } from './config/env'
-import { prisma } from './config/prisma'
-import routes from './routes'
-import { errorMiddleware } from './middlewares/error.middleware'
+import { env } from './infrastructure/config/env'
+import { prisma } from './infrastructure/database/prisma'
+import routes from './app/router'
+import { errorMiddleware } from './shared/middlewares/error.middleware'
+import { uploadsRoot } from './modules/media/media.module'
 
 const app = express()
 
@@ -23,7 +23,9 @@ app.use(cors({
   origin: (origin, callback) => {
     // Sin origen (curl, Postman, same-origin) → permitir
     if (!origin) return callback(null, true)
-    if (ALLOWED_ORIGIN_PATTERN.test(origin)) return callback(null, true)
+    // Permite únicamente el dominio público explícito de la instancia.
+    // No abrir CORS a todos los dominios para permitir el despliegue HTTPS.
+    if (origin === env.corsOrigin || ALLOWED_ORIGIN_PATTERN.test(origin)) return callback(null, true)
     callback(new Error(`CORS bloqueado para origen: ${origin}`))
   },
   credentials: true,
@@ -34,7 +36,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // ─── Archivos estáticos (fotos de plantas) ───────────────────────────────────
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')))
+app.use('/uploads', express.static(uploadsRoot))
 
 // ─── Healthcheck ─────────────────────────────────────────────────────────────
 app.get('/api/health', async (_req, res) => {
@@ -58,7 +60,7 @@ app.use((_req, res) => {
 app.use(errorMiddleware)
 
 // ─── Inicio del servidor ──────────────────────────────────────────────────────
-app.listen(env.port, () => {
+if (require.main === module) app.listen(env.port, () => {
   console.log(`\n🌱 Kawsapacha Backend corriendo en http://localhost:${env.port}`)
   console.log(`   Healthcheck: http://localhost:${env.port}/api/health\n`)
 })

@@ -2,7 +2,7 @@
 
 **Servidor, reglas de negocio y persistencia** de [Kawsapacha: Mi Huerto Vivo](../README.md). Proporciona servicios para cuentas, comunidades, huertos, plantas medicinales, fotografías, actividades agrícolas, recompensas y funciones institucionales.
 
-**Tecnologías principales:** Node.js, Express 4, TypeScript 5.6, Prisma 5.22 y SQLite; autenticación mediante JWT y contraseñas cifradas con bcrypt. Las versiones de instalación están registradas en `package-lock.json`.
+**Tecnologías principales:** Node.js, Express 4, TypeScript 5.6, Prisma 5.22 y SQLite; autenticación mediante JWT y contraseñas almacenadas con hash bcrypt. Las versiones de instalación están registradas en `package-lock.json`.
 
 ## 🏛️ Arquitectura
 

@@ -1,7 +1,7 @@
 # Proyecto Versión 1 · Kawsapacha: Mi Huerto Vivo
 
-> **Borrador del informe final** (`Proyecto-Version1-OptiCode.pdf`). Redacta: Leonardo Lugmaña. Revisa y entrega: Leonel Morales.
-> Las partes marcadas como **[PENDIENTE]** esperan insumos de otros integrantes y no deben completarse con supuestos. Estructura y fuentes en el [esquema del informe](esquema-informe-v1.md).
+> **Informe final en Markdown.** La versión que se entrega es el Word [Proyecto-Version1-OptiCode.docx](Proyecto-Version1-OptiCode.docx). Redacta: Leonardo Lugmaña. Revisa y entrega: Leonel Morales.
+> Estructura y fuentes en el [esquema del informe](esquema-informe-v1.md).
 
 ---
 
@@ -11,7 +11,7 @@
 ISWD652 Calidad de Software · Período 2026B
 **Proyecto:** Huertos Medicinales Comunitarios: Kawsapacha, Mi Huerto Vivo (Versión 1)
 **Equipo:** OptiCode
-**Fecha de entrega:** **[PENDIENTE: fecha de entrega que confirme Leonel]**
+**Fecha de entrega:** 16 de noviembre de 2026
 
 | Integrante | Rol | Usuario GitHub |
 |---|---|---|

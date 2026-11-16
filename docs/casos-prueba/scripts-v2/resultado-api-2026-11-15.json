@@ -1,0 +1,219 @@
+{
+  "executedAt": "2026-11-16T01:41:48.140Z",
+  "cases": [
+    {
+      "id": "P-018",
+      "title": "Invitar a un integrante y responder la invitación",
+      "hu": "HU-007, HU-020",
+      "steps": [
+        {
+          "desc": "Invitar un correo no registrado",
+          "expected": "Rechazo sin crear invitación",
+          "obtained": "HTTP 404 USER_NOT_FOUND",
+          "ok": true
+        },
+        {
+          "desc": "Una persona ajena intenta invitar",
+          "expected": "Rechazo por permisos (403)",
+          "obtained": "HTTP 403 FORBIDDEN",
+          "ok": true
+        },
+        {
+          "desc": "La Responsable invita a Bruno como Participante",
+          "expected": "Invitación creada",
+          "obtained": "HTTP 201 «Invitación enviada exitosamente.»",
+          "ok": true
+        },
+        {
+          "desc": "Bruno consulta sus invitaciones",
+          "expected": "La invitación aparece pendiente",
+          "obtained": "HTTP 200 «Invitaciones pendientes.»; invitación PENDING",
+          "ok": true
+        },
+        {
+          "desc": "Bruno acepta la invitación",
+          "expected": "Pasa a ser integrante",
+          "obtained": "HTTP 200 «Invitación aceptada exitosamente.»",
+          "ok": true
+        },
+        {
+          "desc": "Bruno intenta aceptarla otra vez",
+          "expected": "Se informa que ya fue procesada",
+          "obtained": "HTTP 400 BAD_REQUEST",
+          "ok": true
+        },
+        {
+          "desc": "La lista de integrantes incluye a Bruno",
+          "expected": "Bruno figura como Participante",
+          "obtained": "HTTP 200 «Miembros de la comunidad.»; PARTICIPANTE",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "P-019",
+      "title": "Gestionar el almacén comunitario con control de permisos",
+      "hu": "HU-021",
+      "steps": [
+        {
+          "desc": "La Responsable registra una herramienta",
+          "expected": "Recurso creado en el inventario",
+          "obtained": "HTTP 201 «Recurso creado.»",
+          "ok": true
+        },
+        {
+          "desc": "Un Participante intenta registrar un recurso",
+          "expected": "Rechazo por permisos (403)",
+          "obtained": "HTTP 403 FORBIDDEN",
+          "ok": true
+        },
+        {
+          "desc": "La Responsable cambia estado y cantidad",
+          "expected": "Inventario refleja MANTENIMIENTO y 1",
+          "obtained": "HTTP 200 «Recurso actualizado.»; MANTENIMIENTO / 1",
+          "ok": true
+        },
+        {
+          "desc": "Un Participante intenta eliminar el recurso",
+          "expected": "Rechazo por permisos (403)",
+          "obtained": "HTTP 403 FORBIDDEN",
+          "ok": true
+        },
+        {
+          "desc": "La Responsable elimina el recurso",
+          "expected": "Deja de mostrarse en el inventario",
+          "obtained": "HTTP 200 «Recurso eliminado.»; ya no está en la lista",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "P-020",
+      "title": "Registrar riego con puntos y cosechar con rebrote",
+      "hu": "HU-015, HU-017, HU-018, HU-022",
+      "steps": [
+        {
+          "desc": "Registrar el huerto en tierra con suelo gredoso",
+          "expected": "Huerto creado con suelo gredoso",
+          "obtained": "HTTP 201 «Huerto registrado exitosamente.»; suelo heavyClay",
+          "ok": true
+        },
+        {
+          "desc": "Registrar una manzanilla con foto en el espacio 1, con la comunidad aún sin revisión MSP",
+          "expected": "Planta guardada de inmediato",
+          "obtained": "HTTP 201 «Planta registrada en el huerto virtual.»; comunidad PENDING",
+          "ok": true
+        },
+        {
+          "desc": "Registrar un riego de la planta",
+          "expected": "Actividad guardada y válida (APPROVED)",
+          "obtained": "HTTP 201 «Actividad registrada exitosamente en la Bitácora Viva.»; estado APPROVED",
+          "ok": true
+        },
+        {
+          "desc": "Consultar Mi Camino Verde",
+          "expected": "El riego suma 5 puntos",
+          "obtained": "antes 20, después 25",
+          "ok": true
+        },
+        {
+          "desc": "Reenviar el mismo riego (mismo identificador de reintento)",
+          "expected": "No se duplica la actividad ni los puntos",
+          "obtained": "HTTP 200 «Actividad ya registrada previamente (idempotencia).»; puntos 25",
+          "ok": true
+        },
+        {
+          "desc": "Cosechar la manzanilla",
+          "expected": "Cosecha registrada",
+          "obtained": "HTTP 201 «Cosecha registrada.»",
+          "ok": true
+        },
+        {
+          "desc": "Consultar la planta tras la cosecha",
+          "expected": "Sigue en su espacio (rebrote)",
+          "obtained": "estado REGROWING, espacio 0",
+          "ok": true
+        },
+        {
+          "desc": "Revisar el almacén",
+          "expected": "Aparece «Cosecha: Manzanilla»",
+          "obtained": "aparece",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "P-021",
+      "title": "Revisión MSP posterior, reversión de puntos y notificación",
+      "hu": "HU-028, HU-029, HU-031",
+      "steps": [
+        {
+          "desc": "Iniciar sesión como administrador técnico",
+          "expected": "Sesión con rol ADMIN_TECNICO",
+          "obtained": "HTTP 200 «Sesión iniciada correctamente.»; rol ADMIN_TECNICO",
+          "ok": true
+        },
+        {
+          "desc": "Crear una cuenta de funcionario MSP",
+          "expected": "Cuenta creada",
+          "obtained": "HTTP 201 «Cuenta de funcionario ADMIN_MSP aprovisionada exitosamente.»",
+          "ok": true
+        },
+        {
+          "desc": "Crear otra cuenta con el mismo correo",
+          "expected": "Se rechaza (409)",
+          "obtained": "HTTP 409 EMAIL_IN_USE",
+          "ok": true
+        },
+        {
+          "desc": "Una usuaria común intenta abrir el panel MSP",
+          "expected": "Rechazo por permisos (403)",
+          "obtained": "HTTP 403 FORBIDDEN",
+          "ok": true
+        },
+        {
+          "desc": "La funcionaria MSP lista las actividades",
+          "expected": "Aparece el riego registrado",
+          "obtained": "HTTP 200 «Bandeja de actividades para supervisión MSP.»; aparece",
+          "ok": true
+        },
+        {
+          "desc": "Invalidar el riego con un motivo",
+          "expected": "Actividad invalidada",
+          "obtained": "HTTP 200 «Actividad evaluada con ajuste de puntos exitosamente.»",
+          "ok": true
+        },
+        {
+          "desc": "Consultar los puntos de Ana",
+          "expected": "Se descuentan los 5 puntos una sola vez",
+          "obtained": "antes 25, después 20",
+          "ok": true
+        },
+        {
+          "desc": "Repetir la invalidación",
+          "expected": "No se descuenta dos veces",
+          "obtained": "HTTP 200 «Actividad evaluada con ajuste de puntos exitosamente.»; puntos 20",
+          "ok": true
+        },
+        {
+          "desc": "Ana abre sus notificaciones",
+          "expected": "Aviso de actividad invalidada con el motivo",
+          "obtained": "HTTP 200 «Notificaciones obtenidas correctamente.»; aviso presente, con motivo",
+          "ok": true
+        },
+        {
+          "desc": "Marcar todas como leídas",
+          "expected": "No quedan avisos sin leer",
+          "obtained": "HTTP 200 «Todas las notificaciones marcadas como leídas.»; todas leídas",
+          "ok": true
+        },
+        {
+          "desc": "Consultar la auditoría como administrador técnico",
+          "expected": "La invalidación figura en la auditoría",
+          "obtained": "HTTP 200 «Registros de auditoría obtenidos correctamente.»; figura",
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

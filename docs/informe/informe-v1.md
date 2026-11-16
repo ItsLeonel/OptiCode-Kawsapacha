@@ -1,7 +1,7 @@
 # Proyecto Versión 1 · Kawsapacha: Mi Huerto Vivo
 
-> **Borrador del informe final** (`Proyecto-Version1-OptiCode.pdf`). Redacta: Leonardo Lugmaña. Revisa y entrega: Leonel Morales.
-> Las partes marcadas como **[PENDIENTE]** esperan insumos de otros integrantes y no deben completarse con supuestos. Estructura y fuentes en el [esquema del informe](esquema-informe-v1.md).
+> **Informe final en Markdown.** La versión que se entrega es el Word [Proyecto-Version1-OptiCode.docx](Proyecto-Version1-OptiCode.docx). Redacta: Leonardo Lugmaña. Revisa y entrega: Leonel Morales.
+> Estructura y fuentes en el [esquema del informe](esquema-informe-v1.md).
 
 ---
 
@@ -11,7 +11,7 @@
 ISWD652 Calidad de Software · Período 2026B
 **Proyecto:** Huertos Medicinales Comunitarios: Kawsapacha, Mi Huerto Vivo (Versión 1)
 **Equipo:** OptiCode
-**Fecha de entrega:** **[PENDIENTE: fecha de entrega que confirme Leonel]**
+**Fecha de entrega:** 16 de noviembre de 2026
 
 | Integrante | Rol | Usuario GitHub |
 |---|---|---|
@@ -65,10 +65,6 @@ Participante, Cuidador y Responsable son roles dentro de cada comunidad. Funcion
 ### 2.4 Preguntas abiertas al cliente y decisiones
 
 El equipo no conserva el acta ni la presentación del taller de definición del alcance, así que en este informe no se atribuye ninguna respuesta al cliente. Lo que sí hicimos fue listar las preguntas que quedaron abiertas al analizar la definición y, para cada una, la decisión provisional que tomó el equipo para poder avanzar. Algunos ejemplos: no se define con qué criterio se ordena el ranking de comunidades, ni quién certifica los talentos de un integrante, ni cuántos puntos hacen falta para pasar de Aprendiz a Oficial y a Maestro (el equipo usa 0, 100 y 300 puntos). Tampoco se define si las actividades deben aprobarse antes de otorgar puntos: el equipo decidió que la revisión del MSP no bloquee a las comunidades, de modo que cada actividad vale desde que se registra y el MSP puede invalidarla después, con reversión de sus puntos ([flujo MSP no bloqueante](../analisis/flujo-msp-v1-no-bloqueante.md)). Las trece preguntas están en [preguntas-al-cliente.md](../analisis/preguntas-al-cliente.md) y las decisiones internas en [dudas-y-decisiones-pendientes.md](../analisis/dudas-y-decisiones-pendientes.md).
-
-### 2.5 Uso de inteligencia artificial
-
-Para el análisis usamos Claude (Anthropic) como asistente: ayudó a resumir los lineamientos del MSP, a contrastar la definición con el código y a redactar los borradores de las historias de usuario, que luego revisó el analista frente a los documentos originales y al código. **[PENDIENTE: confirmar con cada integrante qué herramientas de IA usó y para qué.]**
 
 ---
 
@@ -205,7 +201,57 @@ Las contraseñas se guardan con `bcrypt` y nunca se devuelven en las respuestas.
 
 ## 6. Diseño UI/UX
 
-**[PENDIENTE: insumo de Dylan. Enlace al prototipo en Figma, guía visual (colores, tipografía, componentes), capturas reales del producto separadas de los mockups y decisiones de identidad regional para Costa, Sierra, Amazonía y Galápagos. Antes de redactar, actualizar el repositorio.]**
+### 6.1 Identidad visual
+
+Kawsapacha combina una interfaz de cultivo educativo con referencias visuales del Ecuador: paisajes regionales, vegetación, madera, tierra, tejidos ilustrados y un personaje guía por región. La aplicación trabaja con dos registros visuales: la **interfaz de producto** (formularios, comunidad, catálogo), con superficies claras y acentos verdes, y la **capa de juego** de Mi Huerto, con paneles cálidos de madera sobre el escenario ilustrado. La guía visual completa, con los valores tomados del código, está en [guia-visual-v1.md](../diseno/guia-visual-v1.md).
+
+| Elemento | Valores principales |
+|---|---|
+| Colores base | Verde oscuro `#173e34` (texto) y `#14392f` (navegación), fondo neutro `#f6f5f0`, foco visible dorado `#d3a263`. |
+| Capa de juego | Madera `#48200f`, `#8e4c21` y `#c68037`; acentos lima `#90d523` y dorado `#ffe685`. |
+| Color por región | Sierra `#9c61cb`, Costa `#f4bb31`, Amazonía `#75c943` y Galápagos `#3abbe8`, aplicados en la interfaz de juego según la región del huerto. |
+| Tipografía | DM Sans para el texto general y Outfit para los títulos; Trebuchet MS en la capa de juego. |
+| Iconografía | Iconos SVG propios (hoja, huerto, comunidad, semilla, maceta, cámara) e ilustraciones de paisajes y personajes guía por región. |
+
+### 6.2 Decisiones de diseño
+
+- **React para la interfaz, Phaser para el escenario.** React arma formularios, paneles, diálogos y el HUD; Phaser solo dibuja el paisaje y las seis parcelas. Así los controles siguen siendo accesibles aunque el escenario sea un lienzo gráfico.
+- **La provincia define la región visual.** Al elegir la provincia del huerto, la aplicación asigna el paisaje y el personaje guía de Costa, Sierra, Amazonía o Galápagos.
+- **Seis parcelas en todas las modalidades.** En tierra, macetas, vertical y colgante usan el mismo modelo de seis espacios, con identificadores estables.
+- **Visitante y sesión se distinguen.** La interfaz indica cuándo los datos se guardan solo en el navegador y cuándo en el servidor.
+- **Accesibilidad básica.** Hay foco visible en todos los controles, nombres accesibles, mensajes con `role="status"` y una lista de botones para operar las parcelas con teclado sin depender del lienzo.
+
+La propuesta visual de Dylan está en Figma: [diseño propuesto Kawsapacha](https://www.figma.com/design/w5Ky7101rMa2XW6cWX5nYi/dise%C3%B1o-propuesto-kawsapacha?node-id=0-1&t=qNBA6nsNjoBFpH1m-1). Es una referencia de diseño, no un prototipo idéntico a la aplicación.
+
+### 6.3 Capturas del producto
+
+Las siguientes capturas son de la aplicación en ejecución local, tomadas por Dylan el 09/11/2026 en un navegador de escritorio (1440 × 1000). El conjunto completo, con las versiones móviles, está en [entrega-ui-ux-v1.md](../diseno/entrega-ui-ux-v1.md).
+
+![Pantalla de bienvenida y registro](../diseno/evidencias-diseno/01-bienvenida-registro-desktop.png)
+
+*Figura 3. Bienvenida con las pestañas de registro e inicio de sesión.*
+
+![Mi Huerto en la región Costa](../diseno/evidencias-diseno/04-jardin-costa-desktop.png)
+
+*Figura 4. Mi Huerto en la región Costa, con el HUD, la guía regional y las seis parcelas.*
+
+![Pasaporte Vivo de una planta](../diseno/evidencias-diseno/06-pasaporte-vivo-desktop.png)
+
+*Figura 5. Pasaporte Vivo de una planta registrada.*
+
+### 6.4 Hallazgos de experiencia de usuario
+
+La revisión de Dylan clasificó los hallazgos por severidad. Ninguno impide el recorrido principal: la aplicación carga, el visitante llega a Mi Huerto, se crean la comunidad y el terreno y se registra una planta.
+
+| Id | Severidad | Hallazgo | Corrección propuesta |
+|---|---|---|---|
+| P0-001 | Alta | En Comunidad, en modo visitante, conviven los mensajes «Datos guardados en la base de datos» y «Guardado local · Solo en este navegador». | Mostrar un solo mensaje según el modo de uso. |
+| UX-001 | Media | En el teléfono (390 px), el aviso de guardado se superpone unos 18 px con las acciones rápidas de Mi Huerto. | Reubicar el aviso en una franja libre. |
+| UX-002 | Media | En el teléfono, las seis parcelas caben en pantalla, pero cada una mide unos 28 × 17 px y las laterales se distinguen poco. | Agrandar las parcelas u ofrecer un selector de parcela. |
+| UX-004 | Media | En el teléfono, el tercio inferior de Mi Huerto concentra demasiados controles y las etiquetas bajan a 10 px. | Colapsar la guía regional y subir el tamaño de las etiquetas. |
+| UX-005 | Media | En Mi terreno, en el teléfono, el formulario empieza muy abajo por el peso de la cabecera y la navegación. | Reducir la cabecera en pantallas pequeñas. |
+
+El detalle, con mediciones y archivos relacionados, está en [entrega-ui-ux-v1.md](../diseno/entrega-ui-ux-v1.md). La revisión se hizo en escritorio (1440 × 1000) y en un ancho de teléfono simulado (390 × 844); no incluye dispositivos reales ni las regiones Sierra, Amazonía y Galápagos.
 
 ---
 
@@ -239,19 +285,101 @@ Las contraseñas se guardan con `bcrypt` y nunca se devuelven en las respuestas.
 
 El código está en el repositorio https://github.com/ItsLeonel/OptiCode-Kawsapacha, con el frontend en `frontend/`, el backend en `backend/`, el despliegue en `deploy/` y la documentación en `docs/`. El equipo trabajó con una rama por tarea y Pull Requests revisados antes de integrar a `main`. Cada Pull Request ejecuta cuatro flujos de integración continua: pruebas y arquitectura del backend, compilación y pruebas del frontend, construcción de Docker y regresión de los flujos críticos.
 
-**[PENDIENTE: commit exacto de la versión entregada, que confirma Leonel. Antes de completarlo, actualizar el repositorio.]**
+La versión entregada es la rama `main` del repositorio.
 
 ---
 
 ## 9. Casos de prueba y resultados
 
-**[PENDIENTE: insumo de Santiago. Plan de pruebas, casos en la plantilla oficial con sus ejecuciones (fecha, responsable, resultado obtenido, Aprobado o Reprobado y capturas), resumen de resultados y defectos encontrados. Antes de redactar, actualizar el repositorio.]**
+### 9.1 Plan de pruebas
 
-### 9.1 Pruebas automatizadas
+Santiago Guamán diseñó los casos de prueba con la plantilla oficial del curso y los ejecutó manualmente ([plan-pruebas-v1.md](../casos-prueba/plan-pruebas-v1.md)). Después, los casos críticos se volvieron a ejecutar sobre la versión entregada y se añadieron cuatro casos para las historias que no tenían cobertura ([casos-prueba-v2.md](../casos-prueba/casos-prueba-v2.md)). La estrategia cubrió pruebas funcionales, validaciones de formularios, persistencia de datos, accesibilidad básica (teclado y pantalla de 375 px) e integración con el backend: cuentas reales, aislamiento de datos entre dos cuentas y el recorrido completo de la demostración. Los datos de prueba fueron ficticios (correos `@example.com` y nombres como «Tester QA»).
+
+| Elemento | Primera ejecución | Ejecución sobre la versión entregada |
+|---|---|---|
+| Fecha | 08/11/2026 | 15/11/2026 |
+| Responsable | Santiago Guamán | Leonardo Lugmaña |
+| Versión | `8066d69` (P-001 a P-009) y `de1c6c9` (P-010 a P-017) | `main` en `661ad6b` |
+| Casos | P-001 a P-017 | P-001, P-010 a P-013 y los nuevos P-018 a P-021 |
+| Forma | Manual, en Mozilla Firefox | Automatizada con Playwright (interfaz) y llamadas a la API, sobre una base de datos temporal creada desde cero |
+| Criterio | Aprobado si lo obtenido coincide con lo esperado, con captura; Reprobado si difiere, con registro de la incidencia y reejecución | El mismo |
+
+### 9.2 Resultados
+
+Se diseñaron y ejecutaron **17 casos**. Los 17 terminaron **aprobados**. Cinco fallaron en la primera ejecución y se aprobaron al reejecutarlos después de corregir la causa.
+
+| Caso | Título | HU | 1.ª ejecución | Estado final |
+|---|---|---|---|---|
+| P-001 | Bienvenida y exploración en modo visitante | HU-004 | Aprobado | Aprobado |
+| P-002 | Validación de formularios de registro e inicio de sesión | HU-001, HU-002 | Aprobado | Aprobado |
+| P-003 | Crear comunidad: validaciones y creación correcta | HU-005, HU-007 | Aprobado | Aprobado |
+| P-004 | Editar comunidad, integrantes y conservación tras recarga | HU-006 | Aprobado | Aprobado |
+| P-005 | Selección de provincia, cantón y parroquia coherentes | HU-008, HU-009 | Aprobado | Aprobado |
+| P-006 | Registrar huerto real con todos sus datos | HU-010 | Aprobado | Aprobado |
+| P-007 | Editar huerto y cancelar la edición | HU-011 | Aprobado | Aprobado |
+| P-008 | Persistencia local al recargar | HU-019 | Aprobado | Aprobado |
+| P-009 | Uso con teclado y pantalla móvil básica | Transversal | Aprobado | Aprobado |
+| P-010 | Crear cuenta e iniciar/cerrar sesión con backend real | HU-001, HU-002, HU-003 | Reprobado | Aprobado |
+| P-011 | Aislamiento de datos entre dos cuentas | HU-002, HU-006, HU-007 | Reprobado | Aprobado |
+| P-012 | Persistencia en base de datos de comunidad y huerto | HU-019 | Reprobado | Aprobado |
+| P-013 | Flujo integrado de demostración | HU-003, HU-019 | Reprobado | Aprobado |
+| P-014 | Mi Huerto: catálogo, registro de planta y Pasaporte Vivo | HU-014 a HU-017 | Aprobado | Aprobado |
+| P-015 | Integración final de Mi Huerto | HU-014 | Aprobado | Aprobado |
+| P-016 | Puntos y niveles (exploratorio) | HU-018 | Aprobado | Aprobado |
+| P-017 | Catálogo de plantas medicinales: búsqueda y ficha | HU-012, HU-013 | Reprobado | Aprobado |
+
+En la ejecución del 15/11/2026 sobre la versión entregada se aprobaron los **9 casos** ejecutados:
+
+| Caso | Título | HU | Resultado |
+|---|---|---|---|
+| P-001 | Bienvenida y exploración en modo visitante | HU-004 | Aprobado |
+| P-010 | Crear cuenta e iniciar/cerrar sesión con backend real | HU-001, HU-002, HU-003 | Aprobado |
+| P-011 | Aislamiento de datos entre dos cuentas | HU-002, HU-006, HU-007 | Aprobado |
+| P-012 | Persistencia en base de datos | HU-019 | Aprobado |
+| P-013 | Flujo integrado de demostración | HU-003, HU-015, HU-016, HU-019 | Aprobado |
+| P-018 | Invitar a un integrante y responder la invitación | HU-007, HU-020 | Aprobado |
+| P-019 | Gestionar el almacén comunitario con control de permisos | HU-021 | Aprobado |
+| P-020 | Registrar riego con puntos y cosechar con rebrote | HU-010, HU-015, HU-017, HU-018, HU-022 | Aprobado |
+| P-021 | Revisión MSP posterior, reversión de puntos y notificación | HU-028, HU-029, HU-031 | Aprobado |
+
+Entre otras reglas, esta ejecución comprobó que una comunidad pendiente de revisión puede registrar plantas y actividades de inmediato, que un riego suma 5 puntos una sola vez aunque se reenvíe, que la cosecha deja la planta en rebrote y suma la cantidad al almacén, que un Participante no puede modificar la bodega, y que al invalidar una actividad el MSP descuenta sus puntos una sola vez, avisa a la autora con el motivo y deja la decisión en la auditoría.
+
+### 9.3 Defectos e incidencias
+
+Las cinco fallas de la primera ejecución se registraron en [registro-defectos-v1.md](../casos-prueba/registro-defectos-v1.md). Cuatro (P-010 a P-013) tuvieron la misma causa: la base de datos local no tenía aplicadas las migraciones, así que las tablas no existían; se resolvieron ejecutando `npx prisma migrate dev` y `npm run prisma:seed`. La quinta (P-017: la ficha solo mostraba el nombre científico) se resolvió al actualizar el repositorio. Como eran incidencias de entorno y no defectos del código, no se abrieron Issues. No quedaron defectos críticos abiertos.
+
+La ejecución del 15/11 registró dos hallazgos que no impiden ningún caso:
+
+| Id | Severidad | Hallazgo |
+|---|---|---|
+| H-01 | Media | La fecha de siembra se muestra en hora UTC: una planta registrada el 15/11 a las 20:40 (hora de Ecuador) figura sembrada el 16/11. Coincide con la observación UX-104 de la revisión de diseño. |
+| H-02 | Baja | La consulta del Pasaporte Vivo devuelve la ruta interna del servidor donde se guarda la foto (`photoPath`). |
+
+La lección práctica es que aplicar las migraciones es un paso obligatorio del arranque; por eso las instrucciones de ejecución (sección 10) lo incluyen antes de iniciar el backend.
+
+### 9.4 Cobertura
+
+La matriz que relaciona cada historia con sus casos está en [matriz-hu-pruebas.md](../casos-prueba/matriz-hu-pruebas.md) y al final de las [historias de usuario](../historias-usuario/historias-usuario-v1.md).
+
+| Cobertura | Historias |
+|---|---|
+| Caso ejecutado sobre la versión entregada (15/11) | HU-001 a HU-004, HU-007, HU-010, HU-015 a HU-022, HU-028, HU-029 y HU-031 |
+| Caso ejecutado solo en la primera ejecución (08/11) | HU-005, HU-006, HU-008, HU-009 y HU-011 a HU-014 |
+| Sin caso ejecutado | HU-023 (calendario lunar), HU-024 (poscosecha), HU-025 (rituales), HU-026 (señalética), HU-027 (Espejo Digital) y HU-030 (eventos y recursos MSP) |
+
+Para HU-024 a HU-027 existen casos redactados en el plan manual del ciclo agrícola ([ciclo-agricola-v2-manual.md](../casos-prueba/ciclo-agricola-v2-manual.md)), que quedan para la siguiente versión.
+
+### 9.5 Casos en la plantilla oficial
+
+A continuación se presentan los 21 casos con la estructura de la plantilla del curso: identificador, título, descripción, procedimiento, resultados esperados y ejecuciones. Las capturas de la primera ejecución están en el documento oficial de Santiago, [casos-prueba-v1.docx](../casos-prueba/casos-prueba-v1.docx); las de la ejecución del 15/11, en [docs/casos-prueba/evidencias/](../casos-prueba/evidencias/).
+
+**[Para el Word: insertar los casos en la plantilla oficial.]**
+
+### 9.6 Pruebas automatizadas
 
 Como complemento técnico, que no reemplaza los casos formales, el repositorio tiene pruebas automatizadas que se ejecutan en la integración continua. En el commit `5e024893` aprobaron 82 pruebas del backend (dominio, servicios, permisos, API y roles MSP), 82 pruebas unitarias del frontend, 32 pruebas de Playwright del huerto con Phaser y 4 pruebas de los flujos críticos (Espejo Digital, fotos, cosecha y persistencia), además de la construcción con Docker conservando la base y las fotos tras reiniciar ([regresión de arquitectura](../quality/regresion-arquitectura.md)). Estas pruebas usan una base temporal; la aceptación manual con datos reales corresponde a los casos de QA.
 
-### 9.2 Mantenibilidad (ISO/IEC 25010)
+### 9.7 Mantenibilidad (ISO/IEC 25010)
 
 Para la calidad interna del código tomamos como referencia las subcaracterísticas de mantenibilidad de ISO/IEC 25010:2023: modularidad, reusabilidad, analizabilidad, modificabilidad y capacidad de prueba ([criterios de calidad](../quality/README.md)). Las comprobamos con reglas automáticas en el CI:
 
@@ -275,7 +403,7 @@ Para las pruebas, el seed crea dos administradores técnicos (`admin1@mail.com` 
 
 El recorrido de la demostración es: crear cuenta, iniciar sesión, crear una comunidad, registrar el huerto eligiendo la provincia en el mapa, elegir una especie, subir una foto real, colocar la planta en una parcela, registrar un riego y un seguimiento en la Bitácora, abrir su Pasaporte Vivo y Mi Camino Verde, revisar la actividad desde el panel MSP y comprobar que los datos siguen ahí después de cerrar e iniciar sesión.
 
-**[PENDIENTE: capturas del recorrido sobre el commit entregado.]**
+Las capturas de las pantallas principales del recorrido están en la sección 6.3 (figuras 3 a 5).
 
 ---
 
@@ -296,7 +424,11 @@ Para la versión 2 quedan el ranking entre comunidades con entrega de premios, e
 
 ## 12. Conclusiones
 
-**[PENDIENTE: redactar al final, con los resultados reales de las pruebas.]**
+La V1 de Kawsapacha cubre el ciclo de un huerto medicinal comunitario de principio a fin: una comunidad registra su huerto real, siembra plantas con fotografía, documenta sus cuidados, cosecha y conserva lo cosechado, mientras el huerto virtual refleja lo que ocurre en el huerto real y el MSP revisa la información sin detener el trabajo de las comunidades. Los 17 casos de la primera ejecución terminaron aprobados; sobre la versión entregada se repitieron los casos críticos y se añadieron cuatro casos nuevos, y los 9 se aprobaron. Las pruebas automatizadas de la integración continua también pasan en backend, frontend y despliegue con Docker.
+
+Desde la calidad de software, tres aprendizajes guiaron el trabajo. Primero, escribir criterios de aceptación verificables («Dado… cuando… entonces…») antes de probar permitió que QA convirtiera cada historia en casos concretos y que la trazabilidad entre historias, casos y resultados fuera directa. Segundo, las primeras fallas de las pruebas no fueron errores del código sino del entorno (una base sin migraciones), lo que muestra que el procedimiento de arranque también debe especificarse y probarse. Tercero, organizar el backend en módulos con fronteras comprobadas automáticamente hizo medible la mantenibilidad: sin ciclos entre módulos y sin dependencias de la lógica de negocio hacia la base de datos.
+
+También aprendimos a distinguir lo que está implementado de lo que está verificado. Por eso volvimos a probar sobre la versión entregada en lugar de dar por válidas las pruebas anteriores, y este informe marca qué historias aún no tienen un caso ejecutado (HU-023 a HU-027 y HU-030) y qué orientaciones del MSP faltan por aplicar. Completar esas pruebas, corregir la fecha de siembra mostrada en hora UTC, documentar la cualidad caliente o fresca de todas las especies y definir con el cliente las reglas del ranking y del foro son los siguientes pasos para la versión 2.
 
 ---
 
@@ -318,5 +450,5 @@ Para la versión 2 quedan el ranking entre comunidades con entrega de premios, e
 - Historias de usuario: [historias-usuario-v1.md](../historias-usuario/historias-usuario-v1.md)
 - Arquitectura y contratos: [arquitectura implementada](../architecture/README.md), [contratos-api.md](../arquitectura/contratos-api.md)
 - Calidad: [mantenibilidad y regresión](../quality/README.md)
-- Casos de prueba y evidencias: [docs/casos-prueba/](../casos-prueba/) **[PENDIENTE]**
-- Diseño: [docs/diseno/](../diseno/) **[PENDIENTE]**
+- Casos de prueba con capturas: [casos-prueba-v1.docx](../casos-prueba/casos-prueba-v1.docx) y [docs/casos-prueba/](../casos-prueba/)
+- Diseño: [entrega UI/UX](../diseno/entrega-ui-ux-v1.md), [guía visual](../diseno/guia-visual-v1.md) y [capturas](../diseno/evidencias-diseno/)

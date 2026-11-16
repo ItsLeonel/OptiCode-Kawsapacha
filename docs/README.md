@@ -31,7 +31,7 @@ Los especialistas aportan información comprobable; Leonardo redacta y consolida
 - `diseno/`: [inventario y evidencias UI/UX V1](diseno/entrega-ui-ux-v1.md), [guía visual](diseno/guia-visual-v1.md), [propuesta del jardín](diseno/propuesta-jardin-v1.md), prototipos y recursos de Dylan.
 
 ### Calidad y pruebas
-- `casos-prueba/`: plan, casos, resultados y capturas de Santiago; [plan manual del ciclo agrícola](casos-prueba/ciclo-agricola-v2-manual.md).
+- `casos-prueba/`: plan, casos, resultados y capturas de Santiago ([casos v1](casos-prueba/casos-prueba-v1.md)); [reejecución sobre la versión entregada](casos-prueba/casos-prueba-v2.md); [plan manual del ciclo agrícola](casos-prueba/ciclo-agricola-v2-manual.md).
 - `quality/`: [mantenibilidad según ISO/IEC 25010](quality/README.md), [regresión de arquitectura](quality/regresion-arquitectura.md), [línea base de Playwright](quality/regresion-baseline-2026-11-15.md) y [auditoría de activos](quality/auditoria-activos.md).
 
 ### Informe y organización

@@ -29,12 +29,31 @@ Fuente de las HU: `docs/historias-usuario/historias-usuario-v1.md` (HU-001 a HU-
 | P-016 | HU-018 | Puntos y niveles locales (exploratorio, fuera del corte formal) | APROBADO | APROBADO |
 | P-017 | HU-012, HU-013 | Catálogo de plantas medicinales: búsqueda y ficha de especie | APROBADO | REPROBADO |
 
-## HU sin caso de prueba en esta versión
-| HU | Título | Motivo |
-|---|---|---|
-| HU-020 | Responder invitaciones a una comunidad | Añadida en la integración; sin caso diseñado |
-| HU-021 | Gestionar el almacén comunitario (bodega) | Añadida en la integración; sin caso diseñado |
-| HU-022 | Registrar la cosecha de una planta | Añadida en la integración; sin caso diseñado |
-| HU-023 | Consultar el calendario de siembra | Añadida en la integración; sin caso diseñado |
+## Ejecución sobre la versión entregada (15/11/2026)
+Ejecutada por Leonardo Lugmaña sobre `main` `661ad6b`; detalle y evidencias en [casos-prueba-v2.md](casos-prueba-v2.md). No reemplaza los resultados del 08/11.
 
-*Estas historias están sujetas a confirmación del PM (D-12 en `docs/analisis/dudas-y-decisiones-pendientes.md`).*
+| Caso | HU | Módulo | Resultado |
+|---|---|---|---|
+| P-001 | HU-004 | Bienvenida y exploración en modo visitante | APROBADO |
+| P-010 | HU-001, HU-002, HU-003 | Cuenta, inicio y cierre de sesión con backend real | APROBADO |
+| P-011 | HU-002, HU-006, HU-007 | Aislamiento de datos entre dos cuentas | APROBADO |
+| P-012 | HU-019 | Persistencia en base de datos | APROBADO |
+| P-013 | HU-003, HU-015, HU-016, HU-019 | Flujo integrado de demostración | APROBADO |
+| P-018 | HU-007, HU-020 | Invitaciones a la comunidad | APROBADO |
+| P-019 | HU-021 | Almacén comunitario con permisos | APROBADO |
+| P-020 | HU-010, HU-015, HU-017, HU-018, HU-022 | Riego, puntos y cosecha con rebrote | APROBADO |
+| P-021 | HU-028, HU-029, HU-031 | Revisión MSP, reversión de puntos y notificación | APROBADO |
+
+## HU sin caso de prueba ejecutado
+Fuente: [historias de usuario V1](../historias-usuario/historias-usuario-v1.md) (HU-001 a HU-031). «Plan existente» = casos redactados en [ciclo-agricola-v2-manual.md](ciclo-agricola-v2-manual.md), sin ejecutar.
+
+| HU | Título | Plan existente |
+|---|---|---|
+| HU-023 | Consultar el calendario de siembra y la fase lunar | — (caso nuevo) |
+| HU-024 | Registrar la poscosecha | CP-AG-06 a CP-AG-11 |
+| HU-025 | Registrar los rituales de siembra y de gratitud | CP-AG-03 |
+| HU-026 | Imprimir la señalética botánica de una planta | CP-AG-04 |
+| HU-027 | Reflejar en el Espejo Digital la etapa real de mi planta | CP-AG-14 |
+| HU-030 | Publicar eventos y recursos educativos del MSP | — (caso nuevo) |
+
+*Columna HU mantenida por Leonardo; casos y resultados del 08/11, por Santiago.*

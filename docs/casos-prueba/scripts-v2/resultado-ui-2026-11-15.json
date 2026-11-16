@@ -2,12 +2,12 @@
   "config": {
     "argv": [
       "C:\\Program Files\\nodejs\\node.exe",
-      "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\node_modules\\@playwright\\test\\cli.js",
+      "<repo>\\frontend\\node_modules\\@playwright\\test\\cli.js",
       "test",
       "-c",
       "qa-v1/playwright.qa.config.ts"
     ],
-    "configFile": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1\\playwright.qa.config.ts",
+    "configFile": "<repo>\\frontend\\qa-v1\\playwright.qa.config.ts",
     "rootDir": "<entorno-temporal>/qa/frontend/qa-v1",
     "failOnFlakyTests": false,
     "forbidOnly": false,
@@ -44,15 +44,15 @@
       {
         "grep": {},
         "grepInvert": null,
-        "outputDir": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1\\qa-test-results",
+        "outputDir": "<repo>\\frontend\\qa-v1\\qa-test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
           "actualWorkers": 1
         },
         "name": "",
-        "testDir": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1",
-        "snapshotDir": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1",
+        "testDir": "<repo>\\frontend\\qa-v1",
+        "snapshotDir": "<repo>\\frontend\\qa-v1",
         "testIgnore": [],
         "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
         "timeout": 180000,

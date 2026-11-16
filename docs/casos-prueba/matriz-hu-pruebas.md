@@ -29,12 +29,22 @@ Fuente de las HU: `docs/historias-usuario/historias-usuario-v1.md` (HU-001 a HU-
 | P-016 | HU-018 | Puntos y niveles locales (exploratorio, fuera del corte formal) | APROBADO | APROBADO |
 | P-017 | HU-012, HU-013 | Catálogo de plantas medicinales: búsqueda y ficha de especie | APROBADO | REPROBADO |
 
-## HU sin caso de prueba en esta versión
-| HU | Título | Motivo |
-|---|---|---|
-| HU-020 | Responder invitaciones a una comunidad | Añadida en la integración; sin caso diseñado |
-| HU-021 | Gestionar el almacén comunitario (bodega) | Añadida en la integración; sin caso diseñado |
-| HU-022 | Registrar la cosecha de una planta | Añadida en la integración; sin caso diseñado |
-| HU-023 | Consultar el calendario de siembra | Añadida en la integración; sin caso diseñado |
+## HU sin caso de prueba ejecutado
+Fuente: [historias de usuario V1](../historias-usuario/historias-usuario-v1.md) (HU-001 a HU-031). Columna «Plan existente» = casos ya redactados en [ciclo-agricola-v2-manual.md](ciclo-agricola-v2-manual.md), aún sin ejecutar.
 
-*Estas historias están sujetas a confirmación del PM (D-12 en `docs/analisis/dudas-y-decisiones-pendientes.md`).*
+| HU | Título | Plan existente |
+|---|---|---|
+| HU-020 | Responder invitaciones a una comunidad | — (caso nuevo) |
+| HU-021 | Gestionar el almacén comunitario (bodega) | — (caso nuevo) |
+| HU-022 | Registrar la cosecha de una planta | CP-AG-05 |
+| HU-023 | Consultar el calendario de siembra y la fase lunar | — (caso nuevo) |
+| HU-024 | Registrar la poscosecha | CP-AG-06 a CP-AG-11 |
+| HU-025 | Registrar los rituales de siembra y de gratitud | CP-AG-03 |
+| HU-026 | Imprimir la señalética botánica de una planta | CP-AG-04 |
+| HU-027 | Reflejar en el Espejo Digital la etapa real de mi planta | CP-AG-14 |
+| HU-028 | Consultar mis notificaciones | — (caso nuevo) |
+| HU-029 | Revisar comunidades y actividades sin bloquear a las comunidades | CP-AG-15 |
+| HU-030 | Publicar eventos y recursos educativos del MSP | — (caso nuevo) |
+| HU-031 | Administrar las cuentas institucionales | — (caso nuevo) |
+
+*Columna HU mantenida por Leonardo; casos y resultados, por Santiago.*

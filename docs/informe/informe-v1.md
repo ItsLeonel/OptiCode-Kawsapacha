@@ -11,7 +11,7 @@
 ISWD652 Calidad de Software · Período 2026B
 **Proyecto:** Huertos Medicinales Comunitarios: Kawsapacha, Mi Huerto Vivo (Versión 1)
 **Equipo:** OptiCode
-**Fecha de entrega:** **[PENDIENTE: fecha de entrega que confirme Leonel]**
+**Fecha de entrega:** 16 de noviembre de 2026
 
 | Integrante | Rol | Usuario GitHub |
 |---|---|---|

@@ -1,7 +1,7 @@
 # Esquema del informe final — `Proyecto-Version1-OptiCode.pdf`
 
 **Responsable:** Leonardo Lugmaña (Analista y documentación) · **Revisión y entrega:** Leonel Morales (PM) · **Issues:** #2 ANA-001, #15 DOC-002
-**Fecha:** 15/11/2026 · **Entrega:** por confirmar con Leonel
+**Fecha:** 15/11/2026 · **Entrega:** 16/11/2026
 
 > No existe una plantilla Word oficial del informe (D-10). Esta estructura sigue la consigna de la Versión 1: historias de usuario, arquitectura y diseño, herramientas y tecnologías, código fuente, casos de prueba con resultados y producto operativo, con enlaces a documentación, código y README.
 >
@@ -32,7 +32,6 @@
 
 | De | Qué | Para la sección |
 |---|---|---|
-| Leonel | Fecha de entrega | Portada |
 | Leonel y Ronny | Validación de horas de las HU (D-08) | 4 |
 
 ## Pasos para generar el PDF

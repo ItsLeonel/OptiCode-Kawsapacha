@@ -1,0 +1,73 @@
+erDiagram
+    User ||--o{ RewardLedger : "acumula"
+    User ||--o{ UserBadge : "obtiene"
+    User ||--o{ UserMissionProgress : "avanza"
+    User ||--o{ Notification : "recibe"
+    User ||--o{ AuditLog : "ejecuta"
+    RewardLedger |o--o| RewardLedger : "revierte"
+
+    User {
+        string id PK
+        string email UK
+        string role "USUARIO, ADMIN_MSP, ADMIN_TECNICO"
+        boolean isActive
+    }
+    RewardLedger {
+        string id PK
+        string userId FK
+        string eventType
+        string sourceId "actividad de origen"
+        int pointsDelta
+        string status
+        string reversalOfLedgerId "asiento revertido"
+    }
+    UserBadge {
+        string id PK
+        string userId FK
+        string badgeId
+    }
+    UserMissionProgress {
+        string id PK
+        string userId FK
+        string missionId
+        int currentValue
+        boolean completed
+    }
+    Notification {
+        string id PK
+        string userId FK
+        string type
+        boolean isRead
+    }
+    AuditLog {
+        string id PK
+        string actorId FK
+        string action
+        string targetResource
+        string targetId
+    }
+    RewardRule {
+        string id PK
+        string activityType
+        int points
+        int dailyCap
+        int version
+    }
+    MissionDefinition {
+        string id PK
+        string code UK
+        int targetValue
+        string status
+    }
+    MspInstitutionalEvent {
+        string id PK
+        string name
+        string date
+        string scope "nacional, provincial, cantonal"
+    }
+    MspEducationalResource {
+        string id PK
+        string title
+        string kind "guía, manual, ficha, video"
+        boolean published
+    }

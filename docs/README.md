@@ -28,7 +28,7 @@ Los especialistas aportan información comprobable; Leonardo redacta y consolida
 - `arquitectura/`: [contratos de API](arquitectura/contratos-api.md), [despliegue con Docker y HTTPS](arquitectura/despliegue-docker-https.md), [acceso móvil](arquitectura/acceso-movil-demo-v1.md), [Espejo Digital V2](arquitectura/contrato-espejo-digital-v2.md) y [espejo fotográfico](arquitectura/espejo-evolutivo-fotografico.md), además de documentos de frontend y backend. Para la estructura actual del código prevalece `architecture/`.
 
 ### Diseño
-- `diseno/`: prototipos, capturas y guía UI/UX de Dylan.
+- `diseno/`: [inventario y evidencias UI/UX V1](diseno/entrega-ui-ux-v1.md), [guía visual](diseno/guia-visual-v1.md), [propuesta del jardín](diseno/propuesta-jardin-v1.md), prototipos y recursos de Dylan.
 
 ### Calidad y pruebas
 - `casos-prueba/`: plan, casos, resultados y capturas de Santiago; [plan manual del ciclo agrícola](casos-prueba/ciclo-agricola-v2-manual.md).

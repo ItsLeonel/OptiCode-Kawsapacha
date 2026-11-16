@@ -1,24 +1,12 @@
 # Guía visual V1 — Kawsapacha
 
-> **Corte y vigencia — 15/11/2026:** los valores CSS, mediciones y hallazgos en las secciones siguientes corresponden a la inspección **histórica previa a la rama móvil**; se conservan como línea base. La guía sirve para documentar el **diseño de escritorio vigente** únicamente tras contrastar los estilos con el `main` actual (`3f3547b`). El [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74), aún sin fusionar, incorpora `responsive-phase1.css`, `garden-mobile.css`, ajustes en navegación/controles y una cámara móvil adaptable. Por tanto, los hallazgos antiguos como «guía invade acciones», «zoom fijo `0.203`», «solo 390 px revisados» y recomendaciones «no implementadas» **no describen necesariamente la nueva rama**.
->
-> **Validación posterior requerida a Dylan:** revisar CSS real y contraste/tamaños táctiles; probar 320/360/390/430/768 px más escritorio, recapturar los estados, identificar fallos aún reproducibles y documentar qué cambió efectivamente. Las comprobaciones automatizadas de PR #74 **no prueban accesibilidad con lector de pantalla ni experiencia en Android/iPhone**. No reetiquetar recomendaciones históricas como corregidas sin prueba, ni confundir la documentación con una aprobación del PM.
-
-
-
-**Estado:** referencia retrospectiva de los estilos encontrados en el código, contrastada parcialmente con la aplicación local. Describe el sistema existente; no es una paleta propuesta, una certificación de accesibilidad ni una aprobación oficial del PM.
-
-Esta guía registra estilos y recursos encontrados en el frontend del commit indicado. Las rutas de código son relativas a este documento. Los valores se extrajeron del CSS y de los componentes. La aplicación local se cargó y se recorrió en `1440 × 1000` y `390 × 844`, pero no se verificó su representación en producción. La presencia de un color o estilo en el código no demuestra que se use en todas las pantallas ni que cumpla contraste.
-
-## 4.1. Identidad visual
+## 1. Identidad visual
 
 Kawsapacha combina una interfaz de cultivo educativo con referencias visuales ecuatorianas: vegetación, paisajes regionales, madera, tierra, tejidos ilustrados y personajes guía. En la experiencia de Mi Jardín, el escenario ilustrado funciona como entorno visual; los datos, formularios y acciones se presentan en controles de interfaz separados. La identidad comunica cultivo y comunidad, pero esta descripción no implica validación cultural por especialistas.
 
 La implementación mezcla dos registros: una interfaz de producto con superficies claras, tipografía DM Sans/Outfit y acentos verdes; y una capa de juego con paneles cálidos, madera, tipografía Trebuchet MS/Georgia y controles superpuestos. Ambos registros comparten la marca, pero no forman todavía un sistema visual único y cerrado.
 
-## 4.2. Paleta de colores
-
-Los valores siguientes aparecen en CSS del frontend. Son ejemplos de colores efectivamente declarados, no un inventario exhaustivo de todos los tonos ni una afirmación de contraste validado.
+## 2. Paleta de colores
 
 | Color | Uso visible en código | Contexto |
 |---|---|---|
@@ -61,7 +49,7 @@ En las fuentes revisadas, la UI de juego distingue las regiones con acentos CSS 
 
 La existencia de estos archivos y mapeos no demuestra que cada región se haya revisado visualmente ni autoriza a atribuirle colores o motivos concretos que no se inspeccionaron.
 
-## 4.3. Tipografías
+## 3. Tipografías
 
 | Familia configurada | Aplicación observada en código |
 |---|---|
@@ -74,7 +62,7 @@ La importación de DM Sans y Outfit está declarada desde Google Fonts en [style
 
 La coexistencia de DM Sans/Outfit con Trebuchet MS/Georgia produce un cambio de registro entre producto y juego. No se propone una unificación en esta guía; se registra como diferencia observable y como decisión pendiente de revisión.
 
-## 4.4. Iconografía e ilustraciones
+## 4. Iconografía e ilustraciones
 
 - [GardenIcon.tsx](../../frontend/src/features/my-garden/GardenIcon.tsx) dibuja iconos SVG en línea para hoja, jardín, comunidad, libro, mapa, semilla, maceta, vertical, colgante, cámara y galería. Son decorativos (`aria-hidden`) cuando el texto del control aporta su nombre.
 - La bienvenida usa [AuthIcon.tsx](../../frontend/src/features/auth/AuthIcon.tsx), [PlantIllustration.tsx](../../frontend/src/features/auth/PlantIllustration.tsx) y recursos de guía, flores y tejido importados en [AuthPage.tsx](../../frontend/src/features/auth/AuthPage.tsx).
@@ -82,7 +70,7 @@ La coexistencia de DM Sans/Outfit con Trebuchet MS/Georgia produce un cambio de 
 - El catálogo muestra un icono por especie mediante el dato configurado; no se afirma que cada icono sea una ilustración botánica validada.
 - Las ilustraciones de paisaje, personajes y ornamentos no se auditaron como material cultural ni botánico. La guía visual no certifica su precisión.
 
-## 4.5. Componentes visuales
+## 5. Componentes visuales
 
 | Componente | Apariencia y comportamiento respaldados por el código |
 |---|---|
@@ -92,9 +80,9 @@ La coexistencia de DM Sans/Outfit con Trebuchet MS/Georgia produce un cambio de 
 | Paneles | Se usan superficies crema/verde, bordes y sombras en formularios de jardín, características del terreno, progreso y guía. |
 | Diálogos | Registro de planta y Pasaporte Vivo se muestran como superficies superpuestas. `PlantPassport` usa un elemento `<dialog>` y `showModal()`. En `390 × 844`, el diálogo de registro midió `352 × 820` en `x=19`, `y=12`, dentro del viewport. La gestión de foco de cada diálogo no se certificó. |
 | Navegación | La navegación global representa Mi Huerto Vivo, Comunidad y Mi camino verde; existen navegación interna y botones para Mi Jardín y Mi terreno. Los botones utilizan estado `aria-current` en las vistas correspondientes. Las rutas hash observadas incluyen `#bienvenida`, `#mi-jardin`, `#mi-jardin/terreno`, `#comunidades`, `#plantas`, `#mis-plantas`, `#bitacora`, `#mi-historia`, `#progreso` y `#usuarios`. |
-| HUD | En Mi Jardín se muestran nombre y datos del terreno, modalidad y región, progreso local, controles de terreno/ayuda, guía regional, estado del jardín y accesos de acción. El HUD se compone en React alrededor de la escena. En `390 × 844` la guía mide ~`89.7 × 134.5 px` y termina en y≈`714`, tocando el borde superior de las acciones rápidas; el contador y el progreso ocupan la franja superior. El tercio inferior queda congestionado y el mensaje de guardado se solapa ~`18 px` con las acciones. |
+| HUD | En Mi Jardín se muestran nombre y datos del terreno, modalidad y región, progreso local, controles de terreno/ayuda, guía regional, estado del jardín y accesos de acción. El HUD se compone en React alrededor de la escena. En `390 × 844` la guía termina en el borde superior de las acciones rápidas **sin solaparse**; el contador y el progreso ocupan la franja superior. El tercio inferior queda congestionado y las etiquetas de acción bajan a 10 px. En la rama #74 el botón de menú mide `48 × 48` y el widget lunar `132 × 44` px, y se añaden controles de zoom/paneo. La superposición de ~`18 px` del mensaje de guardado descrita en la revisión histórica **no se reprodujo** (ver §7). |
 
-## 4.6. Estados de interfaz
+## 6. Estados de interfaz
 
 | Estado | Implementación encontrada | Límite de comprobación |
 |---|---|---|
@@ -103,10 +91,10 @@ La coexistencia de DM Sans/Outfit con Trebuchet MS/Georgia produce un cambio de 
 | Vacío | Mi Jardín presenta un mensaje cuando no hay plantas; el catálogo muestra “No se encontraron especies…” cuando la búsqueda no coincide; Mi camino verde muestra que aún no hay hitos. | El contenido de la captura no acredita persistencia ni estados de servidor. |
 | Selección | Se usa `aria-current` en vistas, `aria-pressed` en controles regionales y foco/selección para parcelas. | No se comprobó cada transición visual. |
 | Éxito | Hay mensajes de guardado y avisos con `role="status"`; el terreno y el registro de planta usan estados de guardado (`data-state="saved"` en el terreno). | Se ejecutaron guardados locales de terreno y planta en la sesión visitante; la interfaz confirmó el terreno y «1 planta registrada». No se comprobó persistencia en SQLite ni sincronización. |
-| Persistencia | En Comunidad visitante conviven «Demostración pública · Datos guardados en la base de datos» y «Guardado local · Solo en este navegador». | Contradicción confirmada en la ejecución local a `1440 × 1000` (P0-001). No se comprobó la base de datos. |
+| Persistencia | Conviven mensajes que afirman guardado **en la base de datos** («Tus plantas, bitácoras y cosechas se guardan en la base de datos.» en Mi Jardín; «Sesión activa · Datos guardados en la base de datos.» en Comunidad) con otros que indican **guardado local** («Guardado local · Solo en este navegador» en `App.tsx`; «Guardado local · Sin sincronización» en el formulario de comunidad). | Contradicción confirmada en la ejecución local, en **sesión autenticada y en visitante**, a escritorio y móvil (P0-001). No se comprobó el destino real de cada guardado en el servidor. |
 | Interacción | Hay hover/foco contextual de parcelas; React abre registro para una zona vacía y Pasaporte Vivo para una zona ocupada. Los errores y avisos de carga tienen roles ARIA. | Se comprobó el registro de una planta y la apertura del Pasaporte desde una parcela. No se probó la interacción completa con teclado ni en dispositivo táctil. |
 
-## 4.7. Responsividad
+## 7. Responsividad
 
 Los estilos definen breakpoints por módulo. Entre los encontrados:
 
@@ -116,17 +104,20 @@ Los estilos definen breakpoints por módulo. Entre los encontrados:
 - Mi Jardín: 1600, 1500, 1200, 900, 620 y 400 px en [my-garden.css](../../frontend/src/features/my-garden/my-garden.css) y [my-garden-v3.css](../../frontend/src/features/my-garden/my-garden-v3.css); la capa inmersiva añade reglas móviles propias en [garden-live.css](../../frontend/src/features/my-garden/phaser-poc/garden-live.css) y [phaser-poc.css](../../frontend/src/features/my-garden/phaser-poc/phaser-poc.css).
 - Registro de planta: 760 px en [plant-registration.css](../../frontend/src/features/my-garden/plant-registration.css); Bitácora tiene ajustes a 700 y 600 px en [garden-journal.css](../../frontend/src/features/my-garden/garden-journal.css).
 
-Las reglas adaptan columnas, paneles, navegación y acciones para anchos menores. La ejecución local a `390 × 844` permitió comprobar:
+Las reglas adaptan columnas, paneles, navegación y acciones para anchos menores. La rama #74 añade además `responsive-phase1.css` (en `frontend/src/styles/`) y `garden-mobile.css` (en `frontend/src/features/my-garden/phaser-poc/`) — archivos **solo presentes en la rama del PR #74, no en `main`** —, con reglas móviles propias para el jardín.
 
-- Bienvenida y Comunidad no presentan desbordamiento horizontal (`scrollWidth = innerWidth = 390`). El supuesto desbordamiento de Comunidad observado en la captura no se reprodujo y no se mantiene como defecto.
-- Mi Jardín conserva las seis parcelas dentro del encuadre, pero la cámara fija usa zoom `0.203`: cada zona táctil de `138 × 85` unidades del mundo queda en ~`28 × 17 px`. Las parcelas se concentran en una franja de ~`121 × 33 px`; las cuatro laterales son difíciles de distinguir.
-- En Mi Jardín, el mensaje de guardado se superpone ~`18 px` con las acciones rápidas; la guía toca el borde superior de esas acciones sin solaparse.
-- En Mi terreno, el contenido comienza en y≈`1152`: la navegación superior mide ~`340 px` y la cabecera de bienvenida ~`680 px`. No hay overflow horizontal, pero el formulario/resumen queda muy por debajo del primer viewport.
-- El diálogo de registro de planta cabe en `390 × 844` (`352 × 820`).
+La auditoría del 15/11/2026 cubrió `320/360/390/430/768/1440` px en ocho pantallas (`#bienvenida`, `#mi-jardin`, `#mi-jardin/terreno`, `#plantas`, `#comunidades`, `#bitacora`, `#progreso`, `#mis-plantas`) en `main` (`5173`) y en la rama #74 (`5174`). Resultados comprobados:
 
-La captura móvil de Mi Jardín mide 337 × 825 px, no un viewport estándar. Las capturas de otras pantallas son más altas que un viewport típico y parecen composiciones de página completa. La verificación local se limitó a `1440 × 1000` y `390 × 844`; no se probaron dispositivos reales, otros anchos ni orientación horizontal.
+- **Sin desbordamiento horizontal de documento** en ningún ancho de ninguno de los dos servidores (`scrollWidth ≤ innerWidth`). Los elementos que exceden el viewport son decorativos (imágenes de guía `auth-guide`, fondos SVG, `mc-hero-leaves`, parcelas de Phaser recortadas). El supuesto desbordamiento de Comunidad móvil **no se reproduce** y no se mantiene como defecto.
+- **Mi Jardín** conserva las seis parcelas dentro del encuadre en ambos servidores. En `main` la cámara es fija y las parcelas son pequeñas; la rama #74 añade zoom/paneo/pellizco y un selector de parcela.
+- **UX-001 no reproducido:** el texto «Guardado local en este navegador» (`.garden-poc-note`) se renderiza en la parte superior (y≈`9`), no sobre las acciones. La franja `position: fixed` «Guardado local · Solo en este navegador» (`.garden-storage-status`) solo aparece en visitante, donde las acciones quedan fuera del primer viewport; la superposición medida es **0 px** en `main` y en la rama #74.
+- **Mi terreno** (`390 × 844`) no presenta overflow horizontal, pero el contenido empieza muy por debajo del primer viewport por el peso de la navegación y la cabecera (UX-005, vigente en ambos).
+- **Áreas táctiles (UX-105, vigente en ambos):** pestañas de notificaciones 30 px, «Cerrar notificaciones» `25 × 32`, chips de catálogo `mc-chip` 31 px, filtros de Mis plantas `bv-filter-pill` 32 px, `bv-register-button` 41 px, `rv-subtle-button` 41 px, campana `garden-header-bell-btn` `42 × 34` y selector de catálogo 41 px.
+- **Mejoras de la rama #74** medidas a `390 × 844`: botón de menú `garden-sidebar-tab` `30 × 58` → `48 × 48`, widget lunar `132 × 36` → `132 × 44`, acciones rápidas `316` → `376` px de ancho.
 
-## 4.8. Accesibilidad visual básica
+Las capturas móviles del conjunto histórico son recortes de página completa, no un viewport estándar. La verificación de esta sesión fue por **emulación de viewport** en Chromium headless; **no se probó en dispositivo real**, ni orientación horizontal, ni `safe-area` física.
+
+## 8. Accesibilidad visual básica
 
 - Hay estilos `:focus-visible` globales, etiquetas y nombres accesibles en controles, estados con `role="status"`/`role="alert"` y texto alternativo oculto para operar las parcelas sin depender del canvas.
 - La bienvenida implementa pestañas con roles ARIA y navegación por flechas, Inicio y Fin; el formulario expone progreso como `progressbar`.
@@ -134,21 +125,4 @@ La captura móvil de Mi Jardín mide 337 × 825 px, no un viewport estándar. La
 - Los adornos SVG y algunas imágenes se marcan como decorativos, separados de los nombres de los controles.
 - Hay reglas `prefers-reduced-motion` en estilos de varios módulos.
 - No se ha medido contraste de todos los estados, no se verificó el tamaño táctil mínimo en un dispositivo real, ni se hizo una auditoría con lector de pantalla o navegación completa por teclado. La presencia de atributos ARIA no sustituye esas pruebas.
-- La etiqueta de 10 px de las acciones rápidas móviles y la reducción de la guía regional son riesgos de legibilidad. El diálogo de registro cabe en el viewport móvil, pero no se certificó su gestión de foco. No se declaran fallos de accesibilidad confirmados porque no se midieron en dispositivo ni con tecnologías de asistencia.
-
-## 4.9. Recomendaciones no implementadas
-
-Las siguientes recomendaciones no forman parte del código revisado y no deben presentarse como cambios realizados. Se registran para revisión de Leonel y para una futura iteración de UI/UX.
-
-- **Mi Jardín móvil:** reubicar el mensaje de guardado para que no se superponga con la barra de acciones; reservar una banda superior o inferior libre y respetar `safe-area`. El solapamiento de ~`18 px` está confirmado a `390 × 844`.
-- **Parcelas en móvil:** las seis están en cuadro, pero sus zonas táctiles miden ~`28 × 17 px` y las cuatro laterales son difíciles de distinguir. Ofrecer una vista general o un selector de parcela y aumentar contraste o tamaño. No introducir paneo o zoom sin coordinar con Phaser.
-- **HUD móvil:** colapsar la guía regional a un icono o panel desplegable, reubicar el contador de plantas y evitar que el tercio inferior concentre demasiados controles. La guía toca las acciones rápidas y el estado de guardado se les superpone.
-- **Etiquetas táctiles:** subir las etiquetas de acciones rápidas por encima de 10 px y revisar el tamaño táctil de todos los controles; no se midió el cumplimiento de 44 px en un dispositivo real.
-- **Mi terreno móvil:** reducir el peso de la cabecera de bienvenida y de la navegación superior para que el resumen y las acciones aparezcan antes del actual y≈`1152`.
-- **Mensajes de persistencia:** en Comunidad visitante, retirar «Datos guardados en la base de datos» o cambiarlo por «Guardado local»; no mezclar ambos mensajes en la misma vista. La contradicción está confirmada (P0-001).
-- **Estado de éxito:** unificar el patrón de confirmación de guardado y hacer explícito si el dato es local o sincronizado. Se verificó el guardado local inmediato; no la persistencia.
-- **Tipografía:** decidir si se mantiene la separación DM Sans/Outfit para producto y Trebuchet MS/Georgia para juego, o si se unifica con una escala común.
-- **Contraste y foco:** realizar una auditoría de contraste de textos, botones y estados sobre fondos ilustrados; conservar el foco visible y probarlo con teclado.
-- **Tokens regionales:** si se busca consistencia, definir variables de color por región en CSS en lugar de depender solo de recursos gráficos. No existe esa capa de tokens en el código revisado.
-
-Estas recomendaciones no modifican la paleta, los componentes ni los recursos existentes. Cualquier implementación requiere aprobación y una revisión posterior de las capturas. No se añadieron capturas nuevas al repositorio.
+- La etiqueta de 10 px de las acciones rápidas móviles y la reducción de la guía regional son riesgos de legibilidad. La medición por emulación confirma varias áreas táctiles por debajo de 44 px (UX-105: pestañas de notificaciones, chips y filtros de catálogo/Mis plantas, campana del jardín). No se declaran fallos de accesibilidad confirmados en dispositivo ni con tecnologías de asistencia, porque no se midieron con lector de pantalla ni en hardware real.

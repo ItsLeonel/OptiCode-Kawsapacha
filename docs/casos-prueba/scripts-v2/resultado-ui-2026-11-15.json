@@ -1,0 +1,249 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "-c",
+      "qa-v1/playwright.qa.config.ts"
+    ],
+    "configFile": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1\\playwright.qa.config.ts",
+    "rootDir": "C:/Users/ASUS TUF/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa/frontend/qa-v1",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/ASUS TUF/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa/frontend/qa-v1/qa-test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/ASUS TUF/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa/frontend/qa-v1",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1\\qa-test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1",
+        "snapshotDir": "C:\\Users\\ASUS TUF\\AppData\\Local\\Temp\\claude\\c4e07e0bad744db4\\b70e1981-75c4-436c-bb11-1cdd214adb0a\\scratchpad\\qa\\frontend\\qa-v1",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 180000,
+        "use": {
+          "baseURL": "http://127.0.0.1:5173",
+          "screenshot": "only-on-failure",
+          "trace": "off"
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:/Users/ASUSTU~1/AppData/Local/Temp/claude/c4e07e0bad744db4/b70e1981-75c4-436c-bb11-1cdd214adb0a/scratchpad/qa-run/ui-final.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "ui-cases.spec.ts",
+      "file": "ui-cases.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "P-001 Bienvenida y exploración en modo visitante",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2646,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T01:41:00.703Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2e30d4af20fa9b63bb9e-71792f7b4bf7bbb04e89",
+          "file": "ui-cases.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "P-010 Crear cuenta e iniciar/cerrar sesión con backend real",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7632,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T01:41:03.476Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2e30d4af20fa9b63bb9e-5c22678ae748bcf1527b",
+          "file": "ui-cases.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "P-011 y P-012 Aislamiento entre cuentas y persistencia en servidor",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11681,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T01:41:11.123Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2e30d4af20fa9b63bb9e-bc69bb4a1dc663bc835c",
+          "file": "ui-cases.spec.ts",
+          "line": 126,
+          "column": 1
+        },
+        {
+          "title": "P-013 Flujo integrado de demostración",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 24289,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-16T01:41:22.818Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "2e30d4af20fa9b63bb9e-8a4d166fbfd41b933ddb",
+          "file": "ui-cases.spec.ts",
+          "line": 150,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-16T01:41:00.300Z",
+    "duration": 46977.735,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

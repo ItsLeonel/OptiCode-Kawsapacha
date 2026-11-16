@@ -21,10 +21,10 @@
 | 6 | Diseño UI/UX | Identidad visual, decisiones de diseño, Figma, capturas y hallazgos UX | [entrega UI/UX](../diseno/entrega-ui-ux-v1.md), [guía visual](../diseno/guia-visual-v1.md) | Dylan (insumo); Leonardo (redacción) | ✅ Borrador listo |
 | 7 | Herramientas y tecnologías | Tabla con herramienta, versión y uso | `backend/package.json`, `frontend/package.json`, `deploy/`, `.github/workflows/` | Leonardo | ✅ Borrador listo |
 | 8 | Código fuente | Enlace al repositorio, estructura de carpetas, flujo de ramas, PR e integración continua | Repositorio GitHub | Leonardo | ✅ Borrador listo |
-| 9 | Casos de prueba y resultados | Plan, resultados de los 17 casos, defectos, cobertura, casos en plantilla oficial, pruebas automatizadas y mantenibilidad ISO/IEC 25010 | `docs/casos-prueba/`, `docs/quality/` | Santiago (casos); Leonardo (redacción) | ✅ Borrador listo · ⏳ ejecución sobre el commit entregado |
+| 9 | Casos de prueba y resultados | Plan, resultados de las dos ejecuciones (21 casos), defectos, cobertura, casos en plantilla oficial, pruebas automatizadas y mantenibilidad ISO/IEC 25010 | `docs/casos-prueba/`, `docs/quality/` | Santiago (casos); Leonardo (redacción) | ✅ Borrador listo |
 | 10 | Producto operativo | Instrucciones de ejecución (backend + frontend, Docker), cuentas de prueba, recorrido de la demo, capturas | `README.md`, [credenciales](../CREDENCIALES-Y-ACTUALIZACION-BD.md) | Leonardo + verificación de Leonel | ✅ Borrador listo |
 | 11 | Limitaciones y trabajo futuro | Lo no implementado o parcial (según estados de las HU, dudas abiertas y ADR-0002) | [dudas](../analisis/dudas-y-decisiones-pendientes.md) | Leonardo | ✅ Borrador listo |
-| 12 | Conclusiones | Logros y aprendizajes de calidad de software | Secciones 3 a 11 | Leonardo | ✅ Borrador listo (revisar con la nueva ejecución) |
+| 12 | Conclusiones | Logros y aprendizajes de calidad de software | Secciones 3 a 11 | Leonardo | ✅ Borrador listo |
 | 13 | Referencias | Definición del proyecto, MSP 2017, ISO/IEC 25010, INEC DPA 2026, OpenStreetMap, librerías | Documentos citados | Leonardo | Listo para redactar |
 | — | Anexos | Enlaces a documentación, código, README y evidencias | Repositorio | Leonardo | Al final |
 
@@ -32,7 +32,6 @@
 
 | De | Qué | Para la sección |
 |---|---|---|
-| Santiago | Ejecución sobre el commit entregado (HU-020 a HU-031 y casos críticos) | 9, 12 |
 | Leonel | Fecha de entrega | Portada |
 | Leonel y Ronny | Validación de horas de las HU (D-08) | 4 |
 

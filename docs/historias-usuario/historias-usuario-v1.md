@@ -897,27 +897,31 @@ El backlog se ordena por módulo. Los números identifican cada historia de form
 
 ## Trazabilidad con los casos de prueba
 
-**Casos ejecutados por QA** (Santiago, 08/11/2026; [casos de prueba](../casos-prueba/casos-prueba-v1.md) y [resultados](../casos-prueba/resultados-ejecucion-v1.md)):
+**Casos ejecutados** ([casos v1](../casos-prueba/casos-prueba-v1.md), Santiago, 08/11/2026; [casos v2](../casos-prueba/casos-prueba-v2.md), sobre la versión entregada, 15/11/2026):
 
-| Caso | HU relacionadas | Estado final |
-|---|---|---|
-| P-001 Bienvenida y exploración en modo visitante | HU-004 | Aprobado |
-| P-002 Validación de formularios de registro e inicio de sesión | HU-001, HU-002 | Aprobado |
-| P-003 Crear comunidad | HU-005, HU-007 | Aprobado |
-| P-004 Editar comunidad e integrantes | HU-006 | Aprobado |
-| P-005 Provincia, cantón y parroquia | HU-008, HU-009 | Aprobado |
-| P-006 Registrar huerto real | HU-010 | Aprobado |
-| P-007 Editar huerto y cancelar la edición | HU-011 | Aprobado |
-| P-008 Persistencia local al recargar | HU-019 | Aprobado |
-| P-009 Teclado y pantalla móvil básica | Transversal | Aprobado |
-| P-010 Cuenta, inicio y cierre de sesión con backend | HU-001, HU-002, HU-003 | Aprobado (reejecutado) |
-| P-011 Aislamiento de datos entre dos cuentas | HU-002, HU-006, HU-007 | Aprobado (reejecutado) |
-| P-012 Persistencia en base de datos | HU-019 | Aprobado (reejecutado) |
-| P-013 Flujo integrado de demostración | HU-003, HU-019 | Aprobado (reejecutado) |
-| P-014 Mi Huerto: catálogo, registro de planta y Pasaporte | HU-014, HU-015, HU-016, HU-017 | Aprobado |
-| P-015 Integración final de Mi Huerto | HU-014 | Aprobado |
-| P-016 Puntos y niveles (exploratorio) | HU-018 | Aprobado |
-| P-017 Catálogo: búsqueda y ficha de especie | HU-012, HU-013 | Aprobado (reejecutado) |
+| Caso | HU relacionadas | 08/11/2026 | 15/11/2026 |
+|---|---|---|---|
+| P-001 Bienvenida y exploración en modo visitante | HU-004 | Aprobado | Aprobado |
+| P-002 Validación de formularios de registro e inicio de sesión | HU-001, HU-002 | Aprobado | — |
+| P-003 Crear comunidad | HU-005, HU-007 | Aprobado | — |
+| P-004 Editar comunidad e integrantes | HU-006 | Aprobado | — |
+| P-005 Provincia, cantón y parroquia | HU-008, HU-009 | Aprobado | — |
+| P-006 Registrar huerto real | HU-010 | Aprobado | — |
+| P-007 Editar huerto y cancelar la edición | HU-011 | Aprobado | — |
+| P-008 Persistencia local al recargar | HU-019 | Aprobado | — |
+| P-009 Teclado y pantalla móvil básica | Transversal | Aprobado | — |
+| P-010 Cuenta, inicio y cierre de sesión con backend | HU-001, HU-002, HU-003 | Aprobado (reejecutado) | Aprobado |
+| P-011 Aislamiento de datos entre dos cuentas | HU-002, HU-006, HU-007 | Aprobado (reejecutado) | Aprobado |
+| P-012 Persistencia en base de datos | HU-019 | Aprobado (reejecutado) | Aprobado |
+| P-013 Flujo integrado de demostración | HU-003, HU-015, HU-016, HU-019 | Aprobado (reejecutado) | Aprobado |
+| P-014 Mi Huerto: catálogo, registro de planta y Pasaporte | HU-014, HU-015, HU-016, HU-017 | Aprobado | — |
+| P-015 Integración final de Mi Huerto | HU-014 | Aprobado | — |
+| P-016 Puntos y niveles (exploratorio) | HU-018 | Aprobado | — |
+| P-017 Catálogo: búsqueda y ficha de especie | HU-012, HU-013 | Aprobado (reejecutado) | — |
+| P-018 Invitar a un integrante y responder la invitación | HU-007, HU-020 | — | Aprobado |
+| P-019 Almacén comunitario con control de permisos | HU-021 | — | Aprobado |
+| P-020 Riego con puntos y cosecha con rebrote | HU-010, HU-015, HU-017, HU-018, HU-022 | — | Aprobado |
+| P-021 Revisión MSP, reversión de puntos y notificación | HU-028, HU-029, HU-031 | — | Aprobado |
 
 **Casos del plan manual del ciclo agrícola** ([ciclo-agricola-v2-manual.md](../casos-prueba/ciclo-agricola-v2-manual.md)):
 
@@ -932,6 +936,6 @@ El backlog se ordena por módulo. Los números identifican cada historia de form
 | CP-AG-14 Etapa observada en el Espejo Digital | HU-027 |
 | CP-AG-15 Acceso a fotos ajenas y revisión MSP | HU-029 |
 
-**Sin caso ejecutado todavía:** HU-020 a HU-031. De ellas, HU-022 y HU-024 a HU-027 y HU-029 tienen casos en el plan manual del ciclo agrícola (sin ejecutar); HU-020, HU-021, HU-023, HU-028, HU-030 y HU-031 necesitan casos nuevos.
+**Sin caso ejecutado todavía:** HU-023, HU-024, HU-025, HU-026, HU-027 y HU-030. Para HU-024 a HU-027 hay casos redactados en el plan manual del ciclo agrícola.
 
 *La matriz HU ↔ caso ↔ resultado se mantiene en [matriz-hu-pruebas.md](../casos-prueba/matriz-hu-pruebas.md) (Santiago y Leonardo). Los casos de la plantilla docente usan el identificador P-NNN.*

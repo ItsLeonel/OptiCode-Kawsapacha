@@ -66,10 +66,6 @@ Participante, Cuidador y Responsable son roles dentro de cada comunidad. Funcion
 
 El equipo no conserva el acta ni la presentación del taller de definición del alcance, así que en este informe no se atribuye ninguna respuesta al cliente. Lo que sí hicimos fue listar las preguntas que quedaron abiertas al analizar la definición y, para cada una, la decisión provisional que tomó el equipo para poder avanzar. Algunos ejemplos: no se define con qué criterio se ordena el ranking de comunidades, ni quién certifica los talentos de un integrante, ni cuántos puntos hacen falta para pasar de Aprendiz a Oficial y a Maestro (el equipo usa 0, 100 y 300 puntos). Tampoco se define si las actividades deben aprobarse antes de otorgar puntos: el equipo decidió que la revisión del MSP no bloquee a las comunidades, de modo que cada actividad vale desde que se registra y el MSP puede invalidarla después, con reversión de sus puntos ([flujo MSP no bloqueante](../analisis/flujo-msp-v1-no-bloqueante.md)). Las trece preguntas están en [preguntas-al-cliente.md](../analisis/preguntas-al-cliente.md) y las decisiones internas en [dudas-y-decisiones-pendientes.md](../analisis/dudas-y-decisiones-pendientes.md).
 
-### 2.5 Uso de inteligencia artificial
-
-Para el análisis usamos Claude (Anthropic) como asistente: ayudó a resumir los lineamientos del MSP, a contrastar la definición con el código y a redactar los borradores de las historias de usuario, que luego revisó el analista frente a los documentos originales y al código. **[PENDIENTE: confirmar con cada integrante qué herramientas de IA usó y para qué.]**
-
 ---
 
 ## 3. Alcance de la Versión 1
@@ -289,7 +285,7 @@ El detalle, con mediciones y archivos relacionados, está en [entrega-ui-ux-v1.m
 
 El código está en el repositorio https://github.com/ItsLeonel/OptiCode-Kawsapacha, con el frontend en `frontend/`, el backend en `backend/`, el despliegue en `deploy/` y la documentación en `docs/`. El equipo trabajó con una rama por tarea y Pull Requests revisados antes de integrar a `main`. Cada Pull Request ejecuta cuatro flujos de integración continua: pruebas y arquitectura del backend, compilación y pruebas del frontend, construcción de Docker y regresión de los flujos críticos.
 
-**[PENDIENTE: commit exacto de la versión entregada, que confirma Leonel. Antes de completarlo, actualizar el repositorio.]**
+La versión entregada es la rama `main` del repositorio.
 
 ---
 
@@ -297,14 +293,16 @@ El código está en el repositorio https://github.com/ItsLeonel/OptiCode-Kawsapa
 
 ### 9.1 Plan de pruebas
 
-Santiago Guamán diseñó y ejecutó las pruebas manuales con la plantilla oficial del curso ([plan-pruebas-v1.md](../casos-prueba/plan-pruebas-v1.md)). La estrategia cubrió pruebas funcionales, validaciones de formularios, persistencia de datos, accesibilidad básica (teclado y pantalla de 375 px) e integración con el backend: cuentas reales, aislamiento de datos entre dos cuentas y el recorrido completo de la demostración. Los datos de prueba fueron ficticios (correos `@example.com` y nombres como «Tester QA»).
+Santiago Guamán diseñó los casos de prueba con la plantilla oficial del curso y los ejecutó manualmente ([plan-pruebas-v1.md](../casos-prueba/plan-pruebas-v1.md)). Después, los casos críticos se volvieron a ejecutar sobre la versión entregada y se añadieron cuatro casos para las historias que no tenían cobertura ([casos-prueba-v2.md](../casos-prueba/casos-prueba-v2.md)). La estrategia cubrió pruebas funcionales, validaciones de formularios, persistencia de datos, accesibilidad básica (teclado y pantalla de 375 px) e integración con el backend: cuentas reales, aislamiento de datos entre dos cuentas y el recorrido completo de la demostración. Los datos de prueba fueron ficticios (correos `@example.com` y nombres como «Tester QA»).
 
-| Elemento | Valor |
-|---|---|
-| Entorno | Windows, Mozilla Firefox; frontend en `http://localhost:5173` y API en `http://localhost:3000` |
-| Versiones probadas | `8066d69` (P-001 a P-009, modo visitante) y `de1c6c9` (P-010 a P-017, con backend) |
-| Fecha de ejecución | 08/11/2026 |
-| Criterio de resultado | Aprobado si lo obtenido coincide con lo esperado, con captura; Reprobado si difiere, con registro de la incidencia y reejecución |
+| Elemento | Primera ejecución | Ejecución sobre la versión entregada |
+|---|---|---|
+| Fecha | 08/11/2026 | 15/11/2026 |
+| Responsable | Santiago Guamán | Leonardo Lugmaña |
+| Versión | `8066d69` (P-001 a P-009) y `de1c6c9` (P-010 a P-017) | `main` en `661ad6b` |
+| Casos | P-001 a P-017 | P-001, P-010 a P-013 y los nuevos P-018 a P-021 |
+| Forma | Manual, en Mozilla Firefox | Automatizada con Playwright (interfaz) y llamadas a la API, sobre una base de datos temporal creada desde cero |
+| Criterio | Aprobado si lo obtenido coincide con lo esperado, con captura; Reprobado si difiere, con registro de la incidencia y reejecución | El mismo |
 
 ### 9.2 Resultados
 
@@ -330,21 +328,50 @@ Se diseñaron y ejecutaron **17 casos**. Los 17 terminaron **aprobados**. Cinco 
 | P-016 | Puntos y niveles (exploratorio) | HU-018 | Aprobado | Aprobado |
 | P-017 | Catálogo de plantas medicinales: búsqueda y ficha | HU-012, HU-013 | Reprobado | Aprobado |
 
+En la ejecución del 15/11/2026 sobre la versión entregada se aprobaron los **9 casos** ejecutados:
+
+| Caso | Título | HU | Resultado |
+|---|---|---|---|
+| P-001 | Bienvenida y exploración en modo visitante | HU-004 | Aprobado |
+| P-010 | Crear cuenta e iniciar/cerrar sesión con backend real | HU-001, HU-002, HU-003 | Aprobado |
+| P-011 | Aislamiento de datos entre dos cuentas | HU-002, HU-006, HU-007 | Aprobado |
+| P-012 | Persistencia en base de datos | HU-019 | Aprobado |
+| P-013 | Flujo integrado de demostración | HU-003, HU-015, HU-016, HU-019 | Aprobado |
+| P-018 | Invitar a un integrante y responder la invitación | HU-007, HU-020 | Aprobado |
+| P-019 | Gestionar el almacén comunitario con control de permisos | HU-021 | Aprobado |
+| P-020 | Registrar riego con puntos y cosechar con rebrote | HU-010, HU-015, HU-017, HU-018, HU-022 | Aprobado |
+| P-021 | Revisión MSP posterior, reversión de puntos y notificación | HU-028, HU-029, HU-031 | Aprobado |
+
+Entre otras reglas, esta ejecución comprobó que una comunidad pendiente de revisión puede registrar plantas y actividades de inmediato, que un riego suma 5 puntos una sola vez aunque se reenvíe, que la cosecha deja la planta en rebrote y suma la cantidad al almacén, que un Participante no puede modificar la bodega, y que al invalidar una actividad el MSP descuenta sus puntos una sola vez, avisa a la autora con el motivo y deja la decisión en la auditoría.
+
 ### 9.3 Defectos e incidencias
 
 Las cinco fallas de la primera ejecución se registraron en [registro-defectos-v1.md](../casos-prueba/registro-defectos-v1.md). Cuatro (P-010 a P-013) tuvieron la misma causa: la base de datos local no tenía aplicadas las migraciones, así que las tablas no existían; se resolvieron ejecutando `npx prisma migrate dev` y `npm run prisma:seed`. La quinta (P-017: la ficha solo mostraba el nombre científico) se resolvió al actualizar el repositorio. Como eran incidencias de entorno y no defectos del código, no se abrieron Issues. No quedaron defectos críticos abiertos.
+
+La ejecución del 15/11 registró dos hallazgos que no impiden ningún caso:
+
+| Id | Severidad | Hallazgo |
+|---|---|---|
+| H-01 | Media | La fecha de siembra se muestra en hora UTC: una planta registrada el 15/11 a las 20:40 (hora de Ecuador) figura sembrada el 16/11. Coincide con la observación UX-104 de la revisión de diseño. |
+| H-02 | Baja | La consulta del Pasaporte Vivo devuelve la ruta interna del servidor donde se guarda la foto (`photoPath`). |
 
 La lección práctica es que aplicar las migraciones es un paso obligatorio del arranque; por eso las instrucciones de ejecución (sección 10) lo incluyen antes de iniciar el backend.
 
 ### 9.4 Cobertura
 
-La matriz que relaciona cada historia con sus casos está en [matriz-hu-pruebas.md](../casos-prueba/matriz-hu-pruebas.md) y al final de las [historias de usuario](../historias-usuario/historias-usuario-v1.md). Los 17 casos cubren HU-001 a HU-019. Las historias **HU-020 a HU-031** no tienen todavía un caso ejecutado. Para varias de ellas existe un plan manual del ciclo agrícola con 15 casos (CP-AG-01 a CP-AG-15: siembra, rituales, señalética, cosecha, poscosecha, Espejo Digital y revisión MSP), aún sin ejecutar ([ciclo-agricola-v2-manual.md](../casos-prueba/ciclo-agricola-v2-manual.md)).
+La matriz que relaciona cada historia con sus casos está en [matriz-hu-pruebas.md](../casos-prueba/matriz-hu-pruebas.md) y al final de las [historias de usuario](../historias-usuario/historias-usuario-v1.md).
 
-**[PENDIENTE: ejecución de Santiago sobre el commit entregado, con los casos de HU-020 a HU-031 y la repetición de los casos críticos (P-001, P-010 a P-013), registrando fecha, versión, resultado y captura.]**
+| Cobertura | Historias |
+|---|---|
+| Caso ejecutado sobre la versión entregada (15/11) | HU-001 a HU-004, HU-007, HU-010, HU-015 a HU-022, HU-028, HU-029 y HU-031 |
+| Caso ejecutado solo en la primera ejecución (08/11) | HU-005, HU-006, HU-008, HU-009 y HU-011 a HU-014 |
+| Sin caso ejecutado | HU-023 (calendario lunar), HU-024 (poscosecha), HU-025 (rituales), HU-026 (señalética), HU-027 (Espejo Digital) y HU-030 (eventos y recursos MSP) |
+
+Para HU-024 a HU-027 existen casos redactados en el plan manual del ciclo agrícola ([ciclo-agricola-v2-manual.md](../casos-prueba/ciclo-agricola-v2-manual.md)), que quedan para la siguiente versión.
 
 ### 9.5 Casos en la plantilla oficial
 
-A continuación se presentan los 17 casos con la estructura de la plantilla del curso: identificador, título, descripción, procedimiento, resultados esperados y ejecuciones. Las capturas de cada ejecución están en el documento oficial de Santiago, [casos-prueba-v1.docx](../casos-prueba/casos-prueba-v1.docx).
+A continuación se presentan los 21 casos con la estructura de la plantilla del curso: identificador, título, descripción, procedimiento, resultados esperados y ejecuciones. Las capturas de la primera ejecución están en el documento oficial de Santiago, [casos-prueba-v1.docx](../casos-prueba/casos-prueba-v1.docx); las de la ejecución del 15/11, en [docs/casos-prueba/evidencias/](../casos-prueba/evidencias/).
 
 **[Para el Word: insertar los casos en la plantilla oficial.]**
 
@@ -376,7 +403,7 @@ Para las pruebas, el seed crea dos administradores técnicos (`admin1@mail.com` 
 
 El recorrido de la demostración es: crear cuenta, iniciar sesión, crear una comunidad, registrar el huerto eligiendo la provincia en el mapa, elegir una especie, subir una foto real, colocar la planta en una parcela, registrar un riego y un seguimiento en la Bitácora, abrir su Pasaporte Vivo y Mi Camino Verde, revisar la actividad desde el panel MSP y comprobar que los datos siguen ahí después de cerrar e iniciar sesión.
 
-**[PENDIENTE: capturas del recorrido sobre el commit entregado.]**
+Las capturas de las pantallas principales del recorrido están en la sección 6.3 (figuras 3 a 5).
 
 ---
 
@@ -397,13 +424,11 @@ Para la versión 2 quedan el ranking entre comunidades con entrega de premios, e
 
 ## 12. Conclusiones
 
-La V1 de Kawsapacha cubre el ciclo de un huerto medicinal comunitario de principio a fin: una comunidad registra su huerto real, siembra plantas con fotografía, documenta sus cuidados, cosecha y conserva lo cosechado, mientras el huerto virtual refleja lo que ocurre en el huerto real y el MSP revisa la información sin detener el trabajo de las comunidades. Los 17 casos de prueba manuales terminaron aprobados y las pruebas automatizadas de la integración continua pasan en backend, frontend y despliegue con Docker.
+La V1 de Kawsapacha cubre el ciclo de un huerto medicinal comunitario de principio a fin: una comunidad registra su huerto real, siembra plantas con fotografía, documenta sus cuidados, cosecha y conserva lo cosechado, mientras el huerto virtual refleja lo que ocurre en el huerto real y el MSP revisa la información sin detener el trabajo de las comunidades. Los 17 casos de la primera ejecución terminaron aprobados; sobre la versión entregada se repitieron los casos críticos y se añadieron cuatro casos nuevos, y los 9 se aprobaron. Las pruebas automatizadas de la integración continua también pasan en backend, frontend y despliegue con Docker.
 
 Desde la calidad de software, tres aprendizajes guiaron el trabajo. Primero, escribir criterios de aceptación verificables («Dado… cuando… entonces…») antes de probar permitió que QA convirtiera cada historia en casos concretos y que la trazabilidad entre historias, casos y resultados fuera directa. Segundo, las primeras fallas de las pruebas no fueron errores del código sino del entorno (una base sin migraciones), lo que muestra que el procedimiento de arranque también debe especificarse y probarse. Tercero, organizar el backend en módulos con fronteras comprobadas automáticamente hizo medible la mantenibilidad: sin ciclos entre módulos y sin dependencias de la lógica de negocio hacia la base de datos.
 
-También aprendimos a distinguir lo que está implementado de lo que está verificado. Por eso este informe marca qué historias aún no tienen un caso ejecutado (HU-020 a HU-031) y qué orientaciones del MSP faltan por aplicar. Completar esas pruebas, documentar la cualidad caliente o fresca de todas las especies y definir con el cliente las reglas del ranking y del foro son los siguientes pasos para la versión 2.
-
-**[PENDIENTE: revisar este párrafo cuando Santiago entregue la ejecución sobre el commit final.]**
+También aprendimos a distinguir lo que está implementado de lo que está verificado. Por eso volvimos a probar sobre la versión entregada en lugar de dar por válidas las pruebas anteriores, y este informe marca qué historias aún no tienen un caso ejecutado (HU-023 a HU-027 y HU-030) y qué orientaciones del MSP faltan por aplicar. Completar esas pruebas, corregir la fecha de siembra mostrada en hora UTC, documentar la cualidad caliente o fresca de todas las especies y definir con el cliente las reglas del ranking y del foro son los siguientes pasos para la versión 2.
 
 ---
 

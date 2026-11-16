@@ -1,63 +1,149 @@
-# Kawsapacha — Mi Jardín Vivo
+# 🌱 Kawsapacha — Frontend
 
-Implementación React + TypeScript + Phaser 3.90.0. La entrada principal (`/`) y el laboratorio (`/garden-lab.html`) comparten el renderizador Phaser y la lógica del jardín. **No comparten registros locales si se abren en puertos distintos**: IndexedDB se separa por origen (protocolo, host y puerto). No se precargan comunidades, plantas ni actividades de ejemplo.
+**Interfaz web y jardín virtual interactivo** de [Kawsapacha: Mi Huerto Vivo](../README.md). Aquí se implementan las pantallas, la navegación, la comunicación con la API y la representación visual de los cultivos.
 
-## Ejecutar
+**Tecnologías principales:** React 19, TypeScript 5.9, Vite 7, Phaser 3.90, Leaflet y React Leaflet. Las versiones exactas de instalación están definidas en `package-lock.json`.
 
-Node 20.19+ o 22.12+ y npm. Desde la raíz:
+## 🧭 ¿Qué hace el frontend?
 
-```powershell
+- Permite crear una cuenta, iniciar sesión y gestionar comunidades y huertos.
+- Presenta el catálogo de plantas medicinales, el calendario y las actividades agrícolas.
+- Integra **Mi Jardín Vivo** con seis parcelas, paisajes de las cuatro regiones del Ecuador y modalidades de cultivo en tierra, macetas, vertical y colgante.
+- Permite registrar fotografías, observaciones y actividades, y consultar el **Pasaporte Vivo**, la Bitácora y el progreso.
+- Ofrece pantallas institucionales de administración, sujetas a la autenticación y permisos del backend.
+
+**React** maneja formularios, paneles, navegación y estado de la interfaz. **Phaser** renderiza el jardín 2D. El intercambio entre ambos utiliza modelos, adaptadores y un puente de comandos/eventos: Phaser no consulta la API directamente.
+
+## ▶️ Ejecutar en desarrollo
+
+### Requisitos
+
+- Node.js **20.19+** o **22.12+** (o una versión posterior compatible).
+- npm y acceso al repositorio.
+- Para probar autenticación y persistencia compartida, el **backend debe estar ejecutándose**; consulta [su README](../backend/README.md).
+
+Desde la raíz del repositorio, abre **dos terminales**.
+
+**Terminal 1 — backend:**
+
+```bash
+cd backend
+npm ci
+```
+
+Configura `backend/.env` según [las instrucciones del backend](../backend/README.md); aplica las migraciones y arranca:
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+npm run dev
+```
+
+**Terminal 2 — frontend:**
+
+```bash
 cd frontend
-npm.cmd install
-npm.cmd run dev -- --configLoader runner --host 127.0.0.1
+npm ci
+npm run dev
 ```
 
-Abre la URL indicada por Vite (normalmente `http://127.0.0.1:5173`). Pulsa **Descubrir Kawsapacha**, registra una comunidad, después **Mi terreno** y vuelve a **Mi Jardín**. Una comunidad personal es válida. El laboratorio usa `npm.cmd run dev:garden-poc` y `http://127.0.0.1:5176/garden-lab.html`; añade `?renderer=canvas` para forzar Canvas.
+Abre **http://localhost:5173** (o la dirección que muestre Vite). El backend normalmente responde en **http://localhost:3000**.
 
-## Comportamiento implementado
+En Windows PowerShell se pueden usar los mismos comandos; si la política de ejecución bloquea `npm`, ejecuta `npm.cmd`.
 
-- Escenario de piezas independientes: horizonte regional original, prado continuo, senderos texturados, relieves, recipientes, soportes, sombras y profundidad. Las pantallas maestras orientan la composición; ninguna se pega como escenario.
-- Sierra, Costa, Amazonía y Galápagos se resuelven desde la provincia registrada. Las modalidades En tierra, Macetas, Vertical y Colgante conservan seis identificadores de espacio. Las combinaciones de surcos, camas, camellones y terrazas muestran las selecciones del terreno.
-- Suelo, cercas, fuentes de agua, riego y abono proceden de los tipos y validaciones de Mi terreno. Lluvia no añade un tanque; compost no añade una compostera. Las posiciones son ilustrativas, sin afirmar dimensiones ni capacidad física exactas.
-- Arrastre, rueda, controles de zoom y teclado; selección por ratón o toque. Los seis controles HTML equivalentes sirven a lectores de pantalla y teclado. Inicio/Fin y flechas cambian de espacio. Hay una alternativa HTML si el motor no inicia.
-- Registro con galería o cámara, especie, fecha opcional, ficha editable, foto real en el jardín, estado documentado, observaciones, altura medida y evidencias en el Pasaporte Vivo. Archivar libera el espacio sin borrar la ficha; restaurar comprueba ocupación.
-- Nueve actividades: preparación, limpieza/deshierbe, siembra, riego, abonado, aporque, replante, seguimiento y cosecha. Fecha, responsable, destino, notas, foto y datos específicos. La siembra se registra explícitamente; añadir una ficha no demuestra por sí solo que se haya sembrado.
-- Preparación y abonado dejan señales derivadas de registros. El riego anima temporalmente después de guardar. Seguimiento actualiza estado/foto/medida documentados. Replante cambia de espacio; cosecha completa puede liberar el espacio. Anular conserva evento y evidencia y reconstruye sus efectos; se rechazan conflictos de ocupación.
-- Mis plantas, Mi historia y Mi camino verde son pantallas funcionales. Las acciones no conducen a demostraciones estáticas. Las recompensas locales se recalculan desde registros válidos, excluyen anulaciones y evitan duplicados.
+### Comunicación con la API
 
-## Persistencia y límites
+El archivo [`vite.config.ts`](vite.config.ts) redirige las rutas `/api` y `/uploads` al backend durante el desarrollo. Por defecto el destino es `http://localhost:3000`.
 
-`IndexedDbGardenRepository` implementa `GardenRepository`, separada de la lógica agrícola y de Phaser. IndexedDB `kawsapacha-living-garden-v1`, versión 1, guarda metadatos y fotografías Blob en transacciones. Las fotos tienen identificadores inmutables y se reconstruyen sus URL al abrir. No se guardan URL Blob efímeras como fotografías persistentes. Los registros sobreviven a la recarga; varias pestañas del mismo origen comparten revisiones mediante BroadcastChannel y transacciones. Una operación fallida conserva el registro anterior.
+Para otro destino, configura la variable `KAWSAPACHA_API_TARGET` antes de arrancar Vite. Este **proxy es solo de desarrollo**: en producción, el servidor web debe dirigir esas rutas correctamente.
 
-El alcance local es **un huerto y una comunidad por origen/perfil de navegador**, sin cuentas ni aislamiento entre usuarios del mismo perfil. Cambiar host/puerto/perfil cambia el almacenamiento. Borrar datos del sitio, modo privado, cuotas o desalojo del navegador pueden eliminarlo. No hay copia remota ni sincronización multiusuario. Los borradores todavía no confirmados se conservan al navegar durante la visita, no al recargar. Las fotos de plantas y actividades aceptan JPG/PNG/WebP de hasta 3 MB.
+## 🗂️ Organización del código
 
-El repositorio no contiene un backend funcional ni contratos de autenticación configurados. `App` conserva el adaptador opcional `onAuthenticate: AuthSubmitHandler`: solo `authenticated: true` inicia la sesión de interfaz. Un mensaje, una validación de formulario o una respuesta tardía tras salir no autentican. Sin adaptador, los formularios explican que no se inició sesión; no se inventan endpoints, credenciales ni sesiones. La unión remota, el directorio de comunidades y las publicaciones siguen pendientes del servicio correspondiente. Las fixtures de autenticación son exclusivas de pruebas.
-
-## Gamificación local V1
-
-La lógica está en `journal/progress.ts`, independiente de Phaser. Preparación 10; limpieza 8; siembra 20; riego 5; abonado 8; aporque 8; replante 10; seguimiento 12; cosecha 20. Niveles: Aprendiz desde 0, Oficial desde 100, Maestro desde 300.
-
-Un identificador o contenido repetido no cuenta dos veces. Como máximo se recompensa una actividad por tipo, fecha, destino y responsable normalizado; registros adicionales del mismo grupo pueden conservarse con 0 puntos. Las anulaciones dejan de sumar. Insignias por siembra con foto, riego en tres fechas, seguimiento fotográfico en tres fechas y cosecha con foto. El progreso individual usa el responsable registrado; el agregado comunitario muestra únicamente los registros de este navegador. Son declaraciones locales, sin validación de acciones físicas ni protección del servidor contra manipulación.
-
-## Arquitectura y verificación
-
-- `src/App.tsx`: navegación e integración de formularios, repositorio y paneles.
-- `src/features/my-garden/journal/`: comandos agrícolas puros, proyección de plantas, actividades, repositorio, medios y recompensas.
-- `src/features/my-garden/phaser-poc/`: adaptador visual, geometría, recursos, composición y puente por instancia. `MyGardenPage` lo usa en producción con carga diferida.
-- `features/communities/`, `features/real-gardens/`, `features/auth/`: formularios y contratos existentes reutilizados.
-
-```powershell
-npm.cmd run typecheck
-npm.cmd run build -- --configLoader runner
-npm.cmd run build:garden-poc
-npm.cmd run test:garden-poc
-npm.cmd run test:unit
-npm.cmd run test:e2e
-npm.cmd run test:production
+```text
+frontend/
+├── src/
+│   ├── app/                # Composición, navegación y coordinación
+│   ├── features/
+│   │   ├── auth/           # Acceso y registro
+│   │   ├── communities/    # Comunidades y miembros
+│   │   ├── real-gardens/   # Registro del huerto físico
+│   │   ├── medicinal-catalog/
+│   │   ├── my-garden/      # Jardín, plantas, actividades y Phaser
+│   │   ├── notifications/
+│   │   └── admin-portal/   # Vistas institucionales
+│   ├── shared/             # API, contratos, UI, geografía y utilidades
+│   ├── App.tsx
+│   └── main.tsx
+├── tests/                   # Pruebas Playwright
+├── public/                  # Recursos estáticos
+├── vite.config.ts
+└── package.json
 ```
 
-Playwright usa Chrome instalado y abre/cierra Vite mediante su API, sin tocar servidores del usuario. La suite `test:production` ejecuta los recorridos de escritorio y móvil contra `vite preview` del build principal en 5179 (`KAWSAPACHA_PREVIEW_PORT`). La suite principal usa 5174 (`KAWSAPACHA_E2E_PORT`); la del jardín 5177 (`KAWSAPACHA_POC_PORT`). Las pruebas de mapa sustituyen las teselas externas; las de cámara usan un dispositivo de vídeo simulado. El hardware físico y la sincronización remota no se validan con estas pruebas.
+La composición general se concentra en `app/`; los módulos de `features/` representan capacidades del producto. Los contratos y recursos compartidos se ubican en `shared/`, evitando dependencias innecesarias entre funcionalidades.
 
-Vite avisa del tamaño de Phaser; el motor está en un módulo asíncrono. Las ilustraciones originales de alta resolución requieren una conexión y memoria acordes. La equivalencia visual final con las referencias necesita revisión del propietario del producto; no hay una métrica automática que certifique calidad artística de videojuego.
+Para detalles de las reglas de dependencia, consulta la [arquitectura implementada](../docs/architecture/README.md).
 
-El [informe de implementación](../docs/mi-jardin-vivo-implementacion.md) registra los estados por fase, resultados y evidencias. Se conservan las referencias y la documentación histórica de los recursos.
+## 🌱 ¿Cómo se representa una planta?
+
+1. Una persona registra una planta real, su especie y una fotografía.
+2. React recoge los datos y, con sesión iniciada, los envía mediante el cliente HTTP de `src/shared/api/`.
+3. El backend aplica permisos y persiste el registro y sus archivos.
+4. El adaptador del jardín transforma los datos del cultivo en un modelo visual.
+5. Phaser dibuja los elementos del jardín; al registrar nuevas observaciones o cuidados, la interfaz actualiza la representación y el historial.
+
+El **Espejo Digital Evolutivo** parte de la especie y las etapas **declaradas por el usuario**. No identifica ni diagnostica plantas automáticamente mediante IA.
+
+## 💾 Persistencia: sesión y modo visitante
+
+| Uso | Dónde se guardan los registros |
+| --- | --- |
+| **Con sesión** | API Express y SQLite en el servidor; las fotografías se almacenan en archivos asociados. |
+| **Visitante** | IndexedDB en el navegador, restringido a ese origen/perfil. |
+
+Los datos de IndexedDB **no se sincronizan automáticamente** con otra computadora ni sustituyen los datos del servidor. Cambiar de navegador, protocolo, puerto o limpiar datos del sitio puede afectar los registros locales.
+
+La representación gráfica no reemplaza la evidencia fotográfica ni asegura por sí sola que una actividad haya ocurrido físicamente.
+
+## 🧪 Compilación y pruebas
+
+Desde `frontend/`:
+
+```bash
+npm run typecheck
+npm run build
+npm run test:unit
+npm run test:e2e
+npm run test:garden-poc
+npm run test:regional-photos
+```
+
+- `typecheck`: comprobaciones de TypeScript.
+- `build`: compilación para producción en `dist/`.
+- `test:unit`: suite configurada de pruebas unitarias.
+- `test:e2e`: pruebas de extremo a extremo con Playwright.
+- `test:garden-poc` y `test:regional-photos`: pruebas especializadas del jardín.
+
+Para la suite sobre el build compilado, usa `npm run test:production`. Las pruebas de Playwright pueden levantar servidores locales y utilizar datos de prueba; revisa las configuraciones `playwright*.config.ts`.
+
+**Laboratorio del jardín:** `npm run dev:garden-poc`, normalmente disponible en `http://127.0.0.1:5176/garden-lab.html`. Es una herramienta de desarrollo, no una segunda aplicación de producción.
+
+Las pruebas automatizadas no sustituyen las comprobaciones en teléfonos reales ni la validación del despliegue público. Las mejoras móviles del [PR #74](https://github.com/ItsLeonel/OptiCode-Kawsapacha/pull/74) deben evaluarse según su estado de integración.
+
+## 📦 Publicación y documentación
+
+- El resultado de `npm run build` son archivos web estáticos; **no se publica el servidor de desarrollo Vite**.
+- El backend y las rutas `/api` y `/uploads` deben ser accesibles detrás de un servidor web/proxy configurado.
+- La preparación con Docker/Caddy se documenta en la [guía de despliegue](../docs/arquitectura/despliegue-docker-https.md). La existencia de esa configuración **no acredita por sí sola una publicación pública segura**.
+
+### Más información
+
+- [README principal — producto y funcionalidades](../README.md)
+- [README backend — API, base de datos y seguridad](../backend/README.md)
+- [Arquitectura modular y decisiones](../docs/architecture/README.md)
+- [Diseño y evidencias visuales](../docs/diseno/entrega-ui-ux-v1.md)
+- [Pruebas y resultados](../docs/casos-prueba/README.md)
+
+---
+
+**Equipo OptiCode · Escuela Politécnica Nacional · Proyecto académico Kawsapacha**

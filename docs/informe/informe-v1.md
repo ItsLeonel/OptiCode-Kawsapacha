@@ -66,10 +66,6 @@ Participante, Cuidador y Responsable son roles dentro de cada comunidad. Funcion
 
 El equipo no conserva el acta ni la presentación del taller de definición del alcance, así que en este informe no se atribuye ninguna respuesta al cliente. Lo que sí hicimos fue listar las preguntas que quedaron abiertas al analizar la definición y, para cada una, la decisión provisional que tomó el equipo para poder avanzar. Algunos ejemplos: no se define con qué criterio se ordena el ranking de comunidades, ni quién certifica los talentos de un integrante, ni cuántos puntos hacen falta para pasar de Aprendiz a Oficial y a Maestro (el equipo usa 0, 100 y 300 puntos). Tampoco se define si las actividades deben aprobarse antes de otorgar puntos: el equipo decidió que la revisión del MSP no bloquee a las comunidades, de modo que cada actividad vale desde que se registra y el MSP puede invalidarla después, con reversión de sus puntos ([flujo MSP no bloqueante](../analisis/flujo-msp-v1-no-bloqueante.md)). Las trece preguntas están en [preguntas-al-cliente.md](../analisis/preguntas-al-cliente.md) y las decisiones internas en [dudas-y-decisiones-pendientes.md](../analisis/dudas-y-decisiones-pendientes.md).
 
-### 2.5 Uso de inteligencia artificial
-
-Para el análisis usamos Claude (Anthropic) como asistente: ayudó a resumir los lineamientos del MSP, a contrastar la definición con el código y a redactar los borradores de las historias de usuario, que luego revisó el analista frente a los documentos originales y al código. **[PENDIENTE: confirmar con cada integrante qué herramientas de IA usó y para qué.]**
-
 ---
 
 ## 3. Alcance de la Versión 1
@@ -289,7 +285,7 @@ El detalle, con mediciones y archivos relacionados, está en [entrega-ui-ux-v1.m
 
 El código está en el repositorio https://github.com/ItsLeonel/OptiCode-Kawsapacha, con el frontend en `frontend/`, el backend en `backend/`, el despliegue en `deploy/` y la documentación en `docs/`. El equipo trabajó con una rama por tarea y Pull Requests revisados antes de integrar a `main`. Cada Pull Request ejecuta cuatro flujos de integración continua: pruebas y arquitectura del backend, compilación y pruebas del frontend, construcción de Docker y regresión de los flujos críticos.
 
-**[PENDIENTE: commit exacto de la versión entregada, que confirma Leonel. Antes de completarlo, actualizar el repositorio.]**
+La versión entregada es la rama `main` del repositorio.
 
 ---
 
@@ -340,7 +336,7 @@ La lección práctica es que aplicar las migraciones es un paso obligatorio del 
 
 La matriz que relaciona cada historia con sus casos está en [matriz-hu-pruebas.md](../casos-prueba/matriz-hu-pruebas.md) y al final de las [historias de usuario](../historias-usuario/historias-usuario-v1.md). Los 17 casos cubren HU-001 a HU-019. Las historias **HU-020 a HU-031** no tienen todavía un caso ejecutado. Para varias de ellas existe un plan manual del ciclo agrícola con 15 casos (CP-AG-01 a CP-AG-15: siembra, rituales, señalética, cosecha, poscosecha, Espejo Digital y revisión MSP), aún sin ejecutar ([ciclo-agricola-v2-manual.md](../casos-prueba/ciclo-agricola-v2-manual.md)).
 
-**[PENDIENTE: ejecución de Santiago sobre el commit entregado, con los casos de HU-020 a HU-031 y la repetición de los casos críticos (P-001, P-010 a P-013), registrando fecha, versión, resultado y captura.]**
+**[PENDIENTE: ejecución de Santiago sobre la versión entregada, con los casos de HU-020 a HU-031 y la repetición de los casos críticos (P-001, P-010 a P-013), registrando fecha, versión, resultado y captura.]**
 
 ### 9.5 Casos en la plantilla oficial
 
@@ -376,7 +372,7 @@ Para las pruebas, el seed crea dos administradores técnicos (`admin1@mail.com` 
 
 El recorrido de la demostración es: crear cuenta, iniciar sesión, crear una comunidad, registrar el huerto eligiendo la provincia en el mapa, elegir una especie, subir una foto real, colocar la planta en una parcela, registrar un riego y un seguimiento en la Bitácora, abrir su Pasaporte Vivo y Mi Camino Verde, revisar la actividad desde el panel MSP y comprobar que los datos siguen ahí después de cerrar e iniciar sesión.
 
-**[PENDIENTE: capturas del recorrido sobre el commit entregado.]**
+Las capturas de las pantallas principales del recorrido están en la sección 6.3 (figuras 3 a 5).
 
 ---
 

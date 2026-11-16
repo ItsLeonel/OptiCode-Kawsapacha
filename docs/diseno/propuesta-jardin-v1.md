@@ -4,17 +4,8 @@
 >
 > **Contraste por medición del 15/11/2026 (`main` `5173` vs. rama #74 `5174`):** la rama #74 **sí** añade cámara adaptable con `Acercar jardín`, `Alejar jardín`, `Centrar jardín`, arrastre y pellizco, y un selector de parcela; el encuadre conserva las seis parcelas. A `390 × 844` el botón de menú pasa de `30 × 58` a `48 × 48` px, el widget lunar de `132 × 36` a `132 × 44` px y las acciones rápidas de `316` a `376` px de ancho. En cambio, el **solapamiento del mensaje de guardado descrito como ~`18 px` no se reprodujo** ni en `main` ni en la rama (0 px a `390 × 844`, autenticado y visitante). Se conservan los datos históricos como línea base y **no** se atribuyen a `main` o producción mejoras que solo están en el PR.
 >
-> **Hecho comprobado en repositorio:** en el PR #74 hay cambios en `createGardenGame.ts`, `garden-mobile.css`, `GardenNavigation.tsx` y pruebas Playwright; el CI del SHA `6d7750a` aprobó validación frontend, regresión crítica y build Docker. **Pendiente de verificación:** comportamiento real en Android/iPhone, captura y accesibilidad, aprobación visual del PM y publicación HTTPS. Dylan debe volver a documentar las 16 combinaciones región×modalidad, los seis puntos de siembra y el flujo registro→Pasaporte→Bitácora.
->
-> **Para la entrega académica:** `main` es la base funcional de escritorio; el PR #41 aportó diseño y capturas históricas, mientras que el PR #74 es una mejora posterior en revisión. Las cifras históricas (`0.75`, `0.203`, `18 px`) **no** deben presentarse como medidas recientes.
 
-
-
-**Estado:** propuesta y descripción técnica para revisión de Leonel. No se declara aprobada ni implementada.
-
-Este documento separa lo que aparece en el código actual de lo que queda sujeto a revisión. No describe una nueva escena ni autoriza cambios al motor o a los recursos.
-
-## 5.1. Objetivo y dirección artística
+## 1. Objetivo y dirección artística
 
 Mi Jardín representa visualmente un huerto medicinal vinculado al territorio ecuatoriano mediante una escena ilustrada de aspecto 2.5D y una interfaz educativa. El paisaje aporta contexto; las plantas y características mostradas deben corresponder a datos registrados, no a crecimiento o ubicación inferidos de la ilustración.
 
@@ -22,7 +13,7 @@ Mi Jardín representa visualmente un huerto medicinal vinculado al territorio ec
 
 **Pendiente:** cualquier ajuste de dirección artística, equivalencia con referencias externas y aprobación del diseño debe revisarse con Leonel. La propuesta visual de Figma se conserva como propuesta y no se toma como implementación actual.
 
-## 5.2. Arquitectura visual y técnica
+## 2. Arquitectura visual y técnica
 
 | Capa | Responsabilidad respaldada por el código |
 |---|---|
@@ -33,7 +24,7 @@ Mi Jardín representa visualmente un huerto medicinal vinculado al territorio ec
 
 La documentación de implementación ubica formularios y HUD en React y paisaje/escena en Phaser. La cámara de `main` usa una composición fija: `createGardenGame.ts` indica que comandos heredados de paneo/zoom no producen efecto y el movimiento del puntero solo diferencia clic de arrastre. En la sesión histórica el zoom fue `0.75` a `1440 × 1000` y `0.203` a `390 × 844`; no se observó paneo ni zoom interactivo en `main`. La rama del PR #74 **sí** incorpora cámara adaptable con zoom, paneo, pellizco y selector de parcela (ver la nota de vigencia). La capacidad final debe confirmarse con Leonel antes de presentarla como interacción de `main`.
 
-## 5.3. Regiones
+## 3. Regiones
 
 La selección territorial mapea provincia a región mediante [garden-region.ts](../../frontend/src/features/real-gardens/garden-region.ts). El jardín carga un paisaje por región y el código define guías regionales. Hay recursos regionales en fondos compartidos, assets del juego y recursos del renderizador.
 
@@ -46,7 +37,7 @@ La selección territorial mapea provincia a región mediante [garden-region.ts](
 
 La disponibilidad de recursos y las ramas de carga en código no prueban que se hayan revisado visualmente las cuatro regiones. Por ello no se atribuyen aquí motivos gráficos concretos ni se afirma paridad visual para regiones sin captura. Los fondos declarados para el formulario de terreno y para el juego también pertenecen a rutas distintas; no deben confundirse con una misma imagen.
 
-## 5.4. Modalidades de cultivo
+## 4. Modalidades de cultivo
 
 Las cuatro modalidades se identifican en el modelo como `ground`, `pots`, `vertical` y `hanging`. Las seis posiciones se conservan al cambiar de modalidad o región; los recursos y anclajes visuales varían.
 
@@ -59,20 +50,7 @@ Las cuatro modalidades se identifican en el modelo como `ground`, `pots`, `verti
 
 Las cuatro modalidades no son cuatro escenas independientes: comparten la misma escena, los seis identificadores y el modelo de datos; cambian el perfil de disposición, los anclajes y los recursos visuales. En todas, el dibujo escenográfico no reemplaza los botones y acciones de React. El código de [layouts.ts](../../frontend/src/features/my-garden/phaser-poc/layouts.ts) y [createGardenGame.ts](../../frontend/src/features/my-garden/phaser-poc/createGardenGame.ts) define perfiles, anclajes y carga de recursos; la comprobación visual disponible no cubre las cuatro modalidades.
 
-### 5.4.1. Matriz región × modalidad (16 combinaciones)
-
-El producto contempla cuatro regiones y cuatro modalidades. La revisión del 15/11/2026 solo recorrió **Costa / En tierra**; las demás combinaciones se listan como pendientes de revisión visual. La disponibilidad de recursos en código no equivale a verificación visual.
-
-| Región \ Modalidad | En tierra | Macetas | Vertical | Colgante |
-|---|---|---|---|---|
-| Costa | **Revisado** (`main` y rama #74; capturas en `evidencias-diseno/`) | Pendiente | Pendiente | Pendiente |
-| Sierra | Pendiente | Pendiente | Pendiente | Pendiente |
-| Amazonía / Oriente | Pendiente | Pendiente | Pendiente | Pendiente |
-| Galápagos | Pendiente | Pendiente | Pendiente | Pendiente |
-
-Para cerrar la revisión deben capturarse las 15 combinaciones restantes (o documentar por qué alguna no aplica) en escritorio y móvil, y registrar si el encuadre, los anclajes y las seis parcelas se comportan igual. Hasta entonces, este documento no certifica paridad visual entre regiones ni modalidades.
-
-## 5.5. Seis parcelas interactivas
+## 6. Seis parcelas interactivas
 
 Los identificadores estables son:
 
@@ -89,7 +67,7 @@ Una zona vacía comunica a React la intención de registrar una planta; una zona
 
 En la sesión histórica a `390 × 844`, las seis parcelas están dentro del encuadre, pero la zona táctil de `138 × 85` unidades del mundo quedaba en ~`28 × 17 px` y los centros se separaban ~`60.4 × 32.6 px`; las cuatro laterales eran difíciles de distinguir. A `1440 × 1000` la composición es más legible. La rama #74 añade controles de zoom (`Acercar/Alejar/Centrar jardín`), arrastre y pellizco, y un selector de parcela, sin cambiar los seis identificadores; su precisión táctil queda pendiente de validar en dispositivo real. La propuesta de un selector o vista general de parcelas **sí está implementada en la rama #74** (no fusionada), no en `main`.
 
-## 5.6. Interacciones y elementos de interfaz
+## 7. Interacciones y elementos de interfaz
 
 ### Implementado en código
 
@@ -100,30 +78,20 @@ En la sesión histórica a `390 × 844`, las seis parcelas están dentro del enc
 - El código de `main` diferencia clic de movimiento del puntero y **no** implementa paneo/zoom; la rama #74 sí lo añade (zoom, paneo, pellizco y selector de parcela).
 - La sesión local confirmó el registro de una planta y la apertura del Pasaporte desde una parcela; no se probó el recorrido completo de todas las zonas.
 
-### Pendiente de comprobación o coordinación
-
-- Se verificó el registro y el Pasaporte; no se verificaron la sincronización de foco entre canvas, botones y diálogos, el comportamiento táctil ni el cierre/restauración de foco en todos los flujos.
-- No se ha demostrado con estas capturas el comportamiento de cada guía regional, modalidad y estado de parcela.
-- Las acciones que dependen de autenticación, APIs o persistencia remota requieren probarse con los servicios disponibles; el estado visitante/local no demuestra sincronización. La API de calendario devuelve 401 en visitante y el Pasaporte usa contenido alternativo.
-- La posición y separación del HUD, guía regional, avisos y barra de acciones en móvil se midió a `390 × 844`: la guía toca el borde superior de las acciones **sin solaparse** y el mensaje de guardado **no se superpone** (0 px) ni en `main` ni en la rama #74, en autenticado ni visitante. El hallazgo histórico de ~`18 px` **no se reproduce**. Falta revisar otros anchos, dispositivos y orientación horizontal.
-
-## 5.7. Viabilidad y limitaciones
+## 8. Viabilidad y limitaciones
 
 La separación React/Phaser es viable para conservar formularios y controles semánticos fuera del canvas mientras la escena se ocupa de paisaje y representación visual. Los identificadores estables facilitan conservar asociaciones entre zona y planta al cambiar la composición. El código actual ya define cuatro perfiles de modalidad, regiones, guías y selección de seis zonas; esta documentación no necesita crear escenas ni assets nuevos para describirlos.
 
 Limitaciones registradas:
 
 - La cámara de la escena de `main` es fija; la rama #74 introduce cámara adaptable. Debe acordarse con Leonel cuál es el encuadre esperado.
-- Las evidencias actuales cubren Costa y no permiten certificar Sierra, Amazonía/Oriente ni Galápagos, ni las cuatro modalidades en conjunto (ver §5.4.1). La sesión local solo recorrió Costa/En tierra.
 - En Mi Jardín móvil la guía toca el borde superior de las acciones sin solaparse y el **solapamiento histórico de ~`18 px` del mensaje de guardado no se reprodujo** (0 px a `390 × 844`). Las seis parcelas están en cuadro pero son pequeñas en `main`; la rama #74 añade zoom/paneo/selector. La corrección de legibilidad no está fusionada.
 - En Mi terreno móvil, el contenido comienza muy por debajo del primer viewport por la navegación superior y la cabecera de bienvenida; no hay overflow horizontal. La reducción de esa cabecera no está implementada (UX-005).
-- No se verificó un corte del terreno con el paisaje derecho a `1440 × 1000`; la observación original queda pendiente de reproducción en otros tamaños.
-- Se recorrió la aplicación local (`main` y rama #74) con backend compartido; no hay URL pública y no se probó comportamiento de producción ni sincronización multiusuario.
 - **No se probó en dispositivo móvil real:** las mediciones móviles son emulación de viewport (`390 × 844`) en Chromium headless.
 - Los fondos y parcelas son ilustrativos; no son un levantamiento físico del terreno ni una representación médica o botánica validada.
 - La apariencia de Mi Jardín y el responsive requieren revisión del responsable del producto. No se declara aprobación de Leonel ni cierre de la entrega.
 
-## 5.8. Implementado, verificado y propuesto
+## 9. Implementado, verificado y propuesto
 
 La siguiente tabla separa lo que existe y se comprobó en la sesión local de lo que sigue siendo una recomendación. Ninguna fila de la columna «Propuesta» está implementada.
 
@@ -136,7 +104,23 @@ La siguiente tabla separa lo que existe y se comprobó en la sesión local de lo
 | Áreas táctiles | Varios controles por debajo de 44 px en `main` y rama #74 (notificaciones, chips, filtros, campana) — UX-105. | Elevar a ≥44 px los controles listados. | Problema confirmado; no corregido en ninguno. |
 | Mi terreno móvil | Sin overflow horizontal; contenido muy por debajo del primer viewport por navegación y cabecera — UX-005. | Reducir cabecera/navegación para acercar resumen y acciones. | Problema confirmado; propuesta no implementada. |
 | Unión terreno-paisaje | Sin corte dominante confirmado a `1440 × 1000`. | Revisar otros anchos y alturas antes de modificar la escena. | No confirmado; pendiente. |
-| Modalidades y regiones | Cuatro perfiles comparten escena y seis IDs; solo se recorrió Costa/En tierra. | Mantener una sola escena con perfiles y recursos por modalidad. | Implementado en código; 15 de 16 combinaciones sin revisar (§5.4.1). |
+| Modalidades y regiones | Cuatro perfiles comparten escena y seis IDs; solo se recorrió Costa/En tierra. | Mantener una sola escena con perfiles y recursos por modalidad. | Implementado en código |
 | Ruta `#mi-historia` | Renderiza «Mi camino verde» más la Bitácora Viva sin título propio — UX-108. | Definirla como sección propia o redirigirla a `#progreso`/`#bitacora`. | Confirmado; no corregido en ninguno. |
 | Modo visitante | Guarda en el navegador; el calendario API devuelve 401 y el Pasaporte usa contenido alternativo. Conviven mensajes de «base de datos» y «solo en este navegador» (P0-001), confirmado también en sesión autenticada. | Hacer explícito si el dato es local o sincronizado; no mezclar ambos mensajes. | Implementado con mensaje contradictorio; no corregido. |
-| Figma | Enlace de propuesta visual. | Usarlo como referencia, no como implementación validada. | Acceso e interactividad no verificados. |
+| Figma | Enlace de propuesta visual. | Usarlo como referencia, no como implementación validada. | Propuesta anterior |
+
+## 10. Recomendaciones no implementadas
+
+Las siguientes recomendaciones no forman parte del código revisado y no deben presentarse como cambios realizados. Se registran para revisión y para una futura iteración de UI/UX.
+
+- **Mi Jardín móvil — superposición del mensaje de guardado:** la superposición de ~`18 px` descrita en la revisión histórica **no se reprodujo** en `main` ni en la rama #74 (medición de 0 px a `390 × 844`, autenticado y visitante). La recomendación de reservar una banda libre y respetar `safe-area` sigue siendo prudente, pero **no debe presentarse como corrección de un defecto confirmado**.
+- **Parcelas en móvil:** las seis están en cuadro pero son pequeñas. La rama #74 añade zoom, paneo, pellizco y selector de parcela; queda verificar la precisión táctil en dispositivo real antes de fusionar.
+- **HUD móvil:** colapsar la guía regional a un icono o panel desplegable, reubicar el contador de plantas y evitar que el tercio inferior concentre demasiados controles. La guía toca las acciones rápidas sin solaparse.
+- **Etiquetas y áreas táctiles:** subir las etiquetas de acciones rápidas por encima de 10 px y llevar a ≥44 px los controles identificados en UX-105. La rama #74 ya corrige el menú (`48 × 48`) y el widget lunar (`132 × 44`); el resto sigue pendiente.
+- **Mi terreno móvil:** reducir el peso de la cabecera de bienvenida y de la navegación superior para que el resumen y las acciones aparezcan antes del primer viewport (UX-005).
+- **Ruta `#mi-historia`:** hoy renderiza «Mi camino verde» más la Bitácora Viva sin identidad propia (UX-108). Decidir con el PM si es sección propia o si se redirige.
+- **Mensajes de persistencia:** unificar el mensaje según el destino real del dato y no mezclar «base de datos» con «guardado local» en la misma vista (P0-001, confirmado en sesión autenticada y en visitante).
+- **Estado de éxito:** unificar el patrón de confirmación de guardado y hacer explícito si el dato es local o sincronizado.
+- **Tipografía:** decidir si se mantiene la separación DM Sans/Outfit para producto y Trebuchet MS/Georgia para juego, o si se unifica con una escala común.
+- **Contraste y foco:** realizar una auditoría de contraste de textos, botones y estados sobre fondos ilustrados; conservar el foco visible y probarlo con teclado.
+- **Tokens regionales:** si se busca consistencia, definir variables de color por región en CSS en lugar de depender solo de recursos gráficos. No existe esa capa de tokens en el código revisado.

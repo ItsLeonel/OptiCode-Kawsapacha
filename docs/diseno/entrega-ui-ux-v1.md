@@ -201,7 +201,7 @@ Se optó por separar los elementos interactivos de la escena visual mediante Rea
 
 **4. Jerarquía visual de las acciones**
 
-La organización de Mi Jardín busca que las parcelas y las acciones relacionadas con el cuidado de las plantas constituyan el centro de la experiencia. Por ello, la escena visual funciona como contexto para identificar las zonas de cultivo, mientras que los controles de React permiten ejecutar acciones como registrar una planta, consultar su Pasaporte Vivo, acceder a la Bitácora y navegar por las opciones del huerto. Esta separación busca diferenciar la información contextual de las acciones principales y mantener una relación comprensible entre la selección de una parcela y la operación que puede realizarse sobre ella. La auditoría identificó que el HUD móvil concentra varios elementos en un espacio reducido, por lo que su jerarquía, distribución y legibilidad deben continuar revisándose.
+La organización de Mi Jardín busca que las parcelas y las acciones relacionadas con el cuidado de las plantas constituyan el centro de la experiencia. Por ello, la escena visual funciona como contexto para identificar las zonas de cultivo, mientras que los controles de React permiten ejecutar acciones como registrar una planta, consultar su Pasaporte Vivo, acceder a la Bitácora y navegar por las opciones del huerto. Esta separación busca diferenciar la información contextual de las acciones principales y mantener una relación comprensible entre la selección de una parcela y la operación que puede realizarse sobre ella.
 
 ## 8. Limitaciones y aspectos pendientes
 

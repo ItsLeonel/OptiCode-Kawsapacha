@@ -108,19 +108,3 @@ La siguiente tabla separa lo que existe y se comprobó en la sesión local de lo
 | Ruta `#mi-historia` | Renderiza «Mi camino verde» más la Bitácora Viva sin título propio — UX-108. | Definirla como sección propia o redirigirla a `#progreso`/`#bitacora`. | Confirmado; no corregido en ninguno. |
 | Modo visitante | Guarda en el navegador; el calendario API devuelve 401 y el Pasaporte usa contenido alternativo. Conviven mensajes de «base de datos» y «solo en este navegador» (P0-001), confirmado también en sesión autenticada. | Hacer explícito si el dato es local o sincronizado; no mezclar ambos mensajes. | Implementado con mensaje contradictorio; no corregido. |
 | Figma | Enlace de propuesta visual. | Usarlo como referencia, no como implementación validada. | Propuesta anterior |
-
-## 10. Recomendaciones no implementadas
-
-Las siguientes recomendaciones no forman parte del código revisado y no deben presentarse como cambios realizados. Se registran para revisión y para una futura iteración de UI/UX.
-
-- **Mi Jardín móvil — superposición del mensaje de guardado:** la superposición de ~`18 px` descrita en la revisión histórica **no se reprodujo** en `main` ni en la rama #74 (medición de 0 px a `390 × 844`, autenticado y visitante). La recomendación de reservar una banda libre y respetar `safe-area` sigue siendo prudente, pero **no debe presentarse como corrección de un defecto confirmado**.
-- **Parcelas en móvil:** las seis están en cuadro pero son pequeñas. La rama #74 añade zoom, paneo, pellizco y selector de parcela; queda verificar la precisión táctil en dispositivo real antes de fusionar.
-- **HUD móvil:** colapsar la guía regional a un icono o panel desplegable, reubicar el contador de plantas y evitar que el tercio inferior concentre demasiados controles. La guía toca las acciones rápidas sin solaparse.
-- **Etiquetas y áreas táctiles:** subir las etiquetas de acciones rápidas por encima de 10 px y llevar a ≥44 px los controles identificados en UX-105. La rama #74 ya corrige el menú (`48 × 48`) y el widget lunar (`132 × 44`); el resto sigue pendiente.
-- **Mi terreno móvil:** reducir el peso de la cabecera de bienvenida y de la navegación superior para que el resumen y las acciones aparezcan antes del primer viewport (UX-005).
-- **Ruta `#mi-historia`:** hoy renderiza «Mi camino verde» más la Bitácora Viva sin identidad propia (UX-108). Decidir con el PM si es sección propia o si se redirige.
-- **Mensajes de persistencia:** unificar el mensaje según el destino real del dato y no mezclar «base de datos» con «guardado local» en la misma vista (P0-001, confirmado en sesión autenticada y en visitante).
-- **Estado de éxito:** unificar el patrón de confirmación de guardado y hacer explícito si el dato es local o sincronizado.
-- **Tipografía:** decidir si se mantiene la separación DM Sans/Outfit para producto y Trebuchet MS/Georgia para juego, o si se unifica con una escala común.
-- **Contraste y foco:** realizar una auditoría de contraste de textos, botones y estados sobre fondos ilustrados; conservar el foco visible y probarlo con teclado.
-- **Tokens regionales:** si se busca consistencia, definir variables de color por región en CSS en lugar de depender solo de recursos gráficos. No existe esa capa de tokens en el código revisado.
